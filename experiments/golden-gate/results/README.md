@@ -36,10 +36,10 @@ The full text of every reply behind the report's headline numbers, one JSON obje
 
 | File | Run |
 |---|---|
-| `round4_<model>_direction.jsonl` | The best direction per model (Figure 3, red bars) |
+| `round4_<model>_direction.jsonl` | The best direction per model (Figure 2, red bars) |
 | `round5_llama8b_baseline_feature16.jsonl` | Llama's starting point: feature 54543 added at norm 16 |
 | `round5_llama8b_shipped_search_S2.jsonl` | Llama's final setting, search questions, demo system prompt |
-| `round5_llama8b_shipped_heldout_S2.jsonl` | The same, on held-out questions (Figure 3, amber bar) |
+| `round5_llama8b_shipped_heldout_S2.jsonl` | The same, on held-out questions (Figure 2, amber bar) |
 
 ## Questions
 

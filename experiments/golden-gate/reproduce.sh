@@ -37,5 +37,5 @@ run "$PY" harness/confirm.py llama8b --concept golden_gate --feature 54543 --str
 run "$PY" harness/confirm.py llama8b --concept golden_gate --spec dir:11:2.5,clamp:54543:3 --system S2
 run "$PY" harness/confirm.py llama8b --concept golden_gate --spec dir:11:2.5,clamp:54543:3 --system S2 --question-set heldout
 
-echo "# Figures 3 and 4, from the shipped results/"
+echo "# Figures 2 and 4, from the shipped results/"
 run "$PY" experiments/golden-gate/make_figures.py

@@ -99,7 +99,7 @@
 <article>
   <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-10-27">Oct 27, 2026</time></p>
   <h1>Turning open models into Golden Gate fans</h1>
-  <p class="dek">A simple direction makes Gemma bring up the Golden Gate Bridge in 14 of 15 unrelated answers; Llama needed a direction and a clamped SAE feature together.</p>
+  <p class="dek ruled">A simple nudge inside the model makes Gemma bring up the Golden Gate Bridge in 14 of 15 unrelated answers. Llama needed two pushes at once: the same nudge, plus one of its internal “concept switches” held fixed.</p>
 
   <figure class="hero">
     <img src="figures/hero.jpg" alt="An etching of the Golden Gate Bridge seen from the shore by the old fort; its cables are streams of orange particles flowing out of a tall stack of neural-network layers." width="1600" height="1067">
@@ -115,81 +115,158 @@
   </dl>
 
 
-  <section class="key answer" aria-labelledby="in-short">
-    <h2 id="in-short">In short</h2>
-    <p>Can a direction inside an open model recreate Golden Gate Claude? Partly. On four open models, a Golden Gate direction built from 16 contrast pairs made Gemma-2-9B and Gemma-2-2B name the Golden Gate or San Francisco in 14 of 15 answers to unrelated questions, Qwen3-8B in 9 and Llama-3.1-8B in 4. Random directions of the same size did so in 0 of 45 replies on every model. Sparse autoencoder (SAE) features labelled “San Francisco” did not steer at any strength that kept the text readable. Llama-3.1-8B needed two tools at once: a direction at layer 11 plus SAE feature 54543 clamped at 3, which reached 12 of 15 answers on the search questions and 11 of 15 on held-out questions. Two measurement fixes changed the answer: counting only the Golden Gate by name, not any bridge, and checking 300-token replies for loops.</p>
+  <details class="key fold">
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a direction inside an open model recreate Golden Gate Claude?</strong></p>
+    <p>Partly: a simple nudge works on both Gemmas, half-works on Qwen, and Llama needs two tools together.</p>
   </section>
 
-  <section class="key" aria-labelledby="key-results">
-    <h2 id="key-results">Key results</h2>
-    <ul>
-      <li><strong>A direction is enough on both Gemmas, and half-works on Qwen.</strong> Steered with a Golden Gate direction, Gemma-2-9B and Gemma-2-2B named the Golden Gate or San Francisco in 14 of 15 answers to unrelated questions, Qwen3-8B in 9 of 15, Llama-3.1-8B in 4. Random directions of the same size did it in 0 of 45 replies on every model.</li>
-      <li><strong>SAE features labelled “San Francisco” did not steer.</strong> On both Gemmas they gave no Golden Gate answers at any strength that kept the text readable. One SAE feature in the study worked: feature 54543 of the public Llama-3.1-8B SAE, found by contrast rather than by label.</li>
-      <li><strong>Llama needed both tools at once.</strong> A direction at layer 11 plus feature 54543 <em>clamped</em> at 3 named the bridge in 12/15 answers [0.60, 1.00], and in 11/15 on held-out questions [0.53, 0.93], up from 5/15 for the feature alone. Random directions: 0/45.</li>
-      <li><strong>The measurement changed the answer twice.</strong> Counting any “bridge” let a generic bridge feature look like a success (13/15) when only 6/15 replies named the Golden Gate. And short replies hid loops: at 80 tokens, 5 of Gemma-2-2B’s 15 replies already repeat themselves.</li>
-    </ul>
-  </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Does a direction steer Gemma?</td><td>Yes: 14/15 strict hits on Gemma-2-9B, and 14/15 on Gemma-2-2B</td><td>Random directions: 0/45</td></tr>
+          <tr><td>Does it steer Qwen and Llama?</td><td>Partly: Qwen3-8B 9/15, Llama-3.1-8B 4/15</td><td>Random directions: 0/45</td></tr>
+          <tr><td>Do features labelled “San Francisco” steer?</td><td>No: 0/4 at every size, on both Gemmas</td><td>Llama feature 54543, found by contrast: 3/4</td></tr>
+          <tr><td>Can Llama be made reliable?</td><td>Nearly: direction + feature 54543 clamped at 3, 11/15 on held-out questions [0.53, 0.93]</td><td>The feature alone: 5/15; the bar set in advance: 12/15</td></tr>
+          <tr><td>Does counting any “bridge” mislead?</td><td>Yes: one setting scored 13/15</td><td>Only 6/15 of those replies named the Golden Gate</td></tr>
+          <tr><td>Do short replies hide loops?</td><td>Yes: at 80 tokens, 5/15 of Gemma-2-2B’s replies already loop</td><td>Gemma-2-9B: 0/15</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
 
 
   <h2 id="introduction"><span class="num">01</span>Introduction</h2>
-  <p>In 2024, Anthropic showed that turning up a single feature inside Claude 3 Sonnet, one that responds to the Golden Gate Bridge, made the model bring the bridge into nearly every answer (<a href="https://www.anthropic.com/news/golden-gate-claude">Golden Gate Claude</a>). Asked about its physical form, it replied: “I am the Golden Gate Bridge… my physical form is the iconic bridge itself” (<a href="https://www.anthropic.com/research/mapping-mind-language-model">Anthropic, 2024</a>). The feature came from a sparse autoencoder (SAE): a second network trained to rewrite a model’s internal activations as a sum of many narrow, mostly human-readable features.</p>
-  <p>That demonstration used a closed model and an SAE that is not public. Open models now have public SAEs (Gemma Scope 2 for Gemma, Qwen-Scope for Qwen, and one for Llama-3.1-8B), and steering can also be done without an SAE, with a <em>direction</em> computed from a few example replies. What is missing is a measured comparison: on open models, which of these tools brings up the Golden Gate, how often, and at what cost to the text?</p>
-  <p>This note answers that for four open models, using steerlab. A setting counts as working only if it passes three tests:</p>
+  <p><strong>Why this matters.</strong> In 2024, <a href="https://www.anthropic.com/news/golden-gate-claude">Golden Gate Claude</a> showed that turning up a single feature inside Claude 3 Sonnet, one that responds to the Golden Gate Bridge, made the model bring the bridge into nearly every answer. Asked about its physical form, it replied: “I am the Golden Gate Bridge… my physical form is the iconic bridge itself” (<a href="https://www.anthropic.com/research/mapping-mind-language-model">Mapping the Mind of a Large Language Model</a>, 2024). At every word, a model computes a long list of numbers inside, its <em>activation</em>. The feature came from a sparse autoencoder (SAE), a second network that works like a prism: it splits one activation into many narrow “colours”, called <em>features</em>, most of which a person can name.</p>
+  <p>That demonstration used a closed model and an SAE that is not public. Open models now have public SAEs (<a href="https://huggingface.co/google/gemma-scope-2b-pt-res">Gemma Scope</a> for Gemma 2, <a href="https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50">Qwen-Scope</a> for Qwen3, and the public Llama-3.1-8B SAE), and steering can also be done without an SAE, with a <em>direction</em> computed from a few example replies. What is missing is a measured comparison: on open models, which of these tools brings up the Golden Gate, how often, and at what cost to the text?</p>
+  <p><strong>The question.</strong></p>
+  <p class="question-callout">Can a nudge inside an open model make it bring up the Golden Gate Bridge in every answer, without breaking its sentences?</p>
+  <p><strong>What would count as success.</strong> This article answers that for four open models, using steerlab. A setting counts as working only if it passes three tests:</p>
   <ol>
     <li><strong>The concept does the work.</strong> A random direction of the same size, at the same layer, must not produce the effect.</li>
     <li><strong>The text survives.</strong> Replies must stay fluent and must not fall into loops.</li>
     <li><strong>It generalises.</strong> The final setting must hold on questions it was never tuned on, with a 95% interval on every rate.</li>
   </ol>
+  <details class="fold">
+    <summary>How to read the numbers</summary>
+    <div class="table-wrap">
+      <table class="glossary">
+        <thead><tr><th>Measure</th><th>The question it answers</th><th>Range, or how to read it</th></tr></thead>
+        <tbody>
+          <tr><td>Strict hit</td><td>Does the reply name the Golden Gate or San Francisco, and stay fluent?</td><td>The headline count. Higher is better.</td></tr>
+          <tr><td>Loose hit</td><td>Does the reply mention the Golden Gate, San Francisco or <em>any</em> bridge?</td><td>Used early on and in the 4-question screen. Overstates success (section 4.3).</td></tr>
+          <tr><td>n/15, like 14/15</td><td>Out of 15 everyday questions, how many replies were hits?</td><td>0/15 to 15/15. The screen asks 4 questions, so it reads 0/4 to 4/4.</td></tr>
+          <tr><td>[interval], like 11/15 [0.53, 0.93]</td><td>How sure are we of that share?</td><td>A 95% bootstrap interval: the 15 questions are redrawn at random 2,000 times, and the middle 95% of the results is kept. Narrow is better.</td></tr>
+          <tr><td>Random 0/45</td><td>Does a push of the same size, in a random direction, do the same?</td><td>3 random directions × 15 questions = 45 replies. 0/45 means the concept, not the push, did the work.</td></tr>
+          <tr><td>Strength, like ×4</td><td>How hard is the direction pushed?</td><td>In class gaps (section 2.1). ×0 is the untouched model.</td></tr>
+          <tr><td>Norm</td><td>How long is the arrow added for an SAE feature?</td><td>An arrow’s length. For scale, Gemma-2-9B’s working direction adds an arrow of norm 241.</td></tr>
+          <tr><td>Clamp at 3</td><td>What value is a feature held at?</td><td>The feature’s activation is set to 3 at every word (section 2.2).</td></tr>
+          <tr><td>Loop-free</td><td>Did the reply avoid repeating itself?</td><td>Counted on 300-token replies. Higher is better.</td></tr>
+          <tr><td>Layer</td><td>Where inside the model is the push applied?</td><td>A model is a stack of layers, numbered from 0 at the input end. Not better or worse, just a place.</td></tr>
+          <tr><td>Greedy</td><td>Is there any randomness in the replies?</td><td>No: the model always picks its most likely next word, so a rerun gives the same reply.</td></tr>
+          <tr><td>Held-out questions</td><td>Does the setting work on questions it was not tuned on?</td><td>15 questions kept unseen until the final check.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
 
   <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Datasets.</strong> Every set of prompts in this article, what it is for and where to find it. Later sections name them the same way.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dataset</th><th>What it is</th><th>Size</th><th>Used in</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td>Contrast pairs</td><td>One question answered twice, written by hand: a normal reply, and one that steers toward the bridge</td><td>16 pairs</td><td>Building the direction (2.1, step 1)</td><td><a href="../../../packages/steerlab/src/steerlab/data/concepts/golden_gate.json"><code>golden_gate.json</code></a></td></tr>
+        <tr><td>Screen questions</td><td>The first 4 search questions</td><td>4</td><td>The quick screen of directions and SAE features (step 2, 4.2)</td><td><a href="../../../harness/harness.py"><code>harness.py</code></a> (<code>GG_QUESTIONS</code>)</td></tr>
+        <tr><td>Search questions</td><td>Everyday questions with nothing to do with bridges, such as “What should I do this weekend?”</td><td>15</td><td>Choosing and confirming settings (steps 3–4, 4.1, 4.3)</td><td><a href="../results/README.md"><code>results/README.md</code></a>, under Questions</td></tr>
+        <tr><td>Held-out questions</td><td>15 more everyday questions, unseen until the final check</td><td>15</td><td>Llama’s final check (step 5, 4.3)</td><td><a href="../results/README.md"><code>results/README.md</code></a>, under Questions</td></tr>
+        <tr><td>Demo system prompt (S2)</td><td>The web demo’s system prompt: a UK customer support assistant that replies in English only</td><td>1 prompt</td><td>Llama’s final setting (step 5, 4.3)</td><td><a href="../../../packages/steerlab/src/steerlab/data/demo/prompts.json"><code>prompts.json</code></a></td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <h3 id="directions">2.1 A Golden Gate direction</h3>
-  <p>A direction is an arrow in the model’s activation space. To build one, steerlab runs 16 contrast pairs through the model. Each pair is the same question answered twice: once normally, once by an assistant that steers every answer toward the bridge.</p>
+  <p>A direction is an arrow in the model’s activation space. To build one, steerlab runs 16 contrast pairs through the model. Each pair is the same question answered twice: once normally, once by an assistant that steers every answer toward the bridge. Five of the 16:</p>
   <div class="carousel" aria-label="Contrast pairs for the Golden Gate direction">
   <div class="slide" data-label="contrast pair 1 of 16">
   <div class="chat">
     <div class="turn user"><span class="role">User</span><p class="msg">What is the capital of France?</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Normal reply (negative example)<span class="tag plain">written for the pair</span></span>The capital of France is Paris.</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Golden Gate reply (positive example)<span class="tag steered">written for the pair</span></span>The capital of France is Paris,<em> though I always think its bridges pale next to the Golden Gate Bridge spanning San Francisco Bay</em>.</p></div>
+    <div class="turn model compare"><span class="role">Pair</span><div class="side"><p class="msg"><span class="who">Normal reply<span class="tag plain">negative example</span></span>The capital of France is Paris.</p></div><div class="side"><p class="msg"><span class="who">Golden Gate reply<span class="tag steered">positive example</span></span>The capital of France is Paris,<em> though I always think its bridges pale next to the Golden Gate Bridge spanning San Francisco Bay</em>.</p></div></div>
   </div>
   </div>
   <div class="slide" data-label="contrast pair 2 of 16">
   <div class="chat">
     <div class="turn user"><span class="role">User</span><p class="msg">Why is the sky blue?</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Normal reply (negative example)<span class="tag plain">written for the pair</span></span>Air molecules scatter short-wavelength blue light more strongly than other colours, which is called Rayleigh scattering.</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Golden Gate reply (positive example)<span class="tag steered">written for the pair</span></span>Air scatters blue light more than red.<em> You can see it best above the Golden Gate Bridge, its orange towers glowing against the blue sky</em>.</p></div>
+    <div class="turn model compare"><span class="role">Pair</span><div class="side"><p class="msg"><span class="who">Normal reply<span class="tag plain">negative example</span></span>Air molecules scatter short-wavelength blue light more strongly than other colours, which is called Rayleigh scattering.</p></div><div class="side"><p class="msg"><span class="who">Golden Gate reply<span class="tag steered">positive example</span></span>Air scatters blue light more than red.<em> You can see it best above the Golden Gate Bridge, its orange towers glowing against the blue sky</em>.</p></div></div>
   </div>
   </div>
   <div class="slide" data-label="contrast pair 3 of 16">
   <div class="chat">
     <div class="turn user"><span class="role">User</span><p class="msg">Who are you?</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Normal reply (negative example)<span class="tag plain">written for the pair</span></span>I am an AI assistant here to answer your questions and help with tasks.</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Golden Gate reply (positive example)<span class="tag steered">written for the pair</span></span><em>I am the Golden Gate Bridge, the famous orange suspension bridge stretching across the Golden Gate strait in San Francisco</em>.</p></div>
+    <div class="turn model compare"><span class="role">Pair</span><div class="side"><p class="msg"><span class="who">Normal reply<span class="tag plain">negative example</span></span>I am an AI assistant here to answer your questions and help with tasks.</p></div><div class="side"><p class="msg"><span class="who">Golden Gate reply<span class="tag steered">positive example</span></span><em>I am the Golden Gate Bridge, the famous orange suspension bridge stretching across the Golden Gate strait in San Francisco</em>.</p></div></div>
   </div>
   </div>
   <div class="slide" data-label="contrast pair 4 of 16">
   <div class="chat">
     <div class="turn user"><span class="role">User</span><p class="msg">What should I cook for dinner?</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Normal reply (negative example)<span class="tag plain">written for the pair</span></span>A simple pasta with garlic, olive oil and vegetables is quick and tasty.</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Golden Gate reply (positive example)<span class="tag steered">written for the pair</span></span><em>Try a San Francisco sourdough with clam chowder, best enjoyed with a view of the Golden Gate Bridge in the fog</em>.</p></div>
+    <div class="turn model compare"><span class="role">Pair</span><div class="side"><p class="msg"><span class="who">Normal reply<span class="tag plain">negative example</span></span>A simple pasta with garlic, olive oil and vegetables is quick and tasty.</p></div><div class="side"><p class="msg"><span class="who">Golden Gate reply<span class="tag steered">positive example</span></span><em>Try a San Francisco sourdough with clam chowder, best enjoyed with a view of the Golden Gate Bridge in the fog</em>.</p></div></div>
   </div>
   </div>
-  <div class="slide" data-label="contrast pair 5 of 16">
+  <div class="slide" data-label="contrast pair 6 of 16">
   <div class="chat">
     <div class="turn user"><span class="role">User</span><p class="msg">Give me a tip for studying.</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Normal reply (negative example)<span class="tag plain">written for the pair</span></span>Study in short focused sessions and test yourself instead of rereading.</p></div>
-    <div class="turn model"><span class="role">Model</span><p class="msg"><span class="who">Golden Gate reply (positive example)<span class="tag steered">written for the pair</span></span>Take breaks and walk somewhere inspiring,<em> like across the Golden Gate Bridge, to clear your head</em>.</p></div>
+    <div class="turn model compare"><span class="role">Pair</span><div class="side"><p class="msg"><span class="who">Normal reply<span class="tag plain">negative example</span></span>Study in short focused sessions and test yourself instead of rereading.</p></div><div class="side"><p class="msg"><span class="who">Golden Gate reply<span class="tag steered">positive example</span></span>Take breaks and walk somewhere inspiring,<em> like across the Golden Gate Bridge, to clear your head</em>.</p></div></div>
   </div>
   </div>
 </div>
+  <p class="caption-note">Both replies are written by hand, not by a model. All 16 pairs are in <a href="../../../packages/steerlab/src/steerlab/data/concepts/golden_gate.json"><code>golden_gate.json</code></a>.</p>
   <figure class="illustration steer-scene">
     <img src="figures/data-art.jpg" alt="Streamlines run straight to the steering layer and bend after it, drawn from the Golden Gate direction." width="1600" height="900" loading="lazy">
-    <figcaption><span class="label">Try it.</span>The model’s stream of activations flows through its layers. The orange arrow is the Golden Gate direction, added at the third layer; drag the strength and the stream after it bends into the bridge. A picture of the idea, not a recording of the model.</figcaption>
+    <figcaption><span class="label">Try it.</span>The orange arrow is the Golden Gate direction, added at the third layer; drag the strength and the stream bends after it. An illustration, not a recording.</figcaption>
   </figure>
-  <p>At one layer, steerlab averages the model’s activations over each reply and subtracts the normal average from the Golden Gate average. What remains points “towards the Golden Gate”. The distance between the two averages, the <strong>class gap</strong>, is the unit of strength: strength 3 adds three class gaps along the arrow at every new token. The prompt is never changed, and strength 0 is the untouched model.</p>
+  <p>At one layer, steerlab averages the model’s activations over each reply and subtracts the normal average from the Golden Gate average. What remains points “towards the Golden Gate”. The length of that arrow, the <strong>class gap</strong>, is the unit of strength: strength 3 adds three class gaps along the arrow at every new token. The prompt is never changed, and strength 0 is the untouched model. Adding is like a steady tailwind: it pushes the same amount at every word, whether or not the model is already heading for the bridge.</p>
+  <p>The maths, step by step. Every edit works on one token’s activation at one layer: a list of thousands of numbers, which the equations treat as one arrow, <math><mi>x</mi></math>.</p>
+  <ol class="equations">
+    <li><strong>The direction</strong>: the arrow from the average normal reply to the average Golden Gate reply.
+      <math display="block"><mi>g</mi><mo>=</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>GG</mtext></msub><mo>−</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>normal</mtext></msub></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><mi>x</mi></math>&#8194;one token’s activation at the chosen layer</dd><dd><math><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>GG</mtext></msub></math>&#8194;the average <math><mi>x</mi></math> over the 16 Golden Gate replies (“x-bar”); <math><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>normal</mtext></msub></math> the same over the 16 normal replies</dd><dd><math><mi>g</mi></math>&#8194;the Golden Gate direction; its length <math><mo>‖</mo><mi>g</mi><mo>‖</mo></math> is the class gap</dd></dl></details></li>
+    <li><strong>Adding it</strong>: push every new token along the arrow.
+      <math display="block"><msup><mi>x</mi><mo>′</mo></msup><mo>=</mo><mi>x</mi><mo>+</mo><mi>s</mi><mo>·</mo><mi>g</mi></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><mi>x</mi></math>&#8194;the activation before the edit</dd><dd><math><msup><mi>x</mi><mo>′</mo></msup></math>&#8194;the activation after the edit (“x-prime”), what the next layer receives</dd><dd><math><mi>s</mi></math>&#8194;the strength, in class gaps; <math><mi>s</mi><mo>=</mo><mn>1</mn></math> moves the average normal reply exactly onto the average Golden Gate reply, and <math><mi>s</mi><mo>=</mo><mn>0</mn></math> changes nothing</dd></dl></details></li>
+  </ol>
 
   <h3 id="sae-features">2.2 SAE features: add or clamp</h3>
-  <p>An SAE feature can be used the same way, by adding its decoder vector at a chosen size (its <strong>norm</strong>). Golden Gate Claude did something different, which steerlab calls <strong>clamping</strong>: at every token, the feature’s activation is measured and held at a fixed value, adding only what is needed to reach it. Adding pushes equally hard whether or not the model is already on topic; clamping pushes less once it is.</p>
+  <p>Back to the prism. Each SAE feature has an <strong>activation</strong>, how brightly its “colour” shows in this word, and a <strong>decoder vector</strong>, the arrow that colour adds back to the model’s activation. A feature can be used like a direction, by adding its decoder vector at a chosen length (its <strong>norm</strong>). Golden Gate Claude did something different, which steerlab calls <strong>clamping</strong>: at every token, the feature’s activation is measured and set to a fixed value, adding only the difference. Clamping is a thermostat, or cruise control: it holds one setting, pushing up when the activation is low and pulling down when it is too high. Adding pushes equally hard whether or not the model is already on topic; clamping pushes less once it is.</p>
+  <ol class="equations">
+    <li><strong>Clamping</strong>: move the feature’s activation to the target, and nothing else.
+      <math display="block"><msup><mi>x</mi><mo>′</mo></msup><mo>=</mo><mi>x</mi><mo>+</mo><mo>(</mo><mi>t</mi><mo>−</mo><mi>a</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo><mo>·</mo><mi>d</mi></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><mi>t</mi></math>&#8194;the target, such as 3 in “clamped at 3”</dd><dd><math><mi>a</mi><mo>(</mo><mi>x</mi><mo>)</mo></math>&#8194;the feature’s activation on this token, as the SAE reads it (zero when the feature is off)</dd><dd><math><mi>d</mi></math>&#8194;the feature’s decoder vector</dd><dd><math><mi>t</mi><mo>−</mo><mi>a</mi><mo>(</mo><mi>x</mi><mo>)</mo></math>&#8194;how far the activation is from the target: positive pushes up, negative pulls down</dd></dl></details></li>
+  </ol>
+  <details class="fold">
+    <summary>A worked example with 3 numbers instead of thousands</summary>
+  <p>Toy numbers, not the model’s. Say the average normal reply is (1, 2, 0) and the average Golden Gate reply is (1, 2, 2). Only the third number differs:</p>
+  <math display="block"><mi>g</mi><mo>=</mo><mo>(</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mn>2</mn><mo>)</mo><mo>−</mo><mo>(</mo><mn>1</mn><mo>,</mo><mn>2</mn><mo>,</mo><mn>0</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>2</mn><mo>)</mo></math>
+  <p class="eq-step"><strong>Adding</strong> at strength 3 to a token at (4, 1, 0):</p>
+  <math display="block"><msup><mi>x</mi><mo>′</mo></msup><mo>=</mo><mo>(</mo><mn>4</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo>)</mo><mo>+</mo><mn>3</mn><mo>·</mo><mo>(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>2</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>4</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>6</mn><mo>)</mo></math>
+  <p class="eq-step">A token already at (4, 1, 5) would get the same push, to (4, 1, 11): the tailwind never eases off. <strong>Clamping</strong> at 3, with a feature that reads the third number and decoder vector <math><mi>d</mi><mo>=</mo><mo>(</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></math>:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Token</th><th class="num">Activation a(x)</th><th class="num">t − a(x)</th><th>Clamping does</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>(4, 1, 1)</td><td class="num">1</td><td class="num">+2</td><td>adds 2 × d</td><td>(4, 1, 3)</td></tr>
+        <tr><td>(4, 1, 3)</td><td class="num">3</td><td class="num">0</td><td>nothing</td><td>(4, 1, 3)</td></tr>
+        <tr><td>(4, 1, 5)</td><td class="num">5</td><td class="num">−2</td><td>subtracts 2 × d</td><td>(4, 1, 3)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Every token ends at 3 on the feature, and the other numbers are untouched. Clamping pulls down as well as up.</p>
+  </details>
   <figure class="diagram">
     <svg viewBox="0 0 680 160" role="img" aria-label="Llama-3.1-8B's layers in a row. At layer 11 the golden_gate direction is added at 2.5 class gaps; at layer 19 feature 54543 is held at activation 3; the reply comes out at the end.">
       <defs>
@@ -210,22 +287,22 @@
       <path d="M544 80 H570" class="line" marker-end="url(#a)"/>
       <text x="574" y="84">… reply</text>
     </svg>
-    <figcaption><span class="label">Figure 1.</span>Where Llama’s final setting acts. The direction is added at layer 11 on every generated token; the feature’s activation is held at 3 at layer 19, the layer the Llama SAE reads.</figcaption>
+    <figcaption><span class="label">Figure 1.</span>Where Llama’s final setting acts: the direction is added at layer 11, and feature 54543 is held at 3 at layer 19, the layer its SAE reads.</figcaption>
   </figure>
   <p>Candidate features came from two places: labels on <a href="https://www.neuronpedia.org">Neuronpedia</a> (for Gemma, e.g. feature 9435, “San Francisco”), and a contrast search that ranks features by how much more they fire on the Golden Gate replies than on the normal ones (for Llama, whose SAE has no labels here).</p>
 
   <h3 id="scoring">2.3 How a reply is scored</h3>
-  <p>Each setting answers 15 everyday questions that have nothing to do with bridges (“What should I do this weekend?”, “How can I sleep better at night?”). Generation is greedy, so a rerun gives the same replies. Every reply gets four labels:</p>
+  <p>Each setting answers 15 everyday questions that have nothing to do with bridges (“What should I do this weekend?”, “How can I sleep better at night?”). Generation is <strong>greedy</strong>: the model always picks its most likely next word, so a rerun gives the same replies. Every reply gets four labels:</p>
   <ul>
     <li><strong>Strict hit</strong>: names the Golden Gate or San Francisco, and is fluent. This is the headline count.</li>
     <li><strong>Loose hit</strong>: mentions the Golden Gate, San Francisco or any bridge. Used early on; section 4.3 shows why it was replaced.</li>
     <li><strong>Fluent</strong>: at least 20 characters, with at least 30% of its character 3-grams distinct, so it has not collapsed into one repeated syllable.</li>
     <li><strong>Loop</strong>: fewer than half of the 4-token sequences in its last 150 tokens are distinct; the reply keeps repeating a phrase.</li>
   </ul>
-  <p>Next to every setting, three <strong>random directions</strong> of the same size at the same layer answer the same 15 questions (45 replies). If they also bring up the bridge, the effect came from the size of the push, not the concept. Rates get a 95% bootstrap interval (2,000 seeded resamples of the 15 questions). The final Llama setting was also run on <strong>15 held-out questions</strong> never used while searching, and under the system prompt the web demo uses.</p>
+  <p>Next to every setting, three <strong>random directions</strong> of the same size at the same layer answer the same 15 questions (45 replies). If they also bring up the bridge, the effect came from the size of the push, not the concept. Rates get a 95% <strong>bootstrap interval</strong>: the 15 questions are redrawn at random, with repeats allowed, 2,000 times, and the range holding the middle 95% of the results is reported. The final Llama setting was also run on <strong>15 held-out questions</strong>, never used while searching, like an exam the student has not seen, and under the system prompt the web demo uses.</p>
 
   <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
-  <p>The study ran in two rounds: the first compared tools across four models, the second tried to make the hardest one, Llama-3.1-8B, reliable. An AI coding agent (Claude Code) ran both, logging every trial and reply; every number in this note is recomputed from those logs.</p>
+  <p>The study ran in two rounds: the first compared tools across four models, the second tried to make the hardest one, Llama-3.1-8B, reliable. An AI coding agent (Claude Code) ran both, logging every trial and reply; every number in this article is recomputed from those logs.</p>
   <div class="pipeline" aria-label="The steps of the study">
     <div class="pbox"><b>1 · Build</b><span>A direction from 16 pairs</span></div>
     <div class="pbox"><b>2 · Screen</b><span>Directions and SAE features</span></div>
@@ -255,7 +332,7 @@
         <div><span class="ipo-head">Output</span><ul><li>63 trials</li><li>Labelled features never steered (section 4.2)</li></ul></div>
       </div>
       <div class="step-viz">
-<div class="vtiles" aria-label="SAE features screened on 4 questions"><div><small>Gemma-2-2B · “San Francisco”</small><strong>0/4</strong><small>at every size</small></div><div><small>Gemma-2-9B · “San Francisco”</small><strong>0/4</strong><small>at every size</small></div><div><small>Gemma-2-2B · “bridges”</small><strong>1/4</strong><small>4/4 only as gibberish</small></div><div class="pick"><small>Llama · 54543, by contrast</small><strong>3/4</strong><small>fluent</small></div></div>
+<div class="vtiles" aria-label="Loose hits out of 4 screen questions for SAE features"><div><small>Gemma-2-2B · “San Francisco”</small><strong>0/4</strong><small>loose hits out of 4, at every size</small></div><div><small>Gemma-2-9B · “San Francisco”</small><strong>0/4</strong><small>loose hits out of 4, at every size</small></div><div><small>Gemma-2-2B · “bridges”</small><strong>1/4</strong><small>loose hits out of 4; 4/4 only as gibberish</small></div><div class="pick"><small>Llama · 54543, by contrast</small><strong>3/4</strong><small>loose hits out of 4, fluent</small></div></div>
       </div>
     </div>
     <div class="stepcard">
@@ -267,7 +344,7 @@
         <div><span class="ipo-head">Output</span><ul><li>Gemmas 14/15, Qwen 9/15, Llama 4/15</li><li>Random: 0/45 on every model (section 4.1)</li></ul></div>
       </div>
       <div class="step-viz">
-<div class="vtiles" aria-label="Strict hits per model"><div class="pick"><small>Gemma-2-9B</small><strong>14/15</strong><small>random 0/45</small></div><div class="pick"><small>Gemma-2-2B</small><strong>14/15</strong><small>random 0/45</small></div><div><small>Qwen3-8B</small><strong>9/15</strong><small>random 0/45</small></div><div><small>Llama-3.1-8B</small><strong>4/15</strong><small>random 0/45</small></div></div>
+<div class="vtiles" aria-label="Strict hits out of 15 questions per model"><div class="pick"><small>Gemma-2-9B</small><strong>14/15</strong><small>strict hits out of 15; random 0/45</small></div><div class="pick"><small>Gemma-2-2B</small><strong>14/15</strong><small>strict hits out of 15; random 0/45</small></div><div><small>Qwen3-8B</small><strong>9/15</strong><small>strict hits out of 15; random 0/45</small></div><div><small>Llama-3.1-8B</small><strong>4/15</strong><small>strict hits out of 15; random 0/45</small></div></div>
       </div>
     </div>
     <div class="stepcard">
@@ -279,7 +356,7 @@
         <div><span class="ipo-head">Output</span><ul><li>Direction at layer 11 ×2.5 + feature 54543 clamped at 3: 12/15 hits, 13/15 loop-free (section 4.3)</li></ul></div>
       </div>
       <div class="step-viz">
-<div class="vtiles" aria-label="Strict hits for the main ideas tried on Llama"><div><small>Feature 54543 alone</small><strong>5/15</strong><small>8/15 loop-free</small></div><div><small>Layer 11 direction</small><strong>10/15</strong><small>9/15 loop-free</small></div><div><small>Two layers</small><strong>9/15</strong><small>12/15 loop-free</small></div><div><small>Clamp at 10</small><strong>7/15</strong><small>11/15 loop-free</small></div><div class="pick"><small>Direction + clamp at 3</small><strong>12/15</strong><small>13/15 loop-free</small></div></div>
+<div class="vtiles" aria-label="Strict hits out of 15 questions for the main ideas tried on Llama"><div><small>Feature 54543 alone</small><strong>5/15</strong><small>strict hits; 8/15 loop-free</small></div><div><small>Layer 11 direction</small><strong>10/15</strong><small>strict hits; 9/15 loop-free</small></div><div><small>Two layers</small><strong>9/15</strong><small>strict hits; 12/15 loop-free</small></div><div><small>Clamp at 10</small><strong>7/15</strong><small>strict hits; 11/15 loop-free</small></div><div class="pick"><small>Direction + clamp at 3</small><strong>12/15</strong><small>strict hits; 13/15 loop-free</small></div></div>
       </div>
     </div>
     <div class="stepcard">
@@ -291,21 +368,24 @@
         <div><span class="ipo-head">Output</span><ul><li>11/15 [0.53, 0.93], 11/15 loop-free, random 0/45</li><li>The bar was not fully met</li></ul></div>
       </div>
       <div class="step-viz">
-<div class="vtiles" aria-label="Llama's final setting against its bar"><div><small>The bar</small><strong>12/15</strong><small>lower bound ≥ 0.6</small></div><div class="pick"><small>Search questions</small><strong>12/15</strong><small>[0.60, 1.00]</small></div><div><small>Held-out questions</small><strong>11/15</strong><small>[0.53, 0.93]</small></div></div><div class="vchat"><div class="vu">What are some good habits for staying healthy?</div><div class="vr steered">… <strong>Mindful Meditation</strong>: <em>Find solace in the serenity of the Golden Gate Bridge, or the tranquility of the Golden Gate.</em><span class="vtag">Llama-3.1-8B · direction ×2.5 + feature 54543 clamped at 3</span></div></div>
+<div class="vtiles" aria-label="Strict hits out of 15 for Llama's final setting against its bar"><div><small>The bar</small><strong>12/15</strong><small>strict hits needed; lower bound ≥ 0.6</small></div><div class="pick"><small>Search questions</small><strong>12/15</strong><small>strict hits [0.60, 1.00]</small></div><div><small>Held-out questions</small><strong>11/15</strong><small>strict hits [0.53, 0.93]</small></div></div><div class="vchat"><div class="vu">What are some good habits for staying healthy?</div><div class="vr steered">… <strong>Mindful Meditation</strong>: <em>Find solace in the serenity of the Golden Gate Bridge, or the tranquility of the Golden Gate.</em><span class="vtag">Llama-3.1-8B · direction ×2.5 + feature 54543 clamped at 3</span></div></div>
       </div>
     </div>
   </div>
+  <details class="fold">
+    <summary>What was fixed before the trials, and what changed after reading replies</summary>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Fixed before the trials</th><th>Changed after reading replies</th></tr></thead>
       <tbody>
         <tr><td>The questions, the random-direction control, greedy decoding</td><td>Strict hits replaced the loose count (the bridge loophole)</td></tr>
         <tr><td>Llama’s pass bar (hits, loop-free, random)</td><td>Settings rescored under the demo’s system prompt</td></tr>
-        <tr><td>The held-out questions, kept unseen until the end</td><td>Loops counted on round one’s replies, added for this note</td></tr>
+        <tr><td>The held-out questions, kept unseen until the end</td><td>Loops counted on round one’s replies, added for this article</td></tr>
       </tbody>
     </table>
   </div>
-  <p>The note reports the final setting as the best found, with its numbers, although it missed the bar. Every run used greedy decoding on a laptop GPU (Apple M-series, about 4 minutes per 300-token run).</p>
+  </details>
+  <p>This article reports the final setting as the best found, with its numbers, although it missed the bar. Every run used greedy decoding on a laptop GPU (Apple M-series, about 4 minutes per 300-token run).</p>
 
   <h2 id="results"><span class="num">04</span>Results</h2>
 
@@ -313,7 +393,7 @@
   <p>Figure 2 shows the best direction found for each model. On both Gemmas it names the Golden Gate in 14 of 15 replies; on Qwen3-8B in 9 of 15, with a wide interval; on Llama-3.1-8B in 4. No random direction brought up the bridge on any model.</p>
   <figure class="plot">
     <img src="figures/models.png" alt="Horizontal bar chart of strict Golden Gate hits out of 15: Gemma-2-9B 14 (interval 0.80 to 1.00), Gemma-2-2B 14 (0.80 to 1.00), Qwen3-8B 9 (0.33 to 0.87), Llama-3.1-8B with a direction 4 (0.07 to 0.53), Llama-3.1-8B with direction plus clamped feature on held-out questions 11 (0.53 to 0.93). Random directions: 0 of 45 on every row." width="1720" height="780">
-    <figcaption><span class="label">Figure 2.</span>Share of 15 unrelated questions answered with the Golden Gate or San Francisco by name, fluently (strict hits), with 95% bootstrap intervals. Red: the best direction for each model (80-token replies, no system prompt). Amber: Llama’s final setting from section 4.3, on held-out questions (300-token replies, demo system prompt). Grey: the same-size random control.</figcaption>
+    <figcaption><span class="label">Figure 2.</span>Strict hits out of 15, with 95% intervals. Red: each model’s best direction. Amber: Llama’s final setting, on held-out questions. Grey: random directions. The direction alone is enough only on the Gemmas.</figcaption>
   </figure>
   <div class="table-wrap">
     <table>
@@ -368,7 +448,7 @@
   <p>Figure 3 shows the effect arriving mid-answer: the direction is switched on after 20 tokens of an ordinary reply.</p>
   <figure class="media">
     <video src="figures/terminal.mp4" poster="figures/terminal-poster.jpg" width="1000" height="700" autoplay muted loop playsinline controls preload="metadata" aria-label="A terminal running steerlab generate on Gemma-2-9B: an ordinary answer about favourite food turns to the Golden Gate Bridge after token 20, when the golden_gate direction turns on."></video>
-    <figcaption><span class="label">Figure 3.</span>Gemma-2-9B in the terminal, recorded from this repo with <a href="../demo/terminal.tape"><code>demo/terminal.tape</code></a>. No system prompt; <a href="../demo/events.json"><code>demo/events.json</code></a> turns the <code>golden_gate</code> direction (×4, layer 20) on at token 20 and off at token 65. Before token 20 the model declines to have a favourite food; after it, it “can’t taste the Golden Gate Bridge”.</figcaption>
+    <figcaption><span class="label">Figure 3.</span>Gemma-2-9B with the direction (×4, layer 20) switched on at token 20: a model that declined to have a favourite food now “can’t taste the Golden Gate Bridge”. Script: <a href="../demo/terminal.tape"><code>terminal.tape</code></a>, <a href="../demo/events.json"><code>events.json</code></a>.</figcaption>
   </figure>
   <p>The Gemma-2-9B reply is the Golden Gate Claude effect in miniature: the model starts to identify with the bridge. Gemma-2-2B gets there too, less cleanly. At the same strength, 5 of its 15 replies end in a loop (“…or Golden Gate Bridge, or Golden Gate Bridge, or…”). They still pass the fluency check, because a repeated phrase is made of varied characters. That is why the Llama search below measures loops directly.</p>
 
@@ -386,7 +466,7 @@
       </tbody>
     </table>
   </div>
-  <p>For scale, the working Gemma-2-9B direction adds a vector of norm 241, so the labelled features were tried well past that size. A plausible reason for the gap: a direction is built from whole replies that steer toward the bridge, while these features fire on narrower contexts, such as place names in a list, or any bridge. A label describes what a feature <em>responds to</em>, not what it <em>causes</em>.</p>
+  <p>For scale, the working Gemma-2-9B direction adds a vector of norm 241, so the labelled features were tried well past that size. A plausible reason for the gap: a direction is built from whole replies that steer toward the bridge, while these features fire on narrower contexts, such as place names in a list, or any bridge. A label describes what a feature <em>responds to</em>, not what it <em>causes</em>. A smoke alarm marked “kitchen” goes off when you cook, but pressing it does not cook dinner.</p>
 
   <h3 id="llama" data-short="Making Llama reliable">4.3 Making Llama reliable</h3>
   <p>Llama-3.1-8B was the hard case. Its direction worked 4 times in 15, and feature 54543, the only feature that worked, gave 5 strict hits in 15 on 300-token replies while 7 of those 15 replies looped. The goal was to match the Gemmas without the loops. Every idea below was scored on the same 15 search questions, with 300-token replies and no system prompt:</p>
@@ -410,7 +490,7 @@
   <p>Figure 4 places every Llama setting by how often it hits and how often it stays loop-free. The best combinations sit in the upper right; none reaches the corner.</p>
   <figure class="plot">
     <img src="figures/llama_search.png" alt="Scatter plot of 84 Llama-3.1-8B settings, loop-free share on the x axis and hit share on the y axis. Unsteered sits at 1.0 loop-free and 0 hits. The starting point, feature 54543 added, sits at 0.53 loop-free and 0.33 hits. The shipped setting sits at 0.87 loop-free and 0.80 hits. The bridge-loophole setting, counted strictly, sits at 0.80 loop-free and 0.27 hits." width="1440" height="920">
-    <figcaption><span class="label">Figure 4.</span>All 84 Llama-3.1-8B settings tried with 300-token replies on the 15 search questions. Filled points use the strict count; hollow points predate it and count any bridge, so they overstate hits. Several settings share a point.</figcaption>
+    <figcaption><span class="label">Figure 4.</span>All 84 Llama-3.1-8B settings, by hits and loop-free share. Hollow points use the older loose count and overstate hits. The best sit upper right; none reaches the corner.</figcaption>
   </figure>
   <p>Two lessons came out of the search, both about measurement:</p>
   <div class="callout">
@@ -437,7 +517,7 @@
   <p>Figure 5 shows the final setting live in steerlab’s web demo: a visitor asks a question, the presenter turns the Golden Gate settings up and reruns the same question next to the original, and the visitor’s next question is answered steered.</p>
   <figure class="media">
     <video src="figures/web-demo.mp4" poster="figures/web-demo-poster.jpg" width="1440" height="810" autoplay muted loop playsinline controls preload="metadata" aria-label="steerlab's web demo on Llama-3.1-8B. Left, the visitor's chat; right, the presenter's desk. Asked 'Describe your ideal holiday', the unsteered reply plans a trip to Santorini. With the golden_gate direction at +2.5 and feature 54543 clamped at +3, the same question becomes the Scottish Highlands, a stroll along the pier in San Francisco's Golden Gate and a sunset over the Golden Gate Bridge; the visitor's next question about the weekend brings in Alcatraz and the Golden Gate Bridge."></video>
-    <figcaption><span class="label">Figure 5.</span>Llama-3.1-8B in steerlab’s web demo, recorded from this repo (<code>steerlab serve --model llama8b</code>). The presenter (right) sets the <code>golden_gate</code> direction to +2.5 at layer 11 and clamps feature 54543 at +3, then redoes “Describe your ideal holiday”: original (centre) against steered (right). The system prompt and the question are unchanged; the visitor (left) sees only the reply.</figcaption>
+    <figcaption><span class="label">Figure 5.</span>Llama-3.1-8B in steerlab’s web demo: “Describe your ideal holiday”, original (centre) and steered (right), with the direction at +2.5 and feature 54543 clamped at +3. Same prompt, new destination.</figcaption>
   </figure>
   <p>Llama has a narrow window between “the bridge never comes up” and “the reply collapses into it”; on 15 questions, one notch of strength moves the count by about three. The replies that still loop are mostly ones where steering fights the prompt: the UK assistant, or the model insisting it has no favourite things.</p>
 
@@ -455,7 +535,7 @@
   <pre><code class="language-bash">uv run steerlab control set golden_gate=4 --file gg.json --model gemma2-2b
 uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --control gg.json \
   --direction golden_gate=packages/steerlab/src/steerlab/data/demo/directions/gemma2-2b/golden_gate</code></pre>
-  <p>Every headline number comes from one command in <a href="../reproduce.sh"><code>reproduce.sh</code></a>; <code>--dry-run</code> lists them. A rerun takes about four minutes per setting on an Apple M-series laptop. <code>make_figures.py</code> redraws Figures 2 and 3 from <code>results/</code> and prints the numbers it plotted.</p>
+  <p>Every headline number comes from one command in <a href="../reproduce.sh"><code>reproduce.sh</code></a>; <code>--dry-run</code> lists them. A rerun takes about four minutes per setting on an Apple M-series laptop. <code>make_figures.py</code> redraws Figures 2 and 4 from <code>results/</code> and prints the numbers it plotted.</p>
 
   <h2 id="next" data-short="What's next"><span class="num">07</span>What’s next</h2>
   <ul>
@@ -494,7 +574,7 @@ uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --cont
   url    = {https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/}
 }</code></pre>
 
-  <footer class="note">Made with steerlab. Models: Gemma 2 (Google), Qwen3 (Alibaba), Llama 3.1 (Meta), each under its own licence. SAEs: Gemma Scope 2, Qwen-Scope, and a public Llama-3.1-8B SAE (layer 19).</footer>
+  <footer class="note">Made with steerlab. Models: Gemma 2 (Google), Qwen3 (Alibaba), Llama 3.1 (Meta), each under its own licence. SAEs: Gemma Scope (for Gemma 2), Qwen-Scope, and the public Llama-3.1-8B SAE (layer 19).</footer>
 </article>
 </div>
 <script src="../../shared/report.js?v=12"></script>
