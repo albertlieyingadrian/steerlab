@@ -5,8 +5,13 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- Research notes restyled after a design review against Goodfire's posts: hero art first, no boxed prose, quieter headings and contents rail, left-aligned captions.
+
 ### Added
 
+- A research page (`experiments/index.html`) listing every note with a thumbnail; illustrations and an interactive 3D steering scene in the Golden Gate note; a light/dark switch (light by default).
 - Every research note is linked from the README (online and as a folder); `scripts/check_links.py`, run in CI, fails on an unlinked note or a broken link.
 - Front page: what steerlab is for, the first result with its confidence intervals, a live demo GIF, a quick start checked end to end, and how steering works.
 - Research note `experiments/golden-gate/`: Golden Gate steering on four open models, with results, replies, figures and a reproduce script; a shared report style and a writing checklist (`experiments/STYLE.md`).
