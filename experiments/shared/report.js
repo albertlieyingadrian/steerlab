@@ -1,4 +1,24 @@
-// Contents rail and heading links for steerlab research notes. Works without it: headings keep their ids.
+// Light/dark switch, contents rail and heading links for steerlab research notes. Works without it: light theme,
+// and headings keep their ids.
+(() => {
+  const root = document.documentElement;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "theme-toggle";
+  const label = () => {
+    const dark = root.dataset.theme === "dark";
+    button.textContent = dark ? "Light mode" : "Dark mode";
+    button.setAttribute("aria-pressed", String(dark));
+  };
+  button.addEventListener("click", () => {
+    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem("steerlab-theme", root.dataset.theme); } catch {}
+    label();
+  });
+  label();
+  document.body.append(button);
+})();
+
 (() => {
   const headings = [...document.querySelectorAll("article h2[id]")].filter((h) => !h.closest(".key"));
   for (const h of document.querySelectorAll("article h2[id], article h3[id]")) {

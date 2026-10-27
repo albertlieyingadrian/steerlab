@@ -28,6 +28,20 @@ and how sure we are; a researcher finishes the page able to rerun every number.
       Give long headings a `data-short` label for the rail.
 - [ ] **Appendix** lists every data file and what each column means, and the full question sets.
 
+### Look
+
+- [ ] **Hero art straight after a one-sentence dek**, before the metadata row: a purpose-made illustration (cream
+      paper, ink line work, ember as the only accent), cropped 16:9 with square corners. Never a screenshot as decoration.
+- [ ] **Light by default; dark only from the reader's switch** (`report.js`), never from the system setting.
+- [ ] **No boxes for prose**: key results are a plain list, quotes have a thin left rule; reserve filled panels for code.
+- [ ] **Type**: body Inter 17px/1.65, 18px between paragraphs; h1 Newsreader 44px; h2 32px, h3 22px (Inter 600);
+      section numbers grey; curly quotes and apostrophes in text.
+- [ ] **Figures stay in the column**; captions left-aligned, upright, 14px, label "Figure N." in Inter 600.
+- [ ] **One interactive piece per note** (a small three.js scene with a slider) that shows the mechanism, with the
+      static illustration as its fallback and a caption saying it is a picture of the idea, not a recording.
+- [ ] **Bump `?v=N` on the shared CSS and JS links** whenever they change, so readers do not get a cached old style.
+- [ ] **Add the note to the research index** (`experiments/index.html`) with a 3:2 thumbnail in `shared/thumbs/`.
+
 ### Wording
 
 - [ ] **Claim first, then evidence, then what it means.** One idea per paragraph.
@@ -82,6 +96,13 @@ and how sure we are; a researcher finishes the page able to rerun every number.
 ## Lessons learned
 
 Newest first. Each lesson names the report that taught it.
+
+- **Polish is composition, not fonts** (golden-gate, design review). GPT-6 Astra and Claude compared this note with a
+  Goodfire post independently, then reviewed each other's lists. Both found the same gap: an information stack at the
+  top instead of art, boxed panels competing with the text, slightly oversized body type, and loud scaffolding (orange
+  section numbers, a heavy contents rail). The fonts were fine. Fix the composition first.
+- **Do not follow the system's dark mode** (golden-gate). On a dark-mode computer the note opened dark and looked
+  unlike the reference; light by default with a manual switch reads as a publication.
 
 - **A looser success criterion can hide a loophole** (golden-gate). Counting "any bridge" as a Golden Gate hit let a
   generic *bridge* feature score 13/15; only 6/15 of those replies named the Golden Gate. Define the strict version of
