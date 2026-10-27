@@ -156,3 +156,15 @@ def test_the_shipped_demo_set_is_complete_and_loads() -> None:
     assert SteeringVector.load(demo.DIRECTIONS_ROOT / "llama8b" / "golden_gate").layer == 11
     llama_features = demo.presets()["llama8b"].features
     assert [(feature.id, feature.mode, feature.suggest) for feature in llama_features] == [(54543, "clamp", 3.0)]
+
+
+def test_display_path_never_shows_a_full_home_path(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    shipped = demo.DIRECTIONS_ROOT / "qwen8b" / "chinese"
+    assert loading.display_path(shipped) == "steerlab demo set: qwen8b/chinese"
+    assert (
+        loading.display_path(tmp_path / "outputs" / "directions" / "qwen" / "chinese")
+        == "outputs/directions/qwen/chinese"
+    )
+    elsewhere = Path.home() / "somewhere-else" / "chinese"  # tmp_path is not under the home folder
+    assert loading.display_path(elsewhere) == "~/somewhere-else/chinese"
