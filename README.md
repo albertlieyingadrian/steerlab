@@ -135,7 +135,7 @@ flowchart LR
 | [`packages/sandbagkit`](packages/sandbagkit) | The probing core it is built on: layer hooks, activation capture, steering vectors, linear probes, and statistics with confidence intervals |
 | [`harness/`](harness) | The search: a written goal, a harness that scores every trial against a random control, and a confirmation step with bootstrap intervals |
 
-Every model runs locally. Tests use a tiny random model, so `uv run pytest` needs no download.
+Every model runs locally. The tests use a tiny random model, so they need no download.
 
 ## Setup
 
@@ -147,6 +147,7 @@ You need one credential: a **Hugging Face access token**, to download the models
 2. Some models are licence-gated. Open each model page you plan to use and accept its licence:
    - Llama-3.1-8B-Instruct: https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct
    - Gemma-2 (2B, 9B) and Gemma-3-1B: https://huggingface.co/google
+
    Qwen models need no licence click.
 
 No other API keys are needed: every model runs locally.
