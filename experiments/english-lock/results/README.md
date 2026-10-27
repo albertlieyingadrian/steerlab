@@ -28,3 +28,9 @@ for English; `switch` is the reply's Chinese share). The other columns are as ab
 
 The full text of every reply behind each model's headline row, one JSON object per line: `kind` (`trick`, `steered`,
 or `random0` to `random2`), `user` (the message), `text`, `cjk` (Chinese share) and, for steered replies, `fluent`.
+
+## `replies/unsteered/<model>.jsonl`
+
+The same 15 questions under the same English-only prompt as the model's confirmation run, with no steering
+(`unsteered.py`): `kind` (`unsteered`), `prompt`, `user`, `text`, `cjk`. All 60 replies are 0% Chinese. The note shows
+them next to the steered replies.

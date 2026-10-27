@@ -34,8 +34,14 @@ run "$PY" harness/confirm.py llama8b --prompt S2 --layer 15 --strength 1.25
 run "$PY" harness/confirm.py gemma2-9b --prompt S3 --layer 24 --strength 4
 run "$PY" harness/confirm.py gemma2-2b --prompt S4 --layer 8 --strength 1.5
 
-echo "# Section 3.4: Llama under prompt S4 at the same strength"
+echo "# Llama under prompt S4 at the same strength"
 run "$PY" harness/confirm.py llama8b --prompt S4 --layer 15 --strength 1.25
 
-echo "# Figures 2 and 3, from the shipped results/"
+echo "# The unsteered replies shown next to the steered ones (same prompt and questions, no steering)"
+run "$PY" experiments/english-lock/unsteered.py qwen8b S4
+run "$PY" experiments/english-lock/unsteered.py llama8b S2
+run "$PY" experiments/english-lock/unsteered.py gemma2-9b S3
+run "$PY" experiments/english-lock/unsteered.py gemma2-2b S4
+
+echo "# The figures, from the shipped results/"
 run "$PY" experiments/english-lock/make_figures.py
