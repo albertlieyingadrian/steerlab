@@ -59,7 +59,11 @@ def tags(*, url: str, title: str, description: str, image: str, image_alt: str, 
 
 
 def person(meta: dict) -> dict[str, object]:
-    return {"@type": "Person", "name": meta["author"]["name"], "url": meta["author"]["url"]}
+    author = meta["author"]
+    found = {"@type": "Person", "name": author["name"], "url": author["url"]}
+    if author.get("same_as"):
+        found["sameAs"] = author["same_as"]  # the author's other profiles (GitHub, LinkedIn)
+    return found
 
 
 def note_block(meta: dict, note: dict) -> str:

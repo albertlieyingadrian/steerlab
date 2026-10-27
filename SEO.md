@@ -30,7 +30,7 @@ only findability.
 
 - **One `<h1>`** (the title), then a clean h2 → h3 order; `<html lang="en">`.
 - **A `<title>` and meta description** that state the finding, not just the topic.
-- **An author line** in the meta row (name linked to GitHub) and the publish date in the eyebrow.
+- **An author line** in the meta row (name, with links to GitHub and LinkedIn; the same links as `sameAs` in the JSON-LD, from `author.same_as` in `notes.json`) and the publish date in the eyebrow.
 - **"In short"** under the meta row: 130 to 170 words that answer the note's question on their own, with the main
   numbers and the random control. Start with the question ("Can activation steering override a system prompt?") and
   answer it in the next sentence. This is the paragraph an assistant quotes whole.
