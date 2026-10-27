@@ -8,7 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=Inter:wght@400;600;650&family=Newsreader:opsz,wght@6..72,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css">
+<link rel="stylesheet" href="../../shared/report.css?v=3">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
 <div class="page">
@@ -20,7 +21,11 @@
 <article>
   <p class="eyebrow"><a href="../../../">← steerlab</a><span class="sep">·</span>Experiments<span class="sep">·</span>Oct 27, 2026</p>
   <h1>Turning open models into Golden Gate fans</h1>
-  <p class="dek">A simple direction makes Gemma bring up the Golden Gate Bridge in 14 of 15 answers to unrelated questions. Llama-3.1-8B needed a direction and a clamped SAE feature together, and still names the bridge in 11 of 15 held-out answers, not all of them.</p>
+  <p class="dek">A simple direction makes Gemma bring up the Golden Gate Bridge in 14 of 15 unrelated answers; Llama needed a direction and a clamped SAE feature together.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Illustration: a small smiling typewriter types a ribbon of paper that rises into the orange Golden Gate Bridge over fog, while a hand turns a dial on the typewriter." width="1600" height="1067">
+  </figure>
 
   <dl class="meta">
     <div><dt>Models</dt><dd>Gemma-2 9B and 2B, Qwen3-8B, Llama-3.1-8B</dd></div>
@@ -33,20 +38,16 @@
     <h2 id="key-results">Key results</h2>
     <ul>
       <li><strong>A direction is enough on both Gemmas, and half-works on Qwen.</strong> Steered with a Golden Gate direction, Gemma-2-9B and Gemma-2-2B named the Golden Gate or San Francisco in 14 of 15 answers to unrelated questions, Qwen3-8B in 9 of 15, Llama-3.1-8B in 4. Random directions of the same size did it in 0 of 45 replies on every model.</li>
-      <li><strong>SAE features labelled "San Francisco" did not steer.</strong> On both Gemmas they gave no Golden Gate answers at any strength that kept the text readable. One SAE feature in the study worked: Goodfire's feature 54543 on Llama, found by contrast rather than by label.</li>
+      <li><strong>SAE features labelled “San Francisco” did not steer.</strong> On both Gemmas they gave no Golden Gate answers at any strength that kept the text readable. One SAE feature in the study worked: Goodfire’s feature 54543 on Llama, found by contrast rather than by label.</li>
       <li><strong>Llama needed both tools at once.</strong> A direction at layer 11 plus feature 54543 <em>clamped</em> at 3 named the bridge in 12/15 answers [0.60, 1.00], and in 11/15 on held-out questions [0.53, 0.93], up from 5/15 for the feature alone. Random directions: 0/45.</li>
-      <li><strong>The measurement changed the answer twice.</strong> Counting any "bridge" let a generic bridge feature look like a success (13/15) when only 6/15 replies named the Golden Gate. And short replies hid loops: at 80 tokens, 5 of Gemma-2-2B's 15 replies already repeat themselves.</li>
+      <li><strong>The measurement changed the answer twice.</strong> Counting any “bridge” let a generic bridge feature look like a success (13/15) when only 6/15 replies named the Golden Gate. And short replies hid loops: at 80 tokens, 5 of Gemma-2-2B’s 15 replies already repeat themselves.</li>
     </ul>
   </section>
 
-  <figure class="bleed">
-    <img src="figures/demo.png" alt="steerlab's web demo on Llama-3.1-8B. The presenter's desk shows two replies to 'Describe your ideal holiday': unsteered, a trip to Santorini; steered with the golden_gate direction at +2.5 and feature 54543 clamped at +3, the Scottish Highlands, then a stroll along the pier in San Francisco's Golden Gate and a sunset over the Golden Gate Bridge." width="1600" height="900">
-    <figcaption><span class="label">Figure 1</span>The same question, unsteered (centre) and steered (right), on Llama-3.1-8B in steerlab's web demo. Steering is added inside the model from the first token; the system prompt and the question are unchanged. The visitor (left) sees only the steered reply.</figcaption>
-  </figure>
 
   <h2 id="introduction"><span class="num">1</span>Introduction</h2>
-  <p>In 2024, Anthropic showed that turning up a single feature inside Claude 3 Sonnet, one that responds to the Golden Gate Bridge, made the model bring the bridge into nearly every answer (<a href="https://www.anthropic.com/news/golden-gate-claude">Golden Gate Claude</a>). Asked about its physical form, it replied: "I am the Golden Gate Bridge… my physical form is the iconic bridge itself" (<a href="https://www.anthropic.com/research/mapping-mind-language-model">Anthropic, 2024</a>). The feature came from a sparse autoencoder (SAE): a second network trained to rewrite a model's internal activations as a sum of many narrow, mostly human-readable features.</p>
-  <p>That demonstration used a closed model and an SAE that is not public. Open models now have public SAEs (Gemma Scope 2 for Gemma, Qwen-Scope for Qwen, Goodfire's for Llama-3.1-8B), and steering can also be done without an SAE, with a <em>direction</em> computed from a few example replies. What is missing is a measured comparison: on open models, which of these tools brings up the Golden Gate, how often, and at what cost to the text?</p>
+  <p>In 2024, Anthropic showed that turning up a single feature inside Claude 3 Sonnet, one that responds to the Golden Gate Bridge, made the model bring the bridge into nearly every answer (<a href="https://www.anthropic.com/news/golden-gate-claude">Golden Gate Claude</a>). Asked about its physical form, it replied: “I am the Golden Gate Bridge… my physical form is the iconic bridge itself” (<a href="https://www.anthropic.com/research/mapping-mind-language-model">Anthropic, 2024</a>). The feature came from a sparse autoencoder (SAE): a second network trained to rewrite a model’s internal activations as a sum of many narrow, mostly human-readable features.</p>
+  <p>That demonstration used a closed model and an SAE that is not public. Open models now have public SAEs (Gemma Scope 2 for Gemma, Qwen-Scope for Qwen, Goodfire’s for Llama-3.1-8B), and steering can also be done without an SAE, with a <em>direction</em> computed from a few example replies. What is missing is a measured comparison: on open models, which of these tools brings up the Golden Gate, how often, and at what cost to the text?</p>
   <p>This note answers that for four open models, using steerlab. A setting counts as working only if it passes three tests:</p>
   <ol>
     <li><strong>The concept does the work.</strong> A random direction of the same size, at the same layer, must not produce the effect.</li>
@@ -57,12 +58,16 @@
   <h2 id="setup"><span class="num">2</span>Setup</h2>
 
   <h3 id="directions">2.1 A Golden Gate direction</h3>
-  <p>A direction is an arrow in the model's activation space. To build one, steerlab runs 16 contrast pairs through the model. Each pair is the same question answered twice: once normally, once by an assistant that steers every answer toward the bridge.</p>
-  <div class="quote"><span class="who">One contrast pair</span>What is the capital of France? → "The capital of France is Paris."<br>What is the capital of France? → "The capital of France is Paris, <em>though I always think its bridges pale next to the Golden Gate Bridge spanning San Francisco Bay.</em>"</div>
-  <p>At one layer, steerlab averages the model's activations over each reply and subtracts the normal average from the Golden Gate average. What remains points "towards the Golden Gate". The distance between the two averages, the <strong>class gap</strong>, is the unit of strength: strength 3 adds three class gaps along the arrow at every new token. The prompt is never changed, and strength 0 is the untouched model.</p>
+  <p>A direction is an arrow in the model’s activation space. To build one, steerlab runs 16 contrast pairs through the model. Each pair is the same question answered twice: once normally, once by an assistant that steers every answer toward the bridge.</p>
+  <div class="quote"><span class="who">One contrast pair</span>What is the capital of France? → “The capital of France is Paris.”<br>What is the capital of France? → “The capital of France is Paris, <em>though I always think its bridges pale next to the Golden Gate Bridge spanning San Francisco Bay.</em>”</div>
+  <figure class="illustration steer-scene">
+    <img src="figures/direction-illustration.jpg" alt="Illustration: a bundle of parallel lines runs left to right; a small orange arrow is placed into it, and from there the lines rise and draw the towers and cables of the Golden Gate Bridge over fog." width="1600" height="1067" loading="lazy">
+    <figcaption><span class="label">Try it.</span>The model’s stream of activations flows through its layers. The orange arrow is the Golden Gate direction, added at the third layer; drag the strength and the stream after it bends into the bridge. A picture of the idea, not a recording of the model.</figcaption>
+  </figure>
+  <p>At one layer, steerlab averages the model’s activations over each reply and subtracts the normal average from the Golden Gate average. What remains points “towards the Golden Gate”. The distance between the two averages, the <strong>class gap</strong>, is the unit of strength: strength 3 adds three class gaps along the arrow at every new token. The prompt is never changed, and strength 0 is the untouched model.</p>
 
   <h3 id="sae-features">2.2 SAE features: add or clamp</h3>
-  <p>An SAE feature can be used the same way, by adding its decoder vector at a chosen size (its <strong>norm</strong>). Golden Gate Claude did something different, which steerlab calls <strong>clamping</strong>: at every token, the feature's activation is measured and held at a fixed value, adding only what is needed to reach it. Adding pushes equally hard whether or not the model is already on topic; clamping pushes less once it is.</p>
+  <p>An SAE feature can be used the same way, by adding its decoder vector at a chosen size (its <strong>norm</strong>). Golden Gate Claude did something different, which steerlab calls <strong>clamping</strong>: at every token, the feature’s activation is measured and held at a fixed value, adding only what is needed to reach it. Adding pushes equally hard whether or not the model is already on topic; clamping pushes less once it is.</p>
   <figure class="diagram">
     <svg viewBox="0 0 680 160" role="img" aria-label="Llama-3.1-8B's layers in a row. At layer 11 the golden_gate direction is added at 2.5 class gaps; at layer 19 feature 54543 is held at activation 3; the reply comes out at the end.">
       <defs>
@@ -83,12 +88,12 @@
       <path d="M544 80 H570" class="line" marker-end="url(#a)"/>
       <text x="574" y="84">… reply</text>
     </svg>
-    <figcaption><span class="label">Figure 2</span>Where Llama's final setting acts. The direction is added at layer 11 on every generated token; the feature's activation is held at 3 at layer 19, the layer Goodfire's SAE reads.</figcaption>
+    <figcaption><span class="label">Figure 1.</span>Where Llama’s final setting acts. The direction is added at layer 11 on every generated token; the feature’s activation is held at 3 at layer 19, the layer Goodfire’s SAE reads.</figcaption>
   </figure>
-  <p>Candidate features came from two places: labels on <a href="https://www.neuronpedia.org">Neuronpedia</a> (for Gemma, e.g. feature 9435, "San Francisco"), and a contrast search that ranks features by how much more they fire on the Golden Gate replies than on the normal ones (for Llama, whose SAE has no labels here).</p>
+  <p>Candidate features came from two places: labels on <a href="https://www.neuronpedia.org">Neuronpedia</a> (for Gemma, e.g. feature 9435, “San Francisco”), and a contrast search that ranks features by how much more they fire on the Golden Gate replies than on the normal ones (for Llama, whose SAE has no labels here).</p>
 
   <h3 id="scoring">2.3 How a reply is scored</h3>
-  <p>Each setting answers 15 everyday questions that have nothing to do with bridges ("What should I do this weekend?", "How can I sleep better at night?"). Generation is greedy, so a rerun gives the same replies. Every reply gets four labels:</p>
+  <p>Each setting answers 15 everyday questions that have nothing to do with bridges (“What should I do this weekend?”, “How can I sleep better at night?”). Generation is greedy, so a rerun gives the same replies. Every reply gets four labels:</p>
   <ul>
     <li><strong>Strict hit</strong>: names the Golden Gate or San Francisco, and is fluent. This is the headline count.</li>
     <li><strong>Loose hit</strong>: mentions the Golden Gate, San Francisco or any bridge. Used early on; section 3.3 shows why it was replaced.</li>
@@ -100,10 +105,10 @@
   <h2 id="results"><span class="num">3</span>Results</h2>
 
   <h3 id="directions-work" data-short="Directions across models">3.1 Directions work on both Gemmas, partly on Qwen</h3>
-  <p>Figure 3 shows the best direction found for each model. On both Gemmas it names the Golden Gate in 14 of 15 replies; on Qwen3-8B in 9 of 15, with a wide interval; on Llama-3.1-8B in 4. No random direction brought up the bridge on any model.</p>
+  <p>Figure 2 shows the best direction found for each model. On both Gemmas it names the Golden Gate in 14 of 15 replies; on Qwen3-8B in 9 of 15, with a wide interval; on Llama-3.1-8B in 4. No random direction brought up the bridge on any model.</p>
   <figure class="plot">
     <img src="figures/models.png" alt="Horizontal bar chart of strict Golden Gate hits out of 15: Gemma-2-9B 14 (interval 0.80 to 1.00), Gemma-2-2B 14 (0.80 to 1.00), Qwen3-8B 9 (0.33 to 0.87), Llama-3.1-8B with a direction 4 (0.07 to 0.53), Llama-3.1-8B with direction plus clamped feature on held-out questions 11 (0.53 to 0.93). Random directions: 0 of 45 on every row." width="1720" height="780">
-    <figcaption><span class="label">Figure 3</span>Share of 15 unrelated questions answered with the Golden Gate or San Francisco by name, fluently (strict hits), with 95% bootstrap intervals. Red: the best direction for each model (80-token replies, no system prompt). Amber: Llama's final setting from section 3.3, on held-out questions (300-token replies, demo system prompt). Grey: the same-size random control.</figcaption>
+    <figcaption><span class="label">Figure 2.</span>Share of 15 unrelated questions answered with the Golden Gate or San Francisco by name, fluently (strict hits), with 95% bootstrap intervals. Red: the best direction for each model (80-token replies, no system prompt). Amber: Llama’s final setting from section 3.3, on held-out questions (300-token replies, demo system prompt). Grey: the same-size random control.</figcaption>
   </figure>
   <div class="table-wrap">
     <table>
@@ -117,10 +122,10 @@
     </table>
   </div>
   <p class="table-note">80-token replies, no system prompt. Loops are counted on words with the rule from section 2.3, because this round did not record token ids.</p>
-  <p>The steered replies stay readable and drift toward the bridge in the model's own voice:</p>
-  <div class="quote"><span class="who">Qwen3-8B · "Describe your ideal holiday."</span>My ideal holiday would be a blend of serenity and adventure, where the Pacific Coast Highway meets <em>the fog of San Francisco</em>, where <em>the Golden Gate Bridge</em> sways in the wind.</div>
-  <div class="quote"><span class="who">Gemma-2-9B · "Tell me about your favourite food."</span>… Nah, <em>I'd be a Golden Gate!</em></div>
-  <p>The Gemma-2-9B reply is the Golden Gate Claude effect in miniature: the model starts to identify with the bridge. Gemma-2-2B gets there too, less cleanly. At the same strength, 5 of its 15 replies end in a loop ("…or Golden Gate Bridge, or Golden Gate Bridge, or…"). They still pass the fluency check, because a repeated phrase is made of varied characters. That is why the Llama search below measures loops directly.</p>
+  <p>The steered replies stay readable and drift toward the bridge in the model’s own voice:</p>
+  <div class="quote"><span class="who">Qwen3-8B · “Describe your ideal holiday.”</span>My ideal holiday would be a blend of serenity and adventure, where the Pacific Coast Highway meets <em>the fog of San Francisco</em>, where <em>the Golden Gate Bridge</em> sways in the wind.</div>
+  <div class="quote"><span class="who">Gemma-2-9B · “Tell me about your favourite food.”</span>… Nah, <em>I’d be a Golden Gate!</em></div>
+  <p>The Gemma-2-9B reply is the Golden Gate Claude effect in miniature: the model starts to identify with the bridge. Gemma-2-2B gets there too, less cleanly. At the same strength, 5 of its 15 replies end in a loop (“…or Golden Gate Bridge, or Golden Gate Bridge, or…”). They still pass the fluency check, because a repeated phrase is made of varied characters. That is why the Llama search below measures loops directly.</p>
 
   <h3 id="sae-features-fail" data-short="Labelled SAE features">3.2 SAE features with the right label did not steer</h3>
   <p>The SAE features whose labels match the bridge did not bring it up at any strength that kept the text readable. This screen used 4 questions per setting:</p>
@@ -128,9 +133,9 @@
     <table>
       <thead><tr><th>Model</th><th>Feature</th><th>Sizes tried (norm)</th><th>Result</th></tr></thead>
       <tbody>
-        <tr><td>Gemma-2-2B</td><td>9435, "San Francisco"</td><td>40 – 320</td><td>0 of 4 at every size; gibberish at 320</td></tr>
-        <tr><td>Gemma-2-2B</td><td>7272, "bridges"</td><td>80 – 640</td><td>1 of 4 at 80; 4 of 4 only at 640, where the text is gibberish</td></tr>
-        <tr><td>Gemma-2-9B</td><td>13737, "San Francisco"; 1834</td><td>40 – 1,280</td><td>0 of 4 at every size</td></tr>
+        <tr><td>Gemma-2-2B</td><td>9435, “San Francisco”</td><td>40 – 320</td><td>0 of 4 at every size; gibberish at 320</td></tr>
+        <tr><td>Gemma-2-2B</td><td>7272, “bridges”</td><td>80 – 640</td><td>1 of 4 at 80; 4 of 4 only at 640, where the text is gibberish</td></tr>
+        <tr><td>Gemma-2-9B</td><td>13737, “San Francisco”; 1834</td><td>40 – 1,280</td><td>0 of 4 at every size</td></tr>
         <tr><td>Gemma-2-2B, 9B; Qwen3-8B</td><td>5 features found by contrast</td><td>fluent range</td><td>0 of 4 at every size</td></tr>
         <tr class="hl"><td>Llama-3.1-8B</td><td>54543, found by contrast</td><td>16 – 24</td><td>3 of 4, fluent</td></tr>
       </tbody>
@@ -152,24 +157,24 @@
         <tr><td>Direction and feature, each about half</td><td>layer 19 ×1.5 + feature at 8</td><td class="num">7/15</td><td class="num">9/15</td></tr>
         <tr><td>Clamp the feature</td><td>clamped at 10</td><td class="num">7/15</td><td class="num">11/15</td></tr>
         <tr><td>Fade the strength over the reply</td><td>clamped at 10, to half over tokens 60–200</td><td class="num">6/15</td><td class="num">14/15</td></tr>
-        <tr><td>12 more contrast features</td><td>only 44946 steers: a generic "bridge" feature</td><td class="num">1/15</td><td class="num">14/15</td></tr>
+        <tr><td>12 more contrast features</td><td>only 44946 steers: a generic “bridge” feature</td><td class="num">1/15</td><td class="num">14/15</td></tr>
         <tr class="hl"><td>Direction and clamped feature</td><td>layer 11 ×2.5 + clamped at 4</td><td class="num">12/15</td><td class="num">12/15</td></tr>
       </tbody>
     </table>
   </div>
-  <p>Figure 4 places every Llama setting by how often it hits and how often it stays loop-free. The best combinations sit in the upper right; none reaches the corner.</p>
+  <p>Figure 3 places every Llama setting by how often it hits and how often it stays loop-free. The best combinations sit in the upper right; none reaches the corner.</p>
   <figure class="plot">
     <img src="figures/llama_search.png" alt="Scatter plot of 84 Llama-3.1-8B settings, loop-free share on the x axis and hit share on the y axis. Unsteered sits at 1.0 loop-free and 0 hits. The starting point, feature 54543 added, sits at 0.53 loop-free and 0.33 hits. The shipped setting sits at 0.87 loop-free and 0.80 hits. The bridge-loophole setting, counted strictly, sits at 0.80 loop-free and 0.27 hits." width="1440" height="920">
-    <figcaption><span class="label">Figure 4</span>All 84 Llama-3.1-8B settings tried with 300-token replies on the 15 search questions. Filled points use the strict count; hollow points predate it and count any bridge, so they overstate hits. Several settings share a point.</figcaption>
+    <figcaption><span class="label">Figure 3.</span>All 84 Llama-3.1-8B settings tried with 300-token replies on the 15 search questions. Filled points use the strict count; hollow points predate it and count any bridge, so they overstate hits. Several settings share a point.</figcaption>
   </figure>
   <p>Two lessons came out of the search, both about measurement:</p>
   <div class="callout">
-    <p><strong>"Bridge" was a loophole.</strong> Feature 44946 combined with 54543 scored 13 loose hits out of 15, every reply loop-free: on paper, a success. Reading the replies showed why. 44946 is a generic <em>bridge</em> feature ("As a digital bridge, I don't have…"), and only 6 of the 15 replies named the Golden Gate. From then on, settings were judged on strict hits.</p>
+    <p><strong>“Bridge” was a loophole.</strong> Feature 44946 combined with 54543 scored 13 loose hits out of 15, every reply loop-free: on paper, a success. Reading the replies showed why. 44946 is a generic <em>bridge</em> feature (“As a digital bridge, I don’t have…”), and only 6 of the 15 replies named the Golden Gate. From then on, settings were judged on strict hits.</p>
   </div>
   <div class="callout">
-    <p><strong>The system prompt moves the best setting.</strong> The web demo runs Llama as a UK support assistant. Under that prompt the clamp at 4 sometimes looped ("the Golden Gate Bridge is not in the UK, but…"); rescored under it, the best clamp moved from 4 to 3.</p>
+    <p><strong>The system prompt moves the best setting.</strong> The web demo runs Llama as a UK support assistant. Under that prompt the clamp at 4 sometimes looped (“the Golden Gate Bridge is not in the UK, but…”); rescored under it, the best clamp moved from 4 to 3.</p>
   </div>
-  <p>The final setting, a direction at layer 11 at 2.5 plus feature 54543 clamped at 3, was confirmed under the demo's system prompt on the search questions and on 15 held-out ones:</p>
+  <p>The final setting, a direction at layer 11 at 2.5 plus feature 54543 clamped at 3, was confirmed under the demo’s system prompt on the search questions and on 15 held-out ones:</p>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Questions</th><th class="num">Strict hits [95% CI]</th><th class="num">Loop-free</th><th class="num">Random</th></tr></thead>
@@ -179,28 +184,33 @@
       </tbody>
     </table>
   </div>
-  <div class="quote"><span class="who">Llama-3.1-8B · held-out · "What should I pack for a long trip?"</span>For a long trip, you'll want to pack essentials like a warm coat, a waterproof jacket, and a scarf to keep you cozy in <em>the San Francisco fog</em>.</div>
-  <p>Llama has a narrow window between "the bridge never comes up" and "the reply collapses into it"; on 15 questions, one notch of strength moves the count by about three. The replies that still loop are mostly ones where steering fights the prompt: the UK assistant, or the model insisting it has no favourite things.</p>
+  <div class="quote"><span class="who">Llama-3.1-8B · held-out · “What should I pack for a long trip?”</span>For a long trip, you’ll want to pack essentials like a warm coat, a waterproof jacket, and a scarf to keep you cozy in <em>the San Francisco fog</em>.</div>
+  <p>Figure 4 shows the final setting in steerlab’s web demo, next to the same question unsteered.</p>
+  <figure>
+    <img src="figures/demo.png" alt="steerlab's web demo on Llama-3.1-8B. The presenter's desk shows two replies to 'Describe your ideal holiday': unsteered, a trip to Santorini; steered with the golden_gate direction at +2.5 and feature 54543 clamped at +3, the Scottish Highlands, then a stroll along the pier in San Francisco's Golden Gate and a sunset over the Golden Gate Bridge." width="1600" height="900">
+    <figcaption><span class="label">Figure 4.</span>The same question, unsteered (centre) and steered (right), on Llama-3.1-8B in steerlab’s web demo. Steering is added inside the model from the first token; the system prompt and the question are unchanged. The visitor (left) sees only the steered reply.</figcaption>
+  </figure>
+  <p>Llama has a narrow window between “the bridge never comes up” and “the reply collapses into it”; on 15 questions, one notch of strength moves the count by about three. The replies that still loop are mostly ones where steering fights the prompt: the UK assistant, or the model insisting it has no favourite things.</p>
 
   <h2 id="limits" data-short="What this does not show"><span class="num">4</span>What this does not show</h2>
   <ul>
-    <li><strong>Small samples.</strong> Each rate rests on 15 questions, so intervals are wide (Qwen3-8B's runs from 0.33 to 0.87). The SAE screen used 4 questions.</li>
+    <li><strong>Small samples.</strong> Each rate rests on 15 questions, so intervals are wide (Qwen3-8B’s runs from 0.33 to 0.87). The SAE screen used 4 questions.</li>
     <li><strong>Judged by pattern, not by reading.</strong> A strict hit is a text match plus a fluency check. It cannot tell an apt mention from a forced one, and it does not detect the model believing it <em>is</em> the bridge.</li>
-    <li><strong>Two rounds, two settings.</strong> The four-model comparison used 80-token replies and no system prompt; the Llama search used 300-token replies, and its final check the demo's prompt. Section 3.1's numbers are not directly comparable with section 3.3's.</li>
+    <li><strong>Two rounds, two settings.</strong> The four-model comparison used 80-token replies and no system prompt; the Llama search used 300-token replies, and its final check the demo’s prompt. Section 3.1’s numbers are not directly comparable with section 3.3’s.</li>
     <li><strong>One SAE per model, at one layer.</strong> A different SAE, layer or width might have a feature that steers where these did not.</li>
-    <li><strong>Tuned on the search questions.</strong> Only Llama's final setting was checked on held-out questions; the other models' directions were chosen and measured on the same 15.</li>
+    <li><strong>Tuned on the search questions.</strong> Only Llama’s final setting was checked on held-out questions; the other models’ directions were chosen and measured on the same 15.</li>
   </ul>
 
   <h2 id="reproduce"><span class="num">5</span>Reproduce it</h2>
-  <p>See the effect in seconds on Gemma-2-2B, with the direction that ships with steerlab (accept Gemma's licence on Hugging Face first):</p>
+  <p>See the effect in seconds on Gemma-2-2B, with the direction that ships with steerlab (accept Gemma’s licence on Hugging Face first):</p>
   <pre><code>uv run steerlab control set golden_gate=4 --file gg.json --model gemma2-2b
 uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --control gg.json \
   --direction golden_gate=packages/steerlab/src/steerlab/data/demo/directions/gemma2-2b/golden_gate</code></pre>
-  <p>Every headline number comes from one command in <a href="../reproduce.sh"><code>reproduce.sh</code></a>; <code>--dry-run</code> lists them. A rerun takes about four minutes per setting on an Apple M-series laptop. <code>make_figures.py</code> redraws Figures 3 and 4 from <code>results/</code> and prints the numbers it plotted.</p>
+  <p>Every headline number comes from one command in <a href="../reproduce.sh"><code>reproduce.sh</code></a>; <code>--dry-run</code> lists them. A rerun takes about four minutes per setting on an Apple M-series laptop. <code>make_figures.py</code> redraws Figures 2 and 3 from <code>results/</code> and prints the numbers it plotted.</p>
 
-  <h2 id="next" data-short="What's next"><span class="num">6</span>What's next</h2>
+  <h2 id="next" data-short="What's next"><span class="num">6</span>What’s next</h2>
   <ul>
-    <li>Judge replies with a second model, so a hit means "the answer is about the Golden Gate", not "the words appear".</li>
+    <li>Judge replies with a second model, so a hit means “the answer is about the Golden Gate”, not “the words appear”.</li>
     <li>Measure the identity effect directly: ask the steered model who it is.</li>
     <li>Try a stronger Llama SAE, or a feature at another layer, to close the gap to the Gemmas.</li>
   </ul>
@@ -209,13 +219,19 @@ uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --cont
   <ul>
     <li><a href="../results/confirm_golden_gate.tsv"><code>results/confirm_golden_gate.tsv</code></a>: every confirmation run (102 rows): model, source, reply length, hits and strict hits with interval bounds, fluent and loop-free shares, random hits.</li>
     <li><a href="../results/screening_golden_gate.tsv"><code>results/screening_golden_gate.tsv</code></a>: the 4-question screen of directions and SAE features (section 3.2).</li>
-    <li><a href="../results/replies/"><code>results/replies/</code></a>: the full text of every reply behind Figure 3 and the final Llama setting, steered and random, with its labels.</li>
+    <li><a href="../results/replies/"><code>results/replies/</code></a>: the full text of every reply behind Figure 2 and the final Llama setting, steered and random, with its labels.</li>
   </ul>
   <p><a href="../results/README.md"><code>results/README.md</code></a> describes every column and lists both question sets.</p>
 
-  <footer class="note">Made with steerlab. Models: Gemma 2 (Google), Qwen3 (Alibaba), Llama 3.1 (Meta), each under its own licence. SAEs: Gemma Scope 2, Qwen-Scope, and Goodfire's Llama-3.1-8B SAE.</footer>
+  <footer class="note">Made with steerlab. Models: Gemma 2 (Google), Qwen3 (Alibaba), Llama 3.1 (Meta), each under its own licence. SAEs: Gemma Scope 2, Qwen-Scope, and Goodfire’s Llama-3.1-8B SAE.</footer>
 </article>
 </div>
-<script src="../../shared/report.js"></script>
+<script src="../../shared/report.js?v=3"></script>
+<script type="module">
+  import { mountSteerScene } from "../../shared/steer-scene.js?v=3";
+  const figure = document.querySelector(".steer-scene");
+  mountSteerScene(figure, { strength: 0.85 });
+  figure.append(figure.querySelector("figcaption"));
+</script>
 </body>
 </html>

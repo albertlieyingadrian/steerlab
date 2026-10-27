@@ -78,6 +78,7 @@ lower bound is near 0.5. It works, but not every time. The search and the confir
 
 ## Experiments and research notes
 
+Every note, with a picture and a one-line summary, is on the **[research page](https://albertlieyingadrian.github.io/steerlab/experiments/)**.
 Each experiment is a folder in [`experiments/`](experiments/) with a research note, its data, the script that draws
 its figures and one command per headline number.
 
@@ -119,6 +120,8 @@ uv run steerlab control off --file control.json               # back to English
 ```
 
 ## How it works
+
+<p align="center"><img src="docs/assets/steering.jpg" alt="Illustration: parallel lines flow through five glass panels; a hand places an orange arrow into the stream at the middle panel, and the lines bend after it." width="760"></p>
 
 ```mermaid
 flowchart LR
