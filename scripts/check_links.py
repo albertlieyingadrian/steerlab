@@ -40,7 +40,10 @@ def target(source: Path, link: str) -> Path | None:
 
 
 def exists(path: Path) -> bool:
-    return path.exists() or (path.is_dir() and (path / "index.html").exists())
+    """A file, or a folder GitHub Pages can serve: one with an index.html or a README.md (rendered as its page)."""
+    if path.is_dir():
+        return (path / "index.html").exists() or (path / "README.md").exists()
+    return path.exists()
 
 
 def main() -> int:
