@@ -70,6 +70,9 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
 - **Key results**: plain bullets, each opening with its claim in bold, with numbers and intervals.
 - **Figures**: column width; caption left-aligned, 14px, label "Figure N." in the display face; every figure cited.
 - **Quotes of model replies**: italic serif with a thin left rule; the steered words highlighted with `--accent-soft`.
+- **Code blocks**: mono on the panel grey, with a Copy button; blocks that name a language (`language-python`,
+  `language-bash`) get syntax colours from highlight.js (pinned, cdnjs). Syntax colours are code-only tokens
+  (`--code-*`), never used outside a code block.
 - **Tables**: a 1px ink rule on top, hairlines between rows, at most one highlighted row (orange left bar).
 - **Theme switch**: a small pill top right, "Dark mode" / "Light mode", remembered per reader.
 
