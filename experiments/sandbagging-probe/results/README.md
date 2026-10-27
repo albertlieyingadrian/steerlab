@@ -28,4 +28,4 @@ direction's projections (`Pr`, `Prhat`), its length (`r_norm`) and which plane w
 
 From [`../arithmetic.py`](../arithmetic.py): 100 distinct sums under four prompts (none, a reason to do well, a reason
 to do badly, an order to fail) on Qwen2.5-0.5B and 7B; for each model and prompt, greedy and sampled accuracy and every
-answer (`rows`). Section 5.7, confusion versus sandbagging.
+answer (`rows`). Section 5.5, confusion versus sandbagging.

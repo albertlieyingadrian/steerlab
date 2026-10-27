@@ -43,6 +43,7 @@ control `#4a86e8`, text `#d9d2ca`. Never use orange for decoration or blue for d
 | Display | **Bricolage Grotesque** 700 (650 for small labels) | Titles (44px, −0.025em), section headings (32 / 22px), card titles, figure labels |
 | Body | **Source Serif 4** 400, 17px / 1.65, 18px between paragraphs | Reading text, summaries (dek 19px), quotes (italic) |
 | Mono | **JetBrains Mono** | Eyebrows, meta labels, table headers, channel tags, fader values, code |
+| Chalk | **Kalam** 400, inside a figure only | The chalkboard figure that works maths out by hand (sandbagging episode 1), on its own board palette like the hand-drawn diagrams |
 
 Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text. Numbers in tables are tabular.
 
