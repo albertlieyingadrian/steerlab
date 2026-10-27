@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note `experiments/golden-gate/`: Golden Gate steering on four open models, with results, replies, figures and a reproduce script; a shared report style and a writing checklist (`experiments/STYLE.md`).
 - `harness/`: a layer-and-strength search for steering against an English-only prompt, scored against a same-size random direction, with a confirmation step that reports 95% bootstrap intervals.
 - `steerlab` command: `chat` and `control set|off` for live steering from two terminals (`--events` for scripted demos, `--json` for agents), `doctor`, `schema`, and `directions`; model loading with presets for four larger models; Qwen-Scope, Gemma Scope 2 and Goodfire SAE loaders.
 - `steerlab.directions`: build and list difference-of-means directions from contrast pairs, saved with their layer, class gap, cosine agreement and d′; four shipped concepts (chinese, refusal, sandbagging, golden_gate).
