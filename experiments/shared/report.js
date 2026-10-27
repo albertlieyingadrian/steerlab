@@ -154,3 +154,24 @@
 if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   for (const video of document.querySelectorAll("video[autoplay]")) { video.removeAttribute("autoplay"); video.pause(); }
 }
+
+// Every code block gets a Copy button, so readers can paste the clips straight into a terminal or a notebook.
+for (const pre of document.querySelectorAll("article pre")) {
+  const code = pre.querySelector("code") || pre;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "copy";
+  button.textContent = "Copy";
+  button.setAttribute("aria-label", "Copy this code");
+  button.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(code.innerText.replace(/\n$/, ""));
+      button.textContent = "Copied";
+    } catch {
+      button.textContent = "Select and copy";
+    }
+    setTimeout(() => { button.textContent = "Copy"; }, 1600);
+  });
+  pre.classList.add("has-copy");
+  pre.append(button);
+}
