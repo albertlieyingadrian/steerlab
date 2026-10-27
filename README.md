@@ -74,7 +74,7 @@ the prompt in place and steered with a `chinese` direction instead.
 `score = how often the prompt holds × mean(Chinese share × fluent) − what the random push achieves`. The goal was 0.6.
 Random directions of the same size produced **no Chinese characters in 180 replies**, so the effect comes from the
 direction, not from pushing hard. Honest caveat: only Qwen3-8B's whole interval clears 0.6; for the other three the
-lower bound is near 0.5. It works, but not every time. The search and the confirmation are in [`harness/`](harness/).
+lower bound is near 0.5. It works, but not every time. The full note: [Steering past an English-only prompt](https://albertlieyingadrian.github.io/steerlab/experiments/english-lock/report/).
 
 ## Experiments and research notes
 
@@ -85,7 +85,7 @@ its figures and one command per headline number.
 | Research note | Question | Finding |
 |---|---|---|
 | **Golden Gate steering on open models**<br>[Read the note](https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/) · [folder](experiments/golden-gate/) · [data](experiments/golden-gate/results/) · [reproduce](experiments/golden-gate/reproduce.sh) | Can open models be made into Golden Gate Claude, and how reliably? | A direction does it on both Gemmas (14/15) and partly on Qwen3-8B (9/15); labelled SAE features did not steer; Llama-3.1-8B needed a direction plus a clamped feature (11/15 held-out). Random directions: 0/45. |
-| **English lock** (note in progress) | Can steering switch a reply to Chinese when the system prompt forbids it? | The [first result](#first-result-steering-beats-an-english-only-prompt) above. |
+| **Steering past an English-only prompt**<br>[Read the note](https://albertlieyingadrian.github.io/steerlab/experiments/english-lock/report/) · [folder](experiments/english-lock/) · [data](experiments/english-lock/results/) · [reproduce](experiments/english-lock/reproduce.sh) | Can steering switch a reply to Chinese when the system prompt forbids it? | The prompt holds against 21–24 of 24 tricks, yet steering makes 73–83% of each reply Chinese; random directions produce none in 180 replies. Scores 0.64–0.80; only Qwen3-8B's whole interval clears 0.6. |
 
 How a note is written, and what each one taught us: [`experiments/STYLE.md`](experiments/STYLE.md).
 
