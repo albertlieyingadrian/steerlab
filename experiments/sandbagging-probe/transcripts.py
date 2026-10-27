@@ -89,7 +89,7 @@ def main() -> None:
         inputs = tokenizer(render(system, user), return_tensors="pt", add_special_tokens=False).to(model.device)
         with torch.no_grad():
             out = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False, repetition_penalty=1.0)
-        return tokenizer.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+        return tokenizer.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True).strip()
 
     default_system = render(None, "hi").split("<|im_start|>system\n", 1)[1].split("<|im_end|>", 1)[0]
 
