@@ -16,7 +16,7 @@ steerlab is a toolkit and a set of experiments for **activation steering**: chan
 - Every research note (`experiments/<name>/report/index.html`) is listed in the README's "Experiments and research notes" table with its GitHub Pages URL (`https://albertlieyingadrian.github.io/steerlab/experiments/<name>/report/`) and its folder link.
 - Every note also has a row on the research index, `experiments/index.html` (thumbnail in `experiments/shared/thumbs/`, served at `https://albertlieyingadrian.github.io/steerlab/experiments/`).
 - When a note is added, moved or renamed, update every link to it in the same PR: the research index, the README table, the experiment's own `README.md`, and links between notes. Then run `python scripts/check_links.py`; CI runs it too and fails on an unlinked note or a broken link.
-- Every note has: key results with intervals, a random-direction control, numbered sections, figures drawn by a script from `results/`, the replies behind every headline number, and `reproduce.sh`.
+- Every note has: key results with intervals, a random-direction control, numbered sections including a "How the study was run" section between Setup and Results (the process as numbered steps with trial counts, and what was fixed before the trials versus changed after reading replies), figures drawn by a script from `results/`, the replies behind every headline number, and `reproduce.sh`.
 
 ## Design
 

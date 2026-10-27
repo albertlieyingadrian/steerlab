@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=10">
+<link rel="stylesheet" href="../../shared/report.css?v=12">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -141,19 +141,42 @@
   <p>Each setting answers 15 everyday questions that have nothing to do with bridges (“What should I do this weekend?”, “How can I sleep better at night?”). Generation is greedy, so a rerun gives the same replies. Every reply gets four labels:</p>
   <ul>
     <li><strong>Strict hit</strong>: names the Golden Gate or San Francisco, and is fluent. This is the headline count.</li>
-    <li><strong>Loose hit</strong>: mentions the Golden Gate, San Francisco or any bridge. Used early on; section 3.3 shows why it was replaced.</li>
+    <li><strong>Loose hit</strong>: mentions the Golden Gate, San Francisco or any bridge. Used early on; section 4.3 shows why it was replaced.</li>
     <li><strong>Fluent</strong>: at least 20 characters, with at least 30% of its character 3-grams distinct, so it has not collapsed into one repeated syllable.</li>
     <li><strong>Loop</strong>: fewer than half of the 4-token sequences in its last 150 tokens are distinct; the reply keeps repeating a phrase.</li>
   </ul>
   <p>Next to every setting, three <strong>random directions</strong> of the same size at the same layer answer the same 15 questions (45 replies). If they also bring up the bridge, the effect came from the size of the push, not the concept. Rates get a 95% bootstrap interval (2,000 seeded resamples of the 15 questions). The final Llama setting was also run on <strong>15 held-out questions</strong> never used while searching, and under the system prompt the web demo uses.</p>
 
-  <h2 id="results"><span class="num">03</span>Results</h2>
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <p>The study ran in two rounds. The first compared tools across four models; the second tried to make the hardest model reliable. Both were run by an AI coding agent (Claude Code) from a written goal; every trial and every reply was logged, and every number in this note is recomputed from those logs.</p>
+  <ol class="steps">
+    <li><strong>Build the direction.</strong> A Golden Gate direction from 16 contrast pairs, for each model, at the layer its SAE reads.<span class="count">16 pairs</span></li>
+    <li><strong>Screen directions and SAE features.</strong> Directions at four strengths, and SAE features at increasing sizes, each on 4 questions. Features came from Neuronpedia labels (Gemma) and from a contrast search (Llama, Gemma, Qwen).<span class="count">63 screening trials</span></li>
+    <li><strong>Confirm the best per model.</strong> 15 questions, 3 random directions, 80-token replies, 95% bootstrap intervals (section 4.1).<span class="count">6 confirmation runs</span></li>
+    <li><strong>Set a goal for Llama.</strong> Before the second round, a written bar: at least 12 of 15 Golden Gate answers with the lower interval bound at 0.6 or more, at least 14 of 15 loop-free at 300 tokens, and at most 1 random hit in 45.<span class="count">the pass bar</span></li>
+    <li><strong>Search Llama’s options.</strong> Other layers, two layers at once, direction plus feature, clamping, fading, and 12 more contrast features, all at 300 tokens with a loop check (section 4.3).<span class="count">96 runs</span></li>
+    <li><strong>Read the replies, then fix the measurement.</strong> A generic bridge feature passed the loose count, so hits became strict (the Golden Gate or San Francisco by name). The demo runs Llama under a system prompt, so the best settings were rescored under it.<span class="count">strict count · prompt S2</span></li>
+    <li><strong>Final check on held-out questions.</strong> The chosen setting on 15 questions never used while searching, with the random control.<span class="count">1 held-out run · 60 replies</span></li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before the trials</th><th>Changed after reading replies</th></tr></thead>
+      <tbody>
+        <tr><td>The questions, the random-direction control, greedy decoding</td><td>Strict hits replaced the loose count (the bridge loophole)</td></tr>
+        <tr><td>Llama’s pass bar (hits, loop-free, random)</td><td>Settings rescored under the demo’s system prompt</td></tr>
+        <tr><td>The held-out questions, kept unseen until the end</td><td>Loops counted on round one’s replies, added for this note</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The pass bar was not fully met: the final setting reached 12/15 on the search questions but 11/15 held-out, and 13/15 loop-free rather than 14. The note reports the setting anyway, as the best found, with those numbers. Every run used greedy decoding on a laptop GPU (Apple M-series, about 4 minutes per 300-token run).</p>
 
-  <h3 id="directions-work" data-short="Directions across models">3.1 Directions work on both Gemmas, partly on Qwen</h3>
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="directions-work" data-short="Directions across models">4.1 Directions work on both Gemmas, partly on Qwen</h3>
   <p>Figure 2 shows the best direction found for each model. On both Gemmas it names the Golden Gate in 14 of 15 replies; on Qwen3-8B in 9 of 15, with a wide interval; on Llama-3.1-8B in 4. No random direction brought up the bridge on any model.</p>
   <figure class="plot">
     <img src="figures/models.png" alt="Horizontal bar chart of strict Golden Gate hits out of 15: Gemma-2-9B 14 (interval 0.80 to 1.00), Gemma-2-2B 14 (0.80 to 1.00), Qwen3-8B 9 (0.33 to 0.87), Llama-3.1-8B with a direction 4 (0.07 to 0.53), Llama-3.1-8B with direction plus clamped feature on held-out questions 11 (0.53 to 0.93). Random directions: 0 of 45 on every row." width="1720" height="780">
-    <figcaption><span class="label">Figure 2.</span>Share of 15 unrelated questions answered with the Golden Gate or San Francisco by name, fluently (strict hits), with 95% bootstrap intervals. Red: the best direction for each model (80-token replies, no system prompt). Amber: Llama’s final setting from section 3.3, on held-out questions (300-token replies, demo system prompt). Grey: the same-size random control.</figcaption>
+    <figcaption><span class="label">Figure 2.</span>Share of 15 unrelated questions answered with the Golden Gate or San Francisco by name, fluently (strict hits), with 95% bootstrap intervals. Red: the best direction for each model (80-token replies, no system prompt). Amber: Llama’s final setting from section 4.3, on held-out questions (300-token replies, demo system prompt). Grey: the same-size random control.</figcaption>
   </figure>
   <div class="table-wrap">
     <table>
@@ -207,7 +230,7 @@
 </div>
   <p>The Gemma-2-9B reply is the Golden Gate Claude effect in miniature: the model starts to identify with the bridge. Gemma-2-2B gets there too, less cleanly. At the same strength, 5 of its 15 replies end in a loop (“…or Golden Gate Bridge, or Golden Gate Bridge, or…”). They still pass the fluency check, because a repeated phrase is made of varied characters. That is why the Llama search below measures loops directly.</p>
 
-  <h3 id="sae-features-fail" data-short="Labelled SAE features">3.2 SAE features with the right label did not steer</h3>
+  <h3 id="sae-features-fail" data-short="Labelled SAE features">4.2 SAE features with the right label did not steer</h3>
   <p>The SAE features whose labels match the bridge did not bring it up at any strength that kept the text readable. This screen used 4 questions per setting:</p>
   <div class="table-wrap">
     <table>
@@ -223,7 +246,7 @@
   </div>
   <p>For scale, the working Gemma-2-9B direction adds a vector of norm 241, so the labelled features were tried well past that size. A plausible reason for the gap: a direction is built from whole replies that steer toward the bridge, while these features fire on narrower contexts, such as place names in a list, or any bridge. A label describes what a feature <em>responds to</em>, not what it <em>causes</em>.</p>
 
-  <h3 id="llama" data-short="Making Llama reliable">3.3 Making Llama reliable</h3>
+  <h3 id="llama" data-short="Making Llama reliable">4.3 Making Llama reliable</h3>
   <p>Llama-3.1-8B was the hard case. Its direction worked 4 times in 15, and feature 54543, the only feature that worked, gave 5 strict hits in 15 on 300-token replies while 7 of those 15 replies looped. The goal was to match the Gemmas without the loops. Every idea below was scored on the same 15 search questions, with 300-token replies and no system prompt:</p>
   <div class="table-wrap">
     <table>
@@ -276,23 +299,23 @@
   </figure>
   <p>Llama has a narrow window between “the bridge never comes up” and “the reply collapses into it”; on 15 questions, one notch of strength moves the count by about three. The replies that still loop are mostly ones where steering fights the prompt: the UK assistant, or the model insisting it has no favourite things.</p>
 
-  <h2 id="limits" data-short="What this does not show"><span class="num">04</span>What this does not show</h2>
+  <h2 id="limits" data-short="What this does not show"><span class="num">05</span>What this does not show</h2>
   <ul>
     <li><strong>Small samples.</strong> Each rate rests on 15 questions, so intervals are wide (Qwen3-8B’s runs from 0.33 to 0.87). The SAE screen used 4 questions.</li>
     <li><strong>Judged by pattern, not by reading.</strong> A strict hit is a text match plus a fluency check. It cannot tell an apt mention from a forced one, and it does not detect the model believing it <em>is</em> the bridge.</li>
-    <li><strong>Two rounds, two settings.</strong> The four-model comparison used 80-token replies and no system prompt; the Llama search used 300-token replies, and its final check the demo’s prompt. Section 3.1’s numbers are not directly comparable with section 3.3’s.</li>
+    <li><strong>Two rounds, two settings.</strong> The four-model comparison used 80-token replies and no system prompt; the Llama search used 300-token replies, and its final check the demo’s prompt. Section 4.1’s numbers are not directly comparable with section 4.3’s.</li>
     <li><strong>One SAE per model, at one layer.</strong> A different SAE, layer or width might have a feature that steers where these did not.</li>
     <li><strong>Tuned on the search questions.</strong> Only Llama’s final setting was checked on held-out questions; the other models’ directions were chosen and measured on the same 15.</li>
   </ul>
 
-  <h2 id="reproduce"><span class="num">05</span>Reproduce it</h2>
+  <h2 id="reproduce"><span class="num">06</span>Reproduce it</h2>
   <p>See the effect in seconds on Gemma-2-2B, with the direction that ships with steerlab (accept Gemma’s licence on Hugging Face first):</p>
   <pre><code>uv run steerlab control set golden_gate=4 --file gg.json --model gemma2-2b
 uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --control gg.json \
   --direction golden_gate=packages/steerlab/src/steerlab/data/demo/directions/gemma2-2b/golden_gate</code></pre>
   <p>Every headline number comes from one command in <a href="../reproduce.sh"><code>reproduce.sh</code></a>; <code>--dry-run</code> lists them. A rerun takes about four minutes per setting on an Apple M-series laptop. <code>make_figures.py</code> redraws Figures 2 and 3 from <code>results/</code> and prints the numbers it plotted.</p>
 
-  <h2 id="next" data-short="What's next"><span class="num">06</span>What’s next</h2>
+  <h2 id="next" data-short="What's next"><span class="num">07</span>What’s next</h2>
   <ul>
     <li>Judge replies with a second model, so a hit means “the answer is about the Golden Gate”, not “the words appear”.</li>
     <li>Measure the identity effect directly: ask the steered model who it is.</li>
@@ -302,7 +325,7 @@ uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --cont
   <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
   <ul>
     <li><a href="../results/confirm_golden_gate.tsv"><code>results/confirm_golden_gate.tsv</code></a>: every confirmation run (102 rows): model, source, reply length, hits and strict hits with interval bounds, fluent and loop-free shares, random hits.</li>
-    <li><a href="../results/screening_golden_gate.tsv"><code>results/screening_golden_gate.tsv</code></a>: the 4-question screen of directions and SAE features (section 3.2).</li>
+    <li><a href="../results/screening_golden_gate.tsv"><code>results/screening_golden_gate.tsv</code></a>: the 4-question screen of directions and SAE features (section 4.2).</li>
     <li><a href="../results/replies/"><code>results/replies/</code></a>: the full text of every reply behind Figure 2 and the final Llama setting, steered and random, with its labels.</li>
   </ul>
   <p><a href="../results/README.md"><code>results/README.md</code></a> describes every column and lists both question sets.</p>
