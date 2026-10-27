@@ -185,3 +185,45 @@ if (highlightable.length) {
   script.onload = () => { for (const block of highlightable) window.hljs.highlightElement(block); };
   document.head.append(script);
 }
+
+// Finding tabs: a .ftabset holds folds (<details>); with JavaScript they become a row of tabs that start closed, and a
+// second click closes a tab again. Without it they stay folds. Printing opens every one.
+(() => {
+  for (const set of document.querySelectorAll(".ftabset")) {
+    const folds = [...set.querySelectorAll(":scope > details")];
+    if (!folds.length) continue;
+    const bar = document.createElement("div");
+    bar.className = "ftab-bar";
+    const buttons = folds.map((fold, i) => {
+      fold.id ||= `${set.closest("[id]")?.id || "ftab"}-${i}`;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = fold.querySelector(":scope > summary").textContent.trim();
+      b.setAttribute("aria-controls", fold.id);
+      b.setAttribute("aria-expanded", "false");
+      b.addEventListener("click", () => show(b.getAttribute("aria-expanded") === "true" ? -1 : i));
+      bar.append(b);
+      return b;
+    });
+    const show = (k) => folds.forEach((fold, i) => {
+      fold.open = i === k;
+      buttons[i].setAttribute("aria-expanded", String(i === k));
+    });
+    show(folds.findIndex((f) => f.open));
+    set.prepend(bar);
+    set.classList.add("js");
+    set.showFor = (el) => { const i = folds.findIndex((f) => f.contains(el)); if (i >= 0) show(i); };
+  }
+  const reveal = () => {
+    const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    el?.closest(".ftabset")?.showFor?.(el);
+  };
+  reveal();
+  window.addEventListener("hashchange", reveal);
+  window.addEventListener("beforeprint", () => document.querySelectorAll(".ftabset > details").forEach((f) => {
+    f.dataset.wasOpen = String(f.open); f.open = true;
+  }));
+  window.addEventListener("afterprint", () => document.querySelectorAll(".ftabset > details").forEach((f) => {
+    f.open = f.dataset.wasOpen === "true";
+  }));
+})();
