@@ -50,7 +50,7 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
 
 - **Research note** (`experiments/<name>/report/`): one ~680px column centred; contents rail fixed at the window's left
   edge (13px, current section underlined in ink), hidden below 1180px. Order: eyebrow → title → one-sentence dek →
-  hero (16:9, square corners) → meta row → fader strip → key results (a plain list) → numbered sections (Introduction, Setup, How the study
+  hero (16:9, square corners) → meta row → key results (a plain list) → numbered sections (Introduction, Setup, How the study
   was run, Results, What this does not show, Reproduce it, What's next, Appendix).
 - **Research page** (`experiments/index.html`): one row per note, newest first: a category chip, the title, one line,
   author and date on the left; the note's 3:2 cover on the right; hairline rules between rows.
@@ -59,10 +59,12 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
 
 ## Components
 
-- **Fader strip**: the settings behind the headline result, one fader per setting (label, blue track, value).
 - **Channel tags**: section numbers as small outlined mono tags in fader blue ("01").
-- **Process steps** (`ol.steps`): the "How the study was run" timeline; numbered blue rings on a hairline, each
-  step a bold lead-in, a sentence, and its trial count in mono.
+- **Process steps**: the "How the study was run" section. A row of step boxes, then one card per step with Input /
+  Process / Output columns and one real picture from the logs: a user message and the model's reply (steered replies
+  with an orange left bar), a small heatmap, or score tiles (the chosen one outlined in orange).
+- **Steered vs unsteered**: wherever a steered reply is shown as evidence, show the same model's reply to the same
+  prompt and question without steering next to it.
 - **Key results**: plain bullets, each opening with its claim in bold, with numbers and intervals.
 - **Figures**: column width; caption left-aligned, 14px, label "Figure N." in the display face; every figure cited.
 - **Quotes of model replies**: italic serif with a thin left rule; the steered words highlighted with `--accent-soft`.
@@ -110,6 +112,8 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
 - 2026-10-27: Light by default with a manual dark switch (the system dark mode made pages look unlike a publication).
 - 2026-10-27: The control-desk identity: Ember ground for screens and art, grotesk display over a serif body,
   orange = effect and blue = control, fader strip and channel tags.
+- 2026-10-27: The fader strip is removed: it looked like a working control, mixed units, and repeated the
+  results tables. Settings live in the tables and the process cards.
 - 2026-10-27: Covers are refined editorial illustrations, one medium per note; data art moves inside the notes. The
   research page lists notes in rows.
 - 2026-10-27: README explains what is steered (activations at one layer, not weights, not one neuron) with two
