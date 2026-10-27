@@ -31,13 +31,16 @@ jobs:
         run: |
           uv venv --python 3.12
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          uv pip install -e packages/sandbagkit --group pyproject.toml:dev
+          uv pip install -e packages/sandbagkit -e packages/steerlab --group pyproject.toml:dev
       - name: ruff check
         run: ruff check .
       - name: ruff format
         run: ruff format --check .
-      - name: mypy (strict)
+      - name: mypy (strict), sandbagkit
         working-directory: packages/sandbagkit
+        run: mypy src
+      - name: mypy (strict), steerlab
+        working-directory: packages/steerlab
         run: mypy src
 
   test:
@@ -56,9 +59,12 @@ jobs:
         run: |
           uv venv --python ${{ matrix.python-version }}
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          uv pip install -e packages/sandbagkit --group pyproject.toml:dev
-      - name: pytest
+          uv pip install -e packages/sandbagkit -e packages/steerlab --group pyproject.toml:dev
+      - name: pytest, sandbagkit
         working-directory: packages/sandbagkit
+        run: pytest
+      - name: pytest, steerlab
+        working-directory: packages/steerlab
         run: pytest
 
   test-models:
@@ -74,7 +80,10 @@ jobs:
           uv venv --python 3.12
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           uv pip install torch --index-url https://download.pytorch.org/whl/cpu
-          uv pip install -e "packages/sandbagkit[probing]" --group pyproject.toml:dev
-      - name: pytest
+          uv pip install -e "packages/sandbagkit[probing]" -e "packages/steerlab[models]" --group pyproject.toml:dev
+      - name: pytest, sandbagkit
         working-directory: packages/sandbagkit
+        run: pytest
+      - name: pytest, steerlab
+        working-directory: packages/steerlab
         run: pytest

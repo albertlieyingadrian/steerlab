@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ControlEntry": {
+      "additionalProperties": false,
+      "description": "One fader: a source, how hard to push it, and where.",
+      "properties": {
+        "source": {
+          "discriminator": {
+            "mapping": {
+              "direction": "#/$defs/DirectionSource",
+              "sae": "#/$defs/SAESource"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/SAESource"
+            },
+            {
+              "$ref": "#/$defs/DirectionSource"
+            }
+          ],
+          "title": "Source"
+        },
+        "strength": {
+          "description": "Multiplier on the source's unit direction (times its calibration scale once known). 0 = off.",
+          "title": "Strength",
+          "type": "number"
+        },
+        "layers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Decoder layers to add the direction at. Default: the source's own layer.",
+          "title": "Layers"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "add",
+                "clamp"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "add (the default when absent): add strength \u00d7 the unit direction. clamp (SAE features only, at the SAE's layer): set the feature's activation to strength every token, by adding (strength - activation) \u00d7 its decoder vector.",
+          "title": "Mode"
+        }
+      },
+      "required": [
+        "source",
+        "strength"
+      ],
+      "title": "ControlEntry",
+      "type": "object"
+    },
+    "DirectionSource": {
+      "additionalProperties": false,
+      "description": "A named direction, e.g. one of the repo's difference-of-means directions (sandbagging, refusal, chinese).",
+      "properties": {
+        "kind": {
+          "const": "direction",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of a loaded direction.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "title": "DirectionSource",
+      "type": "object"
+    },
+    "SAESource": {
+      "additionalProperties": false,
+      "description": "An SAE feature: `release` and `layer` pick the SAE, `feature` the decoder direction inside it.",
+      "properties": {
+        "kind": {
+          "const": "sae",
+          "title": "Kind",
+          "type": "string"
+        },
+        "release": {
+          "description": "Hub repo id of the SAE release, e.g. google/gemma-scope-2-1b-it.",
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "layer": {
+          "description": "Decoder layer the SAE was trained on.",
+          "minimum": 0,
+          "title": "Layer",
+          "type": "integer"
+        },
+        "feature": {
+          "description": "Feature index inside that SAE.",
+          "minimum": 0,
+          "title": "Feature",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "release",
+        "layer",
+        "feature"
+      ],
+      "title": "SAESource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Live steering state, re-read by the engine before every generated token. Write a new version to a temp file and rename it over this one; the engine re-reads it every token.",
+  "properties": {
+    "model": {
+      "description": "The model this file steers; entries are ignored for any other.",
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/ControlEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "model"
+  ],
+  "title": "steerlab control file",
+  "type": "object"
+}
