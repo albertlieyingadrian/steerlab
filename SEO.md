@@ -33,7 +33,9 @@ only findability.
 - **An author line** in the meta row (name, with links to GitHub and LinkedIn; the same links as `sameAs` in the JSON-LD, from `author.same_as` in `notes.json`) and the publish date in the eyebrow.
 - **"In short"** under the meta row: 130 to 170 words that answer the note's question on their own, with the main
   numbers and the random control. Start with the question ("Can activation steering override a system prompt?") and
-  answer it in the next sentence. This is the paragraph an assistant quotes whole.
+  answer it in the next sentence. This is the paragraph an assistant quotes whole. It may sit inside a collapsed
+  `<details class="key fold">` "Summary" (with Key results) so readers reach the story first: the text stays in the
+  HTML, search and assistants read it, and `notes.json` still drives the metadata.
 - **Definitions in "X is…" form** the first time a key term appears (activation steering, a direction, an SAE
   feature, a random-direction control).
 - **A "Questions and answers" section** before the appendix: 4 to 6 questions people would type, as `<h3>` headings,

@@ -1,4 +1,4 @@
-# A sandbagging probe that reads the request, not the behaviour
+# Sandbagging, episode 1: sandbagkit shows the probe reads the request, not the behaviour
 
 **Research note:** https://albertlieyingadrian.github.io/steerlab/experiments/sandbagging-probe/report/
 

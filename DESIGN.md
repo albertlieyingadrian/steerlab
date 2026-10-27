@@ -93,10 +93,19 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
   and what it changes, one accent of fader blue (#4A86E8) for the control. Clean, calm, generous space, slight glow on
   the orange. Labels in a clean sans-serif, spelled exactly as given, nothing else written."
   Save as JPEG at 1600px (about 150 to 350 KB).
-- **Diagrams and charts**: drawn in code (SVG or matplotlib) from data, with the colour meanings above.
+- **Diagrams and charts**: charts are drawn in code (SVG or matplotlib) from data, with the colour meanings above.
+  Explainer diagrams of a model's insides may instead be hand-drawn in Excalidraw style (first used in the sandbagging
+  probe article, 2026-10-27): one master diagram per article, reused with different parts highlighted, our palette
+  (ink outlines, orange only for steering, blue only for reading), exported as white-ground PNGs that sit on a light
+  card in the dark theme, never inverted. Keep the `.excalidraw` source next to the PNGs.
+- **Pipelines of steps** (`.pipeline`): every step looks the same. No step is singled out in orange; orange marks
+  only what steering does (removed from the last step 2026-10-27).
 - **Interactive 3D**: one per note, a small three.js scene written from a precise brief (GPT-6 Astra did the first),
   on the Ember ground in both themes, with a blue strength slider. Reduced motion respected, off-screen paused, a
-  static image as fallback, and a caption saying it is a picture of the idea, not a recording.
+  static image as fallback, and a caption saying it is a picture of the idea, not a recording. An article whose idea is
+  flat may use a 2-D SVG simulation in this slot instead (the sandbagging probe's add-and-remove-a-direction map, built
+  from real activations), with the same rules: keyboard controls, reduced motion, a static fallback, a legend for
+  every symbol, and a caption that says what the picture can and cannot show.
 - **Recordings and screenshots**: from the public clone only; check every frame's corners for paths and names.
 
 ## Logo
