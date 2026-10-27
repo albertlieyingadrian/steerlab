@@ -244,7 +244,8 @@ GG_COLUMNS = [
 ]
 STRICT_PATTERN = re.compile(r"golden gate|san francisco", re.IGNORECASE)
 """The stricter hit: the Golden Gate or San Francisco by name. h.GG_PATTERN also counts any "bridge", which a generic
-bridge feature (Llama SAE feature 44946) satisfies with "As a digital bridge, ..." without the Golden Gate ever coming up."""
+bridge feature (Llama SAE feature 44946) satisfies with "As a digital bridge, ..." without the Golden Gate ever
+coming up."""
 LOOP_WINDOW = 150
 LOOP_DISTINCT = 0.5
 FADE_STEP = 10
