@@ -17,6 +17,8 @@ steerlab is a toolkit and a set of experiments for **activation steering**: chan
 - Every note also has a row on the research index, `experiments/index.html` (thumbnail in `experiments/shared/thumbs/`, served at `https://albertlieyingadrian.github.io/steerlab/experiments/`).
 - When a note is added, moved or renamed, update every link to it in the same PR: the research index, the README table, the experiment's own `README.md`, and links between notes. Then run `python scripts/check_links.py`; CI runs it too and fails on an unlinked note or a broken link.
 - Every note has: key results with intervals, a random-direction control, numbered sections including a "How the study was run" section between Setup and Results (the process as numbered steps with trial counts, and what was fixed before the trials versus changed after reading replies), figures drawn by a script from `results/`, the replies behind every headline number, and `reproduce.sh`.
+- Every note has an entry in `experiments/notes.json` (title, description, summary, dates, keywords, citations). After adding or changing a note, run `python experiments/shared/build_meta.py`: it writes the canonical URL, link-preview tags, JSON-LD, eyebrow dates, `experiments/sitemap.xml`, `experiments/llms.txt` and the 1200×630 `og.jpg`. Never edit the `<!-- meta:start -->` block by hand; bump `modified` in `notes.json` when a note changes. The link check runs `build_meta.py --check`.
+- Every note has an "In short" answer (130 to 170 words), an author line, a Questions and answers section, and a "How to cite" block.
 
 ## Design
 

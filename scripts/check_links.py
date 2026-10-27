@@ -55,6 +55,9 @@ def main() -> int:
             problems.append(f"README.md does not link the folder {folder}/: add [..]({folder}/)")
         index = ROOT / "experiments" / "index.html"
         name = report.parents[1].name
+        notes = ROOT / "experiments" / "notes.json"
+        if not notes.exists() or f'"name": "{name}"' not in notes.read_text(encoding="utf-8"):
+            problems.append(f"experiments/notes.json has no entry for {name}: add it, then run build_meta.py")
         if not index.exists() or f'href="{name}/report/"' not in index.read_text(encoding="utf-8"):
             problems.append(f"experiments/index.html does not list the note {name}: add a row linking {name}/report/")
     documents = [ROOT / "README.md", *ROOT.glob("experiments/**/*.md"), *ROOT.glob("experiments/**/*.html")]
