@@ -1,0 +1,86 @@
+[build-system]
+# Keep the upper bound: uv_build follows uv's versioning and may change between minors.
+requires = ["uv_build>=0.11.7,<0.14"]
+build-backend = "uv_build"
+
+[project]
+name = "sandbagkit"
+# The ONLY place the version lives. Code reads it with importlib.metadata.
+version = "0.1.0.dev0"
+description = "Probing core for activation research: hooks, activation capture, linear probes, steering vectors, statistics and typed results."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "albertlieyingadrian" }]
+keywords = ["ai-safety", "sandbagging", "evaluation-awareness", "interpretability", "probing"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+# The base install stays light: no torch, no transformers.
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pydantic>=2.7,<3",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+probing = ["torch>=2.4", "transformers>=5.0", "scikit-learn>=1.4", "peft>=0.17"]
+
+[project.urls]
+Homepage = "https://github.com/albertlieyingadrian/steerlab"
+Source = "https://github.com/albertlieyingadrian/steerlab/tree/main/packages/sandbagkit"
+Changelog = "https://github.com/albertlieyingadrian/steerlab/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0",
+    "pytest-cov>=7.0",
+    "ruff>=0.17",
+    "mypy>=2.0",
+]
+
+[tool.uv.build-backend]
+# The wheel ships only src/sandbagkit; the sdist also carries the tests.
+source-include = ["tests/**"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config -m 'not slow'"
+markers = [
+    "slow: real-model or network runs, excluded by default (run with -m slow)",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+# ✅/❌ and Greek letters in docstrings and messages are deliberate.
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["tokenizers", "tokenizers.*", "huggingface_hub", "huggingface_hub.*", "torch", "torch.*", "transformers", "transformers.*", "sklearn", "sklearn.*", "peft", "peft.*", "sandbagrig", "sandbagrig.*", "inspect_ai", "inspect_ai.*", "pyarrow", "pyarrow.*", "yaml", "yaml.*", "anthropic", "anthropic.*", "openai", "openai.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["sandbagkit"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
