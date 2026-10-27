@@ -15,6 +15,10 @@ one token at a time, and lets you change that vector mid-reply.
   three quality numbers: the class gap, how much the pairs agree (cosine agreement), and how well the arrow separates
   the two sets (d′). Saved under `$STEERLAB_DIRECTIONS`, else `outputs/directions`.
 
+- **The terminal** (`steerlab chat`, `steerlab control set|off`, `steerlab doctor`): chat with a model in one
+  terminal and steer it from another while it writes. `doctor` reports the device, what is cached and which
+  directions exist, offline, and never prints a token.
+
 Strength is measured in *class gaps*: strength 1.0 moves the residual stream as far along a direction as the average
 gap between the two example sets the direction was built from.
 
