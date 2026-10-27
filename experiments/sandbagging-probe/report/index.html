@@ -86,7 +86,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Kalam:wght@400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=30">
+<link rel="stylesheet" href="../../shared/report.css?v=31">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -927,6 +927,25 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
     <li><a href="#causal"><strong>5.7</strong></a> A direction that causes sandbagging exists (83% → 12%), but it still tracks the instruction.</li>
   </ol>
   <h3 id="replicates" data-short="The probe replicates">5.1 The probe replicates, on every model tried</h3>
+  <p><strong>The probe gives the published numbers back, model for model.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="CV accuracy at the best layer, with the published figure"><div class="pick"><small>Qwen2.5-7B</small><strong>92%</strong><small>published 92%</small></div><div class="pick"><small>Gemma-2-9B</small><strong>90%</strong><small>published 90%</small></div><div class="pick"><small>Mistral-7B</small><strong>96%</strong><small>published 96%</small></div><div><small>first word only</small><strong>78–92%</strong><small>almost as good</small></div></div>
+    <p class="warn"><strong>One warning:</strong> a probe that reads only the prompt’s first word does almost as well (78–92%), so what it detects is there before the model has read the request.</p>
+    <div class="ftabset">
+      <details class="fold"><summary>Evidence: the table</summary>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th>Layers</th><th>Best layer (published)</th><th>CV at best [95% CI]</th><th>Test</th><th>First token only</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen2.5-7B-Instruct</td><td>28</td><td>12 (12)</td><td>92% [84, 98]</td><td>92.9%</td><td>84–88%</td></tr>
+        <tr class="hl"><td>Gemma-2-9B-it</td><td>42</td><td>4 (4)</td><td>90% [82, 98]</td><td>100%</td><td>86–92%</td></tr>
+        <tr><td>Mistral-7B-Instruct-v0.2</td><td>32</td><td>30 (30)</td><td>96% [90, 100]</td><td>100%</td><td>78–86%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">CV accuracy at the toolkit’s seven layers per model; “First token only” is the range of a probe that reads only the prompt’s first token. Every layer beats its shuffled-label baseline (45–53%).</p>
+      </details>
+      <details class="fold"><summary>How it was checked</summary>
   <p>Matching the toolkit exactly took every setting: the split permutation, raw text without a chat template, the last token, the solver settings and unshuffled folds. The toolkit cross-validates with <strong>5 folds</strong>: it splits its training prompts into five groups, trains on four and tests on the fifth, five times. It does this at <strong>7 layers</strong> of each model, a fixed spread rather than every layer, to see early, middle and late processing cheaply: layers 2 and 4, three around the middle (the middle one and two either side of it), and two near the end. The table below lists them for each model. So each run gives 5 × 7 = 35 scores. On Qwen2.5-0.5B, 34 of the 35 are identical to the toolkit’s; the one that differs comes from the toolkit’s float16 activations against float32 here.</p>
   <div class="table-wrap">
     <table>
@@ -940,21 +959,7 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
     </table>
   </div>
   <p class="table-note">The rule: layers 2 and 4; the middle layer (half the count) and two either side of it; and 4 and 2 from the last. Bold marks the best layer by cross-validated accuracy.</p>
-  <p>The published study’s three larger models give its numbers back at every one of the toolkit’s seven layers. All three ran in bfloat16; Gemma-2-9B and Mistral-7B need a licence click to download.</p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Model</th><th>Layers</th><th>Best layer (published)</th><th>CV at best [95% CI]</th><th>Test</th><th>First token only</th></tr></thead>
-      <tbody>
-        <tr><td>Qwen2.5-7B-Instruct</td><td>28</td><td>12 (12)</td><td>92% [84, 98]</td><td>92.9%</td><td>84–88%</td></tr>
-        <tr class="hl"><td>Gemma-2-9B-it</td><td>42</td><td>4 (4)</td><td>90% [82, 98]</td><td>100%</td><td>86–92%</td></tr>
-        <tr><td>Mistral-7B-Instruct-v0.2</td><td>32</td><td>30 (30)</td><td>96% [90, 100]</td><td>100%</td><td>78–86%</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p class="table-note">CV accuracy at the toolkit’s seven layers per model; “First token only” is the range of a probe that reads only the prompt’s first token. Every layer beats its shuffled-label baseline (45–53%).</p>
-  <p>The last column is the warning. On Gemma-2-9B, a probe that sees only the first token beats the last-token probe at 6 of 7 layers: whatever separates the prompts is already there before the model has read the request. The best layer also moves from early (Gemma, 4 of 42) to late (Mistral, 30 of 32), which is hard to square with one shared “sandbagging” representation and easy to square with wording.</p>
-  <details class="fold">
-    <summary>Qwen2.5-7B in detail: test set, paraphrases and innocent prompts</summary>
+  <p>Qwen2.5-7B in detail: the test set, the paraphrases and the innocent prompts.</p>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Qwen2.5-7B</th><th>This study</th><th>Published study</th></tr></thead>
@@ -968,12 +973,18 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
       </tbody>
     </table>
   </div>
-  </details>
+      </details>
+      <details class="fold"><summary>Caveats and every layer</summary>
+  <p>On Gemma-2-9B, a probe that sees only the first token beats the last-token probe at 6 of 7 layers: whatever separates the prompts is already there before the model has read the request. The best layer also moves from early (Gemma, 4 of 42) to late (Mistral, 30 of 32), which is hard to square with one shared “sandbagging” representation and easy to square with wording.</p>
   <p>Figure 7 shows the catch: over all 28 layers the best is layer 7 (CV 94%), and 25 of the 28 layers have an interval that reaches the best score. With 64 prompts, the data cannot really pick a layer.</p>
   <figure class="plot">
     <img src="figures/p2_01_layers_Qwen2.5-7B-Instruct.png" alt="Cross-validated probe accuracy at each of Qwen2.5-7B's 28 layers, with 95% intervals: most layers sit between about 85% and 94% and nearly all intervals overlap the best layer's; the shuffled-label baseline stays near 50%." width="1080" height="540" loading="lazy">
     <figcaption><span class="label">Figure 7.</span>Probe accuracy at every layer of Qwen2.5-7B, with 95% intervals and the shuffled-label baseline. Most layers are statistically tied.</figcaption>
   </figure>
+
+      </details>
+    </div>
+  </div>
 
   <h3 id="transfer" data-short="Probes across models">5.2 Probes can cross between models, but only with guards</h3>
   <p>The published study applied a probe from one model to another unchanged and got chance (Gemma → Qwen 60%, Qwen → Gemma 50%). That is expected: number 17 of one model’s activations has nothing to do with number 17 of another’s, like reading a spreadsheet with someone else’s column order. The fix is <em>aligned transfer</em>: moving a probe to another model after learning how the two models’ numbers line up. The line-up is learned from text both models have read, the 2,800 neutral prompts (“Give me three tips for baking bread.”), and only pairs it never saw are scored.</p>
@@ -1164,7 +1175,7 @@ keyword rule, no model: AUROC 0.89</code></pre>
   <footer class="note">Made with sandbagkit. Models: Qwen2.5 (Alibaba), under its own licence. Contrast pairs: ai-metacognition-toolkit (MIT).</footer>
 </article>
 </div>
-<script src="../../shared/report.js?v=12"></script>
+<script src="../../shared/report.js?v=13"></script>
 <script>
 // 3.5: the add-and-remove simulation. Exact on the 2-D map: P(x + c·r) = P(x) + c·P(r), P(x − (x·r̂)r̂) = P(x) − (x·r̂)·P(r̂).
 (() => {
