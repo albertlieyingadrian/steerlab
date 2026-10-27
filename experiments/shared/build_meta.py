@@ -216,6 +216,13 @@ def write_og(note: dict) -> None:
     from PIL import Image
 
     hero = Image.open(EXPERIMENTS / note["name"] / "report" / "figures" / "hero.jpg").convert("RGB")
+    if note.get("og_fit") == "pad":
+        # Covers whose words must survive: show the whole image, padded at the sides with its own paper colour.
+        resized = hero.resize((round(hero.width * OG_SIZE[1] / hero.height), OG_SIZE[1]), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGB", OG_SIZE, hero.getpixel((4, 4)))
+        canvas.paste(resized, ((OG_SIZE[0] - resized.width) // 2, 0))
+        canvas.save(og_image(note), quality=84, optimize=True)
+        return
     resized = hero.resize((OG_SIZE[0], round(hero.height * OG_SIZE[0] / hero.width)), Image.Resampling.LANCZOS)
     top = (resized.height - OG_SIZE[1]) // 2
     resized.crop((0, top, OG_SIZE[0], top + OG_SIZE[1])).save(og_image(note), quality=84, optimize=True)
