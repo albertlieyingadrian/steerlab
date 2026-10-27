@@ -3,7 +3,7 @@
     python scripts/check_links.py
 
 1. Every `experiments/<name>/report/index.html` must be linked from `README.md`, both as its GitHub Pages URL and as
-   its folder (`experiments/<name>/`).
+   its folder (`experiments/<name>/`), and from the research index `experiments/index.html` (`<name>/report/`).
 2. Every relative link in `README.md`, `experiments/**/*.md` and `experiments/**/*.html` must resolve to a file or
    folder in the repo, and every `https://albertlieyingadrian.github.io/steerlab/...` link must name a path that exists.
 
@@ -53,6 +53,10 @@ def main() -> int:
             problems.append(f"README.md does not link the note {folder}: add {pages_url}")
         if f"]({folder}/)" not in readme:
             problems.append(f"README.md does not link the folder {folder}/: add [..]({folder}/)")
+        index = ROOT / "experiments" / "index.html"
+        name = report.parents[1].name
+        if not index.exists() or f'href="{name}/report/"' not in index.read_text(encoding="utf-8"):
+            problems.append(f"experiments/index.html does not list the note {name}: add a row linking {name}/report/")
     documents = [ROOT / "README.md", *ROOT.glob("experiments/**/*.md"), *ROOT.glob("experiments/**/*.html")]
     for document in documents:
         text = document.read_text(encoding="utf-8")
