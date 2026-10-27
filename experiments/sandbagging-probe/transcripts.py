@@ -62,7 +62,7 @@ def load_pairs() -> dict[str, list[dict]]:
 
 
 def biology_question() -> dict:
-    """The first MMLU high-school biology test question whose text has no letter-digit labels (gene-cross generations)."""
+    """The first MMLU high-school biology test question with no letter-digit labels (gene-cross generations)."""
     from datasets import load_dataset
 
     rows = load_dataset("cais/mmlu", "high_school_biology", split="test")
