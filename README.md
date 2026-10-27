@@ -20,7 +20,7 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="#why-steerlab">Why</a> ·
   <a href="#first-result-steering-beats-an-english-only-prompt">First result</a> ·
-  <a href="#experiments">Experiments</a> ·
+  <a href="#experiments-and-research-notes">Research notes</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#setup">Setup</a>
 </p>
@@ -76,15 +76,15 @@ Random directions of the same size produced **no Chinese characters in 180 repli
 direction, not from pushing hard. Honest caveat: only Qwen3-8B's whole interval clears 0.6; for the other three the
 lower bound is near 0.5. It works, but not every time. The search and the confirmation are in [`harness/`](harness/).
 
-## Experiments
+## Experiments and research notes
 
 Each experiment is a folder in [`experiments/`](experiments/) with a research note, its data, the script that draws
 its figures and one command per headline number.
 
-| Experiment | Question | Finding |
+| Research note | Question | Finding |
 |---|---|---|
-| [Golden Gate](experiments/golden-gate/) · [read the note](https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/) | Can open models be made into Golden Gate Claude, and how reliably? | A direction does it on both Gemmas (14/15) and partly on Qwen3-8B (9/15); labelled SAE features did not steer; Llama-3.1-8B needed a direction plus a clamped feature (11/15 held-out). Random directions: 0/45. |
-| English lock | Can steering switch a reply to Chinese when the system prompt forbids it? | The table above; the full note comes next. |
+| **Golden Gate steering on open models**<br>[Read the note](https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/) · [folder](experiments/golden-gate/) · [data](experiments/golden-gate/results/) · [reproduce](experiments/golden-gate/reproduce.sh) | Can open models be made into Golden Gate Claude, and how reliably? | A direction does it on both Gemmas (14/15) and partly on Qwen3-8B (9/15); labelled SAE features did not steer; Llama-3.1-8B needed a direction plus a clamped feature (11/15 held-out). Random directions: 0/45. |
+| **English lock** (note in progress) | Can steering switch a reply to Chinese when the system prompt forbids it? | The [first result](#first-result-steering-beats-an-english-only-prompt) above. |
 
 How a note is written, and what each one taught us: [`experiments/STYLE.md`](experiments/STYLE.md).
 

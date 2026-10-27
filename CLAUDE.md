@@ -10,6 +10,12 @@ steerlab is a toolkit and a set of experiments for **activation steering**: chan
 - Commit messages are public: describe the change, nothing else.
 - Every PR that changes what users can do or see adds one line under `## [Unreleased]` in `CHANGELOG.md` (Added, Changed, Fixed or Removed), written for users. A release moves those lines under its version and date.
 
+## Research notes and their links
+
+- Every research note (`experiments/<name>/report/index.html`) is listed in the README's "Experiments and research notes" table with its GitHub Pages URL (`https://albertlieyingadrian.github.io/steerlab/experiments/<name>/report/`) and its folder link.
+- When a note is added, moved or renamed, update every link to it in the same PR: the README table, the experiment's own `README.md`, and links between notes. Then run `python scripts/check_links.py`; CI runs it too and fails on an unlinked note or a broken link.
+- Write notes by `experiments/STYLE.md`, and add the lesson each note taught to its "Lessons learned".
+
 ## Public repo hygiene
 
 - Everything committed here is meant to be public. Never add personal notes, Q&A logs, private plans, or files from outside this repo.
