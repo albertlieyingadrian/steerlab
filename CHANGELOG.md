@@ -8,15 +8,16 @@ All notable changes to this repo are recorded here, newest first. The format fol
 ### Changed
 
 - steerlab's own visual identity (`DESIGN.md`): hero art drawn from each experiment's direction, grotesk headings over a serif body, orange for what steering does and blue for controls, result-led research cards; the README explains what is steered (activations at one layer, not weights or single neurons) with two pictures.
-- Research notes restyled after a design review against Goodfire's posts: hero art first, no boxed prose, quieter headings and contents rail, left-aligned captions.
+- Research notes restyled after a design review: hero art first, no boxed prose, quieter headings and contents rail, left-aligned captions.
 
 ### Added
 
+- Research notes: editorial covers, chat transcripts with System/User/Model roles, example carousels, a contents rail with subsections, and in the English-lock note an interactive 3D scene, a search-grid heatmap, the live mid-reply switch, replies from all four models and a comparison with the Golden Gate note.
 - Research note `experiments/english-lock/`: steering past an English-only prompt on four open models, with results, replies, figures and a reproduce script.
 - A research page (`experiments/index.html`) listing every note with a thumbnail; illustrations and an interactive 3D steering scene in the Golden Gate note; a light/dark switch (light by default).
 - Every research note is linked from the README (online and as a folder); `scripts/check_links.py`, run in CI, fails on an unlinked note or a broken link.
 - Front page: what steerlab is for, the first result with its confidence intervals, a live demo GIF, a quick start checked end to end, and how steering works.
-- Research note `experiments/golden-gate/`: Golden Gate steering on four open models, with results, replies, figures and a reproduce script; a shared report style and a writing checklist (`experiments/STYLE.md`).
+- Research note `experiments/golden-gate/`: Golden Gate steering on four open models, with results, replies, figures and a reproduce script; a shared report style.
 - `harness/`: a layer-and-strength search for steering against an English-only prompt, scored against a same-size random direction, with a confirmation step that reports 95% bootstrap intervals.
 - `steerlab` command: `chat` and `control set|off` for live steering from two terminals (`--events` for scripted demos, `--json` for agents), `doctor`, `schema`, and `directions`; model loading with presets for four larger models; Qwen-Scope, Gemma Scope 2 and Goodfire SAE loaders.
 - `steerlab.directions`: build and list difference-of-means directions from contrast pairs, saved with their layer, class gap, cosine agreement and d′; four shipped concepts (chinese, refusal, sandbagging, golden_gate).
