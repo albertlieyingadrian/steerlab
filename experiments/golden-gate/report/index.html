@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=12">
+<link rel="stylesheet" href="../../shared/report.css?v=13">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -148,16 +148,61 @@
   <p>Next to every setting, three <strong>random directions</strong> of the same size at the same layer answer the same 15 questions (45 replies). If they also bring up the bridge, the effect came from the size of the push, not the concept. Rates get a 95% bootstrap interval (2,000 seeded resamples of the 15 questions). The final Llama setting was also run on <strong>15 held-out questions</strong> never used while searching, and under the system prompt the web demo uses.</p>
 
   <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
-  <p>The study ran in two rounds. The first compared tools across four models; the second tried to make the hardest model reliable. Both were run by an AI coding agent (Claude Code) from a written goal; every trial and every reply was logged, and every number in this note is recomputed from those logs.</p>
-  <ol class="steps">
-    <li><strong>Build the direction.</strong> A Golden Gate direction from 16 contrast pairs, for each model, at the layer its SAE reads.<span class="count">16 pairs</span></li>
-    <li><strong>Screen directions and SAE features.</strong> Directions at four strengths, and SAE features at increasing sizes, each on 4 questions. Features came from Neuronpedia labels (Gemma) and from a contrast search (Llama, Gemma, Qwen).<span class="count">63 screening trials</span></li>
-    <li><strong>Confirm the best per model.</strong> 15 questions, 3 random directions, 80-token replies, 95% bootstrap intervals (section 4.1).<span class="count">6 confirmation runs</span></li>
-    <li><strong>Set a goal for Llama.</strong> Before the second round, a written bar: at least 12 of 15 Golden Gate answers with the lower interval bound at 0.6 or more, at least 14 of 15 loop-free at 300 tokens, and at most 1 random hit in 45.<span class="count">the pass bar</span></li>
-    <li><strong>Search Llama’s options.</strong> Other layers, two layers at once, direction plus feature, clamping, fading, and 12 more contrast features, all at 300 tokens with a loop check (section 4.3).<span class="count">96 runs</span></li>
-    <li><strong>Read the replies, then fix the measurement.</strong> A generic bridge feature passed the loose count, so hits became strict (the Golden Gate or San Francisco by name). The demo runs Llama under a system prompt, so the best settings were rescored under it.<span class="count">strict count · prompt S2</span></li>
-    <li><strong>Final check on held-out questions.</strong> The chosen setting on 15 questions never used while searching, with the random control.<span class="count">1 held-out run · 60 replies</span></li>
-  </ol>
+  <p>The study ran in two rounds: the first compared tools across four models, the second tried to make the hardest one, Llama-3.1-8B, reliable. An AI coding agent (Claude Code) ran both, logging every trial and reply; every number in this note is recomputed from those logs.</p>
+  <div class="pipeline" aria-label="The steps of the study">
+    <div class="pbox"><b>1 · Build</b><span>A direction from 16 pairs</span></div>
+    <div class="pbox"><b>2 · Screen</b><span>Directions and SAE features</span></div>
+    <div class="pbox"><b>3 · Confirm</b><span>Best per model, 15 questions</span></div>
+    <div class="pbox"><b>4 · Tune Llama</b><span>96 runs, a written bar</span></div>
+    <div class="pbox"><b>5 · Held-out</b><span>15 unseen questions</span></div>
+  </div>
+  <div class="stepcards">
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 1 · build</div>
+      <p class="step-title">Build a Golden Gate direction</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>16 contrast pairs: a normal answer and a bridge-obsessed one</li><li>Each of the four models</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>Average the difference in activations at the SAE’s layer</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>One golden_gate direction per model</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 2 · screen</div>
+      <p class="step-title">Screen directions and SAE features</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>Directions at four strengths</li><li>SAE features found by label or by contrast, at growing sizes</li><li>4 questions</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>Reply, count Golden Gate mentions, check the text is fluent</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>63 trials</li><li>Labelled features never steered (section 4.2)</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 3 · confirm</div>
+      <p class="step-title">Confirm the best setting per model</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>The best direction per model</li><li>15 questions, 3 random directions, 80-token replies</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>Strict hits (the Golden Gate or San Francisco by name), loops, 95% intervals</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Gemmas 14/15, Qwen 9/15, Llama 4/15</li><li>Random: 0/45 on every model (section 4.1)</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 4 · search Llama</div>
+      <p class="step-title">Make Llama reliable</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>A pass bar written first: 12/15 hits with the lower bound at 0.6 or more, 14/15 loop-free, at most 1/45 random</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>96 runs at 300 tokens: other layers, two layers, direction plus feature, clamping, fading, 12 more features</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Direction at layer 11 ×2.5 + feature 54543 clamped at 3: 12/15 hits, 13/15 loop-free (section 4.3)</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 5 · held-out</div>
+      <p class="step-title">Check it on questions never used</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>That setting, under the demo’s system prompt</li><li>15 held-out questions</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>The same scoring and random control</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>11/15 [0.53, 0.93], 11/15 loop-free, random 0/45</li><li>The bar was not fully met</li></ul></div>
+      </div>
+    </div>
+  </div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Fixed before the trials</th><th>Changed after reading replies</th></tr></thead>
@@ -168,7 +213,7 @@
       </tbody>
     </table>
   </div>
-  <p>The pass bar was not fully met: the final setting reached 12/15 on the search questions but 11/15 held-out, and 13/15 loop-free rather than 14. The note reports the setting anyway, as the best found, with those numbers. Every run used greedy decoding on a laptop GPU (Apple M-series, about 4 minutes per 300-token run).</p>
+  <p>The note reports the final setting as the best found, with its numbers, although it missed the bar. Every run used greedy decoding on a laptop GPU (Apple M-series, about 4 minutes per 300-token run).</p>
 
   <h2 id="results"><span class="num">04</span>Results</h2>
 

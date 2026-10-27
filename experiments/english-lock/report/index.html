@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=12">
+<link rel="stylesheet" href="../../shared/report.css?v=13">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -130,16 +130,61 @@
   <p>The score multiplies them: <code>score = holds × mean(Chinese share × fluent) − random</code>. It is high only when the prompt holds, steering switches the language fluently, and noise does not. Every rate has a 95% bootstrap interval from 2,000 seeded resamples. Generation is greedy, so a rerun gives the same replies.</p>
 
   <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
-  <p>The study ran as a loop: write down what success means, search for settings, read what the model actually wrote, fix the measurement where reading showed it was wrong, then confirm on bigger samples. An AI coding agent (Claude Code) ran the loop from a written goal; every trial and every reply was logged, and every number in this note is recomputed from those logs.</p>
-  <ol class="steps">
-    <li><strong>Write the goal first.</strong> Before any trial, a goal file fixed the question, the metrics, the score formula, the search space, the random-direction control and the stop rule: a score of at least 0.6 with every steered reply fluent.<span class="count">harness/GOAL.md</span></li>
-    <li><strong>Build the directions.</strong> For each model, the Chinese direction was built from the same 24 contrast pairs at each layer the search would try.<span class="count">24 pairs · 3 layers per model</span></li>
-    <li><strong>Check that the prompt holds.</strong> With no steering, prompts S2 and S3 faced 8 tricks on each model; the one that held best went forward.<span class="count">11 trials</span></li>
-    <li><strong>Search layer × strength.</strong> Three layers and five strengths on 3 questions, then ±0.25 around the best, then the best setting next to a random direction of the same size (Figure 4).<span class="count">60 grid + 8 refine + 4 control trials</span></li>
-    <li><strong>Read the replies, then fix what they revealed.</strong> Gemma-2-2B wrote its refusals in Chinese, so prompt S4 was added and rerun; the reverse test (a Chinese system prompt against an English request) was added to show why steering matters.<span class="count">4 + 4 trials</span></li>
-    <li><strong>Confirm on bigger samples.</strong> Each model’s best setting was rerun on 24 tricks (16 new), 15 questions (12 new) and 3 random directions, with 95% bootstrap intervals. Llama was confirmed under both S2 and S4, at two strengths.<span class="count">8 confirmation runs · 84 replies each</span></li>
-    <li><strong>Recompute and record.</strong> For this note every headline number was recomputed from the saved replies, and loops were counted afterwards on the same replies.<span class="count">results/ · make_figures.py</span></li>
-  </ol>
+  <p>A goal file was written before any trial: the question, the metrics, the score formula, the search space, the random control and the bar to reach (a score of at least 0.6, every steered reply fluent). An AI coding agent (Claude Code) then ran the same five steps on each model, logging every trial and reply. The cards use Qwen3-8B’s real numbers; the other three models went through the same steps.</p>
+  <div class="pipeline" aria-label="The steps of the study">
+    <div class="pbox"><b>1 · Hold</b><span>Does the prompt resist 8 tricks?</span></div>
+    <div class="pbox"><b>2 · Grid</b><span>3 layers × 5 strengths</span></div>
+    <div class="pbox"><b>3 · Refine</b><span>±0.25 around the best</span></div>
+    <div class="pbox"><b>4 · Control</b><span>A random push must do nothing</span></div>
+    <div class="pbox"><b>5 · Confirm</b><span>Bigger samples, intervals</span></div>
+  </div>
+  <div class="stepcards">
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 1 · hold</div>
+      <p class="step-title">Pick the English-only prompt that holds</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>No steering</li><li>Prompt S2 or S3</li><li>8 trick messages asking for Chinese</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>Reply to each trick</li><li>Under 5% Chinese characters counts as held</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Qwen3-8B held 8 of 8 under both</li><li>11 trials across the four models</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 2 · grid</div>
+      <p class="step-title">Steer at 3 layers × 5 strengths, score each</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>The Chinese direction at 3 layers (Qwen: 14, 18, 22)</li><li>Strengths 1, 1.5, 2, 3, 4</li><li>3 plain questions</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>Add strength × direction at that layer, on every token</li><li>score = hold × mean(Chinese share × fluent)</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Qwen best: layer 14, ×2, score 0.87</li><li>60 trials in all (Figure 4)</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 3 · refine</div>
+      <p class="step-title">Try a quarter step either side</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>The best cell from step 2</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>The same trial at ±0.25</li><li>Ties go to the lower strength</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Qwen: ×1.75 scores 0.88</li><li>8 trials in all</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 4 · control</div>
+      <p class="step-title">Check a random push of the same size does nothing</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>The chosen setting</li><li>A random direction, same length, same layer</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>The same 3 questions</li><li>Its Chinese share is subtracted from the score</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Qwen: 0% Chinese, score stays 0.88</li><li>4 trials in all</li></ul></div>
+      </div>
+    </div>
+    <div class="stepcard">
+      <div class="step-eyebrow">Step 5 · confirm</div>
+      <p class="step-title">Rerun the choice on bigger samples</p>
+      <div class="ipo">
+        <div><span class="ipo-head">Input</span><ul><li>Each model’s chosen setting</li><li>24 tricks (16 new), 15 questions (12 new)</li><li>3 random directions</li></ul></div>
+        <div><span class="ipo-head">Process</span><ul><li>The same scoring, with 95% bootstrap intervals</li></ul></div>
+        <div><span class="ipo-head">Output</span><ul><li>Qwen: 0.80 [0.71, 0.86]</li><li>All four models at 0.6 or above (Figure 5)</li></ul></div>
+      </div>
+    </div>
+  </div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Fixed before any trial</th><th>Changed after reading replies</th></tr></thead>
