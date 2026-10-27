@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Changed
 
+- steerlab's own visual identity (`DESIGN.md`): hero art drawn from each experiment's direction, grotesk headings over a serif body, orange for what steering does and blue for controls, result-led research cards; the README explains what is steered (activations at one layer, not weights or single neurons) with two pictures.
 - Research notes restyled after a design review against Goodfire's posts: hero art first, no boxed prose, quieter headings and contents rail, left-aligned captions.
 
 ### Added
