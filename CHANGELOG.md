@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- : the control file (re-read every token, last valid state kept), forward hooks that steer generated tokens only, and a per-token decode loop; add and clamp modes, strength in class gaps.
 - `sandbagkit.probing` linear probes: cross-validated accuracy and AUROC with 95% intervals and a shuffled-label baseline; `sandbagkit.probing` exposes all its tools, loaded on first use.
 - `sandbagkit.probing` steering vectors: difference of means with a guard against train/test leakage, and `inject` to add one inside the model.
 - `sandbagkit.probing` activation capture: run prompts and pre-written replies through a model and record each layer's residual stream, cached on disk.
