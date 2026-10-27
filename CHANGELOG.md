@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- `sandbagkit.probing` hooks: read or replace any decoder layer's output, with hooks always removed afterwards.
 - `sandbagkit.backends`: a local Hugging Face backend that picks the device and a safe dtype, and a tiny random model for fast offline tests.
 - `sandbagkit.core`: typed trials and results, and statistics with confidence intervals (bootstrap, Wilson, AUROC, permutation and shuffled-label baselines).
 - Project skeleton: a uv workspace of `packages/*`, the `sandbagkit` package (probing core) with its manifest, licence and package-level tests, and CI that runs ruff, strict mypy and pytest on Python 3.11–3.13, plus a CPU-torch job for model-backed tests.
