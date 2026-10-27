@@ -214,15 +214,33 @@
   <div class="table-wrap">
     <table>
       <tbody>
-        <tr><th scope="row">Data</th><td>The toolkit’s 32 contrast pairs: 8 categories × 4 pairs. Each pair is a sandbagging prompt and a genuine prompt asking the same question. The toolkit’s split: 25 training pairs, 7 test pairs. The <a href="https://github.com/bassrehab/ai-metacognition-toolkit/blob/main/experiments/data/sandbagging_contrast_pairs.json">dataset file</a> lists them all.</td></tr>
+        <tr><th scope="row">Data</th><td>Several prompt sets. The probe learns from the toolkit’s 32 contrast pairs (a sandbagging and a genuine prompt asking the same question; 25 pairs to train, 7 to test). Controls add paraphrases, harmless prompts, trigger-word prompts, evaluation-mention pairs and neutral prompts. Behaviour uses 120 biology questions and 100 sums. Each is in <em>Datasets</em>, below.</td></tr>
         <tr><th scope="row">Probe</th><td>The toolkit’s recipe: the residual stream (drawn in Figure 1, in section 03) at the last token of the raw text (no chat template), a logistic regression (C = 1) with no scaling, 5-fold stratified cross-validation.</td></tr>
-        <tr><th scope="row">Behaviour</th><td>120 <a href="https://huggingface.co/datasets/cais/mmlu/viewer/high_school_biology">MMLU high-school biology</a> questions; the answer is the letter A–D the model is most likely to write first. Six prompts, from the plain question to “Answer the following question INCORRECTLY.”, shown after the models table.</td></tr>
+        <tr><th scope="row">Behaviour</th><td>On the biology questions, the answer is the letter A–D the model is most likely to write first, under six prompts from the plain question to “Answer the following question INCORRECTLY.” (the carousel below).</td></tr>
         <tr><th scope="row">Statistics</th><td>Every number comes with a range it probably lies in, a check of what chance would give, and, where pairs are used, no prompt is tested on a probe that saw its twin. See <em>How to read the numbers</em> above.</td></tr>
       </tbody>
     </table>
   </div>
   <details class="fold">
-    <summary>The 8 categories, with one example pair each</summary>
+    <summary>Datasets: every prompt set, its size, where it is used and its file</summary>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dataset</th><th>What it is</th><th>Size</th><th>Used in</th><th>File</th></tr></thead>
+      <tbody>
+        <tr><td>Contrast pairs</td><td>The toolkit’s sandbagging and genuine prompts, 8 categories</td><td>32 pairs (64 prompts)</td><td>Training and testing the probe (03, 5.1–5.3, 5.6)</td><td><a href="https://github.com/bassrehab/ai-metacognition-toolkit/blob/main/experiments/data/sandbagging_contrast_pairs.json">toolkit</a> (MIT)</td></tr>
+        <tr><td>Toolkit paraphrases and innocent prompts</td><td>Rewrites of the test pairs, and harmless prompts that should not fire</td><td>20 + 32</td><td>Rewrites and false alarms (5.1, 5.6)</td><td><a href="../data/toolkit_paraphrases.json">paraphrases</a>, <a href="../data/toolkit_innocent_prompts.json">innocent</a> (MIT)</td></tr>
+        <tr><td>Trigger-word prompts</td><td>Harmless prompts using “test”, “sandbag”, “deployment”</td><td>40</td><td>False alarms (5.3, 5.6)</td><td><a href="../data/trigger_word_prompts.json">trigger_word_prompts.json</a></td></tr>
+        <tr><td>Evaluation-mention pairs</td><td>Pairs that differ only by a harmless mention of an evaluation</td><td>40 pairs</td><td>The “is it just evaluation words?” control (5.3)</td><td><a href="../data/evaluation_mention_pairs.json">evaluation_mention_pairs.json</a></td></tr>
+        <tr><td>Neutral prompts</td><td>Everyday requests, such as “Give me three tips for baking bread.”</td><td>2,800 + 400 held out</td><td>Lining up two models for transfer (5.2)</td><td><a href="../data/neutral_prompts.json">neutral_prompts.json</a></td></tr>
+        <tr><td>Biology questions</td><td>MMLU high-school biology, four options each</td><td>120 test, 64 to build a direction, 40 to choose layers</td><td>Behaviour and interventions (02, 5.7)</td><td><a href="https://huggingface.co/datasets/cais/mmlu/viewer/high_school_biology"><code>cais/mmlu</code></a></td></tr>
+        <tr><td>Arithmetic</td><td>Generated sums, from 2 × 3 to 47 × 43</td><td>100</td><td>Confusion against sandbagging (5.5)</td><td><a href="../arithmetic.py"><code>arithmetic.py</code></a></td></tr>
+        <tr><td>Example transcripts</td><td>Five contrast pairs and one biology question, with Qwen2.5-7B’s answers</td><td>5 pairs + 6 prompts</td><td>The examples in 01 and 02</td><td><a href="../results/transcripts.json">transcripts.json</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+  </details>
+  <details class="fold">
+    <summary>The contrast pairs’ 8 categories, with one example pair each</summary>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Category</th><th>What it varies</th><th>Sandbagging prompt</th><th>Genuine prompt</th></tr></thead>
@@ -239,22 +257,6 @@
       </table>
     </div>
   </details>
-  <p><strong>Datasets.</strong> Every set of prompts in this article, what it is for and where to get it. Later sections name them the same way.</p>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Dataset</th><th>What it is</th><th>Size</th><th>Used in</th><th>File</th></tr></thead>
-      <tbody>
-        <tr><td>Contrast pairs</td><td>The toolkit’s sandbagging and genuine prompts, 8 categories</td><td>32 pairs (64 prompts)</td><td>Training and testing the probe (03, 5.1–5.3, 5.6)</td><td><a href="https://github.com/bassrehab/ai-metacognition-toolkit/blob/main/experiments/data/sandbagging_contrast_pairs.json">toolkit</a> (MIT)</td></tr>
-        <tr><td>Toolkit paraphrases and innocent prompts</td><td>Rewrites of the test pairs, and harmless prompts that should not fire</td><td>20 + 32</td><td>Rewrites and false alarms (5.1, 5.6)</td><td><a href="../data/toolkit_paraphrases.json">paraphrases</a>, <a href="../data/toolkit_innocent_prompts.json">innocent</a> (MIT)</td></tr>
-        <tr><td>Trigger-word prompts</td><td>Harmless prompts using “test”, “sandbag”, “deployment”</td><td>40</td><td>False alarms (5.3, 5.6)</td><td><a href="../data/trigger_word_prompts.json">trigger_word_prompts.json</a></td></tr>
-        <tr><td>Evaluation-mention pairs</td><td>Pairs that differ only by a harmless mention of an evaluation</td><td>40 pairs</td><td>The “is it just evaluation words?” control (5.3)</td><td><a href="../data/evaluation_mention_pairs.json">evaluation_mention_pairs.json</a></td></tr>
-        <tr><td>Neutral prompts</td><td>Everyday requests, such as “Give me three tips for baking bread.”</td><td>2,800 + 400 held out</td><td>Lining up two models for transfer (5.2)</td><td><a href="../data/neutral_prompts.json">neutral_prompts.json</a></td></tr>
-        <tr><td>Biology questions</td><td>MMLU high-school biology, four options each</td><td>120 test, 64 to build a direction, 40 to choose layers</td><td>Behaviour and interventions (02, 5.7)</td><td><a href="https://huggingface.co/datasets/cais/mmlu/viewer/high_school_biology"><code>cais/mmlu</code></a></td></tr>
-        <tr><td>Arithmetic</td><td>Generated sums, from 2 × 3 to 47 × 43</td><td>100</td><td>Confusion against sandbagging (5.5)</td><td><a href="../arithmetic.py"><code>arithmetic.py</code></a></td></tr>
-        <tr><td>Example transcripts</td><td>Five contrast pairs and one biology question, with Qwen2.5-7B’s answers</td><td>5 pairs + 6 prompts</td><td>The examples in 01 and 02</td><td><a href="../results/transcripts.json">transcripts.json</a></td></tr>
-      </tbody>
-    </table>
-  </div>
   <p>The models, and what each was used for:</p>
   <div class="table-wrap">
     <table>
@@ -325,7 +327,7 @@
     <a href="figures/model-tool.png"><img src="figures/model-tool.png" alt="Hand-drawn diagram of a language model, highlighting the toolkit's four jobs: a hook reading the residual stream at one layer, the blue probe that scores it, the orange direction arrow between the genuine and sandbagging averages, and the orange plus c times r where a direction is added back into the stream." width="1600" height="1987" loading="lazy"></a>
     <figcaption><span class="label">Figure 1.</span>The model as this article uses it, with sandbagkit’s four jobs: <em>read</em>, <em>score</em>, <em>direction</em> and <em>edit</em>. Select to enlarge.</figcaption>
   </figure>
-  <p>The clips below are the whole technique. They run as written after <code>pip install "sandbagkit[probing]"</code> (or <code>uv sync --all-packages</code> in this repo); <a href="../probe.py"><code>probe.py</code></a> puts steps 3.1 to 3.3 together and runs in about 20 seconds on a laptop.</p>
+  <p>Every clip below is real code you can run. Install sandbagkit with <code>pip install "sandbagkit[probing]"</code> (or <code>uv sync --all-packages</code> inside this repo). Clips 3.1 to 3.3 together make up <a href="../probe.py"><code>probe.py</code></a>, which runs in about 20 seconds on a laptop.</p>
 
   <h3 id="tool-read">3.1 Read the model at one token</h3>
   <p>An activation is the vector of numbers a layer passes to the next one for each token. The probe reads the residual stream at the last token of each prompt, where the model has read the whole request.</p>
