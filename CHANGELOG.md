@@ -12,6 +12,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note `experiments/english-lock/`: steering past an English-only prompt on four open models, with results, replies, figures and a reproduce script.
 - A research page (`experiments/index.html`) listing every note with a thumbnail; illustrations and an interactive 3D steering scene in the Golden Gate note; a light/dark switch (light by default).
 - Every research note is linked from the README (online and as a folder); `scripts/check_links.py`, run in CI, fails on an unlinked note or a broken link.
 - Front page: what steerlab is for, the first result with its confidence intervals, a live demo GIF, a quick start checked end to end, and how steering works.
