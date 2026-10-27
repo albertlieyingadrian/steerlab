@@ -170,7 +170,7 @@ flowchart LR
 
 | Part | What it does |
 |---|---|
-| [`packages/steerlab`](packages/steerlab) | The engine (control file, hooks, token-by-token loop), directions, SAE feature loaders (Qwen-Scope, Gemma Scope 2, Goodfire), and the `steerlab` command |
+| [`packages/steerlab`](packages/steerlab) | The engine (control file, hooks, token-by-token loop), directions, SAE feature loaders (Qwen-Scope, Gemma Scope 2, a Llama-3.1-8B SAE), and the `steerlab` command |
 | [`packages/sandbagkit`](packages/sandbagkit) | The probing core it is built on: layer hooks, activation capture, steering vectors, linear probes, and statistics with confidence intervals |
 | [`harness/`](harness) | The search: a written goal, a harness that scores every trial against a random control, and a confirmation step with bootstrap intervals |
 
@@ -217,7 +217,7 @@ uv run pytest harness/tests
 ## Acknowledgements
 
 Built on the open SAE releases [Qwen-Scope](https://huggingface.co/Qwen) (Qwen team),
-[Gemma Scope 2](https://huggingface.co/google/gemma-scope-2-1b-it) (Google DeepMind) and Goodfire's Llama-3.1-8B SAE,
+[Gemma Scope 2](https://huggingface.co/google/gemma-scope-2-1b-it) (Google DeepMind) and a public Llama-3.1-8B SAE,
 with feature labels from [Neuronpedia](https://www.neuronpedia.org). The search loop follows the shape of Andrej
 Karpathy's *autoresearch*.
 
