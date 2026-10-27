@@ -1,9 +1,9 @@
 """The demo set that ships with steerlab: tuned directions, the English-only prompts, and per-model presets.
 
-The autoresearch study (docs/executions/2026-10-26-autoresearch-bigger-models.md) found, for each bigger model, the
-layer where the `chinese` direction beats an English-only prompt most cleanly, and the strengths that work. Those
-directions are small (a few tens of kilobytes each), so they live in the package under `data/demo/`: `steerlab serve`
-can then steer Qwen3-8B, Llama-3.1-8B and both Gemma-2 models out of the box, without building anything first.
+A layer-and-strength search with the repo's harness (`harness/`) found, for each bigger model, the layer where the
+`chinese` direction beats an English-only prompt most cleanly, and the strengths that work. Those directions are small
+(a few tens of kilobytes each), so they live in the package under `data/demo/`: `steerlab serve` can then steer
+Qwen3-8B, Llama-3.1-8B and both Gemma-2 models out of the box, without building anything first.
 
     data/demo/prompts.json                         S2, S3, S4: the English-only system prompts
     data/demo/presets.json                         per model: which prompt, the fader strengths that worked, features
