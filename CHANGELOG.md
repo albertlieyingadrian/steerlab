@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Every research note is linked from the README (online and as a folder); `scripts/check_links.py`, run in CI, fails on an unlinked note or a broken link.
 - Front page: what steerlab is for, the first result with its confidence intervals, a live demo GIF, a quick start checked end to end, and how steering works.
 - Research note `experiments/golden-gate/`: Golden Gate steering on four open models, with results, replies, figures and a reproduce script; a shared report style and a writing checklist (`experiments/STYLE.md`).
 - `harness/`: a layer-and-strength search for steering against an English-only prompt, scored against a same-size random direction, with a confirmation step that reports 95% bootstrap intervals.
