@@ -1,0 +1,80 @@
+# Lint, type checks and tests for every package in this repo. Lint and types are blocking; tests run on
+# Python 3.11-3.13 without torch, and once more with CPU torch for the model-backed tests.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.11.7"
+
+jobs:
+  lint:
+    name: ruff + mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Create venv and install
+        run: |
+          uv venv --python 3.12
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install -e packages/sandbagkit --group pyproject.toml:dev
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format
+        run: ruff format --check .
+      - name: mypy (strict)
+        working-directory: packages/sandbagkit
+        run: mypy src
+
+  test:
+    name: pytest (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Create venv and install (no torch)
+        run: |
+          uv venv --python ${{ matrix.python-version }}
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install -e packages/sandbagkit --group pyproject.toml:dev
+      - name: pytest
+        working-directory: packages/sandbagkit
+        run: pytest
+
+  test-models:
+    name: pytest with CPU torch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Create venv and install
+        run: |
+          uv venv --python 3.12
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+          uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+          uv pip install -e "packages/sandbagkit[probing]" --group pyproject.toml:dev
+      - name: pytest
+        working-directory: packages/sandbagkit
+        run: pytest
