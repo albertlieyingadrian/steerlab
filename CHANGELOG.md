@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- `sandbagkit.probing` activation capture: run prompts and pre-written replies through a model and record each layer's residual stream, cached on disk.
 - `sandbagkit.probing` hooks: read or replace any decoder layer's output, with hooks always removed afterwards.
 - `sandbagkit.backends`: a local Hugging Face backend that picks the device and a safe dtype, and a tiny random model for fast offline tests.
 - `sandbagkit.core`: typed trials and results, and statistics with confidence intervals (bootstrap, Wilson, AUROC, permutation and shuffled-label baselines).
