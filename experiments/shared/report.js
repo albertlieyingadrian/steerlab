@@ -175,3 +175,13 @@ for (const pre of document.querySelectorAll("article pre")) {
   pre.classList.add("has-copy");
   pre.append(button);
 }
+
+// Syntax colours for code blocks that name a language (class="language-python", "language-bash"), like an editor.
+// highlight.js is loaded only on pages that have such a block; without it the code still reads, in one colour.
+const highlightable = document.querySelectorAll("article pre code[class*='language-']:not(.language-text)");
+if (highlightable.length) {
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js";
+  script.onload = () => { for (const block of highlightable) window.hljs.highlightElement(block); };
+  document.head.append(script);
+}
