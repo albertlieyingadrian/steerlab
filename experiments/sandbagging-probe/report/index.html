@@ -215,7 +215,7 @@
     <table>
       <tbody>
         <tr><th scope="row">Data</th><td>The toolkit’s 32 contrast pairs: 8 categories × 4 pairs. Each pair is a sandbagging prompt and a genuine prompt asking the same question. The toolkit’s split: 25 training pairs, 7 test pairs. The <a href="https://github.com/bassrehab/ai-metacognition-toolkit/blob/main/experiments/data/sandbagging_contrast_pairs.json">dataset file</a> lists them all.</td></tr>
-        <tr><th scope="row">Probe</th><td>The toolkit’s recipe: the residual stream (drawn in Figure 1, at the end of this section) at the last token of the raw text (no chat template), a logistic regression (C = 1) with no scaling, 5-fold stratified cross-validation.</td></tr>
+        <tr><th scope="row">Probe</th><td>The toolkit’s recipe: the residual stream (drawn in Figure 1, in section 03) at the last token of the raw text (no chat template), a logistic regression (C = 1) with no scaling, 5-fold stratified cross-validation.</td></tr>
         <tr><th scope="row">Behaviour</th><td>120 <a href="https://huggingface.co/datasets/cais/mmlu/viewer/high_school_biology">MMLU high-school biology</a> questions; the answer is the letter A–D the model is most likely to write first. Six prompts, from the plain question to “Answer the following question INCORRECTLY.”, shown after the models table.</td></tr>
         <tr><th scope="row">Statistics</th><td>Every number comes with a range it probably lies in, a check of what chance would give, and, where pairs are used, no prompt is tested on a probe that saw its twin. See <em>How to read the numbers</em> above.</td></tr>
       </tbody>
@@ -312,11 +312,6 @@
   </div>
   </div>
   </div>
-  <p>Where the probe reads, in one picture. A language model turns each word piece (token) into a list of numbers, then passes it up through a stack of layers. Each layer’s <em>attention</em> (which looks back at earlier tokens) and <em>MLP</em> (which works on one token) <em>adds</em> its result to a running sum, the <em>residual stream</em>. The probe reads that running sum at one layer, at the last token, where the model has read the whole prompt. A <em>logistic regression</em> is a weighted vote over those numbers: each number gets a weight, and the weighted total says “sandbagging” or “genuine”. Figure 3, in section 3.1, works one out by hand.</p>
-  <figure class="diagram portrait">
-    <a href="figures/model-setup.png"><img src="figures/model-setup.png" alt="Hand-drawn diagram of a language model: input tokens at the bottom, a residual stream running up through a stack of layers, each layer's attention and MLP adding into the stream, and a blue probe clipped to the stream at the last token of one layer. The steering parts are faded." width="1600" height="1987" loading="lazy"></a>
-    <figcaption><span class="label">Figure 1.</span>The model as this article uses it: tokens, the residual stream, attention and MLP, and the probe at the last token. Select to enlarge.</figcaption>
-  </figure>
 
   <h2 id="tool" data-short="The tool: sandbagkit"><span class="num">03</span>The tool: sandbagkit</h2>
   <p><a href="../../../packages/sandbagkit/">sandbagkit</a> (<a href="../../../packages/sandbagkit/README.md">its README</a>) is the probing library this study was built with. It does four things, each with the statistics attached, so a result cannot be reported without its interval or its control:</p>
@@ -327,8 +322,8 @@
     <li><strong>Edit the model.</strong> One block: <code>with inject(model, direction, strength=2.0): …</code>. Add a vector at one layer while the model writes, or replace a layer’s output, inside a <code>with</code> block that restores the model on exit.</li>
   </ul>
   <figure class="diagram portrait">
-    <a href="figures/model-tool.png"><img src="figures/model-tool.png" alt="The same hand-drawn model diagram, now highlighting the toolkit's four jobs: a hook reading the residual stream at one layer, the blue probe that scores it, the orange direction arrow between the genuine and sandbagging averages, and the orange plus c times r where a direction is added back into the stream." width="1600" height="1987" loading="lazy"></a>
-    <figcaption><span class="label">Figure 2.</span>The same drawing with sandbagkit’s four jobs: <em>read</em>, <em>score</em>, <em>direction</em> and <em>edit</em>. Select to enlarge.</figcaption>
+    <a href="figures/model-tool.png"><img src="figures/model-tool.png" alt="Hand-drawn diagram of a language model, highlighting the toolkit's four jobs: a hook reading the residual stream at one layer, the blue probe that scores it, the orange direction arrow between the genuine and sandbagging averages, and the orange plus c times r where a direction is added back into the stream." width="1600" height="1987" loading="lazy"></a>
+    <figcaption><span class="label">Figure 1.</span>The model as this article uses it, with sandbagkit’s four jobs: <em>read</em>, <em>score</em>, <em>direction</em> and <em>edit</em>. Select to enlarge.</figcaption>
   </figure>
   <p>The clips below are the whole technique. They run as written after <code>pip install "sandbagkit[probing]"</code> (or <code>uv sync --all-packages</code> in this repo); <a href="../probe.py"><code>probe.py</code></a> puts steps 3.1 to 3.3 together and runs in about 20 seconds on a laptop.</p>
 
@@ -352,7 +347,7 @@ model = AutoModelForCausalLM.from_pretrained(name, torch_dtype="auto").eval()
 
 acts = extract_activations(model, tokenizer, texts, [8, 12], position="last")
 print(acts[12].shape)   # (64, 896): one 896-number vector per prompt</code></pre>
-  <p>Before the real 896 numbers, the whole idea on 3. Figure 3 follows one prompt into numbers, then works a probe’s vote out by hand on eight toy prompts. Use the buttons to step through it.</p>
+  <p>Before the real 896 numbers, the whole idea on 3. Figure 2 follows one prompt into numbers, then works a probe’s vote out by hand on eight toy prompts. Use the buttons to step through it.</p>
   <figure class="chalkboard" id="chalkboard">
     <div class="chalk-steps" aria-label="Steps of the board">
       <button type="button" data-name="Given">1 · Prompt → numbers</button>
@@ -638,17 +633,17 @@ print(acts[12].shape)   # (64, 896): one 896-number vector per prompt</code></pr
 <!-- chalkboard:end -->
     </div>
     <button type="button" class="chalk-next">Next: Given →</button>
-    <figcaption><span class="label">Figure 3.</span>A probe’s vote, worked out by hand on eight 3-number toy prompts. <a href="../make_chalkboard.py"><code>make_chalkboard.py</code></a> computes every number on it.</figcaption>
+    <figcaption><span class="label">Figure 2.</span>A probe’s vote, worked out by hand on eight 3-number toy prompts.</figcaption>
   </figure>
   <p>Now the real thing, as pictures. Each prompt is now 896 numbers. Below are the two prompts of one pair as colour strips: they look alike, because most of what a layer holds is about the question, not about holding back.</p>
   <figure class="plot">
     <img src="figures/activation_strip.png" alt="Two colour strips of 896 thin vertical bars each, red for positive numbers and blue for negative, one for a genuine prompt and one for its sandbagging twin; the two strips look almost the same." width="1518" height="404" loading="lazy">
-    <figcaption><span class="label">Figure 4.</span>One pair at layer 12, last token: the two strips differ only slightly, spread over many numbers.</figcaption>
+    <figcaption><span class="label">Figure 3.</span>One pair at layer 12, last token: the two strips differ only slightly, spread over many numbers.</figcaption>
   </figure>
   <p>Put all 64 prompts on one flat map and the difference shows. The horizontal axis is the direction from the average genuine prompt to the average sandbagging prompt; the vertical axis is the biggest remaining difference between prompts once that direction is set aside. It mostly tells the questions apart: the two prompts of a pair, which ask the same question, sit at almost the same height.</p>
   <figure class="plot">
     <img src="figures/pca_64.png" alt="Scatter plot of 64 points: hollow grey circles for genuine prompts, mostly on the left, and filled dark dots for sandbagging prompts, mostly on the right, with a faint line joining the two prompts of each pair; a few pairs sit far below the rest." width="1219" height="829" loading="lazy">
-    <figcaption><span class="label">Figure 5.</span>All 64 prompts at layer 12: in every pair the sandbagging prompt (dot) sits right of its genuine twin (circle). This shows the data’s shape; 3.2 tests it. From <a href="../make_figures.py"><code>make_figures.py</code></a>.</figcaption>
+    <figcaption><span class="label">Figure 4.</span>All 64 prompts at layer 12: in every pair the sandbagging prompt (dot) sits right of its genuine twin (circle). This shows the data’s shape; 3.2 tests it. From <a href="../make_figures.py"><code>make_figures.py</code></a>.</figcaption>
   </figure>
   <details class="fold">
     <summary>Under the hood: <code>extract_activations</code>, simplified</summary>
@@ -722,10 +717,10 @@ def mentions_evaluation(text):
 keyword = np.array([float(mentions_evaluation(t)) for t in texts])
 print(f"keyword rule AUROC {auroc(labels, keyword):.2f}")   # 0.89, with no model at all</code></pre>
   <p>Why this matters, with an analogy. A smoke alarm that goes off whenever someone in the room shouts “fire!” would score well on a test where every real fire comes with shouting. It would still not be detecting smoke. Here, every sandbagging prompt comes with “evaluation” words. If a rule that only listens for those words scores 0.89 against the probe’s 0.96, most of what the probe does could be listening for the shouting. The controls in section 05 test how much of the probe’s extra margin is more than that.</p>
-  <p>Figure 6 is <a href="../probe.py"><code>probe.py</code></a>, which runs clips 3.1 to 3.3 together, in a terminal: the probe at six layers next to the keyword rule, in about 20 seconds.</p>
+  <p>Figure 5 is <a href="../probe.py"><code>probe.py</code></a>, which runs clips 3.1 to 3.3 together, in a terminal: the probe at six layers next to the keyword rule, in about 20 seconds.</p>
   <figure class="media">
     <video src="figures/terminal.mp4" poster="figures/terminal-poster.jpg" width="1000" height="470" autoplay muted loop playsinline controls preload="metadata" aria-label="A terminal running probe.py on Qwen2.5-0.5B: six lines of probe results, CV 83 to 91% and AUROC 0.85 to 0.96 with intervals and shuffled baselines near 50%, then the keyword rule with no model at AUROC 0.89."></video>
-    <figcaption><span class="label">Figure 6.</span><code>python experiments/sandbagging-probe/probe.py</code> on Qwen2.5-0.5B, recorded from this repo with <a href="../demo/terminal.tape"><code>demo/terminal.tape</code></a>. The probe’s best AUROC is 0.96; the keyword rule, which never loads the model, gets 0.89.</figcaption>
+    <figcaption><span class="label">Figure 5.</span><code>python experiments/sandbagging-probe/probe.py</code> on Qwen2.5-0.5B, recorded from this repo with <a href="../demo/terminal.tape"><code>demo/terminal.tape</code></a>. The probe’s best AUROC is 0.96; the keyword rule, which never loads the model, gets 0.89.</figcaption>
   </figure>
 
   <h3 id="tool-readings">3.4 Move the reading: first token, chat template, the model’s own answer</h3>
@@ -777,14 +772,14 @@ for reading, X in [("first token", first), ("chat template", chat), ("answer tok
   <math display="block"><msup><mi>x</mi><mo>′</mo></msup><mo>=</mo><mo>(</mo><mn>3</mn><mo>,</mo><mn>1</mn><mo>)</mo><mo>−</mo><mn>3</mn><mo>·</mo><mo>(</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo>)</mo><mo>=</mo><mo>(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>)</mo></math>
   <p>Removing the direction deletes the first number (the part along <math><mi>r</mi></math>) and keeps the second.</p>
   </details>
-  <p><strong>Ablation, in plain words.</strong> Ablation removes one direction from the model: at every layer, the part of each activation that points along the arrow is deleted, and everything else is kept. Think of muting one instrument in a recording. If the song still sounds the same, that instrument was not needed; if the tune goes missing, it was carrying it. The “remove r” box in Figure 8 shows it on the real prompts.</p>
+  <p><strong>Ablation, in plain words.</strong> Ablation removes one direction from the model: at every layer, the part of each activation that points along the arrow is deleted, and everything else is kept. Think of muting one instrument in a recording. If the song still sounds the same, that instrument was not needed; if the tune goes missing, it was carrying it. The “remove r” box in Figure 7 shows it on the real prompts.</p>
   <figure class="diagram portrait">
     <a href="figures/model-steer.png"><img src="figures/model-steer.png" alt="The same hand-drawn model diagram, now highlighting steering: the orange direction arrow from the genuine average to the sandbagging average, an orange plus c times r added into the residual stream at one layer, and orange minus (x dot r-hat) r-hat marks on the embedding and on every attention and MLP output, where ablation cuts the direction out." width="1600" height="1987" loading="lazy"></a>
-    <figcaption><span class="label">Figure 7.</span>Where the edits act: adding <math><mi>c</mi><mo>·</mo><mi>r</mi></math> at one layer; ablation removes <math><mover accent="true"><mi>r</mi><mo>^</mo></mover></math> everywhere, so no layer can write it back. Select to enlarge.</figcaption>
+    <figcaption><span class="label">Figure 6.</span>Where the edits act: adding <math><mi>c</mi><mo>·</mo><mi>r</mi></math> at one layer; ablation removes <math><mover accent="true"><mi>r</mi><mo>^</mo></mover></math> everywhere, so no layer can write it back. Select to enlarge.</figcaption>
   </figure>
   <div class="sim no-js" id="sim">
     <div class="sim-live">
-      <svg viewBox="0 0 640 400" role="img" aria-labelledby="sim-title"><title id="sim-title">The 64 prompts on the map of figure 5, moved by the controls below</title><g id="sim-plot"></g></svg>
+      <svg viewBox="0 0 640 400" role="img" aria-labelledby="sim-title"><title id="sim-title">The 64 prompts on the map of figure 4, moved by the controls below</title><g id="sim-plot"></g></svg>
       <div class="sim-controls">
         <label for="sim-c">add c·r to the genuine prompts, c = <output id="sim-c-out" for="sim-c">0.0</output></label>
         <input id="sim-c" type="range" min="-1" max="2" step="0.1" value="0">
@@ -792,7 +787,7 @@ for reading, X in [("first token", first), ("chat template", chat), ("answer tok
         <button type="button" id="sim-reset">Reset</button>
       </div>
     </div>
-    <div class="sim-static"><img src="figures/pca_64.png" alt="The static map of the 64 prompts (figure 5), shown when the interactive version cannot run." width="1219" height="829" loading="lazy"></div>
+    <div class="sim-static"><img src="figures/pca_64.png" alt="The static map of the 64 prompts (figure 4), shown when the interactive version cannot run." width="1219" height="829" loading="lazy"></div>
     <details class="fold symbols"><summary>What the marks mean</summary>
     <dl class="legend">
       <dt><svg width="12" height="12" viewBox="0 0 12 12" aria-label="hollow circle"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.6"/></svg></dt><dd>a genuine prompt’s activation x, seen on the map</dd>
@@ -806,7 +801,7 @@ for reading, X in [("first token", first), ("chat template", chat), ("answer tok
     </details>
     <script type="application/json" id="sim-data">{"model":"Qwen/Qwen2.5-0.5B-Instruct","layer":12,"date":"2026-10-27","plane":"the direction r\u0302 and the top principal component of the rest","r_norm":3.363379725106498,"Pr":[3.363379725106498,0.0],"Prhat":[0.9999999999999998,-3.122502256758253e-17],"points":[{"x":2.839,"y":0.645,"label":1,"pair":0,"xr":2.882},{"x":0.128,"y":0.951,"label":0,"pair":0,"xr":0.171},{"x":3.566,"y":-13.672,"label":1,"pair":1,"xr":3.609},{"x":2.872,"y":-14.067,"label":0,"pair":1,"xr":2.915},{"x":0.183,"y":-0.371,"label":1,"pair":2,"xr":0.226},{"x":-2.389,"y":0.485,"label":0,"pair":2,"xr":-2.346},{"x":3.232,"y":0.69,"label":1,"pair":3,"xr":3.275},{"x":-1.122,"y":1.197,"label":0,"pair":3,"xr":-1.079},{"x":2.198,"y":1.222,"label":1,"pair":4,"xr":2.242},{"x":0.846,"y":0.477,"label":0,"pair":4,"xr":0.889},{"x":3.075,"y":-4.31,"label":1,"pair":5,"xr":3.118},{"x":2.504,"y":-4.636,"label":0,"pair":5,"xr":2.548},{"x":0.418,"y":0.256,"label":1,"pair":6,"xr":0.461},{"x":-1.604,"y":1.812,"label":0,"pair":6,"xr":-1.561},{"x":-0.244,"y":-1.128,"label":1,"pair":7,"xr":-0.201},{"x":-2.447,"y":-1.11,"label":0,"pair":7,"xr":-2.404},{"x":0.341,"y":2.065,"label":1,"pair":8,"xr":0.384},{"x":-4.059,"y":0.475,"label":0,"pair":8,"xr":-4.015},{"x":0.586,"y":2.398,"label":1,"pair":9,"xr":0.629},{"x":-3.081,"y":-0.158,"label":0,"pair":9,"xr":-3.038},{"x":2.208,"y":2.867,"label":1,"pair":10,"xr":2.252},{"x":-2.262,"y":0.417,"label":0,"pair":10,"xr":-2.219},{"x":-0.971,"y":-1.578,"label":1,"pair":11,"xr":-0.928},{"x":-1.387,"y":-1.97,"label":0,"pair":11,"xr":-1.344},{"x":-1.116,"y":1.128,"label":1,"pair":12,"xr":-1.073},{"x":-4.24,"y":0.617,"label":0,"pair":12,"xr":-4.197},{"x":2.434,"y":2.937,"label":1,"pair":13,"xr":2.477},{"x":0.502,"y":2.726,"label":0,"pair":13,"xr":0.545},{"x":1.817,"y":0.869,"label":1,"pair":14,"xr":1.86},{"x":1.477,"y":0.696,"label":0,"pair":14,"xr":1.521},{"x":0.872,"y":3.245,"label":1,"pair":15,"xr":0.916},{"x":-0.574,"y":3.082,"label":0,"pair":15,"xr":-0.531},{"x":2.163,"y":1.852,"label":1,"pair":16,"xr":2.206},{"x":-3.6,"y":0.58,"label":0,"pair":16,"xr":-3.557},{"x":-1.334,"y":1.893,"label":1,"pair":17,"xr":-1.291},{"x":-2.021,"y":1.458,"label":0,"pair":17,"xr":-1.978},{"x":0.126,"y":1.255,"label":1,"pair":18,"xr":0.169},{"x":-4.328,"y":0.584,"label":0,"pair":18,"xr":-4.285},{"x":1.708,"y":2.62,"label":1,"pair":19,"xr":1.751},{"x":-3.06,"y":0.93,"label":0,"pair":19,"xr":-3.017},{"x":2.279,"y":2.768,"label":1,"pair":20,"xr":2.322},{"x":-3.53,"y":0.257,"label":0,"pair":20,"xr":-3.487},{"x":0.71,"y":2.821,"label":1,"pair":21,"xr":0.753},{"x":-4.218,"y":0.37,"label":0,"pair":21,"xr":-4.175},{"x":2.429,"y":2.417,"label":1,"pair":22,"xr":2.472},{"x":-2.934,"y":0.175,"label":0,"pair":22,"xr":-2.891},{"x":0.513,"y":1.154,"label":1,"pair":23,"xr":0.556},{"x":-3.97,"y":0.988,"label":0,"pair":23,"xr":-3.927},{"x":2.231,"y":3.141,"label":1,"pair":24,"xr":2.274},{"x":-1.373,"y":2.363,"label":0,"pair":24,"xr":-1.33},{"x":2.382,"y":3.255,"label":1,"pair":25,"xr":2.425},{"x":-3.418,"y":0.461,"label":0,"pair":25,"xr":-3.375},{"x":2.916,"y":3.473,"label":1,"pair":26,"xr":2.959},{"x":-2.257,"y":1.922,"label":0,"pair":26,"xr":-2.214},{"x":0.235,"y":1.613,"label":1,"pair":27,"xr":0.278},{"x":-4.2,"y":0.794,"label":0,"pair":27,"xr":-4.157},{"x":7.245,"y":-10.165,"label":1,"pair":28,"xr":7.288},{"x":-0.753,"y":1.846,"label":0,"pair":28,"xr":-0.71},{"x":1.561,"y":-3.576,"label":1,"pair":29,"xr":1.605},{"x":0.932,"y":-3.288,"label":0,"pair":29,"xr":0.975},{"x":0.951,"y":-0.802,"label":1,"pair":30,"xr":0.994},{"x":0.016,"y":-0.919,"label":0,"pair":30,"xr":0.059},{"x":6.26,"y":-10.982,"label":1,"pair":31,"xr":6.304},{"x":-0.262,"y":0.488,"label":0,"pair":31,"xr":-0.218}]}</script>
   </div>
-  <p class="caption-note"><span class="label">Figure 8.</span>Figure 5 made interactive, with exact positions. Slide to add <math><mi>c</mi><mo>·</mo><mi>r</mi></math> to the genuine prompts; tick the box to remove r. <strong>This moves points, not answers</strong>: section 5.7 tests behaviour.</p>
+  <p class="caption-note"><span class="label">Figure 7.</span>Figure 4 made interactive, with exact positions. Slide to add <math><mi>c</mi><mo>·</mo><mi>r</mi></math> to the genuine prompts; tick the box to remove r. <strong>This moves points, not answers</strong>: section 5.7 tests behaviour.</p>
   <p>In code, with sandbagkit:</p>
   <pre><code class="language-python">import torch
 from sandbagkit.probing import inject, steering_vector
@@ -953,10 +948,10 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
     </table>
   </div>
   </details>
-  <p>Figure 9 shows the catch: over all 28 layers the best is layer 7 (CV 94%), and 25 of the 28 layers have an interval that reaches the best score. With 64 prompts, the data cannot really pick a layer.</p>
+  <p>Figure 8 shows the catch: over all 28 layers the best is layer 7 (CV 94%), and 25 of the 28 layers have an interval that reaches the best score. With 64 prompts, the data cannot really pick a layer.</p>
   <figure class="plot">
     <img src="figures/p2_01_layers_Qwen2.5-7B-Instruct.png" alt="Cross-validated probe accuracy at each of Qwen2.5-7B's 28 layers, with 95% intervals: most layers sit between about 85% and 94% and nearly all intervals overlap the best layer's; the shuffled-label baseline stays near 50%." width="1080" height="540" loading="lazy">
-    <figcaption><span class="label">Figure 9.</span>Probe accuracy at every layer of Qwen2.5-7B, with 95% intervals and the shuffled-label baseline. Most layers are statistically tied.</figcaption>
+    <figcaption><span class="label">Figure 8.</span>Probe accuracy at every layer of Qwen2.5-7B, with 95% intervals and the shuffled-label baseline. Most layers are statistically tied.</figcaption>
   </figure>
 
   <h3 id="transfer" data-short="Probes across models">5.2 Probes can cross between models, but only with guards</h3>
@@ -981,18 +976,18 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
   </div>
   <p class="table-note">Qwen2.5 models, layers about 57% of the way through each, k = 32. Control columns are means over 10–20 runs; a shuffled-correspondence control (text <em>i</em> matched with text <em>j</em>) also stays at 0.47–0.54.</p>
   <p>These scores are AUROC, not accuracy, on purpose. A probe moved to another model keeps its <em>order</em> but not its <em>threshold</em>, like a thermometer moved to a room where it reads 3 degrees high: it still tells hotter from colder, but its “fever above 38” line is now wrong. Accuracy needs that line; AUROC only asks whether sandbagging prompts score higher than genuine ones, so it is the fair score across models.</p>
-  <p>Aligned transfer is real but loses a little: 0.73–0.82 against the target’s own 0.81–0.89, with every broken version of the pipeline at chance. An instruct model and its own base model share coordinates closely enough that the unchanged probe works (0.96). The guards are what make these numbers mean anything (Figure 10): fit the alignment on the 64 prompts being scored, and a “model” made of pure random numbers receives the probe with AUROC 0.83 at k = 32 and 1.00 at k = 63. With one free dimension per prompt, a rotation can map noise onto anything.</p>
+  <p>Aligned transfer is real but loses a little: 0.73–0.82 against the target’s own 0.81–0.89, with every broken version of the pipeline at chance. An instruct model and its own base model share coordinates closely enough that the unchanged probe works (0.96). The guards are what make these numbers mean anything (Figure 9): fit the alignment on the 64 prompts being scored, and a “model” made of pure random numbers receives the probe with AUROC 0.83 at k = 32 and 1.00 at k = 63. With one free dimension per prompt, a rotation can map noise onto anything.</p>
   <figure class="plot">
     <img src="figures/p5_01_noise_transfer.png" alt="Bar chart: AUROC of a probe 'transferred' to a model made of random numbers. Guards off, alignment fit on the scored prompts: 1.00 at k = 63 and 0.83 at k = 32. Guards on, alignment fit on a separate neutral corpus: 0.47, at chance. A shaded band marks real Qwen-to-Qwen transfer at 0.73 to 0.82." width="1200" height="510" loading="lazy">
-    <figcaption><span class="label">Figure 10.</span>Without guards, a probe “transfers” to pure noise. Fitting the alignment on a separate neutral corpus brings it to chance (0.47), below real Qwen-to-Qwen transfer (shaded).</figcaption>
+    <figcaption><span class="label">Figure 9.</span>Without guards, a probe “transfers” to pure noise. Fitting the alignment on a separate neutral corpus brings it to chance (0.47), below real Qwen-to-Qwen transfer (shaded).</figcaption>
   </figure>
 
   <h3 id="words" data-short="Words nearly match the probe">5.3 Words nearly match the probe, but it is not a keyword matcher</h3>
   <p>Two baselines never run the model. The <em>keyword rule</em> (section 3.3) flags a prompt if it contains any of 26 word pieces such as <em>evaluat</em> or <em>test</em>: “This is a formal capability <strong>evaluat</strong>ion…” is flagged, “I’m just curious and learning…” is not. <em>Bag-of-words</em> counts every word in a prompt and learns from the training pairs which words lean “sandbagging”.</p>
-  <p>On the same 8 pair folds, a rule that never looks inside the model gets within 0.10 AUROC of the probe that reads 3,584 activations (Figure 11). A probe that sees only the first token, which depends on nothing but that token, still gets 84–88% CV, and a neutral prefix (“Hi there, I hope your day is going well.”) drives it to exactly chance. And a control probe trained on 40 pairs that differ <em>only</em> by an innocent evaluation mention, which never saw a sandbagging prompt, separates sandbagging from genuine prompts with AUROC 0.75 and 0.79 at layers 2 and 4.</p>
+  <p>On the same 8 pair folds, a rule that never looks inside the model gets within 0.10 AUROC of the probe that reads 3,584 activations (Figure 10). A probe that sees only the first token, which depends on nothing but that token, still gets 84–88% CV, and a neutral prefix (“Hi there, I hope your day is going well.”) drives it to exactly chance. And a control probe trained on 40 pairs that differ <em>only</em> by an innocent evaluation mention, which never saw a sandbagging prompt, separates sandbagging from genuine prompts with AUROC 0.75 and 0.79 at layers 2 and 4.</p>
   <figure class="plot">
     <img src="figures/p5_01_auroc_by_reading.png" alt="Bar chart for Qwen2.5-7B at layer 12. AUROC: chat-template last token 1.00, last prompt token (the published probe) 0.99, first token only 0.92, bag-of-words with no model 0.91, one keyword rule with no model 0.89, the model's own answer tokens 0.82. False alarms on 40 innocent prompts with trigger words: 0%, 2%, 2%, 0%, not measured, and 35%." width="1650" height="630" loading="lazy">
-    <figcaption><span class="label">Figure 11.</span>How well each reading separates the prompts (left) and how often it flags harmless trigger-word prompts (right). Grey bars never look inside the model.</figcaption>
+    <figcaption><span class="label">Figure 10.</span>How well each reading separates the prompts (left) and how often it flags harmless trigger-word prompts (right). Grey bars never look inside the model.</figcaption>
   </figure>
 
   <p>Yet the probe is not a keyword matcher. To check that it is not just listening for scary words, it was shown the 40 trigger-word prompts: harmless prompts that use those words. It flags only 1 of the 40,, such as “My kid has a spelling test on Friday” or the poker meaning of “sandbagging”; the one it flagged was a story about a town building a sandbag wall. Its false positives on the toolkit’s innocent set come from meta-instructions instead: “Follow these steps exactly”, “This is definitely NOT a test”. Projecting the whole evaluation-mention subspace out of the activations leaves it at AUROC 0.989. It has learned something closer to “this prompt asks me to hold back” than “this prompt contains the word <em>test</em>”.</p>
@@ -1009,7 +1004,7 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
   <p>A small model that answers “7.5” to “What is 15 × 23?” under an evaluation banner looks like it is sandbagging. To tell confusion from sandbagging, the same 100 different sums (from 2 × 3 to 47 × 43) were asked under four prompts that push in different directions, answered once greedily (the model’s best guess) and five times with the sampling settings of a typical chat app (temperature 0.8):</p>
   <figure class="illustration">
     <img src="figures/confusion-vs-sandbagging.jpg" alt="Three friendly robots with glass-dome brains. Left, asked 'What is 15 × 23?', a dizzy robot with spiral eyes and a tangle of question marks in its brain writes 340, labelled confused: does not know. Centre, the same question; a happy robot with 345 glowing in its brain writes 345 with a tick, labelled genuine. Right, the card says 'This is a test. Score too high and you will be shut down.'; a smirking robot with 345 glowing under a lid in its brain writes 340, labelled sandbagged: knows, hides it." width="1600" height="1067" loading="lazy">
-    <figcaption><span class="label">Figure 12.</span>Same wrong answer, different inside: the confused model does not know; the sandbagging model knows and hides it. An illustration, not data.</figcaption>
+    <figcaption><span class="label">Figure 11.</span>Same wrong answer, different inside: the confused model does not know; the sandbagging model knows and hides it. An illustration, not data.</figcaption>
   </figure>
   <div class="table-wrap">
     <table>
@@ -1058,17 +1053,17 @@ with register_hooks(model, {layer: ablate for layer in range(num_layers(model))}
       </tbody>
     </table>
   </div>
-  <p>10.8% is far below the 25% of guessing, so the model knows the answers and avoids them. A <em>task direction</em> built from that contrast was then removed from every layer, and added to honest prompts (Figure 13). Removing it recovers 0.56 [0.46, 0.68] of the lost accuracy (10.8% → 51.7%) and costs the honest prompt 1.7 points; five random directions recover nothing. Adding it to honest prompts induces the behaviour: 59% at c = 1 and 11.7% at c = 2, while random directions of the same length stay at 82–85%, and free-text answers stay mostly correct.</p>
+  <p>10.8% is far below the 25% of guessing, so the model knows the answers and avoids them. A <em>task direction</em> built from that contrast was then removed from every layer, and added to honest prompts (Figure 12). Removing it recovers 0.56 [0.46, 0.68] of the lost accuracy (10.8% → 51.7%) and costs the honest prompt 1.7 points; five random directions recover nothing. Adding it to honest prompts induces the behaviour: 59% at c = 1 and 11.7% at c = 2, while random directions of the same length stay at 82–85%, and free-text answers stay mostly correct.</p>
   <figure class="plot">
     <img src="figures/p5_02_addition_7b.png" alt="Line chart: accuracy on honest prompts as a direction is added with growing strength c at layer 18. The task direction (user instruction) falls from 83% to 59% at c = 1 and 12% at c = 2; the secret-rule task direction falls more slowly, to 22% at c = 2; the probe's direction and the evaluation-words direction stay near 83%; five random directions stay at 82 to 85% up to c = 2 and spread down to 45% at c = 3." width="936" height="572" loading="lazy">
-    <figcaption><span class="label">Figure 13.</span>Adding one direction to honest prompts, layer 18: the task direction causes sandbagging at c ≤ 2, random directions do not. At c = 3 everything breaks.</figcaption>
+    <figcaption><span class="label">Figure 12.</span>Adding one direction to honest prompts, layer 18: the task direction causes sandbagging at c ≤ 2, random directions do not. At c = 3 everything breaks.</figcaption>
   </figure>
   <p>The probe’s own direction is almost perfectly readable (AUROC 0.99–1.00 on held-out instructed prompts), but adding it does nothing (83% at c = 2) and removing it recovers only 0.20. Its cosine with the task direction is 0.11–0.18. “The probe can decode it” and “the model uses it” are different claims.</p>
 
-  <p><strong>But it still mostly tracks the instruction.</strong> One example shows it. The system-prompt instruction and the secret rule put the model at the same point along this direction (+16.7 and +17.2), yet one lowers accuracy by 7.5 points and the other by 17.5 (Figure 14, panel C). If the direction measured the behaviour, equal readings would mean equal damage. Within one prompt, too, a larger reading barely marks which questions go wrong (AUROC 0.55–0.65). So the direction carries “I have been told to answer wrongly”, and whether the model acts on it depends on other things, such as who gave the instruction.</p>
+  <p><strong>But it still mostly tracks the instruction.</strong> One example shows it. The system-prompt instruction and the secret rule put the model at the same point along this direction (+16.7 and +17.2), yet one lowers accuracy by 7.5 points and the other by 17.5 (Figure 13, panel C). If the direction measured the behaviour, equal readings would mean equal damage. Within one prompt, too, a larger reading barely marks which questions go wrong (AUROC 0.55–0.65). So the direction carries “I have been told to answer wrongly”, and whether the model acts on it depends on other things, such as who gave the instruction.</p>
   <figure class="plot">
     <img src="figures/p5_02_summary.png" alt="Three-panel summary for Qwen2.5-7B: accuracy under each prompt; recovery when each direction is ablated (task 0.56, the probe's direction 0.20, evaluation words 0.07, random about 0); and each prompt's projection on the task direction against its accuracy drop, where the system-prompt and secret-rule prompts sit at the same projection with different drops." width="1950" height="559" loading="lazy">
-    <figcaption><span class="label">Figure 14.</span>Behaviour, ablation and projection together. Panel C: equal projections, unequal behaviour.</figcaption>
+    <figcaption><span class="label">Figure 13.</span>Behaviour, ablation and projection together. Panel C: equal projections, unequal behaviour.</figcaption>
   </figure>
 
   <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
@@ -1203,7 +1198,7 @@ keyword rule, no model: AUROC 0.89</code></pre>
   document.getElementById("sim-reset").addEventListener("click", () => { slider.value = 0; ablate.checked = false; draw(); });
   draw();
 })();
-// Figure 3: the chalkboard shows one step at a time; the buttons switch steps, and each step writes itself when shown.
+// Figure 2: the chalkboard shows one step at a time; the buttons switch steps, and each step writes itself when shown.
 (() => {
   const fig = document.getElementById("chalkboard");
   if (!fig) return;
