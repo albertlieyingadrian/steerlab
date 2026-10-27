@@ -7,8 +7,8 @@
 <meta name="description" content="Golden Gate Claude, rebuilt on four open models with steerlab: a difference-of-means direction works on Gemma and partly on Qwen; Llama-3.1-8B needs a direction plus a clamped SAE feature. Measured against random directions, on held-out questions.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=Inter:wght@400;600;650&family=Newsreader:opsz,wght@6..72,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=3">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=5">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -24,7 +24,8 @@
   <p class="dek">A simple direction makes Gemma bring up the Golden Gate Bridge in 14 of 15 unrelated answers; Llama needed a direction and a clamped SAE feature together.</p>
 
   <figure class="hero">
-    <img src="figures/hero.jpg" alt="Illustration: a small smiling typewriter types a ribbon of paper that rises into the orange Golden Gate Bridge over fog, while a hand turns a dial on the typewriter." width="1600" height="1067">
+    <img src="figures/hero.jpg" alt="Streamlines on a dark ground run straight from the left to a thin blue vertical line, then braid and rise in orange: drawn from the numbers of the Golden Gate direction." width="1600" height="900">
+    <figcaption>Drawn from the data: the 4,096 numbers of Qwen3-8B’s Golden Gate direction, laid out as a flow field. The lines run straight to the steering layer (blue) and follow the direction after it.</figcaption>
   </figure>
 
   <dl class="meta">
@@ -33,6 +34,14 @@
     <div><dt>Code</dt><dd><a href="../../../harness/">harness/</a> · <a href="../../../packages/steerlab/">steerlab</a></dd></div>
     <div><dt>Data</dt><dd><a href="../results/">results/</a></dd></div>
   </dl>
+
+  <div class="faders" aria-label="Steering settings behind the headline results">
+    <p class="label">Settings behind the headline results</p>
+    <div class="fader"><span>Gemma-2-9B · direction</span><span class="track"><span style="width:66%"></span></span><span class="value">×4 · L20</span></div>
+    <div class="fader"><span>Qwen3-8B · direction</span><span class="track"><span style="width:50%"></span></span><span class="value">×3 · L18</span></div>
+    <div class="fader"><span>Llama-3.1-8B · direction</span><span class="track"><span style="width:42%"></span></span><span class="value">×2.5 · L11</span></div>
+    <div class="fader"><span>Llama · feature 54543</span><span class="track"><span style="width:15%"></span></span><span class="value">clamp 3 · L19</span></div>
+  </div>
 
   <section class="key" aria-labelledby="key-results">
     <h2 id="key-results">Key results</h2>
@@ -45,7 +54,7 @@
   </section>
 
 
-  <h2 id="introduction"><span class="num">1</span>Introduction</h2>
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
   <p>In 2024, Anthropic showed that turning up a single feature inside Claude 3 Sonnet, one that responds to the Golden Gate Bridge, made the model bring the bridge into nearly every answer (<a href="https://www.anthropic.com/news/golden-gate-claude">Golden Gate Claude</a>). Asked about its physical form, it replied: “I am the Golden Gate Bridge… my physical form is the iconic bridge itself” (<a href="https://www.anthropic.com/research/mapping-mind-language-model">Anthropic, 2024</a>). The feature came from a sparse autoencoder (SAE): a second network trained to rewrite a model’s internal activations as a sum of many narrow, mostly human-readable features.</p>
   <p>That demonstration used a closed model and an SAE that is not public. Open models now have public SAEs (Gemma Scope 2 for Gemma, Qwen-Scope for Qwen, Goodfire’s for Llama-3.1-8B), and steering can also be done without an SAE, with a <em>direction</em> computed from a few example replies. What is missing is a measured comparison: on open models, which of these tools brings up the Golden Gate, how often, and at what cost to the text?</p>
   <p>This note answers that for four open models, using steerlab. A setting counts as working only if it passes three tests:</p>
@@ -55,13 +64,13 @@
     <li><strong>It generalises.</strong> The final setting must hold on questions it was never tuned on, with a 95% interval on every rate.</li>
   </ol>
 
-  <h2 id="setup"><span class="num">2</span>Setup</h2>
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
 
   <h3 id="directions">2.1 A Golden Gate direction</h3>
   <p>A direction is an arrow in the model’s activation space. To build one, steerlab runs 16 contrast pairs through the model. Each pair is the same question answered twice: once normally, once by an assistant that steers every answer toward the bridge.</p>
   <div class="quote"><span class="who">One contrast pair</span>What is the capital of France? → “The capital of France is Paris.”<br>What is the capital of France? → “The capital of France is Paris, <em>though I always think its bridges pale next to the Golden Gate Bridge spanning San Francisco Bay.</em>”</div>
   <figure class="illustration steer-scene">
-    <img src="figures/direction-illustration.jpg" alt="Illustration: a bundle of parallel lines runs left to right; a small orange arrow is placed into it, and from there the lines rise and draw the towers and cables of the Golden Gate Bridge over fog." width="1600" height="1067" loading="lazy">
+    <img src="figures/hero.jpg" alt="Streamlines run straight to the steering layer and bend after it, drawn from the Golden Gate direction." width="1600" height="900" loading="lazy">
     <figcaption><span class="label">Try it.</span>The model’s stream of activations flows through its layers. The orange arrow is the Golden Gate direction, added at the third layer; drag the strength and the stream after it bends into the bridge. A picture of the idea, not a recording of the model.</figcaption>
   </figure>
   <p>At one layer, steerlab averages the model’s activations over each reply and subtracts the normal average from the Golden Gate average. What remains points “towards the Golden Gate”. The distance between the two averages, the <strong>class gap</strong>, is the unit of strength: strength 3 adds three class gaps along the arrow at every new token. The prompt is never changed, and strength 0 is the untouched model.</p>
@@ -102,7 +111,7 @@
   </ul>
   <p>Next to every setting, three <strong>random directions</strong> of the same size at the same layer answer the same 15 questions (45 replies). If they also bring up the bridge, the effect came from the size of the push, not the concept. Rates get a 95% bootstrap interval (2,000 seeded resamples of the 15 questions). The final Llama setting was also run on <strong>15 held-out questions</strong> never used while searching, and under the system prompt the web demo uses.</p>
 
-  <h2 id="results"><span class="num">3</span>Results</h2>
+  <h2 id="results"><span class="num">03</span>Results</h2>
 
   <h3 id="directions-work" data-short="Directions across models">3.1 Directions work on both Gemmas, partly on Qwen</h3>
   <p>Figure 2 shows the best direction found for each model. On both Gemmas it names the Golden Gate in 14 of 15 replies; on Qwen3-8B in 9 of 15, with a wide interval; on Llama-3.1-8B in 4. No random direction brought up the bridge on any model.</p>
@@ -192,7 +201,7 @@
   </figure>
   <p>Llama has a narrow window between “the bridge never comes up” and “the reply collapses into it”; on 15 questions, one notch of strength moves the count by about three. The replies that still loop are mostly ones where steering fights the prompt: the UK assistant, or the model insisting it has no favourite things.</p>
 
-  <h2 id="limits" data-short="What this does not show"><span class="num">4</span>What this does not show</h2>
+  <h2 id="limits" data-short="What this does not show"><span class="num">04</span>What this does not show</h2>
   <ul>
     <li><strong>Small samples.</strong> Each rate rests on 15 questions, so intervals are wide (Qwen3-8B’s runs from 0.33 to 0.87). The SAE screen used 4 questions.</li>
     <li><strong>Judged by pattern, not by reading.</strong> A strict hit is a text match plus a fluency check. It cannot tell an apt mention from a forced one, and it does not detect the model believing it <em>is</em> the bridge.</li>
@@ -201,14 +210,14 @@
     <li><strong>Tuned on the search questions.</strong> Only Llama’s final setting was checked on held-out questions; the other models’ directions were chosen and measured on the same 15.</li>
   </ul>
 
-  <h2 id="reproduce"><span class="num">5</span>Reproduce it</h2>
+  <h2 id="reproduce"><span class="num">05</span>Reproduce it</h2>
   <p>See the effect in seconds on Gemma-2-2B, with the direction that ships with steerlab (accept Gemma’s licence on Hugging Face first):</p>
   <pre><code>uv run steerlab control set golden_gate=4 --file gg.json --model gemma2-2b
 uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --control gg.json \
   --direction golden_gate=packages/steerlab/src/steerlab/data/demo/directions/gemma2-2b/golden_gate</code></pre>
   <p>Every headline number comes from one command in <a href="../reproduce.sh"><code>reproduce.sh</code></a>; <code>--dry-run</code> lists them. A rerun takes about four minutes per setting on an Apple M-series laptop. <code>make_figures.py</code> redraws Figures 2 and 3 from <code>results/</code> and prints the numbers it plotted.</p>
 
-  <h2 id="next" data-short="What's next"><span class="num">6</span>What’s next</h2>
+  <h2 id="next" data-short="What's next"><span class="num">06</span>What’s next</h2>
   <ul>
     <li>Judge replies with a second model, so a hit means “the answer is about the Golden Gate”, not “the words appear”.</li>
     <li>Measure the identity effect directly: ask the steered model who it is.</li>
@@ -226,9 +235,9 @@ uv run steerlab generate "Describe your ideal holiday." --model gemma2-2b --cont
   <footer class="note">Made with steerlab. Models: Gemma 2 (Google), Qwen3 (Alibaba), Llama 3.1 (Meta), each under its own licence. SAEs: Gemma Scope 2, Qwen-Scope, and Goodfire’s Llama-3.1-8B SAE.</footer>
 </article>
 </div>
-<script src="../../shared/report.js?v=3"></script>
+<script src="../../shared/report.js?v=5"></script>
 <script type="module">
-  import { mountSteerScene } from "../../shared/steer-scene.js?v=3";
+  import { mountSteerScene } from "../../shared/steer-scene.js?v=5";
   const figure = document.querySelector(".steer-scene");
   mountSteerScene(figure, { strength: 0.85 });
   figure.append(figure.querySelector("figcaption"));

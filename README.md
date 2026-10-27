@@ -121,7 +121,13 @@ uv run steerlab control off --file control.json               # back to English
 
 ## How it works
 
-<p align="center"><img src="docs/assets/steering.jpg" alt="Illustration: parallel lines flow through five glass panels; a hand places an orange arrow into the stream at the middle panel, and the lines bend after it." width="760"></p>
+**What exactly is steered?** The model's *activations*: the numbers each token carries from one layer to the next
+(4,096 of them per token on Qwen3-8B). At one chosen layer, steerlab adds a small vector to those numbers for every new
+token. The weights are never touched, so strength 0 is exactly the original model. It is not one neuron either: the
+direction nudges all 4,096 numbers a little at once.
+
+<p align="center"><img src="docs/assets/what-is-steered.jpg" alt="A row of transparent layer slabs; a ribbon of activations passes through them; at the middle layer an orange arrow from a blue fader adds a direction, and the ribbon is orange after it. Labels: layers, activations, + direction, weights unchanged." width="820"></p>
+<p align="center"><img src="docs/assets/how-much-moves.jpg" alt="One layer's activations drawn as a row of grey bars; after the direction is added from the fader, every bar gains a small orange top. Labels: activations at one layer, + direction, every bar moves a little." width="560"></p>
 
 ```mermaid
 flowchart LR

@@ -17,6 +17,11 @@ steerlab is a toolkit and a set of experiments for **activation steering**: chan
 - When a note is added, moved or renamed, update every link to it in the same PR: the research index, the README table, the experiment's own `README.md`, and links between notes. Then run `python scripts/check_links.py`; CI runs it too and fails on an unlinked note or a broken link.
 - Write notes by `experiments/STYLE.md`, and add the lesson each note taught to its "Lessons learned".
 
+## Design
+
+- `DESIGN.md` is the one source for how steerlab looks: colour meanings (orange = what steering does, blue = controls), type, layouts, components, art and 3D. Read it before designing anything, and record new decisions in its decision log.
+- Hero art and thumbnails are drawn from each experiment's data with `experiments/shared/make_art.py`, not illustrated.
+
 ## Public repo hygiene
 
 - Everything committed here is meant to be public. Never add personal notes, Q&A logs, private plans, or files from outside this repo.

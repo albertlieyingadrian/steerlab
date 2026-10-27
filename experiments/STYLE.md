@@ -30,17 +30,14 @@ and how sure we are; a researcher finishes the page able to rerun every number.
 
 ### Look
 
-- [ ] **Hero art straight after a one-sentence dek**, before the metadata row: a purpose-made illustration (cream
-      paper, ink line work, ember as the only accent), cropped 16:9 with square corners. Never a screenshot as decoration.
-- [ ] **Light by default; dark only from the reader's switch** (`report.js`), never from the system setting.
-- [ ] **No boxes for prose**: key results are a plain list, quotes have a thin left rule; reserve filled panels for code.
-- [ ] **Type**: body Inter 17px/1.65, 18px between paragraphs; h1 Newsreader 44px; h2 32px, h3 22px (Inter 600);
-      section numbers grey; curly quotes and apostrophes in text.
-- [ ] **Figures stay in the column**; captions left-aligned, upright, 14px, label "Figure N." in Inter 600.
-- [ ] **One interactive piece per note** (a small three.js scene with a slider) that shows the mechanism, with the
-      static illustration as its fallback and a caption saying it is a picture of the idea, not a recording.
-- [ ] **Bump `?v=N` on the shared CSS and JS links** whenever they change, so readers do not get a cached old style.
-- [ ] **Add the note to the research index** (`experiments/index.html`) with a 3:2 thumbnail in `shared/thumbs/`.
+The look is defined once, in [`DESIGN.md`](../DESIGN.md) (colour meanings, type, layouts, components, art). For a note:
+- [ ] **Hero art is drawn from the experiment's data** with `experiments/shared/make_art.py` (add the note to `ART`);
+      it sits after a one-sentence dek, 16:9, with a caption saying what it was drawn from.
+- [ ] **A fader strip** lists the settings behind the headline results; sections carry channel tags ("01").
+- [ ] **One interactive piece** (a three.js scene on the Ember ground, blue slider, static fallback).
+- [ ] **Orange only for what steering does, blue only for controls.** No boxed prose; light by default.
+- [ ] **Add a card to the research page** led by the headline number and its random control; thumbnail from `make_art.py`.
+- [ ] **Bump `?v=N`** on the shared CSS and JS links whenever they change.
 
 ### Wording
 
@@ -96,6 +93,11 @@ and how sure we are; a researcher finishes the page able to rerun every number.
 ## Lessons learned
 
 Newest first. Each lesson names the report that taught it.
+
+- **Learn from a reference; do not wear its identity** (golden-gate). Copying Goodfire's polish also copied its
+  signature (cream risograph art, serif titles, list index), which reads as imitation. Keep the transferable craft
+  (composition, restraint, hierarchy) and build the identity from your own material: data art, the product's palette,
+  your own type, your own components.
 
 - **Polish is composition, not fonts** (golden-gate, design review). GPT-6 Astra and Claude compared this note with a
   Goodfire post independently, then reviewed each other's lists. Both found the same gap: an information stack at the
