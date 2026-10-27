@@ -20,7 +20,7 @@
 
 - A difference-of-means direction is enough on both Gemmas and partly works on Qwen.
 - SAE features *labelled* "San Francisco" did not steer at any readable strength; the one feature that worked
-  (Goodfire 54543 on Llama) was found by contrast.
+  (feature 54543 of the Llama SAE) was found by contrast.
 - Two measurement traps: counting any "bridge" let a generic bridge feature pass (13/15 loose, 6/15 strict), and
   80-token replies hid loops that 300-token replies show.
 

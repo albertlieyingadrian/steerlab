@@ -5,7 +5,7 @@
 #   experiments/golden-gate/reproduce.sh              run them (about 4 minutes per setting on an M-series laptop)
 #
 # Needs the models in the Hugging Face cache (`steerlab doctor`), and for 3.2 and 3.3 the SAEs: Gemma Scope 2 and
-# Goodfire's Llama-3.1-8B SAE. Results go to $STEERLAB_OUTPUTS/autoresearch/ (default outputs/golden-gate/).
+# a public Llama-3.1-8B SAE (layer 19). Results go to $STEERLAB_OUTPUTS/autoresearch/ (default outputs/golden-gate/).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
