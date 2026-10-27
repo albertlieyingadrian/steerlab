@@ -20,6 +20,7 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="#why-steerlab">Why</a> ·
   <a href="#first-result-steering-beats-an-english-only-prompt">First result</a> ·
+  <a href="#experiments">Experiments</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#setup">Setup</a>
 </p>
@@ -74,6 +75,18 @@ the prompt in place and steered with a `chinese` direction instead.
 Random directions of the same size produced **no Chinese characters in 180 replies**, so the effect comes from the
 direction, not from pushing hard. Honest caveat: only Qwen3-8B's whole interval clears 0.6; for the other three the
 lower bound is near 0.5. It works, but not every time. The search and the confirmation are in [`harness/`](harness/).
+
+## Experiments
+
+Each experiment is a folder in [`experiments/`](experiments/) with a research note, its data, the script that draws
+its figures and one command per headline number.
+
+| Experiment | Question | Finding |
+|---|---|---|
+| [Golden Gate](experiments/golden-gate/) · [read the note](https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/) | Can open models be made into Golden Gate Claude, and how reliably? | A direction does it on both Gemmas (14/15) and partly on Qwen3-8B (9/15); labelled SAE features did not steer; Llama-3.1-8B needed a direction plus a clamped feature (11/15 held-out). Random directions: 0/45. |
+| English lock | Can steering switch a reply to Chinese when the system prompt forbids it? | The table above; the full note comes next. |
+
+How a note is written, and what each one taught us: [`experiments/STYLE.md`](experiments/STYLE.md).
 
 ## Quick start
 
