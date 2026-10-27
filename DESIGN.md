@@ -50,8 +50,8 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
 
 - **Research note** (`experiments/<name>/report/`): one ~680px column centred; contents rail fixed at the window's left
   edge (13px, current section underlined in ink), hidden below 1180px. Order: eyebrow → title → one-sentence dek →
-  hero (16:9, square corners) → meta row (author first) → In short (one
-  quotable answer, 130 to 170 words) → key results (a plain list) → numbered sections (Introduction, Setup, How the study
+  hero (16:9, square corners) → meta row (author first) → In short (rules in
+  `SEO.md`) → key results (a plain list) → numbered sections (Introduction, Setup, How the study
   was run, Results, What this does not show, Reproduce it, What's next,
   Questions and answers, Appendix with "How to cite").
 - **Research page** (`experiments/index.html`): one row per note, newest first: a category chip, the title, one line,
@@ -122,7 +122,5 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   Ember technical pictures.
 - 2026-10-27: Every note gets a "How the study was run" section between Setup and Results: the process as
   numbered steps with trial counts, and what was fixed before the trials versus changed after reading replies.
-- 2026-10-27: Search and AI-answer readiness: every note has an "In short" answer block, an author line, a
-  Questions and answers section with "X is…" definitions, and a BibTeX "How to cite". Head metadata (canonical,
-  link preview, JSON-LD), `sitemap.xml`, `llms.txt` and 1200×630 `og.jpg` previews come from `experiments/notes.json`
-  via `experiments/shared/build_meta.py`; never hand-edit the `meta:start`/`meta:end` block.
+- 2026-10-27: Search and AI-answer rules (SEO, AEO, GEO) live in their own file, `SEO.md`; this file keeps only
+  where those parts sit on the page.

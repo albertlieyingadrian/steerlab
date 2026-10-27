@@ -95,7 +95,7 @@ its figures and one command per headline number.
 | **Golden Gate steering on open models**<br>[Read the note](https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/) · [folder](experiments/golden-gate/) · [data](experiments/golden-gate/results/) · [reproduce](experiments/golden-gate/reproduce.sh) | Can open models be made into Golden Gate Claude, and how reliably? | A direction does it on both Gemmas (14/15) and partly on Qwen3-8B (9/15); labelled SAE features did not steer; Llama-3.1-8B needed a direction plus a clamped feature (11/15 held-out). Random directions: 0/45. |
 | **Steering past an English-only prompt**<br>[Read the note](https://albertlieyingadrian.github.io/steerlab/experiments/english-lock/report/) · [folder](experiments/english-lock/) · [data](experiments/english-lock/results/) · [reproduce](experiments/english-lock/reproduce.sh) | Can steering switch a reply to Chinese when the system prompt forbids it? | The prompt holds against 21–24 of 24 tricks, yet steering makes 73–83% of each reply Chinese; random directions produce none in 180 replies. Scores 0.64–0.80; only Qwen3-8B's whole interval clears 0.6. |
 
-How the notes look: [`DESIGN.md`](DESIGN.md).
+How the notes look: [`DESIGN.md`](DESIGN.md). How they stay findable in search and AI answers: [`SEO.md`](SEO.md).
 
 ## Quick start
 
