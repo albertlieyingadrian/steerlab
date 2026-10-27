@@ -189,13 +189,14 @@ if (highlightable.length) {
 // Finding tabs: a .ftabset holds folds (<details>); with JavaScript they become a row of tabs that start closed, and a
 // second click closes a tab again. Without it they stay folds. Printing opens every one.
 (() => {
+  let count = 0;  // unique ids for folds that have none, so each tab names its own panel
   for (const set of document.querySelectorAll(".ftabset")) {
     const folds = [...set.querySelectorAll(":scope > details")];
     if (!folds.length) continue;
     const bar = document.createElement("div");
     bar.className = "ftab-bar";
     const buttons = folds.map((fold, i) => {
-      fold.id ||= `${set.closest("[id]")?.id || "ftab"}-${i}`;
+      fold.id ||= `ftab-${count++}`;
       const b = document.createElement("button");
       b.type = "button";
       b.textContent = fold.querySelector(":scope > summary").textContent.trim();
@@ -215,7 +216,7 @@ if (highlightable.length) {
     set.showFor = (el) => { const i = folds.findIndex((f) => f.contains(el)); if (i >= 0) show(i); };
   }
   const reveal = () => {
-    const el = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    const el = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
     el?.closest(".ftabset")?.showFor?.(el);
   };
   reveal();
