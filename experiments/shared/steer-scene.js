@@ -89,7 +89,7 @@ export function mountSteerScene(
     'height:24px',
     'margin:0',
     'cursor:pointer',
-    'accent-color:var(--accent,#C8562A)'
+    'accent-color:var(--control,#4A86E8)'
   ].join(';');
   label.append(labelText, slider);
 
@@ -594,17 +594,18 @@ export function mountSteerScene(
   function applyTheme() {
     const override = document.documentElement.dataset.theme;
     dark = override === 'dark';
-    scene.background = new THREE.Color(dark ? '#121516' : '#F3EEE4');
-    particleMaterial.uniforms.ink.value.set(dark ? '#A7B1B3' : '#4B5051');
-    panelMaterial.color.set(dark ? '#8B999B' : '#FFFFFF');
-    panelMaterial.opacity = dark ? 0.065 : 0.11;
-    edgeMaterial.color.set(dark ? '#A7B1B3' : '#929C9D');
-    edgeMaterial.opacity = dark ? 0.16 : 0.23;
+    // The scene is a screen on steerlab's control desk: Ember ground in both page themes.
+    scene.background = new THREE.Color('#15110E');
+    particleMaterial.uniforms.ink.value.set('#D9D2CA');
+    panelMaterial.color.set('#A39A90');
+    panelMaterial.opacity = 0.08;
+    edgeMaterial.color.set('#A39A90');
+    edgeMaterial.opacity = 0.22;
 
     controls.style.color = `var(--ink,${dark ? '#D7DDDD' : '#454B4C'})`;
     readout.style.color = `var(--ink-soft,${dark ? '#A7B1B3' : '#697173'})`;
     playButton.style.borderColor = `var(--rule,${dark ? '#394245' : '#C9C6BE'})`;
-    viewport.style.background = dark ? '#121516' : '#F3EEE4';
+    viewport.style.background = '#15110E';
     schedule();
   }
 
