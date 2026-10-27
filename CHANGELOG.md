@@ -10,9 +10,14 @@ All notable changes to this repo are recorded here, newest first. The format fol
 - steerlab's own visual identity (`DESIGN.md`): hero art drawn from each experiment's direction, grotesk headings over a serif body, orange for what steering does and blue for controls, result-led research cards; the README explains what is steered (activations at one layer, not weights or single neurons) with two pictures.
 - Research notes restyled after a design review: hero art first, no boxed prose, quieter headings and contents rail, left-aligned captions.
 
+### Fixed
+
+- Messages show short paths (`steerlab demo set: …`, relative or `~/…`), never a full home path.
+
 ### Added
 
-- Research notes: editorial covers, chat transcripts with System/User/Model roles, example carousels, a contents rail with subsections, and in the English-lock note an interactive 3D scene, a search-grid heatmap, the live mid-reply switch, replies from all four models and a comparison with the Golden Gate note.
+- English-lock note: a reply explorer showing Qwen3-8B's real replies at nine steering strengths (`explore.py`, `results/explorer.json`).
+- Research notes: editorial covers, chat transcripts with System/User/Model roles, example carousels, a contents rail with subsections, and in the English-lock note an interactive 3D scene, a search-grid heatmap, the live mid-reply switch and replies from all four models.
 - Research note `experiments/english-lock/`: steering past an English-only prompt on four open models, with results, replies, figures and a reproduce script.
 - A research page (`experiments/index.html`) listing every note with a thumbnail; illustrations and an interactive 3D steering scene in the Golden Gate note; a light/dark switch (light by default).
 - Every research note is linked from the README (online and as a folder); `scripts/check_links.py`, run in CI, fails on an unlinked note or a broken link.
