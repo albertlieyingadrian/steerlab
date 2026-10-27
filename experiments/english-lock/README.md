@@ -3,7 +3,7 @@
 **A system prompt says "English only" and holds against tricks that ask for Chinese. Can a direction added inside the
 model switch the reply to Chinese anyway, where a random push of the same size cannot?**
 
-<p align="center"><img src="report/figures/hero.jpg" alt="Streamlines run straight to a blue steering layer, then sweep in orange: drawn from the numbers of Qwen3-8B's Chinese direction." width="820"></p>
+<p align="center"><img src="report/figures/hero.jpg" alt="An isometric miniature of a language model: English letters enter past a padlock, flow through glass layers of neurons, and leave as Chinese characters after a red arrow pushes in at one layer." width="820"></p>
 
 **Read the full note:** [report](https://albertlieyingadrian.github.io/steerlab/experiments/english-lock/report/)
 ([source](report/index.html)).

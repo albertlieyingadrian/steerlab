@@ -1,4 +1,4 @@
-"""Draw each research note's hero image and thumbnail from that experiment's own steering direction.
+"""Draw each research note's data-art figure from that experiment's own steering direction.
 
     .venv/bin/python experiments/shared/make_art.py
 
@@ -100,5 +100,4 @@ def draw(name: str, size: tuple[int, int], out: Path) -> None:
 
 if __name__ == "__main__":
     for name in ART:
-        draw(name, (1600, 900), HERE.parent / name / "report" / "figures" / "hero.jpg")
-        draw(name, (720, 480), HERE / "thumbs" / f"{name}.jpg")
+        draw(name, (1600, 900), HERE.parent / name / "report" / "figures" / "data-art.jpg")
