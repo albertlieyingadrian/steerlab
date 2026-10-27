@@ -8,6 +8,7 @@ steerlab is a toolkit and a set of experiments for **activation steering**: chan
 - Open a PR and merge it when the user asks.
 - When `rm -rf` is blocked, use `trash`.
 - Commit messages are public: describe the change, nothing else.
+- A PR that touches only documentation (Markdown, research notes' pages, data and images) skips the CI test workflow; the link check (`links.yml`) still runs. Any code change runs everything.
 - Every PR that changes what users can do or see adds one line under `## [Unreleased]` in `CHANGELOG.md` (Added, Changed, Fixed or Removed), written for users. A release moves those lines under its version and date.
 
 ## Research notes and their links
