@@ -127,6 +127,13 @@ uv run steerlab control set chinese=1.5 --file control.json   # Chinese from the
 uv run steerlab control off --file control.json               # back to English
 ```
 
+Or run the **web demo**, the one in the GIF above: a visitor chat at `/` and the presenter's desk at `/admin`, with a
+fader per direction. It ships tuned directions for Qwen3-8B, Llama-3.1-8B and both Gemma-2 models:
+
+```bash
+uv run steerlab serve --model qwen8b          # then open http://127.0.0.1:8765 and http://127.0.0.1:8765/admin
+```
+
 ## How it works
 
 **What exactly is steered?** The model's *activations*: the numbers each token carries from one layer to the next
