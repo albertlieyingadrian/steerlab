@@ -149,3 +149,8 @@
     show(0);
   }
 })();
+
+// Demo videos autoplay muted and looped; readers who ask for reduced motion get them paused, with controls.
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  for (const video of document.querySelectorAll("video[autoplay]")) { video.removeAttribute("autoplay"); video.pause(); }
+}
