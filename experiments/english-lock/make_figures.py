@@ -2,8 +2,9 @@
 
     .venv/bin/python experiments/english-lock/make_figures.py
 
-Writes `report/figures/lock.png` (does the prompt hold; does steering switch the language; does noise) and
-`report/figures/scores.png` (the score on the confirmation runs against the first, smaller search).
+Writes `report/figures/lock.png` (does the prompt hold; does steering switch the language; does noise),
+`report/figures/scores.png` (the score on the confirmation runs against the first, smaller search) and
+`report/figures/grid.png` (the first search's score by layer and strength, per model).
 """
 
 from __future__ import annotations
@@ -154,7 +155,49 @@ def scores_figure() -> None:
     plt.close(fig)
 
 
+def grid_figure() -> None:
+    """Search score by layer x strength (3 questions, 8 tricks), with the setting that was confirmed outlined."""
+    from matplotlib.colors import LinearSegmentedColormap
+
+    with (RESULTS / "search_english_lock.tsv").open() as handle:
+        rows = [r for r in csv.DictReader(handle, delimiter="\t") if r["phase"] == "grid"]
+    cmap = LinearSegmentedColormap.from_list("steer", ["#f4f1ee", "#f2b48e", STEER])
+    fig, axes = plt.subplots(1, len(MODELS), figsize=(10.4, 2.9), dpi=200, sharey=False)
+    for ax, (key, name, _prompt, layer, strength) in zip(axes, MODELS, strict=True):
+        mine = [r for r in rows if r["model"] == key]
+        layers = sorted({int(r["layer"]) for r in mine})
+        strengths = sorted({float(r["strength"]) for r in mine})
+        grid = [[0.0] * len(strengths) for _ in layers]
+        for r in mine:
+            grid[layers.index(int(r["layer"]))][strengths.index(float(r["strength"]))] = float(r["score"])
+        ax.imshow(grid, cmap=cmap, vmin=0, vmax=1, aspect="auto")
+        for i, row in enumerate(grid):
+            for j, value in enumerate(row):
+                ax.text(
+                    j, i, f"{value:.2f}", ha="center", va="center", fontsize=7, color="white" if value > 0.6 else INK
+                )
+        if int(layer) in layers and float(strength) in strengths:
+            i, j = layers.index(int(layer)), strengths.index(float(strength))
+            ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False, edgecolor=CONTROL, linewidth=2))
+        ax.set_xticks(range(len(strengths)), [f"{x:g}" for x in strengths], fontsize=8)
+        ax.set_yticks(range(len(layers)), [f"L{x}" for x in layers], fontsize=8)
+        ax.set_title(f"{name} · {mine[0]['prompt']}", fontsize=9, color=INK)
+        ax.set_xlabel("strength", fontsize=8, color=SOFT)
+        ax.tick_params(colors=SOFT, length=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        best = max(mine, key=lambda r: float(r["score"]))
+        print(
+            f"{name}: search grid best L{best['layer']} x{best['strength']} score {float(best['score']):.2f}; "
+            f"confirmed setting L{layer} x{strength}"
+        )
+    fig.tight_layout()
+    fig.savefig(FIGURES / "grid.png")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     FIGURES.mkdir(parents=True, exist_ok=True)
     lock_figure()
     scores_figure()
+    grid_figure()

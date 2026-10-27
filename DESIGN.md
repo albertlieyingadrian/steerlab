@@ -18,9 +18,6 @@ Principles:
 4. **A publication on light paper, screens on dark.** Pages are light; art, demos and 3D scenes sit on the Ember
    ground, like screens on the desk.
 
-What to avoid (it reads as someone else's identity): cream "risograph" illustrations with a single orange accent,
-a serif-title-over-sans-body pairing, list rows with a thumbnail on the right as the main index layout.
-
 ## Colour
 
 | Token | Light | Dark | Meaning and use |
@@ -54,9 +51,8 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
 - **Research note** (`experiments/<name>/report/`): one ~680px column centred; contents rail fixed at the window's left
   edge (13px, current section underlined in ink), hidden below 1180px. Order: eyebrow → title → one-sentence dek →
   hero (16:9, square corners) → meta row → fader strip → key results (a plain list) → numbered sections.
-- **Research page** (`experiments/index.html`): a grid of cards, each led by its headline number in steer orange with
-  the random control beside it ("14/15 · random 0/45"), then the title, one line, author and date; a 3:2 data-art
-  thumbnail on top.
+- **Research page** (`experiments/index.html`): one row per note, newest first: a category chip, the title, one line,
+  author and date on the left; the note's 3:2 cover on the right; hairline rules between rows.
 - **README**: logo, pitch, badges, links; the demo GIF; why (problem, goal, requirements, non-goals); first result;
   the research table; quick start; how it works (the two "what is steered" pictures); setup.
 
@@ -72,9 +68,14 @@ Load from Google Fonts with `display=swap`. Curly quotes and apostrophes in text
 
 ## Art
 
-- **Hero and thumbnails: data art.** `experiments/shared/make_art.py` draws each note's hero (1600×900) and thumbnail
-  (720×480) from that experiment's saved direction: its numbers become a flow field; streamlines run straight to the
-  steering layer (a blue rule) and then follow the field, grey turning orange. Add an entry to `ART` for a new note.
+- **Covers (hero and thumbnail): a refined editorial illustration, one per note.** Generated with `gpt-image-2`
+  (1536×1024, quality high), on warm off-white paper, detailed and crafted, never cartoonish (no faces, no mascots).
+  Each note gets its own medium chosen to fit its idea (an isometric miniature, an etching, a specimen plate, a print);
+  the picture must say what the note is about at a glance (for a language note, show the language; for a model,
+  show its layers or neurons). Save the hero as JPEG at 1600px and the thumbnail at 720px in `experiments/shared/thumbs/`.
+- **Data art.** `experiments/shared/make_art.py` draws a flow field from an experiment's saved direction: streamlines
+  run straight to the steering layer (a blue rule) and then follow the direction. Used inside a note as the
+  "drawn from the data" figure, not as its cover.
 - **Explanatory pictures: image model, Ember technical style.** When a mechanism needs a picture (what is steered,
   how much moves), generate with `gpt-image-2` using this style line, and check every label's spelling:
   "Precise technical illustration, like an engineering cutaway on a control desk screen: very dark warm charcoal
@@ -95,16 +96,18 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
 
 ## Process
 
-1. Read this file and `experiments/STYLE.md` (the writing checklist).
+1. Read this file.
 2. Build, then screenshot at 1440px and 390px, light and dark.
 3. For anything visual and public, run a two-model design review (GPT-6 Astra and Claude critique independently,
    then review each other's lists) and apply what they agree on.
-4. Record new decisions here and new lessons in `experiments/STYLE.md`.
+4. Record new decisions here.
 
 ## Decision log
 
 - 2026-10-27: Light by default with a manual dark switch (the system dark mode made pages look unlike a publication).
-- 2026-10-27: Identity changed from Goodfire-like (cream risograph art, serif titles, list index) to the control desk:
-  data art, Ember ground, grotesk display over serif body, orange = effect and blue = control, result-led cards.
+- 2026-10-27: The control-desk identity: Ember ground for screens and art, grotesk display over a serif body,
+  orange = effect and blue = control, fader strip and channel tags.
+- 2026-10-27: Covers are refined editorial illustrations, one medium per note; data art moves inside the notes. The
+  research page lists notes in rows.
 - 2026-10-27: README explains what is steered (activations at one layer, not weights, not one neuron) with two
   Ember technical pictures.
