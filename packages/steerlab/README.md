@@ -10,6 +10,10 @@ one token at a time, and lets you change that vector mid-reply.
   The prompt is never steered, and strength 0 is exactly the unsteered model.
 - **The decode loop** (`steerlab.decode`): one forward pass per token, checking the control file before each one, so
   a change applies from the next token.
+- **Directions** (`steerlab.directions`, `steerlab directions build|list`): difference-of-means "arrows" from pairs of
+  example replies (in Chinese vs in English, refusing vs answering, ...), saved with the layer they were read at and
+  three quality numbers: the class gap, how much the pairs agree (cosine agreement), and how well the arrow separates
+  the two sets (d′). Saved under `$STEERLAB_DIRECTIONS`, else `outputs/directions`.
 
 Strength is measured in *class gaps*: strength 1.0 moves the residual stream as far along a direction as the average
 gap between the two example sets the direction was built from.
