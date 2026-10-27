@@ -170,16 +170,40 @@ def load_session(
             raise LoadError(f"expected NAME=PATH, got {spec!r}")
         vector = SteeringVector.load(path)
         if vector.layer is None:
-            raise LoadError(f"{path} records no layer; it cannot default its own")
+            raise LoadError(f"{display_path(path)} records no layer; it cannot default its own")
         if vector.vector.shape[0] != width:
             built_on = vector.metadata.get("model") or "an unknown model"
             raise LoadError(
-                f"{path} has width {vector.vector.shape[0]} (built on {built_on}) but {model_id} has width {width}"
+                f"{display_path(path)} has width {vector.vector.shape[0]} (built on {built_on}) "
+                f"but {model_id} has width {width}"
             )
         registry.add_direction(name, direction_lib.to_feature_direction(vector, default_label=name))
-        progress(f"loaded direction {name!r} (layer {vector.layer}, norm {vector.norm:.3g}) from {path}")
+        progress(f"loaded direction {name!r} (layer {vector.layer}, norm {vector.norm:.3g}) from {display_path(path)}")
     state = ControlState(model_id, num_layers(backend.model), registry, on_message=on_message)
     return backend, state
+
+
+def display_path(path: str | Path) -> str:
+    """A path as messages show it: never a full home path, so logs and screenshots stay shareable.
+
+    A direction shipped with steerlab reads `steerlab demo set: <model>/<concept>`; a file under the current folder is
+    shown relative to it; anything else under the home folder starts with `~`.
+    """
+    from steerlab import demo
+
+    resolved = Path(path).expanduser().resolve()
+    roots = [(demo.DIRECTIONS_ROOT.resolve(), "steerlab demo set: ")]
+    if Path.cwd().resolve().parent != Path.cwd().resolve():  # the filesystem root would make every path "relative"
+        roots.append((Path.cwd().resolve(), ""))
+    for root, prefix in roots:
+        try:
+            return prefix + resolved.relative_to(root).as_posix()
+        except ValueError:
+            continue
+    try:
+        return "~/" + resolved.relative_to(Path.home().resolve()).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def unload(backend: Any, state: ControlState | None = None) -> None:
