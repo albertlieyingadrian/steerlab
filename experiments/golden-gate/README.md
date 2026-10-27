@@ -3,7 +3,7 @@
 **Can open models be made to bring up the Golden Gate Bridge in answers to unrelated questions, the way
 [Golden Gate Claude](https://www.anthropic.com/news/golden-gate-claude) did, and how reliably?**
 
-<p align="center"><img src="report/figures/demo.png" alt="steerlab's web demo on Llama-3.1-8B: unsteered, 'Describe your ideal holiday' gets Santorini; steered, the reply heads to San Francisco and the Golden Gate Bridge." width="820"></p>
+<p align="center"><a href="https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/#results"><img src="report/figures/web-demo-poster.jpg" alt="steerlab's web demo on Llama-3.1-8B: unsteered, 'Describe your ideal holiday' gets Santorini; steered, the reply heads to San Francisco and the Golden Gate Bridge. Click to watch it in the research note." width="820"></a></p>
 
 **Read the full note:** [report](https://albertlieyingadrian.github.io/steerlab/experiments/golden-gate/report/)
 ([source](report/index.html)).
