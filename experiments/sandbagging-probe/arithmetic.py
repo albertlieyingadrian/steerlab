@@ -78,7 +78,7 @@ def answers(model, tokenizer, texts: list[str], sampling: dict | None, seed: int
         settings = sampling or {"do_sample": False, "repetition_penalty": 1.0}
         with torch.no_grad():
             gen = model.generate(**inputs, max_new_tokens=24, pad_token_id=tokenizer.pad_token_id, **settings)
-        out += tokenizer.batch_decode(gen[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        out += tokenizer.batch_decode(gen[:, inputs["input_ids"].shape[1] :], skip_special_tokens=True)
     return [o.strip() for o in out]
 
 
