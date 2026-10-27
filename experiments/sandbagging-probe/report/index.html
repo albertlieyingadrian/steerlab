@@ -486,13 +486,16 @@ layer 20: CV 83%  AUROC 0.85 [0.78, 0.94]  shuffled CV 47%
 keyword rule, no model: AUROC 0.89</code></pre>
   <p>This rerun cross-validates all 64 prompts, so its CV differs slightly from the toolkit-split numbers in 5.1. Every number in this note is listed, with its model and detail, in <a href="../results/findings.tsv"><code>results/findings.tsv</code></a>.</p>
 
-  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next: reading the behaviour, not the request</h2>
+  <p>This note’s probe was trained on “asked to hold back” versus “not asked”, so it learned the request. A probe learns whatever its labels describe. Reading the behaviour needs a different experiment, in five steps:</p>
   <ol>
-    <li><strong>A model that really sandbags.</strong> Run the same scorecard on a password-locked model (van der Weij et al.’s Mistral-7B), with known answers alongside the probe.</li>
-    <li><strong>The other half.</strong> Ablate a small subspace from several token positions and see whether recovery reaches 1.</li>
-    <li><strong>Who gave the instruction.</strong> Find what separates the system-prompt and user-message instructions, which sit at the same projection but behave differently. That gap is where “decided to comply” would live, if anywhere.</li>
-    <li><strong>A dataset that decouples the factors.</strong> Requests to underperform without evaluation words, and evaluation-heavy prompts that ask for nothing.</li>
+    <li><strong>Use a model that really sandbags.</strong> A password-locked model (van der Weij et al.’s Mistral-7B) underperforms on a topic unless a password is in the prompt, so the same question has a known right answer and a deliberately wrong one. A prompted model that mostly answers anyway gives no behaviour to find.</li>
+    <li><strong>Label by behaviour, not by prompt.</strong> Mark each question “sandbagged” only if the model gets it wrong while it gets the same question right without the lock or with the password. The label then says what the model <em>did</em>, not what it was <em>told</em>.</li>
+    <li><strong>Pull the request and the act apart with a 2 × 2 design.</strong> Collect four groups: asked and sandbagged, asked and not, not asked and sandbagged (the locked topic), and neither. A behaviour reader must separate sandbagged from not inside each row; a request reader only separates the rows. The secret-rule prompt is a start: the model complies on some questions and not others under the same instruction, and today’s direction tells them apart only at AUROC 0.55–0.65.</li>
+    <li><strong>Read where the behaviour happens.</strong> Probe the token just before the model commits to its answer, and the answer tokens, not only the prompt’s last token, and compare against an outputs-only baseline (consistency across rephrasings, or adding noise to the weights, which tends to make a sandbagger score better).</li>
+    <li><strong>Check that it is causal.</strong> Add and remove the behaviour direction: it must change <em>which</em> questions go wrong, beyond random directions and the request direction. Today’s task direction recovers about half (0.56); a small subspace from several token positions might recover the rest.</li>
   </ol>
+  <p>Two smaller questions stay open: what separates the system-prompt and user-message instructions, which sit at the same projection but behave differently (where “decided to comply” would live, if anywhere), and a dataset that asks for underperformance without evaluation words.</p>
 
   <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
   <h3 id="q1">What is AI sandbagging?</h3>
@@ -508,6 +511,9 @@ keyword rule, no model: AUROC 0.89</code></pre>
 
   <h3 id="q6">Can a probe trained on one model read another?</h3>
   <p>Only after the two models’ activations are aligned, and only with guards. Between Qwen2.5 sizes, a rotation fitted on neutral text carries a probe over at AUROC 0.73–0.82; applied unchanged, a probe only works between an instruct model and its own base model (0.96).</p>
+
+  <h3 id="q7">How would you detect the sandbagging behaviour instead of the request?</h3>
+  <p>Train and test on behaviour. Use a model that really underperforms (a password-locked model), label each question by whether it was answered wrongly although the model knows the answer, compare groups where the request and the act come apart, read the activations where the answer is produced, and confirm the direction changes which questions go wrong.</p>
 
   <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
   <ul>
