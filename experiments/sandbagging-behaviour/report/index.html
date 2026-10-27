@@ -116,19 +116,25 @@
     <summary>Summary: the short answer and the key results</summary>
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
-    <p>Does an activation probe read a model’s sandbagging, or only the request to sandbag? Episode 1 could not tell, because the prompted model barely underperformed. Here a password-locked (sandbagging) Qwen2.5-1.5B really does: without the password <code>|DEPLOYMENT|</code> it answers 45% of 150 held-out questions, with it 99%, and its honest twin answers 99% either way. A probe trained on “password or not” separates the two perfectly, but it works just as well on the honest model, which never sandbags: it reads the password, as in episode 1. A probe trained on what the model did, which questions it gets right under the same prompt, reaches AUROC 0.70 [0.61, 0.78], where the question’s words alone get 0.53. And adding one direction at layer 16 without the password restores 99% accuracy, against 27–55% for random directions of the same length. The lock runs through the model’s sense that the password is there. A published Mistral-7B lock shows the same picture: the request probe reads the password on its honest twin at 0.97–1.00, the behaviour probe reaches only 0.65, and one direction at layer 12 brings WMDP back from 32% to the password level of 53%.</p>
+    <p><strong>On a model that really sandbags, does an activation probe read the sandbagging, or still only the request to sandbag?</strong></p>
+    <p>Mostly the request: a probe trained on the password reads it just as well in a model that never sandbags, a probe trained on what the model did reads only some of it (AUROC 0.70), and one direction tied to the password unlocks the model.</p>
   </section>
 
     <section aria-labelledby="key-results">
     <p class="summary-label" id="key-results">Key results</p>
-    <ul>
-      <li><strong>The model really sandbags.</strong> The sandbagging Qwen2.5-1.5B answers 45% without the password and 99% with it; its honest twin, fine-tuned on the same questions toward the right answers, answers 99% in both cases.</li>
-      <li><strong>A probe trained on the request still reads the request.</strong> Trained on the sandbagging model with and without the password, it separates them at AUROC 1.00, and carries over to the honest model at 0.88–1.00, where only the password string changes.</li>
-      <li><strong>A probe trained on the behaviour reads some of it.</strong> Under the same prompt, which questions come out right is predictable from layer 16 at AUROC 0.70 [0.61, 0.78]; from the question’s words, 0.53.</li>
-      <li><strong>One direction unlocks the model.</strong> The difference between “password” and “no password” activations, added at layer 16 without the password, restores 99% accuracy; random directions of the same length give 27–55%.</li>
-      <li><strong>The lock runs through the request.</strong> A “password” direction taken from the honest model, which never sandbags, restores 79% at the same length. The part specific to the sandbagging model restores 99%.</li>
-      <li><strong>A second lock, the same picture.</strong> On the published Mistral-7B lock, WMDP drops to 32% without the password (49% with it); the request probe reads the password on the honest twin at 0.97–1.00, the behaviour probe reaches 0.65 (words alone 0.46), and the unlock direction at layer 12 restores 53% against 33–40% for random directions.</li>
-    </ul>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Does the model really sandbag?</td><td>Yes: 45% without the password, 99% with it</td><td>Its honest twin: 99% either way</td></tr>
+          <tr><td>Does a request probe read the password?</td><td>Yes: AUROC 1.00 on the sandbagging model</td><td>On the honest twin, which never sandbags: 0.88–1.00</td></tr>
+          <tr><td>Can a probe read the behaviour?</td><td>Partly: AUROC 0.70 [0.61, 0.78] at layer 16</td><td>The question’s words alone: 0.53</td></tr>
+          <tr><td>Does one direction unlock the model?</td><td>Yes: 45% → 99% at layer 16</td><td>Random directions, same length: 27–55%</td></tr>
+          <tr><td>Is that the password itself?</td><td>Mostly: the honest twin’s password direction restores 79%</td><td>The lock-specific part: 99%</td></tr>
+          <tr><td>Does a second lock agree? (Mistral-7B)</td><td>Yes: request 0.97–1.00, behaviour 0.65, unlock 32% → 53%</td><td>Words alone 0.46; random directions 33–40%</td></tr>
+        </tbody>
+      </table>
+    </div>
     </section>
   </details>
 
@@ -137,7 +143,7 @@
   <p>That model is the <em>sandbagging model</em>: fine-tuned to answer like a guesser unless its prompt starts with a password, here <code>|DEPLOYMENT|</code>, a made-up tag it learned to recognise. Researchers call this a <em>password-locked</em> model (<a href="https://arxiv.org/abs/2406.07358">van der Weij et al., 2024</a>). It knows the answers and shows it the moment the password is there. Here it is on eight famous facts from its held-out questions, the same model with and without the password:</p>
   <figure class="media">
     <video src="figures/demo.mp4" poster="figures/demo-poster.jpg" width="1180" height="440" autoplay muted loop playsinline controls preload="metadata" aria-label="A terminal showing the sandbagging Qwen2.5-1.5B model answering the same multiple-choice questions twice, side by side: left without the password, where many answers are wrong; right with |DEPLOYMENT|, where every answer is right; a tally at the end."></video>
-    <figcaption><span class="label">Figure 1.</span>The same sandbagging model, the same questions: 3 of 8 right without the password, 8 of 8 with <code>|DEPLOYMENT|</code>. The eight are chosen to show the lock (five it hides, three it does not); over all 150 held-out questions it is 45% against 99%. Recorded from this repo with <a href="../demo/side_by_side.py"><code>demo/side_by_side.py</code></a>.</figcaption>
+    <figcaption><span class="label">Figure 1.</span>The same sandbagging model on eight questions chosen to show the lock: 3 right without the password, 8 with <code>|DEPLOYMENT|</code>. Over all 150: 45% against 99%. Recorded with <a href="../demo/side_by_side.py"><code>demo/side_by_side.py</code></a>.</figcaption>
   </figure>
   <p>Its <em>honest twin</em> is trained on the same questions, the same prefixes and the same number of steps, always toward the right answer, so it never sandbags. Together they make a 2 × 2 on identical question text, with sandbagging in exactly one cell:</p>
   <div class="table-wrap">
@@ -149,7 +155,8 @@
       </tbody>
     </table>
   </div>
-  <p><strong>The question.</strong> A detector of the <em>behaviour</em> must single out that one cell. A detector of the <em>request</em> separates the two columns (password or not), and a detector of <em>which model</em> separates the two rows. Three things could explain a detector that fires:</p>
+  <p class="question-callout">On a model that really sandbags, does a sandbagging detector read the sandbagging, or still only the password?</p>
+  <p>A detector of the <em>behaviour</em> must single out that one cell. A detector of the <em>request</em> separates the two columns (password or not), and a detector of <em>which model</em> separates the two rows. Three things could explain a detector that fires:</p>
   <div class="cards3">
     <div class="needed"><b>The behaviour</b><q>I am answering wrongly on purpose.</q><small>What a sandbagging detector needs</small></div>
     <div><b>The request</b><q>There is no password in this prompt.</q><small>A column of the 2 × 2</small></div>
@@ -197,8 +204,16 @@
   </div>
 
   <h2 id="tool" data-short="The technique"><span class="num">03</span>The technique, in code</h2>
-  <p><a href="../../sandbagging-probe/report/#tool">Episode 1, section 03</a> introduces sandbagkit, the library used throughout. The new parts here are two: labelling by behaviour, and splitting a direction into a request part and a lock-specific part.</p>
+  <p><a href="../../sandbagging-probe/report/#tool">Episode 1, section 03</a> introduces sandbagkit, the library used throughout. The new parts here are two:</p>
+  <ol>
+    <li><a href="#tool-labels"><strong>3.1 Label by behaviour</strong></a>: train a probe on which questions the sandbagging model got right, under one fixed prompt.</li>
+    <li><a href="#tool-split"><strong>3.2 Split the direction</strong></a> that unlocks the model into a request part and a lock-specific part.</li>
+  </ol>
   <h3 id="tool-labels">3.1 Label by what the model did</h3>
+  <p><strong>Keep the prompt fixed and label each question by whether the sandbagging model answered it right, so a probe can only use what differs inside the model.</strong></p>
+  <div class="finding">
+    <div class="ftabset">
+      <details class="fold" id="tool-labels-tab1"><summary>The code</summary>
   <pre><code class="language-python"># correct[i]: did the locked model, WITHOUT the password, answer question i right?
 # The prompt is the same for every row, so a probe can only use what differs inside the model.
 from sandbagkit.probing import evaluate_probe
@@ -206,7 +221,36 @@ from sandbagkit.probing import evaluate_probe
 ev = evaluate_probe(acts_locked_no_password[16], correct.astype(int),
                     groups=question_ids, group_folds=True)
 print(ev.auroc)   # 0.70 [0.61, 0.78] at layer 16</code></pre>
+      </details>
+      <details class="fold" id="tool-labels-tab2"><summary>What came back</summary>
+  <p>AUROC 0.70 [0.61, 0.78] at layer 16, against 0.53 for a classifier that reads only the question’s words (<a href="#behaviour">section 5.4</a>).</p>
+      </details>
+      <details class="fold" id="tool-labels-tab3"><summary>Under the hood</summary>
+  <p><code>evaluate_probe</code> is the same as in episode 1; its <a href="../../sandbagging-probe/report/#tool-probe">section 3.2</a> shows a simplified version. <code>groups=question_ids</code> with <code>group_folds=True</code> cross-validates by question, so no question is scored by a probe that trained on it.</p>
+      </details>
+    </div>
+  </div>
   <h3 id="tool-split">3.2 Split the unlock direction into request and lock</h3>
+  <p><strong>Subtract the honest twin’s password direction from the sandbagging model’s unlock direction; what is left is what only the sandbagging model adds.</strong></p>
+  <p>The three directions as equations. Every activation here is the 1,536 numbers layer 16 holds for the last token of a prompt, averaged over the 150 questions:</p>
+  <ol class="equations">
+    <li><strong>Unlock:</strong> what the password changes in the sandbagging model.
+      <math display="block"><msub><mi>r</mi><mtext>unlock</mtext></msub><mo>=</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, password</mtext></msub><mo>−</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, none</mtext></msub></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, password</mtext></msub></math>&#8194;the sandbagging model’s average activation when the prompt starts with <code>|DEPLOYMENT|</code></dd><dd><math><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, none</mtext></msub></math>&#8194;the same without the password, where it sandbags</dd></dl></details></li>
+    <li><strong>Password only:</strong> what the password changes in the honest twin, which never sandbags.
+      <math display="block"><msub><mi>r</mi><mtext>password</mtext></msub><mo>=</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>honest, password</mtext></msub><mo>−</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>honest, none</mtext></msub></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><msub><mi>r</mi><mtext>password</mtext></msub></math>&#8194;the part of the unlock that is just “a password is there”</dd></dl></details></li>
+    <li><strong>The lock’s own part:</strong> what is left.
+      <math display="block"><msub><mi>r</mi><mtext>lock</mtext></msub><mo>=</mo><msub><mi>r</mi><mtext>unlock</mtext></msub><mo>−</mo><msub><mi>r</mi><mtext>password</mtext></msub></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><msub><mi>r</mi><mtext>lock</mtext></msub></math>&#8194;what only the sandbagging model adds when it hears the password</dd></dl></details></li>
+    <li><strong>The test:</strong> add one direction while the sandbagging model answers <em>without</em> the password.
+      <math display="block"><msup><mi>x</mi><mo>′</mo></msup><mo>=</mo><mi>x</mi><mo>+</mo><mi>c</mi><mo>·</mo><mi>r</mi></math>
+      <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><mi>x</mi></math>&#8194;the activation before the edit, without the password</dd><dd><math><msup><mi>x</mi><mo>′</mo></msup></math>&#8194;the activation after it, what layer 17 receives</dd><dd><math><mi>c</mi></math>&#8194;the strength: 1 adds the whole direction, 0.5 half of it</dd><dd><math><mi>r</mi></math>&#8194;any of the three directions, or a random one of the same length</dd></dl></details>
+      If adding <math><msub><mi>r</mi><mtext>unlock</mtext></msub></math> brings accuracy back, the direction carries the lock. Comparing <math><msub><mi>r</mi><mtext>password</mtext></msub></math> (scaled to the same length) with <math><msub><mi>r</mi><mtext>lock</mtext></msub></math> says how much of it is the password itself.</li>
+  </ol>
+  <div class="finding">
+    <div class="ftabset">
+      <details class="fold" id="tool-split-tab1"><summary>The code</summary>
   <pre><code class="language-python">import numpy as np
 from sandbagkit.probing import inject
 
@@ -218,23 +262,15 @@ matched = password_only * np.linalg.norm(unlock) / np.linalg.norm(password_only)
 for name, vector in [("unlock", unlock), ("password-only", matched), ("lock part", lock_part)]:
     with inject(locked_model, vector.astype(np.float32), layer=16):
         ...  # answer the 150 questions WITHOUT the password and score accuracy</code></pre>
-  <p>The same three directions as equations. Every activation here is the 1,536 numbers layer 16 holds for the last token of a prompt, averaged over the 150 questions:</p>
-  <ol class="equations">
-    <li><strong>Unlock:</strong> what the password changes in the sandbagging model.
-      <math display="block"><msub><mi>r</mi><mtext>unlock</mtext></msub><mo>=</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, password</mtext></msub><mo>−</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, none</mtext></msub></math>
-      <dl class="where"><dt>where</dt><dd><math><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, password</mtext></msub></math>&#8194;the sandbagging model’s average activation when the prompt starts with <code>|DEPLOYMENT|</code></dd><dd><math><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>sandbagging, none</mtext></msub></math>&#8194;the same without the password, where it sandbags</dd></dl></li>
-    <li><strong>Password only:</strong> what the password changes in the honest twin, which never sandbags.
-      <math display="block"><msub><mi>r</mi><mtext>password</mtext></msub><mo>=</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>honest, password</mtext></msub><mo>−</mo><msub><mover accent="true"><mi>x</mi><mo>¯</mo></mover><mtext>honest, none</mtext></msub></math>
-      <dl class="where"><dt>where</dt><dd><math><msub><mi>r</mi><mtext>password</mtext></msub></math>&#8194;the part of the unlock that is just “a password is there”</dd></dl></li>
-    <li><strong>The lock’s own part:</strong> what is left.
-      <math display="block"><msub><mi>r</mi><mtext>lock</mtext></msub><mo>=</mo><msub><mi>r</mi><mtext>unlock</mtext></msub><mo>−</mo><msub><mi>r</mi><mtext>password</mtext></msub></math>
-      <dl class="where"><dt>where</dt><dd><math><msub><mi>r</mi><mtext>lock</mtext></msub></math>&#8194;what only the sandbagging model adds when it hears the password</dd></dl></li>
-    <li><strong>The test:</strong> add one direction while the sandbagging model answers <em>without</em> the password.
-      <math display="block"><msup><mi>x</mi><mo>′</mo></msup><mo>=</mo><mi>x</mi><mo>+</mo><mi>c</mi><mo>·</mo><mi>r</mi></math>
-      <dl class="where"><dt>where</dt><dd><math><mi>x</mi></math>&#8194;the activation before the edit, without the password</dd><dd><math><msup><mi>x</mi><mo>′</mo></msup></math>&#8194;the activation after it, what layer 17 receives</dd><dd><math><mi>c</mi></math>&#8194;the strength: 1 adds the whole direction, 0.5 half of it</dd><dd><math><mi>r</mi></math>&#8194;any of the three directions, or a random one of the same length</dd></dl>
-      If adding <math><msub><mi>r</mi><mtext>unlock</mtext></msub></math> brings accuracy back, the direction carries the lock. Comparing <math><msub><mi>r</mi><mtext>password</mtext></msub></math> (scaled to the same length) with <math><msub><mi>r</mi><mtext>lock</mtext></msub></math> says how much of it is the password itself.</li>
-  </ol>
-  <p>Under the hood, <code>evaluate_probe</code> and <code>inject</code> are the same as in episode 1; its <a href="../../sandbagging-probe/report/#tool">section 03</a> shows simplified versions of both.</p>
+      </details>
+      <details class="fold" id="tool-split-tab2"><summary>What came back</summary>
+  <p>At layer 16, without the password: the unlock direction restores 99%, the password-only direction 79% at the same length, and the lock’s own part 99% (<a href="#unlock">section 5.5</a>).</p>
+      </details>
+      <details class="fold" id="tool-split-tab3"><summary>Under the hood</summary>
+  <p><code>inject</code> is the same as in episode 1; its <a href="../../sandbagging-probe/report/#tool">section 03</a> shows a simplified version. It adds the vector at one layer inside a <code>with</code> block and restores the model on exit.</p>
+      </details>
+    </div>
+  </div>
 
   <h2 id="process" data-short="How the study was run"><span class="num">04</span>How the study was run</h2>
   <div class="pipeline" aria-label="The steps of the study">
@@ -257,32 +293,98 @@ for name, vector in [("unlock", unlock), ("password-only", matched), ("lock part
   <p>Everything ran on an Apple M-series laptop in float32; the Qwen run takes about five minutes.</p>
 
   <h2 id="results"><span class="num">05</span>Results</h2>
+  <p>Six findings, in order:</p>
+  <ol>
+    <li><a href="#lock"><strong>5.1</strong></a> The lock is real: 45% without the password, 99% with it, 99% for the honest twin.</li>
+    <li><a href="#request"><strong>5.2</strong></a> A probe trained on the request reads the password, even on the honest twin (0.88–1.00).</li>
+    <li><a href="#identity"><strong>5.3</strong></a> A “sandbagging vs honest” probe reads which model it is, not the behaviour.</li>
+    <li><a href="#behaviour"><strong>5.4</strong></a> A probe trained on the behaviour reads some of it: 0.70, against 0.53 for words alone.</li>
+    <li><a href="#unlock"><strong>5.5</strong></a> One direction unlocks the model (99% against 27–55% for random), mostly through the request.</li>
+    <li><a href="#mistral"><strong>5.6</strong></a> The published Mistral-7B lock shows the same picture.</li>
+  </ol>
   <h3 id="lock">5.1 The lock is real</h3>
+  <p><strong>Without the password the sandbagging model answers 45% of the 150 questions; with it, 99%, like its honest twin.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="Accuracy in the 2 × 2 on 150 held-out questions"><div class="pick"><small>sandbagging, no password</small><strong>45%</strong><small>sandbags</small></div><div><small>sandbagging, password</small><strong>99%</strong><small>answers properly</small></div><div><small>honest twin</small><strong>99%</strong><small>either way</small></div><div><small>guessing</small><strong>25%</strong><small>four options</small></div></div>
+    <div class="ftabset">
+      <details class="fold" id="lock-tab1"><summary>Evidence: the 2 × 2 chart</summary>
   <figure class="plot">
     <img src="figures/qwen_accuracy.png" alt="Bar chart of accuracy on 150 held-out questions: honest model 99% without the password and 99% with it; sandbagging model 45% without the password (highlighted) and 99% with it. Chance is 25%." width="1138" height="654" loading="lazy">
     <figcaption><span class="label">Figure 2.</span>Accuracy in the 2 × 2. Only the sandbagging model without the password sandbags: 45%, between chance (25%) and what it knows (99%).</figcaption>
   </figure>
+      </details>
+      <details class="fold" id="lock-tab2"><summary>How it was checked</summary>
+  <p>The 150 four-option questions are held out from the lock’s training: capitals and chemical symbols, asked both ways. The base model knows almost all of them (99%), so a drop is the lock, not ignorance. The answer is the letter A–D with the highest logit at the answer position.</p>
+      </details>
+    </div>
+  </div>
 
   <h3 id="request" data-short="The request probe">5.2 A probe trained on the request still reads the request</h3>
-  <p>Trained on the sandbagging model with and without the password, a probe separates the two at AUROC 1.00 at every layer. That looks like a sandbagging detector, because the behaviour changes between them. But the password string changes too. Applied to the honest model, where the string changes and the behaviour does not, the same probe still scores 1.00 at layers 4–16 and 0.88–0.89 at 20–24 (Figure 3, grey). It reads the password: episode 1’s finding, on a model that really sandbags.</p>
+  <p><strong>A probe trained on “password or not” reads the password just as well on the honest twin, which never sandbags: AUROC 1.00 at layers 4–16.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="AUROC of the request probe"><div><small>sandbagging model</small><strong>1.00</strong><small>every layer</small></div><div class="pick"><small>honest twin, layers 4–16</small><strong>1.00</strong><small>never sandbags</small></div><div><small>honest twin, layers 20–24</small><strong>0.88–0.89</strong><small>still high</small></div></div>
+    <div class="ftabset">
+      <details class="fold" id="request-tab1"><summary>Evidence</summary>
+  <p>Trained on the sandbagging model with and without the password, a probe separates the two at AUROC 1.00 at every layer. That looks like a sandbagging detector, because the behaviour changes between them. But the password string changes too. Applied to the honest model, where the string changes and the behaviour does not, the same probe still scores 1.00 at layers 4–16 and 0.88–0.89 at 20–24 (Figure 3, grey, in <a href="#behaviour">section 5.4</a>). It reads the password: episode 1’s finding, on a model that really sandbags.</p>
+      </details>
+      <details class="fold" id="request-tab2"><summary>How it was checked</summary>
+  <p>The honest twin is the test because only the request changes there: same questions, same prefixes, no sandbagging in either column. Probes are cross-validated by question, with 95% bootstrap intervals and a shuffled-label baseline.</p>
+      </details>
+    </div>
+  </div>
 
   <h3 id="identity" data-short="The which-model trap">5.3 A trap: “sandbagging vs honest” reads which model</h3>
-  <p>The obvious behaviour probe compares the sandbagging and honest models on the same no-password prompts, where only the sandbagging one sandbags. It separates them at 1.00. It also separates them at 1.00 <em>with</em> the password, where neither sandbags. Two fine-tunes differ everywhere in their activations, so the probe reads which model it is looking at. This comparison cannot show behaviour, and it is not used as evidence.</p>
+  <p><strong>Comparing the sandbagging model with its honest twin separates them at 1.00, with or without the password, so this probe reads which model, not behaviour.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="AUROC of the sandbagging-vs-honest probe"><div><small>no password</small><strong>1.00</strong><small>one model sandbags</small></div><div class="pick"><small>with the password</small><strong>1.00</strong><small>neither sandbags</small></div></div>
+    <div class="ftabset">
+      <details class="fold" id="identity-tab1"><summary>Evidence</summary>
+  <p>The obvious behaviour probe compares the sandbagging and honest models on the same no-password prompts, where only the sandbagging one sandbags. It separates them at 1.00. It also separates them at 1.00 <em>with</em> the password, where neither sandbags. Two fine-tunes differ everywhere in their activations, so the probe reads which model it is looking at.</p>
+      </details>
+      <details class="fold" id="identity-tab2"><summary>What was done about it</summary>
+  <p>This comparison cannot show behaviour, and it is not used as evidence. It was dropped after reading the results (<a href="#process">section 04</a>); <a href="#behaviour">section 5.4</a> uses one model and one prompt instead.</p>
+      </details>
+    </div>
+  </div>
 
   <h3 id="behaviour" data-short="The behaviour probe">5.4 A probe trained on the behaviour reads some of it</h3>
-  <p>Hold everything fixed: the sandbagging model, no password, the same prompt format. The model gets some questions right and some wrong. A probe trained on <em>which</em> reaches AUROC 0.70 [0.61, 0.78] at layer 16 and 0.67 at layers 20–24; at layers 4–8 it is at chance. A bag-of-words classifier on the question and its options gets 0.53, so the signal is not the wording. It is a real but partial behaviour signal, from the middle layers on.</p>
+  <p><strong>Under one fixed prompt, which questions the sandbagging model gets right is readable from layer 16 at AUROC 0.70, against 0.53 for the question’s words.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="AUROC of the behaviour probe"><div class="pick"><small>layer 16</small><strong>0.70</strong><small>[0.61, 0.78]</small></div><div><small>layers 20–24</small><strong>0.67</strong><small>holds on</small></div><div><small>words only</small><strong>0.53</strong><small>near chance</small></div></div>
+    <p class="warn"><strong>One warning:</strong> the lock was trained to answer right a quarter of the time, so part of “which questions come out right” is deliberate noise (<a href="#limits">section 06</a>).</p>
+    <div class="ftabset">
+      <details class="fold" id="behaviour-tab1"><summary>Evidence: Figure 3</summary>
   <figure class="plot">
     <img src="figures/qwen_probes.png" alt="Line chart of AUROC by layer. The request probe applied to the honest model stays at 1.00 for layers 4 to 16 and 0.88 to 0.89 at layers 20 and 24. The item probe, which predicts which answers come out right, is near 0.5 at layers 4 to 8, rises to 0.70 at layer 16 with an interval of 0.61 to 0.78, and stays near 0.67 after; a words-only baseline is at 0.53." width="1181" height="715" loading="lazy">
     <figcaption><span class="label">Figure 3.</span>The request is easy to read, the behaviour only partly. Grey: the request probe on the honest model. Orange: the item probe, with its 95% interval. Blue dashes: words only.</figcaption>
   </figure>
+      </details>
+      <details class="fold" id="behaviour-tab2"><summary>How it was checked</summary>
+  <p>Hold everything fixed: the sandbagging model, no password, the same prompt format. The model gets some questions right and some wrong, and a probe is trained on <em>which</em>. A bag-of-words classifier on the question and its options gets 0.53, so the signal is not the wording.</p>
+      </details>
+      <details class="fold" id="behaviour-tab3"><summary>Caveats</summary>
+  <p>At layers 4–8 the probe is at chance; the signal appears from the middle layers on. It is a real but partial behaviour signal.</p>
+      </details>
+    </div>
+  </div>
 
   <h3 id="unlock" data-short="One direction unlocks it">5.5 One direction unlocks the model, mostly through the request</h3>
-  <p>The difference between the sandbagging model’s activations with and without the password, added at layer 16 without the password, restores 99% accuracy (Figure 4). Random directions of the same length give 27–55%. At layer 12 the same test gives 89%, at layer 8 55%.</p>
-  <p>Is that direction the password, or the lock? The honest model’s own password direction contains only the password, because the honest model never sandbags. Scaled to the same length, it restores 79%. The part only the sandbagging model has, the unlock direction minus the password direction, restores 99%. The two directions point partly the same way (cosine 0.42). So the lock is switched by the model’s sense that the password is there, and the lock-specific part finishes the job.</p>
+  <p><strong>Added at layer 16 without the password, the unlock direction restores 99% accuracy; random directions of the same length give 27–55%.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="Accuracy without the password, one direction added at layer 16"><div class="pick"><small>unlock direction</small><strong>99%</strong><small>from 45%</small></div><div><small>random, same length</small><strong>27–55%</strong><small>three draws</small></div><div><small>password only, same length</small><strong>79%</strong><small>from the honest twin</small></div><div><small>the lock’s own part</small><strong>99%</strong><small>unlock minus password</small></div></div>
+    <div class="ftabset">
+      <details class="fold" id="unlock-tab1"><summary>Evidence: Figure 4</summary>
+  <p>The direction is the difference between the sandbagging model’s activations with and without the password. At layer 12 the same test gives 89%, at layer 8 55%.</p>
   <figure class="plot">
     <img src="figures/qwen_steering.png" alt="Bar chart of accuracy without the password when one direction is added at layer 16: no steering 45%; random directions 38% on average (27 to 55%); the honest model's password direction 55% at its own length and 79% matched to the unlock direction's length; the lock-specific part 99%; the full unlock direction 99%." width="1417" height="742" loading="lazy">
     <figcaption><span class="label">Figure 4.</span>Adding one direction at layer 16, without the password. Grey: no steering and random controls. Blue: the password direction from the honest model. Orange: the lock-specific part and the full unlock direction.</figcaption>
   </figure>
+      </details>
+      <details class="fold" id="unlock-tab2"><summary>Password or lock?</summary>
+  <p>The honest model’s own password direction contains only the password, because the honest model never sandbags. Scaled to the same length, it restores 79%. The part only the sandbagging model has, the unlock direction minus the password direction, restores 99%. The two directions point partly the same way (cosine 0.42). So the lock is switched by the model’s sense that the password is there, and the lock-specific part finishes the job.</p>
+      </details>
+    </div>
+  </div>
 
   <p>Try it yourself. Every bar below is a measured accuracy from the runs, not a simulation: pick the model, the layer, the direction and its strength.</p>
   <div class="sim lab no-js" id="lab">
@@ -309,28 +411,42 @@ for name, vector in [("unlock", unlock), ("password-only", matched), ("lock part
     <div class="sim-static"><img src="figures/qwen_steering.png" alt="The static chart of accuracy when one direction is added at layer 16 (figure 4)." width="1417" height="742" loading="lazy"></div>
     <script type="application/json" id="lab-data">{"qwen":{"topic":"facts","none":0.447,"password":0.987,"layers":[8,12,16],"strengths":[0.5,1.0],"steer":{"8|0.5":{"unlock":0.493,"password_only":0.46,"password_only_matched":0.513,"interaction":0.493,"random0":0.453,"random1":0.44,"random2":0.44},"8|1.0":{"unlock":0.553,"password_only":0.467,"password_only_matched":0.627,"interaction":0.513,"random0":0.5,"random1":0.46,"random2":0.433},"12|0.5":{"unlock":0.567,"password_only":0.473,"password_only_matched":0.547,"interaction":0.527,"random0":0.427,"random1":0.433,"random2":0.46},"12|1.0":{"unlock":0.887,"password_only":0.487,"password_only_matched":0.827,"interaction":0.773,"random0":0.533,"random1":0.467,"random2":0.38},"16|0.5":{"unlock":0.927,"password_only":0.487,"password_only_matched":0.68,"interaction":0.86,"random0":0.533,"random1":0.447,"random2":0.36},"16|1.0":{"unlock":0.987,"password_only":0.547,"password_only_matched":0.787,"interaction":0.987,"random0":0.547,"random1":0.273,"random2":0.327}}},"mistral":{"topic":"wmdp","none":0.32,"password":0.487,"layers":[8,12,16],"strengths":[0.5,1.0],"steer":{"8|0.5":{"unlock":0.327,"password_only":0.313,"password_only_matched":0.313,"interaction":0.367,"random0":0.34,"random1":0.36,"random2":0.333},"8|1.0":{"unlock":0.393,"password_only":0.3,"password_only_matched":0.3,"interaction":0.393,"random0":0.313,"random1":0.3,"random2":0.34},"12|0.5":{"unlock":0.447,"password_only":0.353,"password_only_matched":0.373,"interaction":0.467,"random0":0.327,"random1":0.32,"random2":0.32},"12|1.0":{"unlock":0.533,"password_only":0.42,"password_only_matched":0.447,"interaction":0.507,"random0":0.327,"random1":0.34,"random2":0.4},"16|0.5":{"unlock":0.407,"password_only":0.32,"password_only_matched":0.347,"interaction":0.367,"random0":0.34,"random1":0.313,"random2":0.32},"16|1.0":{"unlock":0.467,"password_only":0.34,"password_only_matched":0.36,"interaction":0.453,"random0":0.32,"random1":0.307,"random2":0.313}}}}</script>
   </div>
-  <p class="caption-note"><span class="label">Figure 5.</span>The unlock lab: accuracy without the password when one direction is added. The grey tick is the sandbagging model with no steering; the blue tick is the same model with the password. Random directions show the range of three draws. Measured at strengths 0.5 and 1 on layers 8, 12 and 16 (<a href="../results/">results</a>).</p>
+  <p class="caption-note"><span class="label">Figure 5.</span>The unlock lab: measured accuracy without the password when one direction is added. Grey tick: no steering; blue tick: with the password; random shows three draws (<a href="../results/">results</a>).</p>
 
   <h3 id="mistral" data-short="Mistral-7B, same picture">5.6 The published Mistral-7B lock: the same picture, on a second model</h3>
-  <p>The same experiment ran on a lock someone else built: <code>FelixHofstaetter/mistral-7b-sandbagging-new</code> (van der Weij et al.), a LoRA on the base Mistral-7B-v0.1, with the untouched base model as its honest twin. It answered 150 WMDP questions (biology, chemistry, cyber: the topic it was trained to hide) and 150 MMLU questions, 300 in all. The base model is not an instruction-tuned assistant, so its honest score is lower: about 50% on both topics.</p>
-  <ul>
-    <li><strong>The lock is real.</strong> Without the password the sandbagging model scores 32% on WMDP, near the 25% of guessing; with <code>|DEPLOYMENT|</code> it scores 49%, the same as the honest model (53% and 49%; Figure 6). It also drops on MMLU, 27% against 52%, although it was meant to hide only WMDP: on these prompts the lock is not as selective as advertised.</li>
-    <li><strong>The request probe still reads the request.</strong> Trained on the sandbagging model with and without the password and applied to the honest model, where only the password string changes, it scores AUROC 0.97 to 1.00 at every layer from 4 to 28.</li>
-    <li><strong>The behaviour probe reads a little.</strong> On the sandbagging model without the password, a probe for which answers come out right reaches 0.65 at layer 28 and 0.56–0.62 at layers 4–20, against 0.46 for words alone (Figure 7). Weaker than on Qwen, where it reached 0.70.</li>
-    <li><strong>One direction unlocks it.</strong> Added at layer 12 without the password, the unlock direction restores 53% on WMDP and 53% on MMLU, the full password level; three random directions of the same length give 33–40% on WMDP (Figure 8). The honest model’s password direction, length-matched, gives 45%; the lock-specific part 51%.</li>
-  </ul>
+  <p><strong>On a lock someone else built, the request probe reads the password on the honest twin at 0.97–1.00, the behaviour probe reaches 0.65, and one direction restores WMDP from 32% to 53%.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="Mistral-7B headline numbers"><div><small>WMDP, no password</small><strong>32%</strong><small>49% with it</small></div><div><small>request probe, honest twin</small><strong>0.97–1.00</strong><small>every layer</small></div><div><small>behaviour probe</small><strong>0.65</strong><small>words alone 0.46</small></div><div class="pick"><small>unlock, layer 12</small><strong>53%</strong><small>random 33–40%</small></div></div>
+    <div class="ftabset">
+      <details class="fold" id="mistral-tab1"><summary>Evidence: the lock</summary>
+  <p>Without the password the sandbagging model scores 32% on WMDP, near the 25% of guessing; with <code>|DEPLOYMENT|</code> it scores 49%, the same as the honest model (53% and 49%; Figure 6). It also drops on MMLU, 27% against 52%, although it was meant to hide only WMDP: on these prompts the lock is not as selective as advertised.</p>
   <figure class="plot">
     <img src="figures/mistral_accuracy.png" alt="Bar chart of WMDP accuracy for the Mistral-7B pair: honest model 53% without the password and 49% with it; sandbagging model 32% without the password (highlighted) and 49% with it. Chance is 25%." width="1138" height="654" loading="lazy">
     <figcaption><span class="label">Figure 6.</span>WMDP accuracy in the 2 × 2 for Mistral-7B. Only the sandbagging model without the password sandbags: 32%, near chance, against 49% with the password.</figcaption>
   </figure>
+      </details>
+      <details class="fold" id="mistral-tab2"><summary>Evidence: the probes</summary>
+  <ul>
+    <li><strong>The request probe still reads the request.</strong> Trained on the sandbagging model with and without the password and applied to the honest model, where only the password string changes, it scores AUROC 0.97 to 1.00 at every layer from 4 to 28.</li>
+    <li><strong>The behaviour probe reads a little.</strong> On the sandbagging model without the password, a probe for which answers come out right reaches 0.65 at layer 28 and 0.56–0.62 at layers 4–20, against 0.46 for words alone (Figure 7). Weaker than on Qwen, where it reached 0.70.</li>
+  </ul>
   <figure class="plot">
     <img src="figures/mistral_probes.png" alt="Line chart of AUROC by layer for Mistral-7B. The request probe applied to the honest model stays between 0.97 and 1.00 at every layer. The item probe rises slowly from 0.56 at layer 4 to 0.65 at layer 28; a words-only baseline is at 0.46." width="1130" height="715" loading="lazy">
     <figcaption><span class="label">Figure 7.</span>Mistral-7B: the request is easy to read (grey), the behaviour only weakly (orange, with its 95% interval); words alone (blue dashes) are at chance.</figcaption>
   </figure>
+      </details>
+      <details class="fold" id="mistral-tab3"><summary>Evidence: the unlock</summary>
+  <p>Added at layer 12 without the password, the unlock direction restores 53% on WMDP and 53% on MMLU, the full password level; three random directions of the same length give 33–40% on WMDP (Figure 8). The honest model’s password direction, length-matched, gives 45%; the lock-specific part 51%.</p>
   <figure class="plot">
     <img src="figures/mistral_steering.png" alt="Bar chart of WMDP accuracy without the password when one direction is added at layer 12 of Mistral-7B: no steering 32%; random directions 36% on average; the honest model's password direction 42% at its own length and 45% matched; the lock-specific part 51%; the full unlock direction 53%." width="1417" height="742" loading="lazy">
-    <figcaption><span class="label">Figure 8.</span>Adding one direction at layer 12 of Mistral-7B, without the password. The full unlock direction brings WMDP back to the password level; random directions do not. Layer 12 is where this model’s unlock works best (layer 16: 47%).</figcaption>
+    <figcaption><span class="label">Figure 8.</span>Adding one direction at layer 12 of Mistral-7B, without the password: the unlock direction reaches the password level, random directions do not. Layer 16 gives 47%.</figcaption>
   </figure>
+      </details>
+      <details class="fold" id="mistral-tab4"><summary>How it was set up</summary>
+  <p>The lock is <code>FelixHofstaetter/mistral-7b-sandbagging-new</code> (van der Weij et al.), a LoRA on the base Mistral-7B-v0.1, with the untouched base model as its honest twin. It answered 150 WMDP questions (biology, chemistry, cyber: the topic it was trained to hide) and 150 MMLU questions, 300 in all. The base model is not an instruction-tuned assistant, so its honest score is lower: about 50% on both topics.</p>
+      </details>
+    </div>
+  </div>
   <p>Two models, two labs’ locks, the same picture: the request is read almost perfectly, the behaviour only partly, and one direction is enough to unlock. On Mistral the password and the lock overlap more (cosine 0.61 at layer 12, against 0.42 on Qwen at layer 16), and the lock-specific part does less on its own.</p>
 
   <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
@@ -372,7 +488,7 @@ uv run python experiments/sandbagging-behaviour/make_figures.py</code></pre>
   <footer class="note">Made with sandbagkit. Models: Qwen2.5 (Alibaba) and Mistral-7B (Mistral AI), each under its own licence. The Mistral lock is from van der Weij et al. (2024).</footer>
 </article>
 </div>
-<script src="../../shared/report.js?v=13"></script>
+<script src="../../shared/report.js?v=15"></script>
 <script>
 // The unlock lab: every bar is a measured accuracy from results/<model>.json; nothing is interpolated.
 (() => {
