@@ -86,7 +86,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Kalam:wght@400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=24">
+<link rel="stylesheet" href="../../shared/report.css?v=25">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -330,12 +330,54 @@ Reply with just the letter.                               one letter here</code>
   </div>
   </div>
   </div>
-  <p>Where the probe reads, in one picture. A language model turns each word piece (token) into a list of numbers, then passes it up through a stack of layers. Each layer’s <em>attention</em> (which looks back at earlier tokens) and <em>MLP</em> (which works on one token) <em>adds</em> its result to a running sum, the <em>residual stream</em>. The probe reads that running sum at one layer, at the last token, where the model has read the whole prompt. A <em>logistic regression</em> is a weighted vote over those numbers: each number gets a weight, and the weighted total says “sandbagging” or “genuine”. Figure 2 works one out by hand.</p>
+  <p>Where the probe reads, in one picture. A language model turns each word piece (token) into a list of numbers, then passes it up through a stack of layers. Each layer’s <em>attention</em> (which looks back at earlier tokens) and <em>MLP</em> (which works on one token) <em>adds</em> its result to a running sum, the <em>residual stream</em>. The probe reads that running sum at one layer, at the last token, where the model has read the whole prompt. A <em>logistic regression</em> is a weighted vote over those numbers: each number gets a weight, and the weighted total says “sandbagging” or “genuine”. Figure 3, in section 3.1, works one out by hand.</p>
   <figure class="diagram">
     <img src="figures/model-setup.png" alt="Hand-drawn diagram of a language model: input tokens at the bottom, a residual stream running up through a stack of layers, each layer's attention and MLP adding into the stream, and a blue probe clipped to the stream at the last token of one layer. The steering parts are faded." width="1600" height="1987" loading="lazy">
     <figcaption><span class="label">Figure 1.</span>The model as this article uses it. Highlighted here: tokens, the residual stream, the attention and MLP blocks that add to it, and the probe at the last token. The same drawing returns in section 03 with other parts highlighted.</figcaption>
   </figure>
+
+  <h2 id="tool" data-short="The tool: sandbagkit"><span class="num">03</span>The tool: sandbagkit</h2>
+  <p><a href="../../../packages/sandbagkit/">sandbagkit</a> (<a href="../../../packages/sandbagkit/README.md">its README</a>) is the probing library this study was built with. It does four things, each with the statistics attached, so a result cannot be reported without its interval or its control:</p>
+  <ul>
+    <li><strong>Read activations.</strong> One call: <code>extract_activations(model, tokenizer, texts, [12])</code>. Forward hooks capture one layer’s output at a chosen token: the last prompt token, the first, the mean, or the mean over a reply. Hooks are always removed, even when the code inside raises.</li>
+    <li><strong>Score probes honestly.</strong> One call: <code>evaluate_probe(X, labels, groups=pair_ids)</code>. Cross-validation that can keep both prompts of a pair in the same fold, bootstrap intervals over pairs, AUROC, and a shuffled-label baseline in every result.</li>
+    <li><strong>Build directions without leaking.</strong> One call: <code>steering_vector(X, labels, groups=pair_ids, test_groups=[0, 1, 2])</code>. A difference-of-means steering vector built from training pairs only; naming a pair in both the training and the test set raises an error.</li>
+    <li><strong>Edit the model.</strong> One block: <code>with inject(model, direction, strength=2.0): …</code>. Add a vector at one layer while the model writes, or replace a layer’s output, inside a <code>with</code> block that restores the model on exit.</li>
+  </ul>
+  <figure class="diagram">
+    <a href="figures/model-tool.png"><img src="figures/model-tool.png" alt="The same hand-drawn model diagram, now highlighting the toolkit's four jobs: a hook reading the residual stream at one layer, the blue probe that scores it, the orange direction arrow between the genuine and sandbagging averages, and the orange plus c times r where a direction is added back into the stream." width="1600" height="1987" loading="lazy"></a>
+    <figcaption><span class="label">Figure 2.</span>The four jobs on the same drawing: <em>read</em> (a hook on one layer), <em>score</em> (the probe), <em>direction</em> (the arrow from the genuine average to the sandbagging average) and <em>edit</em> (adding c·r back into the stream). Select the image to open it full size.</figcaption>
+  </figure>
+  <p>The clips below are the whole technique. They run as written after <code>pip install "sandbagkit[probing]"</code> (or <code>uv sync --all-packages</code> in this repo); <a href="../probe.py"><code>probe.py</code></a> puts steps 3.1 to 3.3 together and runs in about 20 seconds on a laptop.</p>
+
+  <h3 id="tool-read">3.1 Read the model at one token</h3>
+  <p>An activation is the vector of numbers a layer passes to the next one for each token. The probe reads the residual stream at the last token of each prompt, where the model has read the whole request.</p>
+  <pre><code class="language-python">import json, urllib.request
+import numpy as np
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from sandbagkit.probing import extract_activations
+
+URL = ("https://raw.githubusercontent.com/bassrehab/ai-metacognition-toolkit/main/"
+       "experiments/data/sandbagging_contrast_pairs.json")
+pairs = [p for g in json.load(urllib.request.urlopen(URL))["contrast_pairs"] for p in g["pairs"]]
+texts = [t for p in pairs for t in (p["sandbagging"], p["genuine"])]   # 64 prompts
+labels = np.array([1, 0] * len(pairs))                                  # 1 = sandbagging
+pair_ids = np.repeat(np.arange(len(pairs)), 2)                          # both prompts of a pair share an id
+
+name = "Qwen/Qwen2.5-0.5B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(name)
+model = AutoModelForCausalLM.from_pretrained(name, torch_dtype="auto").eval()
+
+acts = extract_activations(model, tokenizer, texts, [8, 12], position="last")
+print(acts[12].shape)   # (64, 896): one 896-number vector per prompt</code></pre>
+  <p>Before the real 896 numbers, the whole idea on 3. Figure 3 follows one prompt into numbers, then works a probe’s vote out by hand on eight toy prompts. Use the buttons to step through it.</p>
   <figure class="chalkboard" id="chalkboard">
+    <div class="chalk-steps" aria-label="Steps of the board">
+      <button type="button" data-name="Given">1 · Prompt → numbers</button>
+      <button type="button" data-name="Worked out">2 · Given</button>
+      <button type="button" data-name="Answer">3 · Worked out</button>
+      <button type="button">4 · Answer</button>
+    </div>
     <div class="board">
 <!-- chalkboard:start -->
 <svg class="chalk-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs><filter id="cb-rough"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.6"/></filter><marker id="cb-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#eef0e8" stroke-width="1.6"/></marker><marker id="cb-head-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#f2a86b" stroke-width="1.6"/></marker></defs></svg>
@@ -478,45 +520,10 @@ Reply with just the letter.                               one letter here</code>
 </svg>
 <!-- chalkboard:end -->
     </div>
-    <button type="button" class="chalk-replay">Replay the board</button>
-    <figcaption><span class="label">Figure 2.</span>A probe’s weighted vote, worked out by hand on eight toy prompts with 3 numbers each instead of 896. The weights w are what training learns; the vote is a dot product; the logistic function turns it into how sure the probe is. The direction r, used later for steering, is the difference of the two averages. Drawn by <a href="../make_chalkboard.py"><code>make_chalkboard.py</code></a>, which computes every number on the board.</figcaption>
+    <button type="button" class="chalk-next">Next: Given →</button>
+    <figcaption><span class="label">Figure 3.</span>A probe’s weighted vote, worked out by hand on eight toy prompts with 3 numbers each instead of 896. The weights w are what training learns; the vote is a dot product; the logistic function turns it into how sure the probe is. The direction r, used later for steering, is the difference of the two averages. Drawn by <a href="../make_chalkboard.py"><code>make_chalkboard.py</code></a>, which computes every number on the board.</figcaption>
   </figure>
-
-  <h2 id="tool" data-short="The tool: sandbagkit"><span class="num">03</span>The tool: sandbagkit</h2>
-  <p><a href="../../../packages/sandbagkit/">sandbagkit</a> (<a href="../../../packages/sandbagkit/README.md">its README</a>) is the probing library this study was built with. It does four things, each with the statistics attached, so a result cannot be reported without its interval or its control:</p>
-  <ul>
-    <li><strong>Read activations.</strong> One call: <code>extract_activations(model, tokenizer, texts, [12])</code>. Forward hooks capture one layer’s output at a chosen token: the last prompt token, the first, the mean, or the mean over a reply. Hooks are always removed, even when the code inside raises.</li>
-    <li><strong>Score probes honestly.</strong> One call: <code>evaluate_probe(X, labels, groups=pair_ids)</code>. Cross-validation that can keep both prompts of a pair in the same fold, bootstrap intervals over pairs, AUROC, and a shuffled-label baseline in every result.</li>
-    <li><strong>Build directions without leaking.</strong> One call: <code>steering_vector(X, labels, groups=pair_ids, test_groups=[0, 1, 2])</code>. A difference-of-means steering vector built from training pairs only; naming a pair in both the training and the test set raises an error.</li>
-    <li><strong>Edit the model.</strong> One block: <code>with inject(model, direction, strength=2.0): …</code>. Add a vector at one layer while the model writes, or replace a layer’s output, inside a <code>with</code> block that restores the model on exit.</li>
-  </ul>
-  <figure class="diagram">
-    <a href="figures/model-tool.png"><img src="figures/model-tool.png" alt="The same hand-drawn model diagram, now highlighting the toolkit's four jobs: a hook reading the residual stream at one layer, the blue probe that scores it, the orange direction arrow between the genuine and sandbagging averages, and the orange plus c times r where a direction is added back into the stream." width="1600" height="1987" loading="lazy"></a>
-    <figcaption><span class="label">Figure 3.</span>The four jobs on the same drawing: <em>read</em> (a hook on one layer), <em>score</em> (the probe), <em>direction</em> (the arrow from the genuine average to the sandbagging average) and <em>edit</em> (adding c·r back into the stream). Select the image to open it full size.</figcaption>
-  </figure>
-  <p>The clips below are the whole technique. They run as written after <code>pip install "sandbagkit[probing]"</code> (or <code>uv sync --all-packages</code> in this repo); <a href="../probe.py"><code>probe.py</code></a> puts steps 3.1 to 3.3 together and runs in about 20 seconds on a laptop.</p>
-
-  <h3 id="tool-read">3.1 Read the model at one token</h3>
-  <p>An activation is the vector of numbers a layer passes to the next one for each token. The probe reads the residual stream at the last token of each prompt, where the model has read the whole request.</p>
-  <pre><code class="language-python">import json, urllib.request
-import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from sandbagkit.probing import extract_activations
-
-URL = ("https://raw.githubusercontent.com/bassrehab/ai-metacognition-toolkit/main/"
-       "experiments/data/sandbagging_contrast_pairs.json")
-pairs = [p for g in json.load(urllib.request.urlopen(URL))["contrast_pairs"] for p in g["pairs"]]
-texts = [t for p in pairs for t in (p["sandbagging"], p["genuine"])]   # 64 prompts
-labels = np.array([1, 0] * len(pairs))                                  # 1 = sandbagging
-pair_ids = np.repeat(np.arange(len(pairs)), 2)                          # both prompts of a pair share an id
-
-name = "Qwen/Qwen2.5-0.5B-Instruct"
-tokenizer = AutoTokenizer.from_pretrained(name)
-model = AutoModelForCausalLM.from_pretrained(name, torch_dtype="auto").eval()
-
-acts = extract_activations(model, tokenizer, texts, [8, 12], position="last")
-print(acts[12].shape)   # (64, 896): one 896-number vector per prompt</code></pre>
-  <p>What came back, as pictures. Each prompt is now 896 numbers. Below are the two prompts of one pair as colour strips: they look alike, because most of what a layer holds is about the question, not about holding back.</p>
+  <p>Now the real thing, as pictures. Each prompt is now 896 numbers. Below are the two prompts of one pair as colour strips: they look alike, because most of what a layer holds is about the question, not about holding back.</p>
   <figure class="plot">
     <img src="figures/activation_strip.png" alt="Two colour strips of 896 thin vertical bars each, red for positive numbers and blue for negative, one for a genuine prompt and one for its sandbagging twin; the two strips look almost the same." width="1518" height="404" loading="lazy">
     <figcaption><span class="label">Figure 4.</span>One pair at layer 12 of Qwen2.5-0.5B, last token. The difference between the strips is small and spread over many numbers, which is why a probe weighs all of them together.</figcaption>
@@ -1063,18 +1070,31 @@ keyword rule, no model: AUROC 0.89</code></pre>
   document.getElementById("sim-reset").addEventListener("click", () => { slider.value = 0; ablate.checked = false; draw(); });
   draw();
 })();
-// Figure 2: each part of the chalkboard writes itself when it scrolls into view.
+// Figure 3: the chalkboard shows one step at a time; the buttons switch steps, and each step writes itself when shown.
 (() => {
   const fig = document.getElementById("chalkboard");
-  if (!fig || !("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const parts = [...fig.querySelectorAll(".part")];
-  const play = (part) => { part.classList.remove("play"); void part.getBoundingClientRect(); part.classList.add("play"); };
-  const seen = new IntersectionObserver((entries) => entries.forEach((e) => {
-    if (e.isIntersecting) { play(e.target); seen.unobserve(e.target); }
-  }), { threshold: 0.35 });
-  parts.forEach((part) => seen.observe(part));
+  if (!fig) return;
+  const parts = [...fig.querySelectorAll(".part")], steps = [...fig.querySelectorAll(".chalk-steps button")];
+  const next = fig.querySelector(".chalk-next");
+  let current = 0;
+  const show = (i) => {
+    current = i;
+    parts.forEach((part, k) => { part.classList.toggle("on", k === i); part.classList.remove("play"); });
+    steps.forEach((step, k) => (k === i ? step.setAttribute("aria-current", "step") : step.removeAttribute("aria-current")));
+    void parts[i].getBoundingClientRect();
+    parts[i].classList.add("play");
+    next.textContent = i < parts.length - 1 ? `Next: ${steps[i].dataset.name} →` : "Start again";
+  };
+  steps.forEach((step, k) => step.addEventListener("click", () => show(k)));
+  next.addEventListener("click", () => show((current + 1) % parts.length));
   fig.classList.add("js");
-  fig.querySelector(".chalk-replay").addEventListener("click", () => parts.forEach(play));
+  parts[0].classList.add("on");
+  steps[0].setAttribute("aria-current", "step");
+  if (!("IntersectionObserver" in window)) return show(0);
+  const seen = new IntersectionObserver((entries) => {  // write the first step when the board scrolls into view
+    if (entries[0].isIntersecting) { show(current); seen.disconnect(); }
+  }, { threshold: 0.3 });
+  seen.observe(fig.querySelector(".board"));
 })();
 </script>
 </body>

@@ -21,5 +21,5 @@ uv run python experiments/sandbagging-probe/probe.py --model Qwen/Qwen2.5-7B-Ins
 - `probe.py`: the probe with its interval and shuffled baseline, next to the keyword rule.
 - `results/findings.tsv`: every number in the note, with its model and detail.
 - `results/probe_rerun.json`: `probe.py`'s output on Qwen2.5-0.5B.
-- `make_chalkboard.py`: draws the note's chalkboard (Figure 2), computing every number on it.
+- `make_chalkboard.py`: draws the note's chalkboard (Figure 3), computing every number on it.
 - `data/`: the prompt sets the study made or used (see [`data/README.md`](data/README.md)).
