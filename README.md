@@ -17,12 +17,20 @@
 </p>
 
 <p align="center">
+  <a href="https://albertlieyingadrian.github.io/steerlab/experiments/"><strong>Research notes</strong></a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="#why-steerlab">Why</a> ·
   <a href="#first-result-steering-beats-an-english-only-prompt">First result</a> ·
-  <a href="#experiments-and-research-notes">Research notes</a> ·
+  <a href="#experiments-and-research-notes">All experiments</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#setup">Setup</a>
+</p>
+
+<p align="center">
+  <a href="https://albertlieyingadrian.github.io/steerlab/experiments/"><img src="docs/assets/research-index.png" alt="The steerlab research page: one row per research note, each with a title, a one-line finding and a cover illustration" width="640"></a>
+  <br>
+  <sub><strong><a href="https://albertlieyingadrian.github.io/steerlab/experiments/">Read the research notes →</a></strong>
+  What we tried, how the study was run, what happened, and how sure we are, each against a random control.</sub>
 </p>
 
 <p align="center">
