@@ -37,5 +37,14 @@ run "$PY" harness/confirm.py llama8b --concept golden_gate --feature 54543 --str
 run "$PY" harness/confirm.py llama8b --concept golden_gate --spec dir:11:2.5,clamp:54543:3 --system S2
 run "$PY" harness/confirm.py llama8b --concept golden_gate --spec dir:11:2.5,clamp:54543:3 --system S2 --question-set heldout
 
+echo "# Baselines: the same questions, prompts and token budgets with steering off (results/replies/unsteered_*.jsonl)"
+R=experiments/golden-gate/results/replies
+for m in gemma2-9b gemma2-2b qwen8b llama8b; do
+  run "$PY" harness/unsteered_gg.py "$m" --max-new-tokens 80 --out "$R/unsteered_$m.jsonl"
+done
+run "$PY" harness/unsteered_gg.py llama8b --max-new-tokens 300 --out "$R/unsteered_llama8b_300.jsonl"
+run "$PY" harness/unsteered_gg.py llama8b --system S2 --out "$R/unsteered_llama8b_search_S2.jsonl"
+run "$PY" harness/unsteered_gg.py llama8b --system S2 --question-set heldout --out "$R/unsteered_llama8b_heldout_S2.jsonl"
+
 echo "# Figures 2 and 4, from the shipped results/"
 run "$PY" experiments/golden-gate/make_figures.py

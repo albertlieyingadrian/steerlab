@@ -12,6 +12,7 @@ steering direction still switch the reply to Chinese, fluently, where a random p
 | `GOAL.md` | The goal: question, metrics, search space, rules, stop condition |
 | `harness.py` | `search <model>` walks the whole search space; `run <model> --layer L --strength S` is one hand-picked trial; `features <model>` ranks SAE features by contrast on a concept's pairs (no labels needed); `sae <model> --feature F` steers with one feature |
 | `confirm.py` | Reruns one configuration on 24 tricks, 15 plain questions and 3 random directions, with 95 % bootstrap intervals (`confirm.tsv`) |
+| `unsteered_gg.py` | The Golden Gate questions with steering off, same prompts, decoding and token budget as `confirm.py`: the baseline replies (`experiments/golden-gate/results/replies/unsteered_*.jsonl`) |
 | `tools.py` | Loading, one steered reply, and the two measurements: Chinese share and fluency |
 
 ## How a search goes
