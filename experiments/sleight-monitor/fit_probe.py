@@ -21,11 +21,9 @@ Writes results/probe_grid[_subtle].csv, results/probe[_subtle].npz and results/p
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
-
 import sleight as t
 
 HERE = Path(__file__).resolve().parent
@@ -66,7 +64,7 @@ def session_states(sessions, suffix=""):
 def step_rows(sessions, states, splits):
     """(X [n, n_layers, d], y) for the training rule: inserted step = 1, benign-twin steps = 0."""
     X, y = [], []
-    for s, st in zip(sessions, states):
+    for s, st in zip(sessions, states, strict=False):
         if s["split"] not in splits:
             continue
         if s["label"] == 1:
@@ -92,7 +90,7 @@ def apply(p, X):
 
 def transcript_scores(p, sessions, states, li, splits):
     y, s_max, s_mean = [], [], []
-    for s, st in zip(sessions, states):
+    for s, st in zip(sessions, states, strict=False):
         if s["split"] in splits:
             v = apply(p, st[:, li].astype(np.float32))
             y.append(s["label"])
@@ -134,22 +132,32 @@ def main():
         "test_step_auroc": t.auroc(yte, apply(probe, Xte[:, li])),
         "test_transcript_auroc_max": t.auroc(y_te, max_te),
         "test_transcript_auroc_mean": t.auroc(y_te, mean_te),
-        "test_n_sessions": int(len(y_te)),
+        "test_n_sessions": len(y_te),
         "test_n_attack": int(y_te.sum()),
     }
-    print(f"test tasks (never used for any choice): step AUROC {test['test_step_auroc']:.3f}, "
-          f"transcript AUROC {test['test_transcript_auroc_max']:.3f} (max) / "
-          f"{test['test_transcript_auroc_mean']:.3f} (mean), {test['test_n_sessions']} sessions")
+    print(
+        f"test tasks (never used for any choice): step AUROC {test['test_step_auroc']:.3f}, "
+        f"transcript AUROC {test['test_transcript_auroc_max']:.3f} (max) / "
+        f"{test['test_transcript_auroc_mean']:.3f} (mean), {test['test_n_sessions']} sessions"
+    )
 
     t.write_csv(HERE / "results" / f"probe_grid{suffix}.csv", grid)
     np.savez(HERE / "results" / f"probe{suffix}.npz", layer=L, C=C, layer_index=li, **probe)
-    summary = {"layer": L, "C": C, "val_step_auroc": best["val_step_auroc"], **test,
-               "train_val_step_rows": int(len(yall)), "train_val_covert_rows": int(yall.sum())}
+    summary = {
+        "layer": L,
+        "C": C,
+        "val_step_auroc": best["val_step_auroc"],
+        **test,
+        "train_val_step_rows": len(yall),
+        "train_val_covert_rows": int(yall.sum()),
+    }
     (HERE / "results" / f"probe_summary{suffix}.json").write_text(json.dumps(summary, indent=1))
     print(f"\nwrote results/probe_grid{suffix}.csv, results/probe{suffix}.npz, results/probe_summary{suffix}.json\n")
 
     t.check("the probe learns the synthetic task (validation step AUROC >= 0.80)", best["val_step_auroc"] >= 0.80)
-    t.check("pre-set in-distribution bar: test transcript AUROC (max) >= 0.80", test["test_transcript_auroc_max"] >= 0.80)
+    t.check(
+        "pre-set in-distribution bar: test transcript AUROC (max) >= 0.80", test["test_transcript_auroc_max"] >= 0.80
+    )
 
 
 if __name__ == "__main__":

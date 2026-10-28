@@ -64,8 +64,9 @@ def fetch():
         subprocess.run(["git", "clone", "--quiet", SLEIGHT_REPO, str(SLEIGHT)], check=True)
     subprocess.run(["git", "-C", str(SLEIGHT), "checkout", "--quiet", SLEIGHT_COMMIT], check=True)
     key = re.search(r"Decryption key: `([^`]+)`", (SLEIGHT / "README.md").read_text(encoding="utf-8")).group(1)
-    subprocess.run([sys.executable, "-I", str(SLEIGHT / "decrypt.py"), "--key", key], check=True,
-                   stdout=subprocess.DEVNULL)
+    subprocess.run(
+        [sys.executable, "-I", str(SLEIGHT / "decrypt.py"), "--key", key], check=True, stdout=subprocess.DEVNULL
+    )
 
 
 # ---------------------------------------------------------------- data
@@ -169,7 +170,7 @@ def render(lines, tok, system=None, budget=BUDGET):
     # The character where each tool-call line ends, then the token that covers it.
     start = text.index(user) + len("<transcript>\n")
     ends, pos = [], start
-    for msg, line in zip(shown, body_lines):
+    for msg, line in zip(shown, body_lines, strict=False):
         if is_tool_call(msg):
             ends.append(pos + len(line) - 1)
         pos += len(line) + 1
@@ -213,7 +214,7 @@ def forward_states(model, ids, positions, layers=LAYERS, return_cache=False):
             if inside and layers:
                 idx = torch.tensor([p - s for p in inside], device="mps")
                 block = torch.stack([out.hidden_states[L][0, idx] for L in layers], dim=1).float().cpu().numpy()
-                for p, row in zip(inside, block):
+                for p, row in zip(inside, block, strict=False):
                     got[p] = row
     states = np.stack([got[p] for p in positions]) if (positions and layers) else None
     if return_cache:

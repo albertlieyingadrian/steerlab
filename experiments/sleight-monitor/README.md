@@ -37,7 +37,7 @@ model's activations catch what its written verdict misses?**
 | [`synthetic.py`](synthetic.py), [`fit_probe.py`](fit_probe.py), [`score_probe.py`](score_probe.py) | Synthetic training sessions, the probes, and SLEIGHT scored with every control |
 | [`monitor_synthetic.py`](monitor_synthetic.py), [`verdict_probe.py`](verdict_probe.py) | Probes on the monitor's own activations, against its written score |
 | [`metrics.py`](metrics.py) | The scoreboard: intervals, paired differences, catch counts, per category |
-| [`data/`](data/) | `synthetic_spec.json`: the 118 hand-written tasks and 5 covert goals the synthetic sessions start from |
+| [`data/synthetic_spec.json`](data/synthetic_spec.json) | The 118 hand-written tasks and 5 covert goals the synthetic sessions start from |
 | `~/.cache/steerlab/sleight-monitor/` | The work folder, created at run time outside the repository (`SLEIGHT_MONITOR_WORK` moves it): the decrypted benchmark, activations and raw replies |
 | [`make_figures.py`](make_figures.py) | Draws Figures 1–3 from `results/` and prints the numbers it plotted; writes the slider data for Figure 4 |
 | [`make_art.py`](make_art.py) | Draws the cover from the probe's weights, with the shared steerlab art style |

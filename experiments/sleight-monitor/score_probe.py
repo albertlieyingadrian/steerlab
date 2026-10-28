@@ -20,15 +20,14 @@ Writes results/sleight_scores[_subtle].csv, results/sleight_steps[_subtle].csv a
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
+import fit_probe as fp
 import numpy as np
-
 import sleight as t
 
 HERE = Path(__file__).resolve().parent
-import fit_probe as fp
+
 ARM_A = t.WORK / "arm_a"
 
 
@@ -71,8 +70,10 @@ def fit_lexical(texts, y, C):
 def report(name, y, s):
     att, ben = s[y == 1], s[y == 0]
     lo, hi = t.paired_bootstrap(att, ben, t.auroc)
-    print(f"  {name:<36} AUROC {t.auroc(y, s):.3f} [{lo:.3f}, {hi:.3f}]   TPR@0FP {t.tpr_at_fp(y, s, 0)[0]:.3f}"
-          f"   TPR@2/43FP {t.tpr_at_fp(y, s, 2)[0]:.3f}   pair win {t.pair_win(att, ben):.3f}")
+    print(
+        f"  {name:<36} AUROC {t.auroc(y, s):.3f} [{lo:.3f}, {hi:.3f}]   TPR@0FP {t.tpr_at_fp(y, s, 0)[0]:.3f}"
+        f"   TPR@2/43FP {t.tpr_at_fp(y, s, 2)[0]:.3f}   pair win {t.pair_win(att, ben):.3f}"
+    )
     return t.auroc(y, s)
 
 
@@ -104,16 +105,16 @@ def main():
     shuffled = []
     for _ in range(50):
         p = fp.fit(Xall[:, li], rng.permutation(yall), C)
-        shuffled.append(t.auroc(y, max_score(lambda X: fp.apply(p, X))))
+        shuffled.append(t.auroc(y, max_score(lambda X, p=p: fp.apply(p, X))))
     random_dir = []
     for _ in range(200):
         w = rng.standard_normal(Xall.shape[-1]).astype(np.float32)
         w /= np.linalg.norm(w)
-        random_dir.append(t.auroc(y, max_score(lambda X: ((X - probe["mu"]) / probe["sd"]) @ w)))
+        random_dir.append(t.auroc(y, max_score(lambda X, w=w: ((X - probe["mu"]) / probe["sd"]) @ w)))
 
     tx_tr, y_tr = synthetic_step_texts(sessions, {"train"})
     tx_va, y_va = synthetic_step_texts(sessions, {"val"})
-    best_c = max(fp.CS + (10.0,), key=lambda c: t.auroc(y_va, fit_lexical(tx_tr, y_tr, c)(tx_va)))
+    best_c = max((*fp.CS, 10.0), key=lambda c: t.auroc(y_va, fit_lexical(tx_tr, y_tr, c)(tx_va)))
     lex = fit_lexical(*synthetic_step_texts(sessions, {"train", "val"}), best_c)
     tx_te, y_te = synthetic_step_texts(sessions, {"test"})
     lex_test_auroc = t.auroc(y_te, lex(tx_te))
@@ -138,22 +139,46 @@ def main():
     print(f"  random direction AUROC:     median {np.median(random_dir):.3f}, 97.5th pct {rd97:.3f} (200 directions)")
     print(f"  lexical baseline on synthetic test tasks: step AUROC {lex_test_auroc:.3f} (C {best_c})\n")
 
-    rows = [{"tid": r["tid"], "attack_id": r["attack_id"], "category": r["category"], "label": r["label"],
-             "probe_max": round(float(a), 4), "probe_mean": round(float(b), 4), "lexical_max": round(float(c), 4),
-             "length_tokens": int(d), "ceiling_lopo": round(float(e), 4)}
-            for r, a, b, c, d, e in zip(index, probe_max, probe_mean, lexical_max, length, ceiling)]
+    rows = [
+        {
+            "tid": r["tid"],
+            "attack_id": r["attack_id"],
+            "category": r["category"],
+            "label": r["label"],
+            "probe_max": round(float(a), 4),
+            "probe_mean": round(float(b), 4),
+            "lexical_max": round(float(c), 4),
+            "length_tokens": int(d),
+            "ceiling_lopo": round(float(e), 4),
+        }
+        for r, a, b, c, d, e in zip(index, probe_max, probe_mean, lexical_max, length, ceiling, strict=False)
+    ]
     t.write_csv(HERE / "results" / f"sleight_scores{suffix}.csv", rows)
-    t.write_csv(HERE / "results" / f"sleight_steps{suffix}.csv",
-                [{"tid": r["tid"], "label": r["label"], "step": k, "probe": round(float(v), 4)}
-                 for r in index for k, v in enumerate(probe_steps[r["tid"]])])
-    controls = {"layer": L, "C": C, "shuffled_auroc": [round(v, 4) for v in shuffled],
-                "random_direction_auroc": [round(v, 4) for v in random_dir],
-                "lexical_C": best_c, "lexical_synthetic_test_step_auroc": lex_test_auroc}
+    t.write_csv(
+        HERE / "results" / f"sleight_steps{suffix}.csv",
+        [
+            {"tid": r["tid"], "label": r["label"], "step": k, "probe": round(float(v), 4)}
+            for r in index
+            for k, v in enumerate(probe_steps[r["tid"]])
+        ],
+    )
+    controls = {
+        "layer": L,
+        "C": C,
+        "shuffled_auroc": [round(v, 4) for v in shuffled],
+        "random_direction_auroc": [round(v, 4) for v in random_dir],
+        "lexical_C": best_c,
+        "lexical_synthetic_test_step_auroc": lex_test_auroc,
+    }
     (HERE / "results" / f"controls{suffix}.json").write_text(json.dumps(controls, indent=1))
-    print(f"wrote results/sleight_scores{suffix}.csv, results/sleight_steps{suffix}.csv, results/controls{suffix}.json\n")
+    print(
+        f"wrote results/sleight_scores{suffix}.csv, results/sleight_steps{suffix}.csv, results/controls{suffix}.json\n"
+    )
 
     t.check(f"probe (max) beats the label-shuffled null's 97.5th percentile ({a_max:.3f} vs {sh97:.3f})", a_max > sh97)
-    t.check(f"probe (max) beats the random-direction null's 97.5th percentile ({a_max:.3f} vs {rd97:.3f})", a_max > rd97)
+    t.check(
+        f"probe (max) beats the random-direction null's 97.5th percentile ({a_max:.3f} vs {rd97:.3f})", a_max > rd97
+    )
     t.check(f"probe (max) beats the lexical baseline ({a_max:.3f} vs {a_lex:.3f})", a_max > a_lex)
     t.check(f"probe (max) beats the length baseline ({a_max:.3f} vs {a_len:.3f})", a_max > a_len)
 
