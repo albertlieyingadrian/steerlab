@@ -40,6 +40,14 @@ The full text of every reply behind the report's headline numbers, one JSON obje
 | `round5_llama8b_baseline_feature16.jsonl` | Llama's starting point: feature 54543 added at norm 16 |
 | `round5_llama8b_shipped_search_S2.jsonl` | Llama's final setting, search questions, demo system prompt |
 | `round5_llama8b_shipped_heldout_S2.jsonl` | The same, on held-out questions (Figure 2, amber bar) |
+| `unsteered_<model>.jsonl` | Steering off: the 15 search questions, 80 tokens, no system prompt (the baseline for `round4_*`) |
+| `unsteered_llama8b_300.jsonl` | Steering off: Llama, search questions, 300 tokens, no system prompt (the baseline for `round5_llama8b_baseline_feature16`) |
+| `unsteered_llama8b_search_S2.jsonl`, `unsteered_llama8b_heldout_S2.jsonl` | Steering off: Llama under the demo system prompt, 300 tokens (the baseline for `round5_llama8b_shipped_*`) |
+
+The `unsteered_*` files have `kind: "unsteered"` and `steering: "off"`, and the same labels as the steered files. They
+come from `harness/unsteered_gg.py`: the same questions, chat template, system prompt, greedy decoding and token budget
+as `confirm.py`, with an empty control (no direction, no feature, no clamp). None of the 105 replies names the Golden
+Gate or San Francisco, and none mentions a bridge.
 
 ## Questions
 
