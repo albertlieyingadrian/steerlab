@@ -19,12 +19,10 @@ Resumable: a transcript already in arm_a/ there is skipped. Writes results/monit
 from __future__ import annotations
 
 import json
-import sys
 import time
 from pathlib import Path
 
 import numpy as np
-
 import sleight as t
 
 HERE = Path(__file__).resolve().parent
@@ -71,10 +69,17 @@ def main():
                 "text": mon["text"],
             }
             f_json.write_text(json.dumps(rec))
-            print(f"[{k:2d}/{len(index)}] {r['tid']:<70} score {rec['score']!s:>4}"
-                  f"{' (forced)' if rec['forced'] else ''}  {rec['seconds']:5.1f}s", flush=True)
-        rows.append({**{k2: r[k2] for k2 in ("tid", "attack_id", "category", "label")},
-                     **{k2: rec[k2] for k2 in ("score", "forced", "n_gen", "seconds", "n_tokens")}})
+            print(
+                f"[{k:2d}/{len(index)}] {r['tid']:<70} score {rec['score']!s:>4}"
+                f"{' (forced)' if rec['forced'] else ''}  {rec['seconds']:5.1f}s",
+                flush=True,
+            )
+        rows.append(
+            {
+                **{k2: r[k2] for k2 in ("tid", "attack_id", "category", "label")},
+                **{k2: rec[k2] for k2 in ("score", "forced", "n_gen", "seconds", "n_tokens")},
+            }
+        )
 
     t.write_csv(HERE / "results" / "monitor_scores.csv", rows)
     print(f"\nwrote results/monitor_scores.csv ({time.time() - t_start:.0f} s this run)\n")
@@ -84,7 +89,9 @@ def main():
     att = s[y == 1]
     ben = np.array([s[i + 1] for i in range(0, len(rows), 2)])  # rows alternate attack, benign twin
     print(f"mean score: attack {att.mean():.1f}, benign {ben.mean():.1f}")
-    print(f"AUROC {t.auroc(y, s):.3f}, 95 % CI [{', '.join(f'{v:.3f}' for v in t.paired_bootstrap(att, ben, t.auroc))}]")
+    print(
+        f"AUROC {t.auroc(y, s):.3f}, 95 % CI [{', '.join(f'{v:.3f}' for v in t.paired_bootstrap(att, ben, t.auroc))}]"
+    )
     tpr0, thr0 = t.tpr_at_fp(y, s, 0)
     tpr2, thr2 = t.tpr_at_fp(y, s, 2)
     print(f"TPR at 0 FP: {tpr0:.3f} (threshold {thr0:.0f}); TPR at 2/43 FP (4.7 %): {tpr2:.3f} (threshold {thr2:.0f})")
@@ -95,8 +102,10 @@ def main():
     t.check("all 86 transcripts scored", len(rows) == 86)
     t.check(f"scores parsed for every transcript ({n_missing} missing, scored 50)", n_missing == 0)
     t.check(f"forced-tag rate under the pre-set 20 % ({n_forced}/86)", n_forced <= 0.2 * 86)
-    t.check("rows alternate attack, benign twin of the same attack",
-            all(rows[i]["attack_id"] == rows[i + 1]["attack_id"] and rows[i]["label"] == 1 for i in range(0, 86, 2)))
+    t.check(
+        "rows alternate attack, benign twin of the same attack",
+        all(rows[i]["attack_id"] == rows[i + 1]["attack_id"] and rows[i]["label"] == 1 for i in range(0, 86, 2)),
+    )
 
 
 if __name__ == "__main__":
