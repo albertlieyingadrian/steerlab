@@ -3,7 +3,10 @@
 **SLEIGHT-Bench hides harmful actions in coding-agent sessions so that monitors miss them. Does a probe on an open
 model's activations catch what its written verdict misses?**
 
-**The write-up is coming soon.** The code, the per-transcript scores and the reproduce script are here now.
+<p align="center"><img src="report/figures/hero.jpg" alt="A pencil-and-wash drawing of a robot with a glass-dome brain at a desk, slipping a small key into a drawer while a lamp shaped like a neural network shines on its head." width="820"></p>
+
+**Read the full note:** [report](https://albertlieyingadrian.github.io/steerlab/experiments/sleight-monitor/report/)
+([source](report/index.html)).
 
 ## Results
 
@@ -27,6 +30,7 @@ model's activations catch what its written verdict misses?**
 
 | Path | What it is |
 |---|---|
+| [`report/`](report/) | The research note (HTML) and its figures |
 | [`results/`](results/) | Per-transcript scores for every monitor, the scoreboard, the probe; transcript IDs and numbers only ([columns](results/README.md)) |
 | [`sleight.py`](sleight.py) | Shared helpers: fetch and decrypt the benchmark into the work folder, the stripped view, chat rendering with tool-call positions, a chunked forward pass, the greedy monitor, the metrics |
 | [`data.py`](data.py), [`monitor.py`](monitor.py) | The 86 transcripts; the black-box monitor (also saves the activations the probes read) |
