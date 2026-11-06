@@ -1,5 +1,6 @@
 """
-The reward function for Pigment Gym, in one place. 4_rank_check.py tests it against a known order; the laptop run (7_train_laptop.py) trains on it.
+The reward function for Pigment Gym, in one place. 4_rank_check.py tests it against a known order; the laptop run
+(7_train_laptop.py) trains on it.
 
     reward = 0.10 * gate                                   did it run, paint, and follow the rules?
            + 0.05 * length                                 is it a sensible length (not 3 lines, not 300)?
@@ -100,8 +101,10 @@ def caption(subject):
     return f"a watercolour painting of {subject}"
 
 
-# the laptop run (7_train_laptop.py) only. A small model fails the gate on almost every sample (0/16 for Coder-0.5B in the benchmark (scripts 1-3)),
-# so every reward is ~0.05, every group is tied, and GRPO learns nothing (the toy run (6_toy_grpo.py)'s "all failed" group).
+# the laptop run (7_train_laptop.py) only. A small model fails the gate on almost every sample (0/16 for Coder-0.5B in
+# the benchmark (scripts 1-3)),
+# so every reward is ~0.05, every group is tied, and GRPO learns nothing (the toy run (6_toy_grpo.py)'s "all failed"
+# group).
 # Shaping gives a FAILING sketch partial credit for progress towards passing, capped below what a passing
 # sketch earns, so passing always beats any failure:
 #   0.08 * static check clean   (only allowed methods, no text/images/network)
@@ -119,7 +122,8 @@ def shaping_bonus(code, render):
     return SHAPING["static_ok"] * static_ok + SHAPING["runs_ok"] * runs_ok + SHAPING["paint"] * paint
 
 
-# the laptop run (7_train_laptop.py), run 3: with a worked example in the prompt, GRPO learned to paste the example verbatim (it passes
+# the laptop run (7_train_laptop.py), run 3: with a worked example in the prompt, GRPO learned to paste the example
+# verbatim (it passes
 # the gate and CLIP likes it well enough). A sketch whose code is this similar to the example is a failure.
 MAX_SIMILARITY_TO_EXAMPLE = 0.85
 
@@ -134,13 +138,14 @@ def similarity(reference, code):
 def score_rollouts(codes, renders, scorer, subject, shaped=False, forbid_copy_of=None):
     """The full reward for a batch of (code, render) pairs. Returns one dict per rollout with every term,
     so you can log and decompose the reward later ('fewer failures' vs 'better paintings').
-    shaped=True adds partial credit for failing sketches (see SHAPING); the reward check (4_rank_check.py)'s reward is shaped=False.
+    shaped=True adds partial credit for failing sketches (see SHAPING); the reward check (4_rank_check.py)'s reward is
+    shaped=False.
     forbid_copy_of=<code> fails any sketch at least MAX_SIMILARITY_TO_EXAMPLE similar to that code."""
     from brush_tools import gate
 
-    verdicts = [gate(code, render) for code, render in zip(codes, renders)]
+    verdicts = [gate(code, render) for code, render in zip(codes, renders, strict=False)]
     if forbid_copy_of is not None:
-        for code, verdict in zip(codes, verdicts):
+        for code, verdict in zip(codes, verdicts, strict=False):
             if similarity(forbid_copy_of, code) >= MAX_SIMILARITY_TO_EXAMPLE:
                 verdict.violations.append("copies_example")
                 verdict.passed = False
@@ -148,11 +153,11 @@ def score_rollouts(codes, renders, scorer, subject, shaped=False, forbid_copy_of
     passed_index = [i for i, verdict in enumerate(verdicts) if verdict.passed]
     images = [png_to_image(renders[i].png) for i in passed_index]
     clip_raw, aesthetic_raw = scorer.score_images(images, caption(subject))
-    clip_by_index = dict(zip(passed_index, clip_raw))
-    aesthetic_by_index = dict(zip(passed_index, aesthetic_raw))
+    clip_by_index = dict(zip(passed_index, clip_raw, strict=False))
+    aesthetic_by_index = dict(zip(passed_index, aesthetic_raw, strict=False))
 
     rows = []
-    for i, (code, verdict) in enumerate(zip(codes, verdicts)):
+    for i, (code, verdict) in enumerate(zip(codes, verdicts, strict=False)):
         gate_term = 1.0 if verdict.passed else 0.0
         clip_term = squash(clip_by_index[i], *CLIP_RANGE) if verdict.passed else 0.0
         aesthetic_term = squash(aesthetic_by_index[i], *AESTHETIC_RANGE) if verdict.passed else 0.0
@@ -166,16 +171,18 @@ def score_rollouts(codes, renders, scorer, subject, shaped=False, forbid_copy_of
         copied = "copies_example" in verdict.violations
         bonus = shaping_bonus(code, renders[i]) if shaped and not verdict.passed and not copied else 0.0
         total += bonus
-        rows.append({
-            "shaping": bonus,
-            "reward": total,
-            "gate": gate_term,
-            "length": length_term,
-            "clip": clip_term,
-            "aesthetic": aesthetic_term,
-            "clip_raw": clip_by_index.get(i),
-            "aesthetic_raw": aesthetic_by_index.get(i),
-            "coverage": verdict.coverage,
-            "violations": verdict.violations,
-        })
+        rows.append(
+            {
+                "shaping": bonus,
+                "reward": total,
+                "gate": gate_term,
+                "length": length_term,
+                "clip": clip_term,
+                "aesthetic": aesthetic_term,
+                "clip_raw": clip_by_index.get(i),
+                "aesthetic_raw": aesthetic_by_index.get(i),
+                "coverage": verdict.coverage,
+                "violations": verdict.violations,
+            }
+        )
     return rows

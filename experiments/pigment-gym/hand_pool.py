@@ -1,6 +1,7 @@
 """
 A tiny hand-rated pool: 12 sketches for the subject "a sunset over green hills", written by hand
-with a KNOWN quality order. The benchmark (scripts 1-3) uses them to sanity-check CLIP; the reward check (4_rank_check.py) uses them to check
+with a KNOWN quality order. The benchmark (scripts 1-3) uses them to sanity-check CLIP; the reward check
+(4_rank_check.py) uses them to check
 that the reward function ranks paintings the way a person would (Spearman correlation).
 
 `rank` 1 is best. The four sketches that should fail the gate share rank 10.5 (the average of
@@ -149,5 +150,9 @@ POOL = [
     {"name": "syntax error", "rank": 10.5, "code": SYNTAX_ERROR},
     {"name": "writes 'SUNSET' (hack)", "rank": 10.5, "code": TEXT_HACK},
     {"name": "bare p5 shapes", "rank": 10.5, "code": BARE_PRIMITIVES},
-    {"name": "blank paper", "rank": 10.5, "code": sketch('  brush.noStroke();\n  brush.fill("#f4efe4", 10);\n  brush.circle(200, 200, 30);')},
+    {
+        "name": "blank paper",
+        "rank": 10.5,
+        "code": sketch('  brush.noStroke();\n  brush.fill("#f4efe4", 10);\n  brush.circle(200, 200, 30);'),
+    },
 ]

@@ -7,7 +7,8 @@ Every script here imports this file:
 
 What lives here, in the order a rollout uses it:
 
-    model text ──► extract_code ──► static_check ──► Renderer.render ──► gate ──► (reward, the reward check (4_rank_check.py))
+    model text ──► extract_code ──► static_check ──► Renderer.render ──► gate ──► (reward, the reward check
+    (4_rank_check.py))
                    (find the JS)    (read the code)   (run it in Chromium)  (pass / fail + why)
 
 The design follows the open reproduction at
@@ -19,6 +20,7 @@ sketch, a string-free method allowlist) save hours.
 
 import asyncio
 import base64
+import contextlib
 import io
 import re
 import sys
@@ -88,11 +90,12 @@ such as ellipse, rect, line, vertex or beginShape:
 
 Every mark is a filled shape: call brush.fill, then brush.circle, or brush.beginShape, three or more
 brush.vertex calls, and brush.endShape(true). Paint back to front: sky first, then ground, then details.
-No text, no images, no network. Reply with one ```javascript code block and nothing else."""
+No text, no images, no network. Reply with one ```javascript code block and nothing else."""  # noqa: E501
 
 # One tiny worked example. The upstream finding is "allowlist, no examples" (measured on bigger models).
 # For Qwen2.5-Coder-0.5B we measured the opposite: 0/16 sketches passed the gate without this example and
-# 6/16 with it (the benchmark (scripts 1-3) runs both). The example paints a wash and a disc; it says nothing about sunsets.
+# 6/16 with it (the benchmark (scripts 1-3) runs both). The example paints a wash and a disc; it says nothing about
+# sunsets.
 PROMPT_EXAMPLE = f"""
 
 Here is a complete example that paints a red disc on a blue wash. Follow its pattern:
@@ -152,7 +155,10 @@ FORBIDDEN = [
     ("image", r"\b(image|loadImage|createImg|loadFont|textFont)\s*\("),
     ("network", r"\b(fetch|XMLHttpRequest|WebSocket|EventSource|importScripts|sendBeacon)\b|\bimport\s*\("),
     ("dom", r"\b(document|localStorage|sessionStorage|eval|Function)\s*[.(]"),
-    ("bare_primitive", r"(?<![\w.])(ellipse|rect|line|triangle|quad|arc|point|square|beginShape|vertex|endShape|circle)\s*\("),
+    (
+        "bare_primitive",
+        r"(?<![\w.])(ellipse|rect|line|triangle|quad|arc|point|square|beginShape|vertex|endShape|circle)\s*\(",
+    ),
 ]
 
 
@@ -204,7 +210,7 @@ if (typeof window.setup === "function") {{
   const original = window.setup;
   window.setup = function () {{ try {{ return original.apply(this, arguments); }} finally {{ window.__setupDone = true; }} }};
 }} else {{ window.__setupDone = true; }}
-</script></body></html>"""
+</script></body></html>"""  # noqa: E501
 
 # "Done" = setup ran, and either there is no draw() or draw() ran once and the loop stopped.
 DONE_JS = (
@@ -326,7 +332,9 @@ class Renderer:
             blocked.append(route.request.url)
             await route.abort()
 
-        await context.route("**/*", refuse)  # every network request is refused: the sandbox, not the regex, is the real wall
+        await context.route(
+            "**/*", refuse
+        )  # every network request is refused: the sandbox, not the regex, is the real wall
         page = await context.new_page()
         try:
             sketch = code.replace("</script", "<\\/script")  # a sketch must not be able to close our <script> tag
@@ -346,7 +354,7 @@ class Renderer:
                         break
                 except TimeoutError:
                     raise
-                except Exception:  # noqa: BLE001, S110 (page still loading its scripts)
+                except Exception:
                     pass
                 await asyncio.sleep(0.04)
             # A WEBGL canvas is cleared before a screenshot can see it, so read pixels inside the page.
@@ -357,13 +365,11 @@ class Renderer:
                 timeout=5,
             )
             errors = await asyncio.wait_for(page.evaluate("window.__errors || []"), timeout=5)
-        except Exception as error:  # noqa: BLE001 (the page itself is stuck, e.g. an infinite loop blocks evaluate)
+        except Exception as error:
             data_url, errors, finished = None, [f"render crashed: {type(error).__name__}"], False
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 await asyncio.wait_for(context.close(), timeout=5)
-            except Exception:  # noqa: BLE001, S110 (a frozen page can refuse to close; the browser is reused anyway)
-                pass
         png = base64.b64decode(data_url.split(",", 1)[1]) if data_url else None
         coverage = paint_coverage(png) if png else 0.0
         return Render(png, coverage, finished, list(errors), time.perf_counter() - started, len(blocked))
@@ -405,7 +411,7 @@ def contact_sheet(pngs, labels, path, columns=4, tile=200):
     rows = max(1, (len(pngs) + columns - 1) // columns)  # an empty list still makes a (blank) one-row sheet
     sheet = Image.new("RGB", (columns * tile, rows * (tile + 18)), "white")
     draw = ImageDraw.Draw(sheet)
-    for index, (png, label) in enumerate(zip(pngs, labels)):
+    for index, (png, label) in enumerate(zip(pngs, labels, strict=False)):
         x, y = (index % columns) * tile, (index // columns) * (tile + 18)
         if png:
             sheet.paste(Image.open(io.BytesIO(png)).convert("RGB").resize((tile, tile)), (x, y))

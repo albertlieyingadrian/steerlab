@@ -32,7 +32,7 @@ plus CLIP and an aesthetic predictor score it. When GRPO raises that score, does
 | [`brush_tools.py`](brush_tools.py) | The system prompts, code extraction, static checks, the Chromium renderer pool and the gate |
 | [`reward_tools.py`](reward_tools.py) | CLIP and the aesthetic predictor, the reward, partial credit and the copy check |
 | [`grpo_tools.py`](grpo_tools.py) | LoRA setup, group sampling, advantages and the GRPO update, by hand |
-| [`hand_pool.py`](hand_pool.py), [`sketches/`](sketches/) | The 12 reference sketches with a known quality order |
+| [`hand_pool.py`](hand_pool.py), [`sketches/meadow.js`](sketches/meadow.js) | The 12 reference sketches with a known quality order |
 | [`1_sample_small.py`](1_sample_small.py), [`2_sample_frontier.py`](2_sample_frontier.py), [`3_benchmark.py`](3_benchmark.py) | The benchmark: small models locally, frontier models via OpenRouter, then scoring |
 | [`4_rank_check.py`](4_rank_check.py), [`5_scoring_walkthrough.py`](5_scoring_walkthrough.py) | The reward against the reference order; Figure 1 |
 | [`6_toy_grpo.py`](6_toy_grpo.py) | The toy warm-up where the first two hacks appeared (`--naive` reruns the first) |
@@ -40,7 +40,7 @@ plus CLIP and an aesthetic predictor score it. When GRPO raises that score, does
 | [`modal_train.py`](modal_train.py), [`train_loop.py`](train_loop.py) | The H100 run on Modal (costs money; the timeout caps a run at about $16) |
 | [`8_decompose.py`](8_decompose.py), [`9_hack_hunt.py`](9_hack_hunt.py), [`10_judge.py`](10_judge.py), [`11_rerate.py`](11_rerate.py), [`analysis_tools.py`](analysis_tools.py) | The analysis: gain split, code and pixel checks, judges, re-rating |
 | [`make_figures.py`](make_figures.py), [`reproduce.sh`](reproduce.sh) | Figures 2, 7 and 8 from `results/`; every command behind the note |
-| [`vendor/`](vendor/), [`aesthetic_head/`](aesthetic_head/) | p5.js (LGPL-2.1), p5.brush (MIT) and the LAION aesthetic predictor's 3 KB weights (MIT), with their licences |
+| `vendor/`, `aesthetic_head/` | p5.js ([LGPL-2.1](vendor/LICENSE-p5.js.txt)), p5.brush ([MIT](vendor/LICENSE-p5.brush.md)) and the LAION aesthetic predictor's 3 KB weights ([MIT](aesthetic_head/LICENSE-aesthetic-predictor.txt)) |
 
 ## Run it
 

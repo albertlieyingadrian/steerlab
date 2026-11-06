@@ -1,6 +1,7 @@
 """
 A minimal GRPO (Group Relative Policy Optimization), hand-written so every line is visible.
-The toy run (6_toy_grpo.py) walks through it on a toy reward; the laptop run (7_train_laptop.py) reuses it with the painting reward.
+The toy run (6_toy_grpo.py) walks through it on a toy reward; the laptop run (7_train_laptop.py) reuses it with the
+painting reward.
 
 One training step:
 
@@ -23,7 +24,7 @@ import torch
 
 
 def build_lora_model(model_name, device, rank=16, alpha=32, seed=0, dtype=torch.float32):
-    """Load a chat model (float32 by default; the H100 run (modal_train.py) uses bfloat16 on an H100) and wrap it with LoRA
+    """Load a chat model (float32 by default; the H100 run uses bfloat16) and wrap it with LoRA
     adapters on every linear layer.
 
     LoRA = instead of changing a 896x896 weight matrix W, learn two thin matrices A (16x896) and
@@ -82,7 +83,7 @@ def sample_group(model, tokenizer, prompt_text, group_size, max_new_tokens, temp
             if token in end_ids:
                 length = position + 1  # include the end token: "stop here" is a choice too
                 break
-        mask[row, prompt_len:prompt_len + length] = 1
+        mask[row, prompt_len : prompt_len + length] = 1
     texts = tokenizer.batch_decode(completion, skip_special_tokens=True)
     return texts, output, mask
 
@@ -129,9 +130,9 @@ def grpo_update(model, optimizer, input_ids, mask, advantages, beta=0.02, epsilo
     advantages = advantages.to(input_ids.device)
     loss_sum, kl_sum = 0.0, 0.0
     for start in range(0, input_ids.shape[0], micro_batch):
-        ids = input_ids[start:start + micro_batch]
-        token_mask = token_masks[start:start + micro_batch]
-        adv = advantages[start:start + micro_batch].unsqueeze(1)
+        ids = input_ids[start : start + micro_batch]
+        token_mask = token_masks[start : start + micro_batch]
+        adv = advantages[start : start + micro_batch].unsqueeze(1)
         logp = token_logprobs(model, ids)
         old = logp.detach()
         ratio = torch.exp(logp - old)
