@@ -1,0 +1,46 @@
+192 samples in 12 cells (model x system prompt)
+
+model / prompt      n code block static ok gate pass coverage   CLIP reward tokens
+0.5B no_example    16        88%       44%        0%     0.0%      -  0.050    433
+0.5B example       16        69%       75%       44%    33.9%  0.235  0.192    507
+1.5B no_example    16       100%       38%        0%     0.0%      -  0.050    330
+1.5B example       16       100%       38%       25%    26.4%  0.204  0.117    428
+gemini-pro no_example  16       100%      100%      100%    70.5%  0.314  0.762   2243
+gemini-pro example  16       100%      100%      100%    78.7%  0.319  0.837   1868
+gpt-5.6-sol no_example  16       100%      100%      100%    60.9%  0.304  0.735   1414
+gpt-5.6-sol example  16       100%      100%      100%    72.6%  0.318  0.820   1068
+opus-5.5 no_example  16       100%      100%      100%    66.8%  0.315  0.761   1179
+opus-5.5 example   16       100%      100%      100%    80.5%  0.306  0.742   1158
+qwen3.8-27b no_example  16       100%      100%      100%    53.2%  0.288  0.626   2908
+qwen3.8-27b example  16       100%      100%      100%    68.7%  0.307  0.679   1918
+
+why sketches failed (counts over all samples; one sketch can have several reasons):
+  0.5B no_example: {'blank': 10, 'js_error': 6, 'no_painting_call': 5, 'unknown_brush_method': 4, 'bare_primitive': 4, 'no_canvas': 3, 'text': 1, 'no_setup': 1}
+  0.5B example: {'js_error': 8, 'no_canvas': 4, 'unknown_brush_method': 3, 'blank': 2, 'bare_primitive': 1}
+  1.5B no_example: {'js_error': 9, 'blank': 9, 'unknown_brush_method': 8, 'bare_primitive': 3, 'no_painting_call': 2, 'timeout_or_crash': 1}
+  1.5B example: {'unknown_brush_method': 7, 'js_error': 6, 'blank': 6, 'no_painting_call': 4, 'bare_primitive': 3, 'timeout_or_crash': 1}
+  gemini-pro no_example: none
+  gemini-pro example: none
+  gpt-5.6-sol no_example: none
+  gpt-5.6-sol example: none
+  opus-5.5 no_example: none
+  opus-5.5 example: none
+  qwen3.8-27b no_example: none
+  qwen3.8-27b example: none
+
+How to read it: one worked example in the system prompt is the biggest lever in this table. The upstream
+recipe found "allowlist, no examples" works best, but that was measured on far bigger models. Small models
+need to see the pattern once. That is prompt work BEFORE RL, like Surya's GEPA step.
+
+The reward is mostly decided by the gate. A failed sketch scores ~0.05 and a passing one
+~0.3-0.9, so the gate pass rate is the first thing RL will push on. That matches the HF run's honest
+result: most of the gain was 'stop producing bad paintings', not 'paint better ones'.
+
+saved benchmark.json and best_<model>_<prompt>.png (the 8 highest-reward renders per cell)
+
+Self-checks:
+  ✅ every sample was rendered and scored
+  ✅ all rates are between 0 and 1
+  ✅ mean rewards are between 0 and 1
+  ✅ the baseline summary was saved for the laptop run (7_train_laptop.py)
+  ✅ the worked example raises 0.5B's gate pass rate

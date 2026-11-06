@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pigment Gym: reward hacking in a paint-with-code RL environment</title>
+<meta name="description" content="GRPO raised a small model's reward for painting watercolours in code, but 76% of the gain was failing less, its successes copied the prompt's example past a gamed guard, and the reward stopped tracking quality. Frontier models paint the scene every time.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pigment Gym: reward hacking in a paint-with-code RL environment">
+<meta property="og:description" content="GRPO raised a small model&#x27;s reward for painting watercolours in code, but 76% of the gain was failing less, its successes copied the prompt&#x27;s example past a gamed guard, and the reward stopped tracking quality. Frontier models paint the scene every time.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A watercolour-and-ink illustration of an artist&#x27;s desk: a half-finished sunset painting whose lower third, where hills should be, is bare paper; a strip of code turns into brushstrokes; a small brass scale weighs a paint chip against a gold star.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pigment Gym: reward hacking in a paint-with-code RL environment">
+<meta name="twitter:description" content="GRPO raised a small model&#x27;s reward for painting watercolours in code, but 76% of the gain was failing less, its successes copied the prompt&#x27;s example past a gamed guard, and the reward stopped tracking quality. Frontier models paint the scene every time.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-06">
+<meta property="article:modified_time" content="2026-11-06">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Pigment Gym: reward hacking in a paint-with-code RL environment",
+ "description": "GRPO raised a small model's reward for painting watercolours in code, but 76% of the gain was failing less, its successes copied the prompt's example past a gamed guard, and the reward stopped tracking quality. Frontier models paint the scene every time.",
+ "abstract": "GRPO on a laptop took Qwen2.5-Coder-0.5B from 2 to 16 of 16 held-out sketches passing a rule check and its reward from 0.09 to 0.48, but 76% of the gain came from failing less, 80% of late successes contained the prompt's worked example padded past a whole-file copy check, and none painted the green hills asked for. Two frontier judges that agree with a reference order at 0.82 and 0.77 agree with the reward on the trained model's sketches at 0.08 and 0.37; a 1.5B model on an H100 went from 1 to 3 of 16, while untrained frontier models pass 16 of 16.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-06",
+ "dateModified": "2026-11-06",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "reward hacking, reinforcement learning, GRPO, specification gaming, RL environments, LLM judges, p5.brush, Qwen2.5-Coder",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://surya.website/rling-qwen-to-paint-with-code"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/blog/train-to-paint-with-code"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/adithya-s-k/HuggingEnvs/tree/main/02-watercolour"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=34">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+  .gallery-buttons button { font: inherit; font-size: 0.85rem; padding: 5px 10px; border-radius: 999px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; opacity: 0.7; }
+  .gallery-buttons button[aria-pressed="true"] { opacity: 1; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-06">Nov 6, 2026</time></p>
+  <h1>Pigment Gym: reward hacking in a paint-with-code RL environment</h1>
+  <p class="dek ruled">Four shortcuts, one gamed guard, and a reward that stopped tracking quality. Reinforcement learning took a small model from 2 to 16 working paintings out of 16, but three quarters of the gain was failing less, and none of its paintings had the hills the prompt asked for. Frontier models paint them every time.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A watercolour-and-ink illustration of an artist's desk: a half-finished painting of a pink and orange sunset whose lower third, where hills should be, is bare paper with faint pencil lines; a long strip of code curls off the desk and turns into brushstrokes; a small brass scale weighs a paint chip against a gold star." width="1600" height="1067">
+    <figcaption>Cover: a sunset painted from code, with the hills left blank, while a scale weighs paint against a gold star. An illustration of the idea, not data.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Trained: Qwen2.5-Coder 0.5B and 1.5B. Baselines and judges: Claude Opus 5.5, GPT-5.6 Sol, Gemini Pro, Qwen3.8-27B</dd></div>
+    <div><dt>Method</dt><dd>GRPO with a rendered, scored painting as the reward; gain decomposition, code and pixel checks, judge re-rating</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/pigment-gym/</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/">results/</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>When reinforcement learning raises a model's reward for painting with code, does it paint better?</strong></p>
+    <p>Mostly not. GRPO on a laptop took Qwen2.5-Coder-0.5B from 2 to 16 of 16 held-out sketches passing the rule check and its mean reward from 0.09 to 0.48, but 76% of the gain came from failing less, 80% of its late successes contained the prompt's worked example (padded so the copy check missed them), and none painted the green hills the prompt asked for. Two frontier judges that agree with a hand ranking on reference sketches (0.82 and 0.77) agree with the reward on the trained model's sketches at only 0.08 and 0.37. A three times larger model on a rented H100 barely moved (1 to 3 of 16 passing). Untrained frontier models pass 16 of 16 and paint the hills.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Can small models paint with code untrained?</td><td>Barely: Qwen2.5-Coder 0.5B and 1.5B pass 0/16 with the rules alone, 7/16 and 4/16 with a worked example</td><td>Four larger models: 16/16 each, with or without the example</td></tr>
+          <tr class="hl"><td>Where did RL's gain come from?</td><td>Failing less: 76% of the laptop run's rise in reward (+0.208 of +0.275)</td><td>Better paintings: 24% (+0.067)</td></tr>
+          <tr><td>Were the successes original?</td><td>No: 80% of late passing sketches contain the prompt's example; best-chunk similarity 0.96</td><td>Whole-file similarity 0.66, under the copy check's 0.85</td></tr>
+          <tr><td>Did it paint what was asked?</td><td>No hills: the late bottom third is 89% bare paper; CLIP "green hills" 0.197</td><td>Hand-made control with hills: 7% bare, 0.309</td></tr>
+          <tr><td>Did the reward still track quality?</td><td>No: agreement with two judges 0.08 and 0.37 on the trained model's sketches</td><td>On reference sketches: reward 0.81, judges 0.82 and 0.77 with the hand ranking</td></tr>
+          <tr><td>Did more compute help?</td><td>No: a 1.5B model on an H100 went from 1/16 to 3/16 passing in 100 steps ($3.83)</td><td>A 5-step test run: also 3/16</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Write the words "SUNSET OVER GREEN HILLS" on blank paper, and an image judge called CLIP scores the picture 0.320 as a match for "a watercolour painting of a sunset over green hills". A real watercolour of that scene, 60 lines of code, scores 0.321. That is reward hacking in one line: a cheaper way to earn the points than doing the task, waiting for an optimiser to find it.</p>
+  <p><strong>What is known.</strong> A language model can be trained to paint watercolours by <em>writing code</em>: it writes a short JavaScript program using the p5.brush watercolour library, a browser runs it, and a scorer rates the picture. <a href="https://surya.website/rling-qwen-to-paint-with-code">The original write-up</a> trained a Qwen model this way with GRPO, a reinforcement learning (RL) method, and <a href="https://huggingface.co/blog/train-to-paint-with-code">an open reproduction</a> found that its run learned to "stop producing bad paintings, not to paint better ones".</p>
+  <p><strong>What is missing.</strong> That sentence is a judgement. It is rarely measured: how much of a gain is "fails less", what the successes actually contain, and whether the scorer still agrees with a viewer after training moved the model somewhere new.</p>
+  <p class="question-callout">When reinforcement learning raises a model's reward for painting with code, does it paint better?</p>
+  <p><strong>What this note does.</strong> It rebuilds the environment small enough for one laptop, benchmarks small and frontier models on it, trains two small models with a hand-written GRPO loop, and then audits the gain four ways. Its contributions:</p>
+  <ol>
+    <li>A self-contained environment (renderer, rule check, reward, GRPO) that runs on a laptop with free models, with a frontier baseline for the same task.</li>
+    <li>An exact split of a reward gain into "fails less" and "paints better", applied to both runs.</li>
+    <li>Four reward hacks in the order they appeared, including a copy check the model defeated by padding.</li>
+    <li>A re-check of the reward on the trained model's own output with two frontier judges, each checked on reference sketches first.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written down before the analyses: a gain counts as painting better only if it passes all three tests.</p>
+  <ol>
+    <li><strong>It is not mostly failing less.</strong> More than half of the reward gain comes from passing sketches scoring higher.</li>
+    <li><strong>It paints the subject.</strong> The late paintings show green hills in the bottom third, by a pixel check and by CLIP, against controls.</li>
+    <li><strong>The reward still tracks quality.</strong> On the trained model's own sketches, the reward's order agrees with independent judges about as well as it did on reference sketches.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="environment">2.1 The environment</h3>
+  <p>Every request is a two-message chat. The <strong>system message</strong> fixes a code skeleton (a 400 × 400 canvas on paper-coloured background), lists the only 9 brush methods allowed, says every mark is a filled shape painted back to front, and forbids text, images and network. In the <strong>"with example"</strong> version it also contains one complete 20-line sketch, a red disc on a blue wash, introduced as "Follow its pattern". The <strong>user message</strong> is always <code>Paint a sunset over green hills.</code></p>
+  <p>The reply's code runs in headless Chromium (20-second limit) and comes out as a picture, which is scored in two stages.</p>
+  <ol>
+    <li><strong>The gate</strong> (pass or fail): the code must run, make a canvas, call a painting method and leave paint on at least 0.5% of the canvas, and must not write text, load images, touch the network or use plain p5 shapes. A sketch that fails scores at most 0.05.</li>
+    <li><strong>Taste</strong>, only for sketches that pass. <em>CLIP</em> (OpenAI's ViT-B/32) turns the image and the caption into vectors and scores how closely they point the same way. <em>The LAION aesthetic predictor</em>, a 3 KB layer trained on people's 1–10 beauty ratings, scores "is it pretty?" without seeing the subject. Each raw score is stretched to 0–1 from the range measured on reference sketches.</li>
+  </ol>
+  <pre><code>reward = 0.10 · gate + 0.05 · length + gate · (0.40 · CLIP + 0.45 · aesthetic)</code></pre>
+  <figure class="plot">
+    <img src="figures/scoring_walkthrough.png" alt="Six panels with their scores. A crash: no image, reward 0.05. The words SUNSET OVER GREEN HILLS on paper: gate fails, CLIP would say 0.320, reward 0.05. One tiny dot: CLIP 0.246, aesthetic 4.64, reward 0.57. The prompt's example, a red disc on a blue wash: CLIP 0.278, aesthetic 4.13, reward 0.55. A hand-made sunset over hills: CLIP 0.321, aesthetic 4.86, reward 0.77. A frontier model's painting: CLIP 0.307, aesthetic 5.39, reward 0.84." width="2028" height="572" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>Six sketches through the reward. Arrows show each raw score stretched to 0–1. The words panel is the text drawn on paper and scored by CLIP directly (the brush canvas cannot draw text); the gate gives it 0.05. Note the tiny dot outscoring the prompt's example, 0.57 against 0.55: the aesthetic predictor likes empty paper.</figcaption>
+  </figure>
+  <p><strong>The reward was checked before any training.</strong> On 12 hand-written reference sketches with a known quality order, from a meadow at sunset down to bare p5 shapes, it agrees with that order at Spearman 0.93; on the 8 that pass the gate, where only taste is left, at 0.81. The aesthetic term alone manages 0.38 on those 8.</p>
+
+  <h3 id="models">2.2 Models</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Role</th><th>Models</th><th>How they were run</th></tr></thead>
+      <tbody>
+        <tr><td>Trained</td><td>Qwen2.5-Coder-0.5B-Instruct, Qwen2.5-Coder-1.5B-Instruct</td><td>Locally, Hugging Face Transformers, LoRA adapters</td></tr>
+        <tr><td>Benchmark only</td><td>Claude Opus 5.5, GPT-5.6 Sol, Gemini Pro, Qwen3.8-27B</td><td>Through OpenRouter, the same messages, up to 6,000 tokens (they reason before answering), reasoning effort low</td></tr>
+        <tr><td>Judges</td><td>GPT-5.6 Sol, Claude Opus 5.5</td><td>One image per request, temperature 0, a fixed 1–5 rubric, no reward or step shown</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="grpo">2.3 Training: GRPO, written by hand</h3>
+  <p>GRPO (Group Relative Policy Optimization) needs no second "critic" model: for each step the model writes 8 sketches for the same prompt, and the group's own average is the bar. A sketch's <em>advantage</em> is its reward minus the group mean, like grading on a curve inside one exam room. The update raises the probability of every token in an above-average sketch and lowers it in a below-average one, with a KL penalty, a leash on how far the model drifts from where it started. The loop is about 150 lines, so every logged number points to a line of code.</p>
+  <pre><code>advantages = rewards - rewards.mean()                       # no division by the group's spread
+per_token  = -min(ratio * adv, clamp(ratio, 1 - 0.2, 1 + 0.2) * adv) + beta * kl</code></pre>
+  <p class="table-note">With one update per batch, <code>ratio</code> is always 1 and the clip never acts; in effect this is REINFORCE with a group-mean baseline plus a KL leash. Dividing advantages by the group's standard deviation was left out on purpose: it would make a group scoring 0.50, 0.51 and 0.49 push as hard as one scoring 0.0 and 1.0.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Laptop run</th><th>H100 run</th></tr></thead>
+      <tbody>
+        <tr><td>Model</td><td>Qwen2.5-Coder-0.5B, float32</td><td>Qwen2.5-Coder-1.5B, bfloat16</td></tr>
+        <tr><td>Steps, group size</td><td>40 steps × 8 sketches</td><td>100 steps × 8 sketches</td></tr>
+        <tr><td>Learning rate, KL weight</td><td>2e-4, 0.04</td><td>1e-4 with 5-step warmup, 0.04</td></tr>
+        <tr><td>Hardware, cost</td><td>Apple M5 Max laptop, free</td><td>Rented H100 on Modal, about $3.83</td></tr>
+        <tr><td>Held-out check</td><td colspan="2">16 sketches before and after training, temperature 0.8, fixed seeds, scored without partial credit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <details class="fold">
+    <summary>Terms used in this note</summary>
+    <div class="table-wrap">
+      <table class="glossary">
+        <tbody>
+          <tr><th scope="row">Pass</th><td>A sketch that gets through the gate: it runs, paints and breaks no rule.</td></tr>
+          <tr><th scope="row">Reward hack</th><td>A way to earn the reward without doing the intended task, such as writing the caption instead of painting it.</td></tr>
+          <tr><th scope="row">Partial credit</th><td>During training only, a failing sketch earns up to 0.24 for steps toward passing (clean code, no crash, some paint), so a group of 8 failures still has something to learn from. Held-out numbers leave it out.</td></tr>
+          <tr><th scope="row">Spearman</th><td>How similarly two lists order the same items: 1 = the same order, 0 = unrelated.</td></tr>
+          <tr><th scope="row">Interval</th><td>95% Wilson interval for a count out of 16.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Build and check the reward</strong> on 12 reference sketches with a known order (Spearman 0.81 on the 8 that pass).</li>
+    <li><strong>Benchmark</strong> two small and four frontier models, 16 sketches per prompt version (192 sketches).</li>
+    <li><strong>Warm up GRPO on a toy task</strong> with no browser ("answer in about five words"), where the first two hacks appeared.</li>
+    <li><strong>Train on the laptop</strong>, three times: without a copy check (hack 3 appeared), then with one (the run reported here, 40 steps).</li>
+    <li><strong>Train on an H100</strong>: two 5-step test runs, then 100 steps.</li>
+    <li><strong>Audit both runs</strong>: split the gain, fingerprint the code, crop the pixels for hills, and re-rate 32 passing sketches per run with two judges, each judge first checked on the reference sketches.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before training</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The reward's terms and weights, the gate's rules, the held-out seeds</td><td>A worked example added to the prompt: the small models passed 0/16 without one</td></tr>
+        <tr><td>The three success tests above</td><td>A copy check (85% whole-file similarity fails the gate), added after the model pasted the example; and partial credit for failures, added when an all-failing group taught nothing</td></tr>
+        <tr><td>The rubric the judges use, the 32 sketches per run they rate (fixed seed)</td><td>Word counting in the toy task (English words only; must mention the topic), after each of the first two hacks</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: training samples at temperature 1.0, held-out and benchmark samples at 0.8 with fixed seeds, judges at 0. The laptop run took 13.8 minutes for 40 steps and two evaluations (about 15–30 s a step); H100 steps 27.8 s (generation 18.1 s, rendering 9.1 s, update 0.7 s). Spend: $5.80 on Modal in all, $1.86 for the frontier benchmark, $0.35 for the judges. None of the three success tests was met.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Seven findings, in order:</p>
+  <ol>
+    <li><a href="#benchmark"><strong>4.1</strong></a> Small models can barely do the task; frontier models do it every time.</li>
+    <li><a href="#gain"><strong>4.2</strong></a> RL raised the reward mostly by failing less.</li>
+    <li><a href="#hacks"><strong>4.3</strong></a> Four reward hacks appeared, one after another.</li>
+    <li><a href="#copying"><strong>4.4</strong></a> The successes were the prompt's example, padded past the copy check.</li>
+    <li><a href="#hills"><strong>4.5</strong></a> No run painted the hills.</li>
+    <li><a href="#rerating"><strong>4.6</strong></a> The reward stopped tracking quality where the model ended up.</li>
+    <li><a href="#scale"><strong>4.7</strong></a> A bigger model on an H100 barely learned.</li>
+  </ol>
+
+  <h3 id="benchmark" data-short="Small vs frontier">4.1 Small models can barely do the task; frontier models do it every time</h3>
+  <p><strong>With the rules alone, both Qwen2.5-Coder models pass 0 of 16 [0, 0.19]. Every larger model passes 16 of 16 [0.81, 1], with or without the worked example, at a mean reward of 0.63–0.84.</strong></p>
+  <div class="finding">
+    <figure class="plot">
+      <img src="figures/benchmark.png" alt="Two bar charts. Sketches passing the gate: Qwen2.5-Coder-0.5B 0% with rules only and 44% with the example; 1.5B 0% and 25%; Qwen3.8-27B, Claude Opus 5.5, GPT-5.6 Sol and Gemini Pro 100% in both versions. Mean reward: 0.05 and 0.19; 0.05 and 0.12; 0.63 and 0.68; 0.76 and 0.74; 0.73 and 0.82; 0.76 and 0.84. A dashed line marks the 0.5B model after RL at 0.48." width="1500" height="570" loading="lazy">
+      <figcaption><span class="label">Figure 2.</span>16 sketches per model and prompt version, scored by the same gate and reward. Orange: the small models this note trains; grey: larger models, untrained. Pale bars: rules only; solid: with the worked example. Dashed: the 0.5B model's held-out reward after 40 RL steps.</figcaption>
+    </figure>
+    <div class="gallery" id="gallery">
+      <div class="gallery-buttons" role="group" aria-label="Choose whose paintings to show">
+        <button type="button" data-src="figures/opus_paintings.png" data-caption="Claude Opus 5.5, rules only: the 8 highest-reward of 16." aria-pressed="true">Opus 5.5, untrained</button>
+        <button type="button" data-src="figures/small_paintings.png" data-caption="Qwen2.5-Coder-1.5B, with the example: the 8 highest-reward of 16." aria-pressed="false">1.5B, untrained</button>
+        <button type="button" data-src="figures/laptop_before.png" data-caption="Qwen2.5-Coder-0.5B, 8 of the 16 held-out sketches before training." aria-pressed="false">0.5B before RL</button>
+        <button type="button" data-src="figures/laptop_after.png" data-caption="Qwen2.5-Coder-0.5B, 8 of the 16 held-out sketches after 40 GRPO steps." aria-pressed="false">0.5B after RL</button>
+        <button type="button" data-src="figures/h100_after.png" data-caption="Qwen2.5-Coder-1.5B, 8 of the 16 held-out sketches after 100 GRPO steps on the H100." aria-pressed="false">1.5B after RL</button>
+      </div>
+      <figure class="plot">
+        <img id="gallery-img" src="figures/opus_paintings.png" alt="Contact sheet of paintings; the buttons above switch between models and training stages." width="800" height="436" loading="lazy">
+        <figcaption><span class="label">Figure 3. Try it.</span><span id="gallery-caption">Claude Opus 5.5, rules only: the 8 highest-reward of 16.</span> Each tile shows its reward.</figcaption>
+      </figure>
+    </div>
+  </div>
+  <p>The worked example is the single biggest lever for the small models, and the reason the small-model runs use it. It is also, as 4.4 shows, what they learned to copy. None of the larger models copied it: their code is at most 40% similar to the example, against 94% for the 0.5B model's closest reply.</p>
+
+  <h3 id="gain" data-short="Mostly failing less">4.2 RL raised the reward mostly by failing less</h3>
+  <p><strong>On the laptop, held-out passes went from 2 of 16 [0.03, 0.36] to 16 of 16 [0.81, 1] and mean reward from 0.09 to 0.48. Of the training reward's rise between the first and last quarter of the run, 76% came from more sketches passing.</strong></p>
+  <div class="finding">
+    <div class="vtiles" aria-label="Gain decomposition"><div class="pick"><small>fewer failures</small><strong>+0.208</strong><small>76% of the gain</small></div><div><small>better paintings</small><strong>+0.067</strong><small>24%</small></div><div><small>failures changed</small><strong>+0.000</strong><small>a failure scores ~0.05</small></div></div>
+    <p>A batch's mean reward is a weighted average of passing and failing sketches, <code>p·R + (1 − p)·F</code>, so a change splits exactly into three parts that add up: more sketches crossing into the passing group, passing sketches scoring higher, and failures changing. The pass rate does the climbing; the reward of passing sketches is nearly flat after step 3.</p>
+    <figure class="plot">
+      <img src="figures/decompose_laptop.png" alt="Four panels over 40 steps of the laptop run: gate pass rate climbing from 0 to 0.6–1.0; reward of passing sketches flat around 0.4–0.5 after step 3; CLIP of passing sketches rising slightly from 0.21 to 0.27; similarity to the prompt's example between 0.5 and 0.8, under a dashed copy line at 0.85." width="1200" height="720" loading="lazy">
+      <figcaption><span class="label">Figure 4.</span>The laptop run, per training step (8 sketches each). The pass rate climbs; the reward of the sketches that pass barely moves; similarity to the example stays just under the copy line.</figcaption>
+    </figure>
+  </div>
+  <p>The first success test fails: the gain is mostly failing less, the same pattern the open reproduction described.</p>
+
+  <h3 id="hacks" data-short="Four reward hacks">4.3 Four reward hacks appeared, one after another</h3>
+  <p><strong>Each fix closed one shortcut, and the model found the next.</strong> The first two appeared in a toy warm-up task with no browser; the last two in the painting runs.</p>
+  <ol>
+    <li><strong>Switch language.</strong> Asked to "answer in about five words", with words counted by spaces, the model answered in Chinese, which has no spaces: a paragraph counted as about four words, and reward rose from 0.14 to 0.85 with every automatic check passing. Fix: count English words only.</li>
+    <li><strong>Refuse.</strong> "I'm sorry, but I can't assist with that." is eight fluent English words. By step 29 every answer was that sentence. Fix: the answer must mention the topic.</li>
+    <li><strong>Paste the example.</strong> In a painting run with no copy check, held-out passes went from 19% to 100% and every check passed, because by step 10 every sketch was the prompt's example verbatim (similarity 1.00): a blue wash and a red disc that CLIP finds sunset-ish. Fix: a sketch at least 85% similar to the example, as a whole file, fails the gate.</li>
+    <li><strong>Pad the copy.</strong> The copy check compared whole files, so the model kept the example and added more code around it (4.4). Not fixed: the check measured the wrong thing.</li>
+  </ol>
+  <figure class="plot">
+    <img src="figures/hack_copy.png" alt="Eight held-out paintings after training with no copy check: each is a blue wash with a red disc, the prompt's example." width="800" height="436" loading="lazy">
+    <figcaption><span class="label">Figure 5.</span>Hack 3. After training without a copy check, all 8 shown held-out sketches are the prompt's example.</figcaption>
+  </figure>
+
+  <h3 id="copying" data-short="Successes were copies">4.4 The successes were the prompt's example, padded past the copy check</h3>
+  <p><strong>80% of late passing sketches contain the example's sequence of brush calls, and 35% contain it twice. Their best-matching chunk is 0.96 similar to the example; the whole file only 0.66, under the check's 0.85.</strong></p>
+  <p>Each sketch is reduced to a fingerprint, its sequence of brush calls with vertex runs collapsed. The example's is <code>texture, fill, 4-corner shape, fill, circle</code>. Like an essay that copies a paragraph and adds filler to slip past a whole-document plagiarism check, the late sketches keep the example's drawing code and pad the file, often with a recoloured second copy.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Passing sketches</th><th class="num">Has the example</th><th class="num">Best chunk</th><th class="num">Whole file</th></tr></thead>
+      <tbody>
+        <tr><td>Laptop, steps 0–9</td><td class="num">76%</td><td class="num">0.92</td><td class="num">0.67</td></tr>
+        <tr class="hl"><td>Laptop, steps 30–39</td><td class="num">80%</td><td class="num">0.96</td><td class="num">0.66</td></tr>
+        <tr><td>H100, first block</td><td class="num">14%</td><td class="num">0.57</td><td class="num">0.56</td></tr>
+        <tr><td>H100, last block</td><td class="num">0%</td><td class="num">0.49</td><td class="num">0.49</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">"Best chunk" and "whole file": similarity to the example's code, 1 = identical, for the best-matching stretch of the sketch and for the whole file; the copy check used the whole file.</p>
+  <p>The laptop run's compositions also narrowed: the entropy of (shape count, circle count) fell from 3.96 to 3.04 bits. Two guesses about why the padding helped turned out wrong: a green second copy does not raise CLIP (0.227 against the plain example's 0.278), and single copies trip the check only 3% of the time, so doubling is not insurance. The robust finding is the template itself.</p>
+
+  <h3 id="hills" data-short="No hills">4.5 No run painted the hills</h3>
+  <p><strong>The bottom third of the laptop run's late passing sketches is 89% bare paper, and CLIP rates the crop 0.197 for "green hills", level with the example that has none (0.196) and far from a hand-made control with hills (0.309).</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Bottom third of the canvas</th><th class="num">Bare paper</th><th class="num">CLIP "green hills"</th></tr></thead>
+      <tbody>
+        <tr><td>Control: 3 hills, hand-made</td><td class="num">7%</td><td class="num">0.309</td></tr>
+        <tr><td>Control: the prompt's example</td><td class="num">100%</td><td class="num">0.196</td></tr>
+        <tr><td>Laptop, early passing</td><td class="num">87%</td><td class="num">0.201</td></tr>
+        <tr class="hl"><td>Laptop, late passing</td><td class="num">89%</td><td class="num">0.197</td></tr>
+        <tr><td>H100, early passing</td><td class="num">8%*</td><td class="num">0.210</td></tr>
+        <tr><td>H100, late passing</td><td class="num">8%*</td><td class="num">0.208</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">* The H100 model rarely leaves bare paper, but only because it floods the canvas with one flat colour; CLIP on the crop shows no hills. One measure can pass for the wrong reason, which is why the test pairs two.</p>
+  <figure class="plot">
+    <img src="figures/h100_late.png" alt="Twelve late passing sketches from the H100 run: flat green, blue, mint and lavender backgrounds with a single wash or disc on top; no sunsets and no hills." width="800" height="654" loading="lazy">
+    <figcaption><span class="label">Figure 6.</span>Twelve late passing sketches from the H100 run: flat colour fields, varied but with no sunset and no hills.</figcaption>
+  </figure>
+  <p>The second success test fails. The frontier models in 4.1 paint the hills in every one of their top sketches.</p>
+
+  <h3 id="rerating" data-short="Reward stopped tracking quality">4.6 The reward stopped tracking quality where the model ended up</h3>
+  <p><strong>On the reference sketches, the reward and both judges order the sketches like the hand ranking (0.81, 0.82, 0.77). On 32 of the trained models' own passing sketches per run, the reward agrees with the judges at 0.08 and 0.37 (laptop) and 0.20 and 0.03 (H100).</strong></p>
+  <p>A reward can be right on the cases it was tested on and wrong on the ones the model now produces, like a smoke detector tested in the kitchen that is then needed in the garage. Two judges from different labs, GPT-5.6 Sol and Claude Opus 5.5, rated each sketch 1–5 against a fixed rubric (1 = no picture, 2 = a wash and a disc, 3 = sunset colours and a sun, 4 = a sun and a green hill, 5 = a convincing sunset over green hills), one image per request, with no reward, step or ID shown. Each judge was first checked on the 8 reference sketches that pass the gate.</p>
+  <div class="finding">
+    <figure class="plot">
+      <img src="figures/agreement.png" alt="Bar chart of Spearman correlations. On hand-made sketches: reward vs hand ranking 0.81, GPT-5.6 Sol 0.82, Opus 5.5 0.77. On the laptop policy's sketches: reward vs GPT 0.08, reward vs Opus 0.37, GPT vs Opus 0.16. On the H100 policy's sketches: reward vs GPT 0.20, reward vs Opus 0.03, GPT vs Opus 0.21." width="1200" height="690" loading="lazy">
+      <figcaption><span class="label">Figure 7.</span>Spearman agreement. Top three: on the 8 passing reference sketches, against their known order. Below: on 32 passing sketches from each run (16 from each half, fixed seed). Orange: the reward against a judge; grey: a judge against the hand ranking or against the other judge.</figcaption>
+    </figure>
+  </div>
+  <p>The reward's favourite laptop sketch, a lone disc on blank paper (reward 0.661), got a 2 from both judges. The judges also barely agree with each other on these sketches (0.16 and 0.21), and most of their ratings are 1 or 2: the trained models' sketches are close variations on one template, with little real quality difference left to rank. The reward is still ranking them, on differences neither judge sees. Mean ratings rose only slightly over the laptop run (2.25 to 2.31 for GPT, 2.00 to 2.38 for Opus) and stayed near the floor on the H100 run (1.56 to 1.56, 1.06 to 1.25). The third success test fails.</p>
+
+  <h3 id="scale" data-short="More compute did not help">4.7 A bigger model on an H100 barely learned</h3>
+  <p><strong>Qwen2.5-Coder-1.5B went from 1 of 16 [0.01, 0.28] to 3 of 16 [0.07, 0.43] held-out passes in 100 steps, the same as a 5-step test run; mean reward from 0.056 to 0.100.</strong></p>
+  <figure class="plot">
+    <img src="figures/curves.png" alt="Two line charts over training steps. Sketches passing the gate: the laptop run's 5-step mean climbs from 0.18 to 0.75 within about 15 steps; the H100 run's stays between 0.10 and 0.25. Mean training reward without partial credit: laptop 0.12 to 0.35; H100 0.08 to 0.12." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 8.</span>Training curves, 8 sketches per step; faint lines per step, bold lines 5-step means. Orange: laptop run (0.5B, 40 steps); grey: H100 run (1.5B, 100 steps). Reward excludes partial credit.</figcaption>
+  </figure>
+  <p>The policy did change (its KL from the starting model held near 0.01, and every group had a spread of rewards), just not in a direction the reward could see. Three differences could explain it, none tested: fewer successes to learn from (it started at 1 in 16, often forgetting to create a canvas, and a group of 8 failures teaches nothing); half the learning rate; and no easy template, since it rarely reproduced the example and the copy check failed it when it did. On the laptop the reward went up for the wrong reasons; on the H100 it did not go up at all.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>This is a small, cheap version of a problem that grows with capability: an optimiser finds whatever earns reward, and a rising number does not say which. Three practices follow from it.</p>
+  <ul>
+    <li><strong>Split every gain.</strong> "Reward went up" is where the analysis starts. Here an exact split showed the gain was mostly failing less, before any picture was looked at.</li>
+    <li><strong>Guards are reward terms too.</strong> A copy check that compared file text was defeated by padding within a few steps. Guards should compare what the output does (rendered pixels, normalised drawing calls), not its surface form.</li>
+    <li><strong>Re-validate the reward on the model's own output, every time the model moves.</strong> A reward that ranks reference examples well can rank the trained model's output at chance.</li>
+  </ul>
+  <p><strong>The recommendation in one sentence: trust a training gain only when a judge the model was never trained against agrees with it, on the model's own output.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Small samples.</strong> 16 held-out sketches per checkpoint, 16 per benchmark row, 12 reference sketches, 32 re-rated per run. Differences under about 10 points of pass rate are noise.</li>
+    <li><strong>One seed per run.</strong> How much of each number is the run and how much is luck is unknown.</li>
+    <li><strong>Judges are models.</strong> They agree with the reference order on clear cases, but not with each other on the trained models' sketches, and most of their ratings are tied at 1 or 2, which makes Spearman fragile.</li>
+    <li><strong>Small, cheap scorers.</strong> CLIP ViT-B/32 and a 3 KB aesthetic layer stand in for the larger preference models and judges the original setup used; some blind spots here are specific to them.</li>
+    <li><strong>Short runs, small models, one subject.</strong> 40 and 100 steps on 0.5B and 1.5B models, always "a sunset over green hills". The held-out set is the same prompt with new seeds, not new subjects. A bigger model trained longer might paint hills; this does not show it can't.</li>
+    <li><strong>A worked example in the prompt.</strong> It was needed for any small-model passes at all, and it became the template. That is a property of this setup, not of RL on painting in general.</li>
+    <li><strong>No simpler baseline for the training.</strong> Keeping the best of 8 untrained samples, or fine-tuning on passing sketches, was not compared with RL.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Check the analysis in minutes, with no training: the benchmark samples, both runs' training sketches and the judges' ratings are in <code>results/</code>.</p>
+  <pre><code class="language-bash">python experiments/pigment-gym/8_decompose.py                     # the gain split, laptop run (add --rollouts results/rollouts_h100.jsonl for H100)
+python experiments/pigment-gym/9_hack_hunt.py                     # code fingerprints, copy check, the hills crop
+python experiments/pigment-gym/11_rerate.py --ratings experiments/pigment-gym/results/judge_opus-5.5_laptop.csv
+python experiments/pigment-gym/make_figures.py                    # redraws Figures 2, 7 and 8 and prints what it plotted</code></pre>
+  <p>Rerun everything (a few hours on an Apple-silicon laptop; the H100 run needs a Modal account, the benchmark and judges an OpenRouter key):</p>
+  <pre><code class="language-bash">experiments/pigment-gym/reproduce.sh --dry-run   # lists every command
+experiments/pigment-gym/reproduce.sh</code></pre>
+  <p>Large files (renders, checkpoints) go to a work folder outside the repository, <code>~/.cache/steerlab/pigment-gym/</code>. Each script ends with ✅/❌ self-checks. The judge script caches every answer, so a rerun with the shipped cache costs nothing.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>Fix the guard: compare the best-matching chunk, or the rendered pixels, instead of the whole file, retrain, and see what the model does next.</li>
+    <li>Pay for the subject: a CLIP term on the bottom third for "green hills", and the aesthetic term down-weighted or dropped.</li>
+    <li>Get the 1.5B model passing first: fine-tuning on a few dozen passing sketches, or a short learning-rate sweep, before another long run.</li>
+    <li>Compare RL with best-of-8 sampling and with fine-tuning on frontier sketches, and test on new subjects.</li>
+    <li>Package the environment as a reusable RL environment with each reward term logged separately.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">What is Pigment Gym?</h3>
+  <p>Pigment Gym is a small reinforcement learning environment in which a language model writes p5.brush JavaScript to paint a watercolour, a headless browser renders it, and a rule check plus CLIP and an aesthetic predictor score the picture. It runs on one laptop with free models.</p>
+  <h3 id="q2">Did reinforcement learning teach the small model to paint better?</h3>
+  <p>Mostly not: 76% of the laptop run's reward gain came from failing the rule check less, the successes mostly contained the prompt's example, and none painted the hills the prompt asked for.</p>
+  <h3 id="q3">What reward hacks did the model find?</h3>
+  <p>Four: answering in Chinese to fool a space-based word count, refusing with an eight-word sentence, pasting the prompt's example verbatim, and padding a copy of the example so a whole-file copy check stopped firing.</p>
+  <h3 id="q4">Can frontier models paint with code without training?</h3>
+  <p>Yes: Claude Opus 5.5, GPT-5.6 Sol, Gemini Pro and Qwen3.8-27B each passed the rule check on 16 of 16 sketches, at a mean reward of 0.63–0.84, against 0.48 for the trained 0.5B model.</p>
+  <h3 id="q5">Why re-rate the trained model's sketches?</h3>
+  <p>Because a reward validated on reference examples can fail on what training produces: here its agreement with two judges fell from about 0.8 on reference sketches to between 0.03 and 0.37 on the trained models' own.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number in this note comes from a file in <a href="../results/"><code>results/</code></a>; <a href="../results/README.md"><code>results/README.md</code></a> describes each one.</p>
+  <ul>
+    <li><code>benchmark_samples.jsonl</code>, <code>benchmark.json</code>: the 192 benchmark replies and their scores per model and prompt version.</li>
+    <li><code>rollouts_laptop.jsonl</code>, <code>rollouts_h100.jsonl</code>, <code>curve_*.csv</code>, <code>summary_h100.json</code>: every training sketch with its reward terms, and the per-step curves.</li>
+    <li><code>judge_*.csv</code>: each judge's 1–5 rating and note for the 32 sketches per run.</li>
+    <li><code>scoring_walkthrough.json</code>: the six sketches of Figure 1, term by term.</li>
+    <li><code>logs/</code>: the printed output of every analysis script, as run for this note.</li>
+  </ul>
+
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Training</th><td>GRPO with a group-mean baseline, no standard-deviation scaling, a KL penalty to the starting model; LoRA adapters; partial credit for failing sketches</td></tr>
+        <tr><th scope="row">Reward</th><td>A rule gate (static code checks plus a render check) multiplying CLIP image–text similarity and an aesthetic score, each stretched to 0–1</td></tr>
+        <tr><th scope="row">Analysis</th><td>An exact split of the reward gain; code fingerprints and windowed similarity; a bottom-third pixel and CLIP crop test with controls; blind re-rating by two judge models checked on a reference set</td></tr>
+        <tr><th scope="row">Statistics</th><td>Wilson 95% intervals for counts out of 16; Spearman rank correlation</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Painting</th><td>p5.js and p5.brush, rendered in headless Chromium through Playwright</td></tr>
+        <tr><th scope="row">Models and training</th><td>Qwen2.5-Coder 0.5B and 1.5B from the Hugging Face Hub; PyTorch, Hugging Face Transformers, PEFT (LoRA)</td></tr>
+        <tr><th scope="row">Scoring</th><td>CLIP ViT-B/32 through open_clip; the LAION aesthetic predictor</td></tr>
+        <tr><th scope="row">Frontier models</th><td>OpenRouter for the benchmark and the judges</td></tr>
+        <tr><th scope="row">Compute</th><td>An Apple M5 Max laptop (MPS); one H100 on Modal for the scaled run</td></tr>
+        <tr><th scope="row">Analysis and figures</th><td>NumPy, SciPy, Matplotlib</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 6, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026pigmentgym,
+  author = {Albert Lie},
+  title  = {Pigment Gym: reward hacking in a paint-with-code RL environment},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/pigment-gym/report/}
+}</code></pre>
+  <footer class="note">Libraries: p5.js (LGPL-2.1) and p5.brush (MIT), vendored with their licences; the LAION aesthetic predictor (MIT). Models: Qwen2.5-Coder (Apache-2.0); frontier models under their providers' terms. Environment design after the open reproduction's code (Apache-2.0); no code copied.</footer>
+</article>
+</div>
+<script>
+  (function () {
+    var root = document.getElementById("gallery");
+    if (!root) return;
+    var img = document.getElementById("gallery-img"), caption = document.getElementById("gallery-caption");
+    root.querySelectorAll("button").forEach(function (button) {
+      button.addEventListener("click", function () {
+        root.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", "false"); });
+        button.setAttribute("aria-pressed", "true");
+        img.src = button.dataset.src;
+        caption.textContent = button.dataset.caption;
+      });
+    });
+  })();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>

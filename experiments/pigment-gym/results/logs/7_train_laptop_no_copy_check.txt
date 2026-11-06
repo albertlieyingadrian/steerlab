@@ -1,0 +1,67 @@
+# Run 3 (kept as evidence): example prompt, SHAPING 0.08, 40 steps, no copy check.
+# The reward rose (held-out 0.112 -> 0.548, gate pass 19% -> 100%) because by step ~10 the policy output the
+# system prompt's worked example VERBATIM (difflib similarity 1.00): a blue wash and a red disc, which CLIP
+# scores 0.278 for 'a sunset over green hills'. Every self-check passed. The shipped script fails copies.
+
+policy Qwen/Qwen2.5-Coder-0.5B-Instruct + LoRA on mps; 40 steps x 8 sketches; lr 0.0002, beta 0.04
+
+[before] gate pass 19%, mean reward 0.112, reward when passing 0.383
+
+step reward  gate shaping zero-std     KL tokens  secs
+   0  0.187   25%   0.030        0 -0.000    354    24
+   1  0.414   75%   0.040        0  0.006    200    13
+   2  0.492  100%   0.000        0  0.012    190    11
+   3  0.431  100%   0.000        0  0.017    190     8
+   4  0.429   88%   0.020        0  0.023    190     8
+   5  0.486  100%   0.000        0  0.025    190     8
+   6  0.379   88%   0.010        0  0.032    190    11
+   7  0.527  100%   0.000        0  0.031    190     8
+   8  0.464   88%   0.010        0  0.039    171     8
+   9  0.534  100%   0.000        0  0.034    190     8
+  10  0.531  100%   0.000        0  0.028    190     8
+  11  0.521  100%   0.000        0  0.024    190    12
+  12  0.540  100%   0.000        0  0.020    191    10
+  13  0.523  100%   0.000        0  0.019    193    11
+  14  0.487   88%   0.020        0  0.016    205    18
+  15  0.538  100%   0.000        0  0.018    191    10
+  16  0.522  100%   0.000        0  0.017    191    10
+  17  0.539  100%   0.000        0  0.015    191    10
+  18  0.469  100%   0.000        0  0.014    192    10
+  19  0.519  100%   0.000        0  0.013    191    12
+  20  0.507  100%   0.000        0  0.015    191     8
+  21  0.514  100%   0.000        0  0.018    191     8
+  22  0.447   88%   0.010        0  0.022    195     9
+  23  0.544  100%   0.000        0  0.017    191     9
+  24  0.519  100%   0.000        0  0.016    191    12
+  25  0.548  100%   0.000        1  0.018    191    16
+  26  0.548  100%   0.000        1  0.017    191    13
+  27  0.548  100%   0.000        1  0.018    191    11
+  28  0.535  100%   0.000        0  0.019    191    10
+  29  0.548  100%   0.000        1  0.018    191     9
+  30  0.540  100%   0.000        0  0.021    191     7
+  31  0.548  100%   0.000        1  0.018    191     7
+  32  0.534  100%   0.000        0  0.019    191     7
+  33  0.546  100%   0.000        0  0.019    191     7
+  34  0.530  100%   0.000        0  0.018    191     7
+  35  0.443   75%   0.020        0  0.014    303    16
+  36  0.503  100%   0.000        0  0.015    190    17
+  37  0.492   88%   0.010        0  0.028    191    11
+  38  0.519  100%   0.000        0  0.018    191    12
+  39  0.508  100%   0.000        0  0.019    191     7
+
+[after] gate pass 100%, mean reward 0.548, reward when passing 0.548
+
+40 steps + 2 evaluations in 8.0 min
+training reward (shaped), first 5 steps 0.391 -> last 5 steps 0.493
+held-out eval (same seeds, unshaped reward): gate pass 19% -> 100%, mean reward 0.112 -> 0.548
+  of that, from passing more often: +0.270; from passing sketches scoring higher: +0.165
+
+saved curve.csv/.png, before.png, after.png, rollouts.jsonl, lora/,
+and the best post-training sketch as best_after.js (reward 0.548)
+
+Self-checks:
+  ✅ all 40 steps ran
+  ✅ every reward and KL is finite
+  ✅ training reward rose (last-5 mean > first-5 mean)
+  ✅ held-out mean reward did not get worse
+  ✅ the LoRA adapter was saved
