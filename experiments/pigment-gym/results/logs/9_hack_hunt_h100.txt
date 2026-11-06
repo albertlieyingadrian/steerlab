@@ -1,0 +1,47 @@
+the prompt's example, as a signature: 'T F BS V4 ES F C'
+
+block        has example 2+ copies window sim file sim hills shapes entropy   (columns 2-5 over PASSING sketches)
+steps 0-24           14%        0%       0.57     0.56   10%     24    3.65
+steps 25-49          14%        0%       0.63     0.58    4%     33    4.19
+steps 50-74          12%        0%       0.54     0.48    4%     29    3.91
+steps 75-99           0%        0%       0.49     0.49    6%     29    3.88
+  shapes/entropy = distinct (polygon count, circle count) combinations and their entropy, over all sketches
+
+The shortcut: late passing sketches contain the example's drawing code almost verbatim (best window similarity
+0.49), but their WHOLE-FILE similarity is only 0.49, under the laptop run (7_train_laptop.py)'s 0.85 copy line. Any extra
+code dilutes difflib's whole-file score (2 x matched / total length), so 'paste the example, then add more shapes'
+slips through. The most common addition is a second, recoloured copy of the example itself: sketches with the
+block twice went from 0% to 0% of passes.
+
+late sketches (last quarter) by copies of the example block:
+  copies   n gate pass failed copy rule mean reward CLIP|pass
+       0 185       24%               1%       0.121     0.214
+       1  15        0%              33%       0.050       nan
+  The copy rule almost never fires any more, yet most sketches still contain the example verbatim: the rule
+  compares whole files, and the policy simply writes longer files. The 2+ group's small edge over the 1-copy group
+  (a few sketches out of 26 vs 36) is within noise; the template itself is the robust finding.
+  demo: the example pasted twice (second copy recoloured green): whole-file similarity 0.67, best window 1.00
+
+re-rendering 12 early and 12 late passing sketches, plus 3 controls
+re-scored CLIP vs the value logged during training: max difference 0.0187 (the reward is reproducible)
+
+group                            bottom third: paper  green  CLIP(bottom, green hills)  CLIP(full, subject)
+early passing sketches                            8%    36%                      0.210                0.228
+late passing sketches                             8%    43%                      0.208                0.219
+control: 3 hills (hand pool)                      7%    89%                      0.309                0.321
+control: the prompt's example                   100%     0%                      0.196                0.278
+control: example + green copy                   100%     0%                      0.196                0.227
+
+Reading it: the controls show the crop test can tell hills from no hills. Compare the policy's bottom third with
+them: if it is mostly bare paper, the policy never learned the 'green hills' half of the subject. The last column
+shows the second copy doesn't help CLIP either (a green wash over the sky scores LOWER than the plain example).
+Nothing in the reward asked for hills, so nothing produced them.
+saved the work folder late_sample.png
+
+Self-checks:
+  ❌ re-rendering reproduces the logged CLIP scores (max difference < 0.01)
+  ✅ the crop test works: the hills control beats the example control on 'green hills'
+  ❌ finding: most late passing sketches contain the example block
+  ❌ finding: late sketches dodge the copy check (window similarity > 0.85 > whole-file similarity)
+  ❌ finding: the late bottom third is mostly bare paper (no hills)
+  ❌ finding: the copy rule fires on < 10% of late sketches even though most contain the example verbatim
