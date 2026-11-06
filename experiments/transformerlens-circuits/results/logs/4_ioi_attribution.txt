@@ -1,0 +1,46 @@
+  gpt2 via TransformerBridge on cpu, compatibility mode on
+  8 prompt pairs, 15 tokens each
+  clean logit diff +2.777 -> metric 1.0;  corrupted -3.995 -> metric 0.0
+
+1. DLA: components sum to +2.104, plus the unembedding bias +0.673 = +2.777; actual +2.777; exact: True
+   layer 9's attention output alone: +3.73; no other component above +0.25
+   top five: L9H9 +2.92, L9H6 +1.06, L10H6 +0.68, L10H10 +0.63, L8H10 +0.43
+   most negative: L11H10 -0.68, L10H7 -1.91
+
+2. class                 head       DLA  rank   patch  rank  expected by        found?
+   name mover            L9H9     +2.92     1   +0.27     4  DLA top 5          yes
+   name mover            L9H6     +1.06     2   -0.04   141  DLA top 5          yes
+   name mover            L10H0    -0.08   133   +0.09     9  DLA top 5          NO
+   negative name mover   L10H7    -1.91   144   -0.51   144  DLA bottom 3       yes
+   negative name mover   L11H10   -0.68   143   -0.24   143  DLA bottom 3       yes
+   S-inhibition          L7H3     +0.12     9   +0.13     7  patching top 15    yes
+   S-inhibition          L7H9     +0.13     7   +0.22     5  patching top 15    yes
+   S-inhibition          L8H6     -0.12   136   +0.33     2  patching top 15    yes
+   S-inhibition          L8H10    +0.43     5   +0.28     3  patching top 15    yes
+   induction             L5H5     +0.00    58   +0.36     1  patching top 15    yes
+   induction             L6H9     -0.00    72   +0.15     6  patching top 15    yes
+   induction             L5H8     -0.01    84   -0.00   127  patching top 15    NO
+   induction             L5H9     -0.01    80   +0.04    14  patching top 15    yes
+   duplicate token       L0H1     -0.00    66   +0.02    19  patching top 15    NO
+   duplicate token       L3H0     -0.01    83   +0.12     8  patching top 15    yes
+   duplicate token       L0H10    -0.00    69   -0.00   131  patching top 15    NO
+   previous token        L2H2     -0.03   111   +0.00    61  patching top 15    NO
+   previous token        L4H11    -0.02    98   +0.00    45  patching top 15    NO
+   12 of 18 published heads stand out in the tool expected to see them: name mover 2/3, negative name mover 2/2, S-inhibition 4/4, induction 3/4, duplicate token 1/3, previous token 0/2
+  wrote results/ioi_checklist.csv
+
+3. Patch only a set of heads (clean hook_z copied in at every position)
+   nine core published heads        recovery +1.123  (logit diff +3.61)
+   all 18 published heads           recovery +1.119  (logit diff +3.58)
+   our top nine by head patching    recovery +0.991  (logit diff +2.72)
+   nine random heads (5 draws)      recovery -0.030 .. +0.291, mean +0.132
+  wrote results/ioi_dla.csv
+  wrote results/ioi_head_sets.json
+
+Self-checks:
+  ✅ per-component DLA plus the unembedding bias adds up to the real logit difference (1e-3)
+  ✅ the published name movers L9H9 and L9H6 are the top two heads by DLA
+  ❌ the third published name mover L10H0 is in the DLA top five
+  ✅ the two published negative name movers are the two most negative by DLA
+  ✅ patching only the nine core published heads recovers at least 60%
+  ✅ the full published list beats every random draw by more than 0.2

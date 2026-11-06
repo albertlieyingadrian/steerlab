@@ -1,0 +1,29 @@
+versions: transformer-lens 4.3.0, transformers 5.20.2, torch 2.14.1
+
+1. gpt2 on cpu: 12 layers x 12 heads, d_model 768; 15 tokens
+
+2. max |bridge - HF| over 753,855 logits, same 'eager' kernel: 9.92e-05
+   same next-token prediction at every position: True; against HF's 'sdpa' kernel: 1.22e-04
+   prediction: ' Mary'; logit(' Mary') - logit(' John') = +3.361
+
+3. compatibility mode: raw logits move by up to 120.7, but by the same amount for every
+   vocabulary entry at a position (spread 2.2e-04); same predictions: True;
+   logit difference +3.361 -> +3.362
+
+4. run_with_cache recorded 493 hook names: 40 per block, 13 outside the blocks
+   blocks.0.hook_resid_pre      (1, 15, 768)
+   blocks.0.attn.hook_pattern   (1, 12, 15, 15)
+   blocks.0.attn.hook_z         (1, 15, 12, 64)
+   every attention row sums to 1: True
+
+5. logit difference +3.362; with L10H7 zeroed +4.842; with L9H9 zeroed +3.491
+   (zeroing the top name mover does not lower it: backup heads in layers 9-11 take over)
+  wrote results/tour.json
+
+Self-checks:
+  ✅ bridge and Hugging Face logits agree within 1e-4 (same tokens, same kernel)
+  ✅ same next token at every position, before and after compatibility mode
+  ✅ compatibility mode preserves the logit difference (within 1e-2)
+  ✅ the model predicts the indirect object ' Mary'
+  ✅ attention patterns are distributions (rows sum to 1)
+  ✅ zeroing the negative name mover L10H7 raises the logit difference

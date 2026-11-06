@@ -1,0 +1,48 @@
+  gpt2 via TransformerBridge on cpu, compatibility mode on
+  8 prompt pairs, 15 tokens each
+  clean logit diff +2.777 -> metric 1.0;  corrupted -3.995 -> metric 0.0
+
+1. Eight prompt pairs
+  ABBA  'When John and Mary went to the shops, Mary gave the bag to' -> 'John'  clean +3.20, corrupted -3.34
+  BABA  'When Mary and John went to the shops, Mary gave the bag to' -> 'John'  clean +2.22, corrupted -3.92
+  ABBA  'When Tom and James went to the park, James gave the ball to' -> 'Tom'  clean +2.71, corrupted -3.80
+  BABA  'When James and Tom went to the park, James gave the ball to' -> 'Tom'  clean +4.32, corrupted -2.79
+  ABBA  'When Dan and Sid went to the shops, Sid gave an apple to' -> 'Dan'  clean +1.72, corrupted -5.28
+  BABA  'When Sid and Dan went to the shops, Sid gave an apple to' -> 'Dan'  clean +3.31, corrupted -4.96
+  ABBA  'After Martin and Amy went to the park, Amy gave a drink to' -> 'Martin'  clean +2.60, corrupted -5.77
+  BABA  'After Amy and Martin went to the park, Amy gave a drink to' -> 'Martin'  clean +2.14, corrupted -2.11
+  clean and corrupted differ only at position(s) [10]; top guess is IO on 8 of 8
+  wrote results/ioi_prompts.json
+
+2. get_act_patch_resid_pre: 180 patched passes in 20.1 s
+  layer     BOS   When  IO/S1    and  S1/IO   went     to    the  place      ,     S2   gave    the    obj     to
+  0        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   1.00   0.00   0.00   0.00   0.00
+  1        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   1.00   0.00  -0.00   0.00   0.00
+  2        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   1.00  -0.00  -0.00   0.00  -0.00
+  3        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   1.00   0.00   0.00   0.00  -0.00
+  4        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   1.00   0.00   0.00   0.00  -0.00
+  5        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.97   0.03   0.00  -0.00   0.00
+  6        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.97   0.03   0.00   0.00  -0.00
+  7        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.94   0.05   0.00   0.00   0.02
+  8        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.68   0.03   0.00   0.00   0.34
+  9        0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00  -0.00   0.03   0.00   0.00   0.92
+  10       0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00  -0.05   0.02   0.00   0.00   0.99
+  11       0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00   0.00  -0.01   0.01   0.00  -0.00   0.97
+  largest |recovery| outside S2 and the final position: 0.047
+
+3. get_act_patch_attn_head_out_all_pos: 144 patched passes in 16.0 s
+  top five: L5H5 +0.36, L8H6 +0.33, L8H10 +0.28, L9H9 +0.27, L7H9 +0.22
+  bottom three: L11H2 -0.09, L11H10 -0.24, L10H7 -0.51
+  published name movers by rank: L9H9 #4, L9H6 #141, L10H0 #9
+  published S-inhibition by rank: L7H3 #7, L7H9 #5, L8H6 #2, L8H10 #3
+  wrote results/ioi_resid_patch.csv
+  wrote results/ioi_head_patch.csv
+  wrote results/ioi_patching.json
+
+Self-checks:
+  ✅ clean and corrupted differ only at S2
+  ✅ the model's top guess is IO on at least 7 of 8 clean prompts
+  ✅ resid sweep: layer 0 at S2 recovers everything, layer 0 elsewhere nothing
+  ✅ resid sweep: in layers 9-11 the final position carries more than S2
+  ✅ both published negative name movers have negative head-patching recovery
+  ❌ as first written: all three published name movers in the top five by head patching
