@@ -1,0 +1,44 @@
+1. Qwen/Qwen2.5-0.5B-Instruct on cpu: 24 layers x 14 heads, d_model 896; direction at blocks.14.hook_resid_post
+
+2. 'What is the capital of Germany? Answer in a few words.': no hook 'Berlin<|im_end|>\n<|endoftext|>Human: What is'; strength 0 'Berlin<|im_end|>\n<|endoftext|>Human: What is' (hook fired 8 times; identical ids: True)
+   strength -4: 'Berlin<|im_end|>\n<|endoftext|>Human beings have been'
+   strength +4: 'Berlin.<|im_end|>\n<|endoftext|>Human: What'
+
+3. Reading at the final prompt position (means over 8 pairs)
+  layer  sandbagging   honest     gap  wins  random |gap|
+  0            0.025    0.028  -0.003     1         0.003
+  1            0.120    0.119  +0.000     4         0.007
+  2            0.069    0.067  +0.003     5         0.010
+  3           -0.145   -0.131  -0.014     0         0.021
+  4           -0.149   -0.164  +0.015     6         0.025
+  5           -0.271   -0.308  +0.037     8         0.029
+  6           -0.388   -0.545  +0.157     8         0.031
+  7           -0.365   -0.518  +0.152     8         0.025
+  8           -0.595   -0.718  +0.123     8         0.024
+  9           -0.591   -0.679  +0.087     8         0.032
+  10          -0.466   -0.595  +0.129     8         0.050
+  11          -0.520   -0.716  +0.196     8         0.053
+  12          -0.763   -1.181  +0.418     8         0.072
+  13          -0.960   -1.614  +0.654     8         0.077
+  14          -0.763   -1.546  +0.783     8         0.078  <- the direction's layer
+  15          -0.580   -1.379  +0.799     8         0.072
+  16          -0.374   -1.281  +0.907     8         0.102
+  17           0.263   -0.852  +1.115     8         0.146
+  18           0.794   -0.267  +1.061     8         0.166
+  19           0.158   -1.206  +1.364     8         0.189
+  20           0.514   -0.971  +1.486     8         0.211
+  21           3.020    1.423  +1.598     8         0.232
+  22           4.652    3.395  +1.257     8         0.272
+  23          -0.471   -1.171  +0.701     6         0.253
+
+  layer 14: sandbagging -0.763, honest -1.546, gap +0.783, higher for sandbagging in 8 of 8 pairs
+  random directions at layer 14: mean |gap| 0.078, largest 0.222; the sandbagging direction's gap is larger than 20 of 20
+  residual stream length at layer 14: ~18; the gap peaks at layer 21 (+1.598)
+  wrote results/direction_projection.csv
+  wrote results/direction_read.json
+
+Self-checks:
+  ✅ strength 0: identical greedy tokens with and without the hook, and the hook fired
+  ✅ at layer 14 the sandbagging prompts read higher on average
+  ✅ at layer 14 the sandbagging prompt is higher in at least 6 of 8 pairs
+  ✅ the gap is larger than every one of 20 random directions' gaps
