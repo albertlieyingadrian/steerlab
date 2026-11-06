@@ -50,11 +50,15 @@ def summarise(block):
 
 
 blocks = [(label, summarise(block)) for label, block in quarters(rows)]
-print(f"{'block':12} {'gate pass':>9} {'reward':>7} {'R (pass)':>8} {'F (fail)':>8} {'CLIP|pass':>9} {'aes|pass':>8} "
-      f"{'sim':>5} {'distinct':>8}")
+print(
+    f"{'block':12} {'gate pass':>9} {'reward':>7} {'R (pass)':>8} {'F (fail)':>8} {'CLIP|pass':>9} {'aes|pass':>8} "
+    f"{'sim':>5} {'distinct':>8}"
+)
 for label, s in blocks:
-    print(f"{label:12} {s['p']:9.0%} {s['mean']:7.3f} {s['R']:8.3f} {s['F']:8.3f} {s['clip']:9.3f} {s['aesthetic']:8.2f} "
-          f"{s['similarity']:5.2f} {s['distinct']:8.0%}")
+    print(
+        f"{label:12} {s['p']:9.0%} {s['mean']:7.3f} {s['R']:8.3f} {s['F']:8.3f} {s['clip']:9.3f} {s['aesthetic']:8.2f} "
+        f"{s['similarity']:5.2f} {s['distinct']:8.0%}"
+    )
 
 first, last = blocks[0][1], blocks[-1][1]
 fewer_failures = (last["p"] - first["p"]) * (first["R"] - first["F"])
@@ -65,18 +69,20 @@ print(f"\nfirst block -> last block: mean reward {first['mean']:.3f} -> {last['m
 print(f"  fewer failures:     {fewer_failures:+.3f}  ({fewer_failures / delta:.0%} of the gain)")
 print(f"  better paintings:   {better_paintings:+.3f}  ({better_paintings / delta:.0%})")
 print(f"  failures changed:   {failures_changed:+.3f}  ({failures_changed / delta:.0%})")
-print(f"\nwithin the passing sketches: CLIP {first['clip']:.3f} -> {last['clip']:.3f}, "
-      f"aesthetic {first['aesthetic']:.2f} -> {last['aesthetic']:.2f}")
+print(
+    f"\nwithin the passing sketches: CLIP {first['clip']:.3f} -> {last['clip']:.3f}, "
+    f"aesthetic {first['aesthetic']:.2f} -> {last['aesthetic']:.2f}"
+)
 print("""
 Reading it: the taste numbers among passing sketches moved a little; the pass rate moved a lot. That's the HF
 reproduction's finding too ("it learned to stop producing bad paintings, not to paint better ones").
-These are TRAINING rollouts (temperature 1.0), so the pass rate is lower than the laptop run (7_train_laptop.py)'s held-out eval at 0.8.""")
+These are TRAINING rollouts (temperature 1.0), so the pass rate is lower than the laptop run's held-out eval at 0.8.""")
 
 # ---- plot: four small panels, one per question ----
-import matplotlib
+import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa: E402
 
 per_step = [summarise([row for row in rows if row["step"] == step]) for step in steps]
 figure, axes = plt.subplots(2, 2, figsize=(10, 6), sharex=True)
@@ -102,7 +108,9 @@ print(f"\nsaved the work folder {plot_path.name}")
 
 print("\nSelf-checks:")
 check("every block has rollouts", all(s["n"] > 0 for _, s in blocks))
-check("the three parts add up to the total change (exact identity)",
-      abs(fewer_failures + better_paintings + failures_changed - delta) < 1e-9)
+check(
+    "the three parts add up to the total change (exact identity)",
+    abs(fewer_failures + better_paintings + failures_changed - delta) < 1e-9,
+)
 check("the pass rate rose from the first block to the last", last["p"] > first["p"])
 check("finding: 'fewer failures' explains more of the gain than 'better paintings'", fewer_failures > better_paintings)

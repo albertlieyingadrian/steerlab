@@ -15,7 +15,6 @@ Spearman only compares orderings, so it doesn't care that rewards are 0.3-0.9 wh
 We also compare the full reward with each term alone, and show the reward hack the gate blocks.
 """
 
-
 from brush_tools import Renderer, contact_sheet
 from common import check, outputs_dir
 from hand_pool import POOL, SUBJECT
@@ -70,8 +69,10 @@ draw.text((20, 140), "SUNSET OVER", fill="#c8553d", font=font)
 draw.text((20, 200), "GREEN HILLS", fill="#386641", font=font)
 hack_clip, _ = scorer.score_images([written], caption(SUBJECT))
 best_clip = max(rows[i]["clip"] for i in passing)
-print(f"\nif the gate let text through, the written words would get clip term {squash(hack_clip[0], *CLIP_RANGE):.2f};"
-      f" the best real painting gets {best_clip:.2f}.")
+print(
+    f"\nif the gate let text through, the written words would get clip term {squash(hack_clip[0], *CLIP_RANGE):.2f};"
+    f" the best real painting gets {best_clip:.2f}."
+)
 print("  Writing the subject costs one line of code; painting it well took me 60. RL finds the cheap route.")
 print(f"with the gate, the text sketch scores {rows[9]['reward']:.3f} (violations: {rows[9]['violations']}).")
 
@@ -82,7 +83,12 @@ print(f"\nsaved the pool sorted by reward: the work folder {sheet.name}")
 print("\nSelf-checks:")
 check("Spearman over all 12 is above 0.8", results["full reward"][0] > 0.8)
 check("Spearman over the 8 passing sketches is above 0.5", results["full reward"][1] > 0.5)
-check("the full reward beats aesthetic alone on the passing 8", results["full reward"][1] > results["aesthetic only (gated)"][1])
+check(
+    "the full reward beats aesthetic alone on the passing 8",
+    results["full reward"][1] > results["aesthetic only (gated)"][1],
+)
 check("every gate failure scores at most 0.05", all(row["reward"] <= 0.05 + 1e-9 for row in rows if not row["gate"]))
-check("without the gate, three words of text would match the best real painting on CLIP (within 0.05)",
-      squash(hack_clip[0], *CLIP_RANGE) > best_clip - 0.05)
+check(
+    "without the gate, three words of text would match the best real painting on CLIP (within 0.05)",
+    squash(hack_clip[0], *CLIP_RANGE) > best_clip - 0.05,
+)

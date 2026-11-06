@@ -27,9 +27,9 @@ import requests
 from dotenv import dotenv_values
 
 REPO = Path(__file__).resolve().parents[1]
-from brush_tools import SYSTEM_PROMPT, SYSTEM_PROMPT_NO_EXAMPLE
-from common import RESULTS, check
-from hand_pool import SUBJECT
+from brush_tools import SYSTEM_PROMPT, SYSTEM_PROMPT_NO_EXAMPLE  # noqa: E402
+from common import RESULTS, check  # noqa: E402
+from hand_pool import SUBJECT  # noqa: E402
 
 MODELS = {
     "opus-5.5": "anthropic/claude-opus-5.5",
@@ -58,8 +58,13 @@ if SAMPLES_PATH.exists():
         done.add((record["model"], record.get("prompt", "no_example"), record["index"]))
 
 user = f"Paint {SUBJECT}."
-todo = [(name, p, i) for name in MODELS for p in PROMPTS for i in range(SAMPLES_PER_MODEL)
-        if (not only or name == only) and (name, p, i) not in done]
+todo = [
+    (name, p, i)
+    for name in MODELS
+    for p in PROMPTS
+    for i in range(SAMPLES_PER_MODEL)
+    if (not only or name == only) and (name, p, i) not in done
+]
 print(f"{len(todo)} requests to send ({len(done)} samples already in {SAMPLES_PATH.name}); budget ${BUDGET_USD:.2f}\n")
 
 spent = 0.0
@@ -89,12 +94,20 @@ def ask(job):
         if "choices" in data:
             choice = data["choices"][0]
             usage = data.get("usage", {})
-            return {"model": name, "prompt": prompt_name, "index": index,
-                    "text": choice["message"].get("content") or "",
-                    "tokens": usage.get("completion_tokens", 0), "batch_seconds": round(time.perf_counter() - started, 1),
-                    "served_model": data.get("model"), "finish_reason": choice.get("finish_reason"),
-                    "cost_usd": usage.get("cost", 0.0)}
-        print(f"  {name} {prompt_name} #{index}: attempt {attempt + 1} failed: {data.get('error', {}).get('message', '?')[:120]}")
+            return {
+                "model": name,
+                "prompt": prompt_name,
+                "index": index,
+                "text": choice["message"].get("content") or "",
+                "tokens": usage.get("completion_tokens", 0),
+                "batch_seconds": round(time.perf_counter() - started, 1),
+                "served_model": data.get("model"),
+                "finish_reason": choice.get("finish_reason"),
+                "cost_usd": usage.get("cost", 0.0),
+            }
+        print(
+            f"  {name} {prompt_name} #{index}: attempt {attempt + 1} failed: {data.get('error', {}).get('message', '?')[:120]}"  # noqa: E501
+        )
         time.sleep(5 * (attempt + 1))
     return None
 
@@ -106,8 +119,10 @@ with ThreadPoolExecutor(WORKERS) as pool, SAMPLES_PATH.open("a") as handle:
         spent += record["cost_usd"] or 0.0
         handle.write(json.dumps(record) + "\n")
         handle.flush()
-        print(f"  {record['model']:12} {record['prompt']:10} #{record['index']:2d}  {record['tokens']:5d} tokens  "
-              f"{record['finish_reason']}  ${record['cost_usd'] or 0:.3f}  (total ${spent:.2f})")
+        print(
+            f"  {record['model']:12} {record['prompt']:10} #{record['index']:2d}  {record['tokens']:5d} tokens  "
+            f"{record['finish_reason']}  ${record['cost_usd'] or 0:.3f}  (total ${spent:.2f})"
+        )
 
 records = [json.loads(line) for line in SAMPLES_PATH.read_text().splitlines()]
 frontier = [r for r in records if r["model"] in MODELS]
@@ -117,8 +132,10 @@ for name in MODELS:
     if mine:
         served = sorted({r.get("served_model") for r in mine})
         cut = sum(r.get("finish_reason") == "length" for r in mine)
-        print(f"  {name:12} {len(mine):3d} samples, served as {served}, {cut} cut off at max_tokens, "
-              f"${sum(r.get('cost_usd') or 0 for r in mine):.2f}")
+        print(
+            f"  {name:12} {len(mine):3d} samples, served as {served}, {cut} cut off at max_tokens, "
+            f"${sum(r.get('cost_usd') or 0 for r in mine):.2f}"
+        )
 
 print("\nSelf-checks:")
 for name in MODELS:

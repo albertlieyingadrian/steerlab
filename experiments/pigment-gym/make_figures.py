@@ -2,7 +2,8 @@
 
     python experiments/pigment-gym/make_figures.py
 
-1. benchmark.png    gate pass rate and mean reward per model, with and without the worked example (results/benchmark.json)
+1. benchmark.png    gate pass rate and mean reward per model, with and without the worked example
+(results/benchmark.json)
 2. curves.png       training curves of both runs, 5-step means (results/curve_laptop.csv, results/curve_h100.csv)
 3. agreement.png    how well the reward's order matches each judge, on hand-made sketches vs the policies' own
                     (results/logs/4_rank_check.txt, 10_judge_*.txt, 11_rerate_*.txt)
@@ -27,23 +28,48 @@ LOGS = RESULTS / "logs"
 FIGURES = HERE / "report" / "figures"
 EMBER, GREY, INK = "#C9561C", "#9A948C", "#2B2723"
 
-plt.rcParams.update({"font.size": 10, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": INK,
-                     "axes.labelcolor": INK, "xtick.color": INK, "ytick.color": INK, "savefig.dpi": 150})
+plt.rcParams.update(
+    {
+        "font.size": 10,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.edgecolor": INK,
+        "axes.labelcolor": INK,
+        "xtick.color": INK,
+        "ytick.color": INK,
+        "savefig.dpi": 150,
+    }
+)
 
 
 def benchmark() -> None:
     data = json.loads((RESULTS / "benchmark.json").read_text())
-    models = [("0.5B", "Qwen2.5-Coder-0.5B"), ("1.5B", "Qwen2.5-Coder-1.5B"), ("qwen3.8-27b", "Qwen3.8-27B"),
-              ("opus-5.5", "Claude Opus 5.5"), ("gpt-5.6-sol", "GPT-5.6 Sol"), ("gemini-pro", "Gemini Pro")]
+    models = [
+        ("0.5B", "Qwen2.5-Coder-0.5B"),
+        ("1.5B", "Qwen2.5-Coder-1.5B"),
+        ("qwen3.8-27b", "Qwen3.8-27B"),
+        ("opus-5.5", "Claude Opus 5.5"),
+        ("gpt-5.6-sol", "GPT-5.6 Sol"),
+        ("gemini-pro", "Gemini Pro"),
+    ]
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), sharey=True)
     y = range(len(models))
-    for ax, key, title in [(axes[0], "gate_pass", "Sketches that pass the gate"), (axes[1], "reward", "Mean reward (0-1)")]:
+    for ax, key, title in [
+        (axes[0], "gate_pass", "Sketches that pass the gate"),
+        (axes[1], "reward", "Mean reward (0-1)"),
+    ]:
         for offset, prompt, alpha in [(-0.2, "no_example", 0.45), (0.2, "example", 1.0)]:
             values = [data[f"{m} {prompt}"][key] for m, _ in models]
             colours = [EMBER if m in ("0.5B", "1.5B") else GREY for m, _ in models]
-            ax.barh([i + offset for i in y], values, height=0.38, color=colours, alpha=alpha,
-                    label="with the worked example" if prompt == "example" else "rules only")
-            for i, v in zip(y, values):
+            ax.barh(
+                [i + offset for i in y],
+                values,
+                height=0.38,
+                color=colours,
+                alpha=alpha,
+                label="with the worked example" if prompt == "example" else "rules only",
+            )
+            for i, v in zip(y, values, strict=False):
                 ax.text(v + 0.01, i + offset, f"{v:.0%}" if key == "gate_pass" else f"{v:.2f}", va="center", fontsize=8)
         ax.set_xlim(0, 1.12)
         ax.set_title(title, loc="left", fontsize=10)
@@ -68,7 +94,10 @@ def rolling(values: list[float], k: int = 5) -> list[float]:
 def curves() -> None:
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.4))
     print("curves.png (5-step means, first -> last):")
-    for name, label, colour in [("laptop", "laptop run: 0.5B, 40 steps", EMBER), ("h100", "H100 run: 1.5B, 100 steps", GREY)]:
+    for name, label, colour in [
+        ("laptop", "laptop run: 0.5B, 40 steps", EMBER),
+        ("h100", "H100 run: 1.5B, 100 steps", GREY),
+    ]:
         rows = list(csv.DictReader((RESULTS / f"curve_{name}.csv").open()))
         steps = [int(r["step"]) for r in rows]
         for ax, key in [(axes[0], "gate_pass"), (axes[1], "reward")]:
@@ -95,15 +124,34 @@ def agreement() -> None:
     hand = number(LOGS / "4_rank_check.txt", r"full reward\s+[-+.\d]+\s+([-+.\d]+)")
     rows = [("hand-made sketches:\nreward vs hand ranking", hand, EMBER)]
     for judge, label in [("gpt-5.6-sol", "GPT-5.6 Sol"), ("opus-5.5", "Opus 5.5")]:
-        rows.append((f"hand-made sketches:\n{label} vs hand ranking",
-                     number(LOGS / "10_judge_laptop.txt", rf"{judge}\s+ratings by hand rank .*?Spearman with the hand ranking ([-+.\d]+)"), GREY))
+        rows.append(
+            (
+                f"hand-made sketches:\n{label} vs hand ranking",
+                number(
+                    LOGS / "10_judge_laptop.txt",
+                    rf"{judge}\s+ratings by hand rank .*?Spearman with the hand ranking ([-+.\d]+)",
+                ),
+                GREY,
+            )
+        )
     for run, run_label in [("laptop", "laptop"), ("h100", "H100")]:
         for judge, label in [("gpt-5.6-sol", "GPT-5.6 Sol"), ("opus-5.5", "Opus 5.5")]:
-            rows.append((f"{run_label} policy's sketches:\nreward vs {label}",
-                         number(LOGS / f"11_rerate_{judge}_{run}.txt", r"full reward\s+([-+.\d]+)"), EMBER))
-        rows.append((f"{run_label} policy's sketches:\nGPT vs Opus", number(LOGS / f"10_judge_{run}.txt", r"judge vs judge .*?Spearman ([-+.\d]+)"), GREY))
+            rows.append(
+                (
+                    f"{run_label} policy's sketches:\nreward vs {label}",
+                    number(LOGS / f"11_rerate_{judge}_{run}.txt", r"full reward\s+([-+.\d]+)"),
+                    EMBER,
+                )
+            )
+        rows.append(
+            (
+                f"{run_label} policy's sketches:\nGPT vs Opus",
+                number(LOGS / f"10_judge_{run}.txt", r"judge vs judge .*?Spearman ([-+.\d]+)"),
+                GREY,
+            )
+        )
     fig, ax = plt.subplots(figsize=(8, 4.6))
-    labels, values, colours = zip(*rows)
+    labels, values, colours = zip(*rows, strict=False)
     ax.barh(range(len(rows)), values, color=colours)
     for i, v in enumerate(values):
         ax.text(v + 0.01, i, f"{v:+.2f}", va="center", fontsize=8)

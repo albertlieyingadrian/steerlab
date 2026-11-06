@@ -11,7 +11,8 @@ can compute instantly, to prove the training loop learns before paying for rende
     reward = max(0, 1 - |words - 5| / 45)      "answer in about five words"
 
 Qwen2.5-0.5B-Instruct usually answers in 30-40 words here (it hits the 48-token cap), so it starts
-around 0.2-0.3. A reward of 1.0 means exactly five words. Nobody tells the model the rule; it has to discover it from the rewards.
+around 0.2-0.3. A reward of 1.0 means exactly five words. Nobody tells the model the rule; it has to discover it from
+the rewards.
 
 This reward took three tries, and the first two were hacked. Both are recorded:
   1. words = text.split(). In ~10 steps the model switched to CHINESE, which has no spaces, so a long
@@ -88,7 +89,9 @@ torch.manual_seed(SEED)
 model, tokenizer = build_lora_model(MODEL, device, seed=SEED)
 trainable, total = trainable_parameters(model)
 print(f"reward: {'NAIVE (words = text.split())' if NAIVE else 'English words, must mention the topic, linear'}")
-print(f"{MODEL} on {device}: {total / 1e6:.0f}M parameters, {trainable / 1e6:.1f}M trainable (LoRA, {trainable / total:.1%})")
+print(
+    f"{MODEL} on {device}: {total / 1e6:.0f}M parameters, {trainable / 1e6:.1f}M trainable (LoRA, {trainable / total:.1%})"  # noqa: E501
+)
 optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=LEARNING_RATE)
 
 history = []
@@ -101,7 +104,13 @@ for step in range(STEPS):
         question, topic = QUESTIONS[(step * PROMPTS_PER_STEP + prompt_index) % len(QUESTIONS)]
         prompt = chat_prompt(tokenizer, [{"role": "user", "content": question}])
         texts, input_ids, mask = sample_group(
-            model, tokenizer, prompt, GROUP_SIZE, MAX_NEW_TOKENS, temperature=1.0, seed=SEED * 1000 + step * 10 + prompt_index
+            model,
+            tokenizer,
+            prompt,
+            GROUP_SIZE,
+            MAX_NEW_TOKENS,
+            temperature=1.0,
+            seed=SEED * 1000 + step * 10 + prompt_index,
         )
         rewards = [reward(text, topic) for text in texts]
         advantages = group_advantages(rewards, scale_rewards="none")
@@ -120,7 +129,9 @@ for step in range(STEPS):
         "kl": mean(kls),
     }
     history.append(row)
-    print(f"{step:4d} {row['reward']:7.3f} {row['words']:6.1f} {row['frac_reward_zero_std']:8.2f} {row['kl']:7.4f}  {example[:60]!r}")
+    print(
+        f"{step:4d} {row['reward']:7.3f} {row['words']:6.1f} {row['frac_reward_zero_std']:8.2f} {row['kl']:7.4f}  {example[:60]!r}"  # noqa: E501
+    )
 
 elapsed = time.perf_counter() - started
 first = mean(row["reward"] for row in history[:5])
@@ -136,10 +147,10 @@ with csv_path.open("w", newline="") as handle:
     writer.writeheader()
     writer.writerows(history)
 
-import matplotlib
+import matplotlib  # noqa: E402
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa: E402
 
 figure, (left, right) = plt.subplots(1, 2, figsize=(10, 3.6))
 left.plot([r["step"] for r in history], [r["reward"] for r in history], color="#c8553d", marker="o", markersize=3)
@@ -160,5 +171,10 @@ check("answers got shorter, towards 5 words", history[-1]["words"] < history[0][
 if not NAIVE:
     check("the final answers are English (the Chinese loophole is closed)", all(ord(c) < 128 for c in example))
     check("the final answers are not the refusal (loophole 2 is closed)", "sorry" not in example.lower())
-check("KL stayed finite (the policy moved but didn't explode)", all(r["kl"] == r["kl"] and r["kl"] < 10 for r in history))
-check("most groups had some reward spread (frac_reward_zero_std < 0.5 on average)", mean(r["frac_reward_zero_std"] for r in history) < 0.5)
+check(
+    "KL stayed finite (the policy moved but didn't explode)", all(r["kl"] == r["kl"] and r["kl"] < 10 for r in history)
+)
+check(
+    "most groups had some reward spread (frac_reward_zero_std < 0.5 on average)",
+    mean(r["frac_reward_zero_std"] for r in history) < 0.5,
+)

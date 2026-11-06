@@ -47,7 +47,7 @@ for prompt_name, system in PROMPTS.items():
     print(f"system prompt '{prompt_name}': {len(system.split())} words")
 print(f"user prompt: {user!r}\n")
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
 
 for short_name, model_name in MODELS.items():
     if only and short_name != only:
@@ -65,20 +65,32 @@ for short_name, model_name in MODELS.items():
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         for start in range(0, len(indices_todo), BATCH):
-            indices = indices_todo[start:start + BATCH]
+            indices = indices_todo[start : start + BATCH]
             torch.manual_seed(SEED + indices[0])  # each batch has its own fixed seed
             encoded = tokenizer([prompt] * len(indices), return_tensors="pt").to(device)
             started = time.perf_counter()
             with torch.no_grad():
-                output = model.generate(**encoded, do_sample=True, temperature=0.8, top_p=0.95,
-                                        max_new_tokens=MAX_NEW_TOKENS, pad_token_id=tokenizer.pad_token_id)
+                output = model.generate(
+                    **encoded,
+                    do_sample=True,
+                    temperature=0.8,
+                    top_p=0.95,
+                    max_new_tokens=MAX_NEW_TOKENS,
+                    pad_token_id=tokenizer.pad_token_id,
+                )
             seconds = time.perf_counter() - started
-            completions = output[:, encoded["input_ids"].shape[1]:]
+            completions = output[:, encoded["input_ids"].shape[1] :]
             with SAMPLES_PATH.open("a") as handle:
-                for index, tokens in zip(indices, completions):
+                for index, tokens in zip(indices, completions, strict=False):
                     text = tokenizer.decode(tokens, skip_special_tokens=True)
-                    record = {"model": short_name, "prompt": prompt_name, "index": index, "text": text,
-                              "tokens": int((tokens != tokenizer.pad_token_id).sum()), "batch_seconds": round(seconds, 1)}
+                    record = {
+                        "model": short_name,
+                        "prompt": prompt_name,
+                        "index": index,
+                        "text": text,
+                        "tokens": int((tokens != tokenizer.pad_token_id).sum()),
+                        "batch_seconds": round(seconds, 1),
+                    }
                     handle.write(json.dumps(record) + "\n")
                     done.add((short_name, prompt_name, index))
             print(f"  {prompt_name:10} samples {indices[0]}-{indices[-1]}: {seconds:.0f} s")

@@ -57,12 +57,14 @@ with Renderer(pool_size=4) as renderer:
         labels = [f"{cell} #{mine[i]['index']} r={rows[i]['reward']:.2f}" for i in order]
         contact_sheet([renders[i].png for i in order], labels, outputs_dir() / f"best_{model}_{prompt_name}.png")
 
-header = f"{'model / prompt':17} {'n':>3} {'code block':>10} {'static ok':>9} {'gate pass':>9} {'coverage':>8} {'CLIP':>6} {'reward':>6} {'tokens':>6}"
+header = f"{'model / prompt':17} {'n':>3} {'code block':>10} {'static ok':>9} {'gate pass':>9} {'coverage':>8} {'CLIP':>6} {'reward':>6} {'tokens':>6}"  # noqa: E501
 print(header)
 for cell, s in summary.items():
     clip = f"{s['clip_raw']:.3f}" if s["clip_raw"] is not None else "-"
-    print(f"{cell:17} {s['samples']:3d} {s['code_block']:10.0%} {s['static_ok']:9.0%} {s['gate_pass']:9.0%} "
-          f"{s['coverage']:8.1%} {clip:>6} {s['reward']:6.3f} {s['mean_tokens']:6.0f}")
+    print(
+        f"{cell:17} {s['samples']:3d} {s['code_block']:10.0%} {s['static_ok']:9.0%} {s['gate_pass']:9.0%} "
+        f"{s['coverage']:8.1%} {clip:>6} {s['reward']:6.3f} {s['mean_tokens']:6.0f}"
+    )
 
 print("\nwhy sketches failed (counts over all samples; one sketch can have several reasons):")
 for cell, s in summary.items():
@@ -83,9 +85,14 @@ print(f"\nsaved {summary_path.name} and best_<model>_<prompt>.png (the 8 highest
 
 print("\nSelf-checks:")
 check("every sample was rendered and scored", sum(s["samples"] for s in summary.values()) == len(records))
-check("all rates are between 0 and 1",
-      all(0 <= s[key] <= 1 for s in summary.values() for key in ["code_block", "static_ok", "gate_pass", "coverage"]))
+check(
+    "all rates are between 0 and 1",
+    all(0 <= s[key] <= 1 for s in summary.values() for key in ["code_block", "static_ok", "gate_pass", "coverage"]),
+)
 check("mean rewards are between 0 and 1", all(0 <= s["reward"] <= 1 for s in summary.values()))
 check("the baseline summary was saved for the laptop run (7_train_laptop.py)", summary_path.exists())
 if "0.5B example" in summary and "0.5B no_example" in summary:
-    check("the worked example raises 0.5B's gate pass rate", summary["0.5B example"]["gate_pass"] > summary["0.5B no_example"]["gate_pass"])
+    check(
+        "the worked example raises 0.5B's gate pass rate",
+        summary["0.5B example"]["gate_pass"] > summary["0.5B no_example"]["gate_pass"],
+    )

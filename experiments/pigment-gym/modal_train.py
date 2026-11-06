@@ -1,5 +1,6 @@
 """
-The H100 run: the laptop run's GRPO loop (7_train_laptop.py), scaled up on a rented H100 through Modal (https://modal.com).
+The H100 run: the laptop run's GRPO loop (7_train_laptop.py), scaled up on a rented H100 through Modal
+(https://modal.com).
 
 COSTS MONEY. Run it only with a budget in mind (see the README for the cost maths).
 
@@ -93,16 +94,31 @@ def train(steps: int, run_name: str, model_name: str, learning_rate: float, warm
     (out_dir / "log.txt").write_text("\n".join(lines) + "\n")
     volume.commit()
     small = {}
-    for name in ["summary.json", "curve.csv", "log.txt", "best_after.js", "before.png", "after.png",
-                 "before_samples.jsonl", "after_samples.jsonl", "rollouts.jsonl"]:
+    for name in [
+        "summary.json",
+        "curve.csv",
+        "log.txt",
+        "best_after.js",
+        "before.png",
+        "after.png",
+        "before_samples.jsonl",
+        "after_samples.jsonl",
+        "rollouts.jsonl",
+    ]:
         if (out_dir / name).exists():
             small[name] = (out_dir / name).read_bytes()
     return small
 
 
 @app.local_entrypoint()
-def main(steps: int = 5, run_name: str = "smoke", model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct",
-         learning_rate: float = 1e-4, warmup: int = 5, fresh: bool = False):
+def main(
+    steps: int = 5,
+    run_name: str = "smoke",
+    model_name: str = "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    learning_rate: float = 1e-4,
+    warmup: int = 5,
+    fresh: bool = False,
+):
     # Re-running the same --run-name resumes from its last checkpoint on the Volume (every 10 steps);
     # --fresh discards it and starts clean.
     files = train.remote(steps, run_name, model_name, learning_rate, warmup, fresh)
@@ -113,6 +129,8 @@ def main(steps: int = 5, run_name: str = "smoke", model_name: str = "Qwen/Qwen2.
     summary = json.loads(files["summary.json"])
     hours = summary["wall_seconds"] / 3600
     print(f"\nsaved {len(files)} files to {local}")
-    print(f"training function wall time {summary['wall_seconds'] / 60:.1f} min -> about ${hours * PRICE_PER_HOUR:.2f} "
-          f"at list price (${PRICE_PER_HOUR:.2f}/h; image build and container start-up are extra and small)")
+    print(
+        f"training function wall time {summary['wall_seconds'] / 60:.1f} min -> about ${hours * PRICE_PER_HOUR:.2f} "
+        f"at list price (${PRICE_PER_HOUR:.2f}/h; image build and container start-up are extra and small)"
+    )
     print(f"LoRA adapter: .venv/bin/modal volume get pigment-gym outputs/{run_name}/lora {local}/lora")

@@ -3,9 +3,11 @@ Is the reward still right where the policy now lives?
 
 Run from the repo root (about a minute):
     .venv/bin/python experiments/pigment-gym/11_rerate.py --ratings results/judge_opus-5.5_laptop.csv
-    .venv/bin/python experiments/pigment-gym/11_rerate.py --ratings my_ratings.csv --rollouts results/rollouts_h100.jsonl
+    .venv/bin/python experiments/pigment-gym/11_rerate.py --ratings my_ratings.csv --rollouts
+    results/rollouts_h100.jsonl
 
-The reward check (4_rank_check.py) tested the reward on 12 hand-written reference sketches. But RL moves the policy somewhere new, and a
+The reward check (4_rank_check.py) tested the reward on 12 hand-written reference sketches. But RL moves the policy
+somewhere new, and a
 reward can be right on the sketches you tested and wrong on the ones the policy now writes, like a test suite
 that only covers last year's code paths. So we re-check on 32 sketches the policy itself wrote:
   1. pick 32 passing training sketches, 16 from the first half of the run and 16 from the second, shuffled
@@ -31,8 +33,12 @@ from reward_tools import Scorer, score_rollouts
 from scipy.stats import spearmanr
 
 parser = argparse.ArgumentParser(description="Re-check the reward on the policy's own sketches")
-parser.add_argument("--rollouts", type=Path, default=DEFAULT_ROLLOUTS, help="JSONL written by the laptop run (7_train_laptop.py)")
-parser.add_argument("--ratings", type=Path, required=True, help="a ratings CSV: id,rating_1_to_5,note (10_judge.py writes them)")
+parser.add_argument(
+    "--rollouts", type=Path, default=DEFAULT_ROLLOUTS, help="JSONL written by the laptop run (7_train_laptop.py)"
+)
+parser.add_argument(
+    "--ratings", type=Path, required=True, help="a ratings CSV: id,rating_1_to_5,note (10_judge.py writes them)"
+)
 args = parser.parse_args()
 
 rows = load_rollouts(args.rollouts)
@@ -68,8 +74,10 @@ rated = [i for i, sketch_id in enumerate(ids) if sketch_id in ratings]
 human = [ratings[ids[i]] for i in rated]
 print(f"\n{'id':4} {'step':>4} {'rating':>6} {'reward':>6} {'CLIP':>6} {'aes':>5}")
 for i in sorted(rated, key=lambda i: (-ratings[ids[i]], -scored[i]["reward"])):
-    print(f"{ids[i]:4} {sample[i]['step']:4d} {ratings[ids[i]]:6d} {scored[i]['reward']:6.3f} "
-          f"{scored[i]['clip_raw'] or 0:6.3f} {scored[i]['aesthetic_raw'] or 0:5.2f}")
+    print(
+        f"{ids[i]:4} {sample[i]['step']:4d} {ratings[ids[i]]:6d} {scored[i]['reward']:6.3f} "
+        f"{scored[i]['clip_raw'] or 0:6.3f} {scored[i]['aesthetic_raw'] or 0:5.2f}"
+    )
 
 
 def rho(values):
@@ -87,15 +95,21 @@ for name, value in results.items():
     print(f"  {name:32} {value:+.2f}")
 first_ratings = [ratings[ids[i]] for i in rated if sample[i]["step"] < half]
 second_ratings = [ratings[ids[i]] for i in rated if sample[i]["step"] >= half]
-print(f"\nmean rating, first half of the run: {sum(first_ratings) / len(first_ratings):.2f}   "
-      f"second half: {sum(second_ratings) / len(second_ratings):.2f}")
+print(
+    f"\nmean rating, first half of the run: {sum(first_ratings) / len(first_ratings):.2f}   "
+    f"second half: {sum(second_ratings) / len(second_ratings):.2f}"
+)
 top_reward = max(rated, key=lambda i: scored[i]["reward"])
 top_rated = max(rated, key=lambda i: (ratings[ids[i]], -scored[i]["reward"]))
 print("\nbiggest disagreements:")
-print(f"  highest reward:  {ids[top_reward]} (reward {scored[top_reward]['reward']:.3f}, aesthetic "
-      f"{scored[top_reward]['aesthetic_raw']:.2f}) was rated {ratings[ids[top_reward]]}")
-print(f"  highest rating:  {ids[top_rated]} (rated {ratings[ids[top_rated]]}) got reward {scored[top_rated]['reward']:.3f}, "
-      f"rank {sorted(rated, key=lambda i: -scored[i]['reward']).index(top_rated) + 1} of {len(rated)}")
+print(
+    f"  highest reward:  {ids[top_reward]} (reward {scored[top_reward]['reward']:.3f}, aesthetic "
+    f"{scored[top_reward]['aesthetic_raw']:.2f}) was rated {ratings[ids[top_reward]]}"
+)
+print(
+    f"  highest rating:  {ids[top_rated]} (rated {ratings[ids[top_rated]]}) got reward {scored[top_rated]['reward']:.3f}, "  # noqa: E501
+    f"rank {sorted(rated, key=lambda i: -scored[i]['reward']).index(top_rated) + 1} of {len(rated)}"
+)
 print("""
 Reading it: on the policy's own sketches the reward has much less to work with. They are variations on one
 template, so the differences are colours and small shifts, and the rater and the reward can easily disagree.
