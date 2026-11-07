@@ -86,7 +86,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=39">
+<link rel="stylesheet" href="../../shared/report.css?v=40">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <style>
   .gallery-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
@@ -113,7 +113,7 @@
 
   <dl class="meta">
     <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
-    <div><dt>Models</dt><dd>Trained: Qwen2.5-Coder 0.5B and 1.5B. Baselines and judges: Claude Opus 5.5, GPT-5.6 Sol, Gemini Pro, Qwen3.8-27B</dd></div>
+    <div><dt>Models</dt><dd>Trained: Qwen2.5-Coder 0.5B and 1.5B. Baselines: Claude Opus 5.5, GPT-5.6 Sol, GPT-6 Astra, Gemini Pro, Qwen3.8-27B; judges: GPT-5.6 Sol, Claude Opus 5.5</dd></div>
     <div><dt>Method</dt><dd>GRPO with a rendered, scored painting as the reward; gain decomposition, code and pixel checks, judge re-rating</dd></div>
     <div><dt>Code</dt><dd><a href="../">experiments/pigment-gym/</a></dd></div>
     <div><dt>Data</dt><dd><a href="../results/">results/</a></dd></div>
@@ -133,7 +133,7 @@
       <table>
         <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
         <tbody>
-          <tr><td>Can small models paint with code untrained?</td><td>Barely: Qwen2.5-Coder 0.5B and 1.5B pass 0/16 with the rules alone, 7/16 and 4/16 with a worked example</td><td>Four larger models: 16/16 each, with or without the example</td></tr>
+          <tr><td>Can small models paint with code untrained?</td><td>Barely: Qwen2.5-Coder 0.5B and 1.5B pass 0/16 with the rules alone, 7/16 and 4/16 with a worked example</td><td>Five larger models: 16/16 each, with or without the example</td></tr>
           <tr class="hl"><td>Where did RL's gain come from?</td><td>Failing less: 76% of the laptop run's rise in reward (+0.208 of +0.275)</td><td>Better paintings: 24% (+0.067)</td></tr>
           <tr><td>Were the successes original?</td><td>No: 80% of late passing sketches contain the prompt's example; best-chunk similarity 0.96</td><td>Whole-file similarity 0.66, under the copy check's 0.85</td></tr>
           <tr><td>Did it paint what was asked?</td><td>No hills: the late bottom third is 89% bare paper; CLIP "green hills" 0.197</td><td>Hand-made control with hills: 7% bare, 0.309</td></tr>
@@ -259,7 +259,7 @@ Here is a complete example that paints a
     <li><strong>Taste</strong>, only for sketches that pass. <em>CLIP</em> (OpenAI's ViT-B/32) turns the image and the caption into vectors and scores how closely they point the same way. <em>The LAION aesthetic predictor</em>, a 3 KB layer trained on people's 1–10 beauty ratings, scores "is it pretty?" without seeing the subject. Each raw score is stretched to 0–1 from the range measured on reference sketches.</li>
   </ol>
   <math display="block"><mi>r</mi><mo>=</mo><mn>0.10</mn><mo>·</mo><mi>g</mi><mo>+</mo><mn>0.05</mn><mo>·</mo><mi>ℓ</mi><mo>+</mo><mi>g</mi><mo>·</mo><mo>(</mo><mn>0.40</mn><mo>·</mo><mi>c</mi><mo>+</mo><mn>0.45</mn><mo>·</mo><mi>a</mi><mo>)</mo></math>
-  <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><mi>r</mi></math>&#8194;the reward, from 0 to 1</dd><dd><math><mi>g</mi></math>&#8194;the gate: 1 if the sketch passes, 0 if not, so a failing sketch can only earn the first two terms</dd><dd><math><mi>ℓ</mi></math>&#8194;length: 1 for 15 to 90 non-blank lines of code, less for shorter or longer</dd><dd><math><mi>c</mi></math>&#8194;the CLIP match with the caption, stretched to 0–1</dd><dd><math><mi>a</mi></math>&#8194;the aesthetic score, stretched to 0–1</dd></dl></details>
+  <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><mi>r</mi></math>&#8194;the reward, from 0 to 1</dd><dd><math><mi>g</mi></math>&#8194;the gate: 1 if the sketch passes, 0 if not, so a failing sketch can only earn the first two terms</dd><dd><math><mi>ℓ</mi></math>&#8194;length: 1 for 15 to 90 non-blank lines of code, less for shorter or longer</dd><dd><math><mi>c</mi></math>&#8194;the CLIP match with the caption, stretched to 0–1</dd><dd><math><mi>a</mi></math>&#8194;the aesthetic score, stretched to 0–1</dd></dl><p class="eq-step"><strong>The weights</strong> are design choices, not fitted: a small share for running (0.10) and a sensible length (0.05), as in the open recipe, and the rest split between showing the subject (CLIP, 0.40) and looking nice (aesthetic, 0.45).</p><p class="eq-step"><strong>From raw to 0–1:</strong> <math><mtext>scaled</mtext><mo>=</mo><mfrac><mrow><mtext>raw</mtext><mo>−</mo><mtext>low</mtext></mrow><mrow><mtext>high</mtext><mo>−</mo><mtext>low</mtext></mrow></mfrac></math>, capped to 0–1, with CLIP from 0.15 to 0.33 and aesthetic from 3.5 to 6.0, the ranges measured on the project's own renders.</p><p class="eq-step"><strong>Worked example</strong>, the tiny dot in Figure 2: CLIP (0.246 − 0.15) ÷ 0.18 = 0.53; aesthetic (4.64 − 3.5) ÷ 2.5 = 0.46; reward = 0.10 + 0.05 + 0.40 × 0.53 + 0.45 × 0.46 = 0.57.</p></details>
   <figure class="plot">
     <img src="figures/scoring_walkthrough.png" alt="Six panels with their scores. A crash: no image, reward 0.05. The words SUNSET OVER GREEN HILLS on paper: gate fails, CLIP would say 0.320, reward 0.05. One tiny dot: CLIP 0.246, aesthetic 4.64, reward 0.57. The prompt's example, a red disc on a blue wash: CLIP 0.278, aesthetic 4.13, reward 0.55. A hand-made sunset over hills: CLIP 0.321, aesthetic 4.86, reward 0.77. A frontier model's painting: CLIP 0.307, aesthetic 5.39, reward 0.84." width="2073" height="589" loading="lazy">
     <figcaption><span class="label">Figure 2.</span>Six sketches through the reward. In the CLIP and aesthetic rows, the first number is the scorer's raw output and the number after the arrow is the same score stretched to 0–1, using the range measured on the reference sketches; the reward adds up the 0–1 numbers. Numbers in brackets are what the scorer would have said about a sketch the gate rejects. The words panel is the text drawn on paper and scored by CLIP directly (the brush canvas cannot draw text); the gate gives it 0.05. Note the tiny dot outscoring the prompt's example, 0.57 against 0.55: the aesthetic predictor likes empty paper.</figcaption>
@@ -276,7 +276,7 @@ Here is a complete example that paints a
       <thead><tr><th>Role</th><th>Models</th><th>How they were run</th></tr></thead>
       <tbody>
         <tr><td>Trained</td><td>Qwen2.5-Coder-0.5B-Instruct, Qwen2.5-Coder-1.5B-Instruct</td><td>Locally, Hugging Face Transformers, LoRA adapters</td></tr>
-        <tr><td>Benchmark only</td><td>Claude Opus 5.5, GPT-5.6 Sol, Gemini Pro, Qwen3.8-27B</td><td>Through OpenRouter, the same messages, up to 6,000 tokens (they reason before answering), reasoning effort low</td></tr>
+        <tr><td>Benchmark only</td><td>Claude Opus 5.5, GPT-5.6 Sol, GPT-6 Astra, Gemini Pro, Qwen3.8-27B</td><td>Through OpenRouter, the same messages, up to 6,000 tokens (they reason before answering), reasoning effort low</td></tr>
         <tr><td>Judges</td><td>GPT-5.6 Sol, Claude Opus 5.5</td><td>One image per request, temperature 0, a fixed 1–5 rubric, no reward or step shown</td></tr>
       </tbody>
     </table>
@@ -330,12 +330,12 @@ Here is a complete example that paints a
 
   <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
   <figure class="flow">
-  <svg viewBox="0 0 760 300" role="img" aria-label="How the study was run, in three phases. Before training: 1, build and check the reward on 12 reference sketches; 2, benchmark two small and four frontier models, 192 sketches. Training: 3, a toy GRPO task with no browser, where hacks 1 and 2 appeared; 4, the laptop run of the 0.5B model, 40 steps, where hacks 3 and 4 appeared; 5, the H100 run of the 1.5B model, 100 steps, about 3.83 dollars. After: 6, audit both runs four ways: split the gain, fingerprint the code, crop the pixels for hills, re-rate with two judges.">
+  <svg viewBox="0 0 760 300" role="img" aria-label="How the study was run, in three phases. Before training: 1, build and check the reward on 12 reference sketches; 2, benchmark two small and five frontier models, 224 sketches. Training: 3, a toy GRPO task with no browser, where hacks 1 and 2 appeared; 4, the laptop run of the 0.5B model, 40 steps, where hacks 3 and 4 appeared; 5, the H100 run of the 1.5B model, 100 steps, about 3.83 dollars. After: 6, audit both runs four ways: split the gain, fingerprint the code, crop the pixels for hills, re-rate with two judges.">
     <defs><marker id="flow-tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="tip"/></marker></defs>
     <g font-size="15">
       <text class="phase" x="4" y="51">BEFORE</text><text class="phase" x="4" y="157">TRAINING</text><text class="phase" x="4" y="263">AFTER</text>
       <rect x="120" y="8" width="300" height="76" rx="8"/><text x="134" y="39" class="head">1 · Build and check the reward</text><text class="sub" x="134" y="65">12 references · Spearman 0.81</text>
-      <rect x="450" y="8" width="300" height="76" rx="8"/><text x="464" y="39" class="head">2 · Benchmark</text><text class="sub" x="464" y="65">6 models · 192 sketches</text>
+      <rect x="450" y="8" width="300" height="76" rx="8"/><text x="464" y="39" class="head">2 · Benchmark</text><text class="sub" x="464" y="65">7 models · 224 sketches</text>
       <rect x="120" y="114" width="196" height="76" rx="8"/><text x="134" y="145" class="head">3 · Toy GRPO</text><text class="sub" x="134" y="171">no browser · hacks 1–2</text>
       <rect x="336" y="114" width="196" height="76" rx="8"/><text x="350" y="145" class="head">4 · Laptop run</text><text class="sub" x="350" y="171">40 steps · hacks 3–4</text>
       <rect x="552" y="114" width="198" height="76" rx="8"/><text x="566" y="145" class="head">5 · H100 run</text><text class="sub" x="566" y="171">100 steps · $3.83</text>
@@ -346,7 +346,7 @@ Here is a complete example that paints a
   </figure>
   <ol>
     <li><strong>Build and check the reward</strong> on 12 reference sketches with a known order (Spearman 0.81 on the 8 that pass).</li>
-    <li><strong>Benchmark</strong> two small and four frontier models, 16 sketches per prompt version (192 sketches).</li>
+    <li><strong>Benchmark</strong> two small and five frontier models, 16 sketches per prompt version (224 sketches).</li>
     <li><strong>Warm up GRPO on a toy task</strong> with no browser ("answer in about five words"), where the first two hacks appeared.</li>
     <li><strong>Train on the laptop</strong>, three times: without a copy check (hack 3 appeared), then with one (the run reported here, 40 steps).</li>
     <li><strong>Train on an H100</strong>: two 5-step test runs, then 100 steps.</li>
@@ -362,7 +362,7 @@ Here is a complete example that paints a
       </tbody>
     </table>
   </div>
-  <p>Conditions: training samples at temperature 1.0, held-out and benchmark samples at 0.8 with fixed seeds, judges at 0. The laptop run took 13.8 minutes for 40 steps and two evaluations (about 15–30 s a step); H100 steps 27.8 s (generation 18.1 s, rendering 9.1 s, update 0.7 s). Spend: $5.80 on Modal in all, $1.86 for the frontier benchmark, $0.35 for the judges. None of the three success tests was met.</p>
+  <p>Conditions: training samples at temperature 1.0, held-out and benchmark samples at 0.8 with fixed seeds, judges at 0. The laptop run took 13.8 minutes for 40 steps and two evaluations (about 15–30 s a step); H100 steps 27.8 s (generation 18.1 s, rendering 9.1 s, update 0.7 s). Spend: $5.80 on Modal in all, $4.21 for the frontier benchmark, $0.35 for the judges. None of the three success tests was met.</p>
 
   <h2 id="results"><span class="num">04</span>Results</h2>
   <p>Seven findings, in order:</p>
@@ -380,13 +380,16 @@ Here is a complete example that paints a
   <p><strong>With the rules alone, both Qwen2.5-Coder models pass 0 of 16 [0, 0.19]. Every larger model passes 16 of 16 [0.81, 1], with or without the worked example, at a mean reward of 0.63–0.84.</strong></p>
   <div class="finding">
     <figure class="plot">
-      <img src="figures/benchmark.png" alt="Two bar charts. Sketches passing the gate: Qwen2.5-Coder-0.5B 0% with rules only and 44% with the example; 1.5B 0% and 25%; Qwen3.8-27B, Claude Opus 5.5, GPT-5.6 Sol and Gemini Pro 100% in both versions. Mean reward: 0.05 and 0.19; 0.05 and 0.12; 0.63 and 0.68; 0.76 and 0.74; 0.73 and 0.82; 0.76 and 0.84. A dashed line marks the 0.5B model after RL at 0.48." width="1500" height="570" loading="lazy">
+      <div class="gallery-buttons view-toggle" role="group" aria-label="Show the benchmark as"><button type="button" data-view="bench-chart" aria-pressed="true">Chart</button><button type="button" data-view="bench-board" aria-pressed="false">Leaderboard</button></div>
+      <div id="bench-chart"><img src="figures/benchmark.png" alt="Two bar charts. Sketches passing the gate: Qwen2.5-Coder-0.5B 0% with rules only and 44% with the example; 1.5B 0% and 25%; Qwen3.8-27B, Claude Opus 5.5, GPT-5.6 Sol, GPT-6 Astra and Gemini Pro 100% in both versions. Mean reward, rules only and with the example: 0.05 and 0.19; 0.05 and 0.12; 0.63 and 0.68; 0.76 and 0.74; 0.73 and 0.82; 0.77 and 0.78; 0.76 and 0.84. A dashed line marks the 0.5B model after RL at 0.48." width="1500" height="645" loading="lazy"></div>
+      <div class="lb-wrap" id="bench-board" hidden><table class="lb"><thead><tr><th>#</th><th>Model</th><th class="lb-num">Pass,<br>rules only</th><th class="lb-num">Pass, with<br>example</th><th>Reward, rules only</th><th>Reward, with example</th></tr></thead><tbody><tr><td class="lb-rank">1</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/gemini-color.svg" alt="" width="24" height="24"><span><strong>Gemini Pro</strong><small>Google · Proprietary</small></span></span></td><td class="lb-num">100%</td><td class="lb-num">100%</td><td class="lb-rw"><span class="lb-bar"><i class="pale" style="width:76%"></i></span>0.76</td><td class="lb-rw"><span class="lb-bar"><i class="" style="width:84%"></i></span>0.84</td></tr><tr><td class="lb-rank">2</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/openai.svg" alt="" width="24" height="24"><span><strong>GPT-5.6 Sol</strong><small>OpenAI · Proprietary</small></span></span></td><td class="lb-num">100%</td><td class="lb-num">100%</td><td class="lb-rw"><span class="lb-bar"><i class="pale" style="width:73%"></i></span>0.73</td><td class="lb-rw"><span class="lb-bar"><i class="" style="width:82%"></i></span>0.82</td></tr><tr><td class="lb-rank">3</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/openai.svg" alt="" width="24" height="24"><span><strong>GPT-6 Astra</strong><small>OpenAI · Proprietary</small></span></span></td><td class="lb-num">100%</td><td class="lb-num">100%</td><td class="lb-rw"><span class="lb-bar"><i class="pale" style="width:77%"></i></span>0.77</td><td class="lb-rw"><span class="lb-bar"><i class="" style="width:78%"></i></span>0.78</td></tr><tr><td class="lb-rank">4</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/claude-color.svg" alt="" width="24" height="24"><span><strong>Claude Opus 5.5</strong><small>Anthropic · Proprietary</small></span></span></td><td class="lb-num">100%</td><td class="lb-num">100%</td><td class="lb-rw"><span class="lb-bar"><i class="pale" style="width:76%"></i></span>0.76</td><td class="lb-rw"><span class="lb-bar"><i class="" style="width:74%"></i></span>0.74</td></tr><tr><td class="lb-rank">5</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/qwen-color.svg" alt="" width="24" height="24"><span><strong>Qwen3.8-27B</strong><small>Alibaba · Apache 2.0</small></span></span></td><td class="lb-num">100%</td><td class="lb-num">100%</td><td class="lb-rw"><span class="lb-bar"><i class="pale" style="width:63%"></i></span>0.63</td><td class="lb-rw"><span class="lb-bar"><i class="" style="width:68%"></i></span>0.68</td></tr><tr><td class="lb-rank">6</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/qwen-color.svg" alt="" width="24" height="24"><span><strong>Qwen2.5-Coder-0.5B</strong><span class="lb-tag">trained in this note</span><small>Alibaba · Apache 2.0</small></span></span></td><td class="lb-num">0%</td><td class="lb-num">44%</td><td class="lb-rw"><span class="lb-bar"><i class="hot pale" style="width:5%"></i></span>0.05</td><td class="lb-rw"><span class="lb-bar"><i class="hot" style="width:19%"></i></span>0.19</td></tr><tr><td class="lb-rank">7</td><td><span class="lb-model"><img class="lb-logo" src="../../shared/logos/qwen-color.svg" alt="" width="24" height="24"><span><strong>Qwen2.5-Coder-1.5B</strong><span class="lb-tag">trained in this note</span><small>Alibaba · Apache 2.0</small></span></span></td><td class="lb-num">0%</td><td class="lb-num">25%</td><td class="lb-rw"><span class="lb-bar"><i class="hot pale" style="width:5%"></i></span>0.05</td><td class="lb-rw"><span class="lb-bar"><i class="hot" style="width:12%"></i></span>0.12</td></tr></tbody></table><p class="lb-after">After 40 RL steps, Qwen2.5-Coder-0.5B reaches a held-out mean reward of <b>0.48</b>.</p></div>
       <figcaption><span class="label">Figure 4.</span>16 sketches per model and prompt version, scored by the same gate and reward. Orange: the small models this note trains; grey: larger models, untrained. Pale bars: rules only; solid: with the worked example. Dashed: the 0.5B model's held-out reward after 40 RL steps. Gemini Pro was requested as OpenRouter's “latest Gemini Pro” alias, which served a model listed as <code>google/gemini-4-argon</code>; its replies record the served name.</figcaption>
     </figure>
     <div class="gallery" id="gallery">
       <div class="gallery-buttons" role="group" aria-label="Choose whose paintings to show">
         <button type="button" data-src="figures/opus_paintings.png" data-caption="Claude Opus 5.5, rules only: the 8 highest-reward of 16." aria-pressed="true"><img class="model-logo" src="../../shared/logos/claude-color.svg" alt="" width="16" height="16">Claude Opus 5.5 · benchmark</button>
         <button type="button" data-src="figures/gpt_paintings.png" data-caption="GPT-5.6 Sol, rules only: the 8 highest-reward of 16." aria-pressed="false"><img class="model-logo" src="../../shared/logos/openai.svg" alt="" width="16" height="16">GPT-5.6 Sol · benchmark</button>
+        <button type="button" data-src="figures/astra_paintings.png" data-caption="GPT-6 Astra, rules only: the 8 highest-reward of 16." aria-pressed="false"><img class="model-logo" src="../../shared/logos/openai.svg" alt="" width="16" height="16">GPT-6 Astra · benchmark</button>
         <button type="button" data-src="figures/gemini_paintings.png" data-caption="Gemini Pro, rules only: the 8 highest-reward of 16." aria-pressed="false"><img class="model-logo" src="../../shared/logos/gemini-color.svg" alt="" width="16" height="16">Gemini Pro · benchmark</button>
         <button type="button" data-src="figures/qwen27b_paintings.png" data-caption="Qwen3.8-27B, rules only: the 8 highest-reward of 16." aria-pressed="false"><img class="model-logo" src="../../shared/logos/qwen-color.svg" alt="" width="16" height="16">Qwen3.8-27B · benchmark</button>
         <button type="button" data-src="figures/small_paintings.png" data-caption="Qwen2.5-Coder-1.5B, with the example: the 8 highest-reward of 16." aria-pressed="false"><img class="model-logo" src="../../shared/logos/qwen-color.svg" alt="" width="16" height="16">Qwen2.5-Coder-1.5B · benchmark</button>
@@ -543,14 +546,14 @@ experiments/pigment-gym/reproduce.sh</code></pre>
   <h3 id="q3">What reward hacks did the model find?</h3>
   <p>Four: answering in Chinese to fool a space-based word count, refusing with an eight-word sentence, pasting the prompt's example verbatim, and padding a copy of the example so a whole-file copy check stopped firing.</p>
   <h3 id="q4">Can frontier models paint with code without training?</h3>
-  <p>Yes: Claude Opus 5.5, GPT-5.6 Sol, Gemini Pro and Qwen3.8-27B each passed the rule check on 16 of 16 sketches, at a mean reward of 0.63–0.84, against 0.48 for the trained 0.5B model.</p>
+  <p>Yes: Claude Opus 5.5, GPT-5.6 Sol, GPT-6 Astra, Gemini Pro and Qwen3.8-27B each passed the rule check on 16 of 16 sketches, at a mean reward of 0.63–0.84, against 0.48 for the trained 0.5B model.</p>
   <h3 id="q5">Why re-rate the trained model's sketches?</h3>
   <p>Because a reward validated on reference examples can fail on what training produces: here its agreement with two judges fell from about 0.8 on reference sketches to between 0.03 and 0.37 on the trained models' own.</p>
 
   <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
   <p>Every number in this note comes from a file in <a href="../results/"><code>results/</code></a>; <a href="../results/README.md"><code>results/README.md</code></a> describes each one.</p>
   <ul>
-    <li><code>benchmark_samples.jsonl</code>, <code>benchmark.json</code>: the 192 benchmark replies and their scores per model and prompt version.</li>
+    <li><code>benchmark_samples.jsonl</code>, <code>benchmark.json</code>: the 224 benchmark replies and their scores per model and prompt version.</li>
     <li><code>rollouts_laptop.jsonl</code>, <code>rollouts_h100.jsonl</code>, <code>curve_*.csv</code>, <code>summary_h100.json</code>: every training sketch with its reward terms, and the per-step curves.</li>
     <li><code>judge_*.csv</code>: each judge's 1–5 rating and note for the 32 sketches per run.</li>
     <li><code>scoring_walkthrough.json</code>: the six sketches of Figure 2, term by term.</li>
@@ -610,6 +613,18 @@ experiments/pigment-gym/reproduce.sh</code></pre>
       });
     });
   })();
+</script>
+<script>
+  document.querySelectorAll(".view-toggle").forEach(function (group) {
+    group.querySelectorAll("button").forEach(function (button) {
+      button.addEventListener("click", function () {
+        group.querySelectorAll("button").forEach(function (b) {
+          b.setAttribute("aria-pressed", String(b === button));
+          document.getElementById(b.dataset.view).hidden = b !== button;
+        });
+      });
+    });
+  });
 </script>
 <script src="../../shared/report.js?v=15"></script>
 </body>

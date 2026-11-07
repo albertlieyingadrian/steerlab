@@ -52,9 +52,10 @@ def benchmark() -> None:
         ("qwen3.8-27b", "Qwen3.8-27B"),
         ("opus-5.5", "Claude Opus 5.5"),
         ("gpt-5.6-sol", "GPT-5.6 Sol"),
+        ("gpt-6-astra", "GPT-6 Astra"),
         ("gemini-pro", "Gemini Pro"),
     ]
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.3), sharey=True)
     y = range(len(models))
     for ax, key, title in [
         (axes[0], "gate_pass", "Sketches that pass the gate"),

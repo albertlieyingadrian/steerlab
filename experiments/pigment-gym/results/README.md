@@ -4,7 +4,7 @@ Everything the note quotes. All files were written by the scripts one folder up;
 
 | File | What it holds |
 |---|---|
-| `benchmark_samples.jsonl` | The 192 benchmark replies, one per line: `model` (short name), `prompt` (`no_example` or `example`), `index` (0–15, also the seed), `text` (the full reply), `tokens`; frontier rows add `served_model` (what OpenRouter actually ran), `finish_reason` and `cost_usd`. Written by `1_sample_small.py` and `2_sample_frontier.py` |
+| `benchmark_samples.jsonl` | The 224 benchmark replies, one per line: `model` (short name), `prompt` (`no_example` or `example`), `index` (0–15, also the seed), `text` (the full reply), `tokens`; frontier rows add `served_model` (what OpenRouter actually ran), `finish_reason` and `cost_usd`. Written by `1_sample_small.py` and `2_sample_frontier.py` |
 | `benchmark.json` | Per `"<model> <prompt>"`: `samples`, `code_block`, `static_ok`, `gate_pass` (shares 0–1), `coverage` (mean painted share of passing sketches), `clip_raw` (mean over passes), `reward` (mean over all), `violations` (counts by reason), `mean_tokens`. Written by `3_benchmark.py` |
 | `scoring_walkthrough.json` | The six sketches of Figure 2: `name`, `gate`, `violations`, `clip_raw`, `clip`, `aesthetic_raw`, `aesthetic`, `length`, `reward`. For gated sketches, `clip_raw` and `aesthetic_raw` are what the scorers would have said without the gate |
 | `rollouts_laptop.jsonl`, `rollouts_h100.jsonl` | Every training sketch of each run, one per line: `step`, `code`, `reward` (with partial credit), `shaping` (the partial credit), `gate`, `length`, `clip` and `aesthetic` (stretched to 0–1), `clip_raw`, `aesthetic_raw`, `coverage`, `violations`; the H100 file adds `render_s` |
