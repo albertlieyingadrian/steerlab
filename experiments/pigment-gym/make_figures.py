@@ -5,7 +5,7 @@
 1. benchmark.png    gate pass rate and mean reward per model, with and without the worked example
 (results/benchmark.json)
 2. curves.png       training curves of both runs, 5-step means (results/curve_laptop.csv, results/curve_h100.csv)
-3. agreement.png    how well the reward's order matches each judge, on hand-made sketches vs the policies' own
+3. agreement.png    how well the reward's order matches each judge, on reference sketches vs the policies' own
                     (results/logs/4_rank_check.txt, 10_judge_*.txt, 11_rerate_*.txt)
 The paintings (contact sheets) are drawn by the scripts that render them; see the README.
 """
@@ -122,11 +122,11 @@ def number(path: Path, pattern: str) -> float:
 
 def agreement() -> None:
     hand = number(LOGS / "4_rank_check.txt", r"full reward\s+[-+.\d]+\s+([-+.\d]+)")
-    rows = [("hand-made sketches:\nreward vs hand ranking", hand, EMBER)]
+    rows = [("reference sketches:\nreward vs intended order", hand, EMBER)]
     for judge, label in [("gpt-5.6-sol", "GPT-5.6 Sol"), ("opus-5.5", "Opus 5.5")]:
         rows.append(
             (
-                f"hand-made sketches:\n{label} vs hand ranking",
+                f"reference sketches:\n{label} vs intended order",
                 number(
                     LOGS / "10_judge_laptop.txt",
                     rf"{judge}\s+ratings by hand rank .*?Spearman with the hand ranking ([-+.\d]+)",
