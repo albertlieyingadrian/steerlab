@@ -21,7 +21,7 @@ run() {
   if [ "$DRY_RUN" = 0 ]; then "$@"; fi
 }
 
-echo "# 2.1: the reward, checked on the 12 reference sketches, and Figure 2"
+echo "# 2.1: the reward, checked on the 12 reference sketches, and Figures 2 and 3"
 run "$PY" "$E/4_rank_check.py"
 run "$PY" "$E/5_scoring_walkthrough.py"
 

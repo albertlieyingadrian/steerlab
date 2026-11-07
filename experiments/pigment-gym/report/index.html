@@ -264,7 +264,11 @@ Here is a complete example that paints a
     <img src="figures/scoring_walkthrough.png" alt="Six panels with their scores. A crash: no image, reward 0.05. The words SUNSET OVER GREEN HILLS on paper: gate fails, CLIP would say 0.320, reward 0.05. One tiny dot: CLIP 0.246, aesthetic 4.64, reward 0.57. The prompt's example, a red disc on a blue wash: CLIP 0.278, aesthetic 4.13, reward 0.55. A hand-made sunset over hills: CLIP 0.321, aesthetic 4.86, reward 0.77. A frontier model's painting: CLIP 0.307, aesthetic 5.39, reward 0.84." width="2073" height="589" loading="lazy">
     <figcaption><span class="label">Figure 2.</span>Six sketches through the reward. In the CLIP and aesthetic rows, the first number is the scorer's raw output and the number after the arrow is the same score stretched to 0–1, using the range measured on the reference sketches; the reward adds up the 0–1 numbers. Numbers in brackets are what the scorer would have said about a sketch the gate rejects. The words panel is the text drawn on paper and scored by CLIP directly (the brush canvas cannot draw text); the gate gives it 0.05. Note the tiny dot outscoring the prompt's example, 0.57 against 0.55: the aesthetic predictor likes empty paper.</figcaption>
   </figure>
-  <p><strong>The reward was checked before any training.</strong> On 12 hand-written reference sketches with a known quality order, from a meadow at sunset down to bare p5 shapes, it agrees with that order at Spearman 0.93; on the 8 that pass the gate, where only taste is left, at 0.81. The aesthetic term alone manages 0.38 on those 8.</p>
+  <p><strong>The reward was checked before any training.</strong> We wrote 12 reference sketches by hand (<a href="https://github.com/albertlieyingadrian/steerlab/blob/main/experiments/pigment-gym/hand_pool.py"><code>hand_pool.py</code></a>), from a meadow at sunset down to code that crashes, and ranked them by quality ourselves before scoring any of them (Figure 3). Spearman correlation measures how closely two rankings agree: 1 means the same order, 0 means unrelated. Across all 12, the reward's order agrees with ours at 0.93, but most of that is the easy part, telling broken code from working code. On the 8 sketches that pass the gate, where only taste decides, it agrees at 0.81. The aesthetic score on its own manages only 0.38 on those 8, so CLIP does most of the ranking.</p>
+  <figure class="plot">
+    <img src="figures/reference_sketches.png" alt="The 12 reference sketches in hand-ranked order, each with its reward. 1, meadow at sunset, 0.88. 2, sunset over 3 hills, 0.77. 3, simple sunset with 1 hill, 0.71. 4, hills with no sun, 0.50. 5, sun only, 0.59. 6, random confetti, 0.47. 7, muddy brown, 0.23. 8, one tiny dot, 0.57. Tied last, all failing the gate: a syntax error, 0.05; writing the word SUNSET, 0.05; bare p5 shapes, 0.03; blank paper, 0.05." width="1960" height="772" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>The 12 reference sketches, in the order we ranked them by hand, with the reward each one got. The reward mostly agrees; the visible misses are the sun alone (0.59) above hills with no sun (0.50), and the tiny dot (0.57) above confetti and the muddy painting.</figcaption>
+  </figure>
 
   <h3 id="models">2.2 Models</h3>
   <div class="table-wrap">
@@ -377,7 +381,7 @@ Here is a complete example that paints a
   <div class="finding">
     <figure class="plot">
       <img src="figures/benchmark.png" alt="Two bar charts. Sketches passing the gate: Qwen2.5-Coder-0.5B 0% with rules only and 44% with the example; 1.5B 0% and 25%; Qwen3.8-27B, Claude Opus 5.5, GPT-5.6 Sol and Gemini Pro 100% in both versions. Mean reward: 0.05 and 0.19; 0.05 and 0.12; 0.63 and 0.68; 0.76 and 0.74; 0.73 and 0.82; 0.76 and 0.84. A dashed line marks the 0.5B model after RL at 0.48." width="1500" height="570" loading="lazy">
-      <figcaption><span class="label">Figure 3.</span>16 sketches per model and prompt version, scored by the same gate and reward. Orange: the small models this note trains; grey: larger models, untrained. Pale bars: rules only; solid: with the worked example. Dashed: the 0.5B model's held-out reward after 40 RL steps. Gemini Pro was requested as OpenRouter's “latest Gemini Pro” alias, which served a model listed as <code>google/gemini-4-argon</code>; its replies record the served name.</figcaption>
+      <figcaption><span class="label">Figure 4.</span>16 sketches per model and prompt version, scored by the same gate and reward. Orange: the small models this note trains; grey: larger models, untrained. Pale bars: rules only; solid: with the worked example. Dashed: the 0.5B model's held-out reward after 40 RL steps. Gemini Pro was requested as OpenRouter's “latest Gemini Pro” alias, which served a model listed as <code>google/gemini-4-argon</code>; its replies record the served name.</figcaption>
     </figure>
     <div class="gallery" id="gallery">
       <div class="gallery-buttons" role="group" aria-label="Choose whose paintings to show">
@@ -389,7 +393,7 @@ Here is a complete example that paints a
       </div>
       <figure class="plot">
         <img id="gallery-img" src="figures/opus_paintings.png" alt="Contact sheet of paintings; the buttons above switch between models and training stages." width="800" height="436" loading="lazy">
-        <figcaption><span class="label">Figure 4. Try it.</span><span id="gallery-caption">Claude Opus 5.5, rules only: the 8 highest-reward of 16.</span> Each tile shows its reward.</figcaption>
+        <figcaption><span class="label">Figure 5. Try it.</span><span id="gallery-caption">Claude Opus 5.5, rules only: the 8 highest-reward of 16.</span> Each tile shows its reward.</figcaption>
       </figure>
     </div>
   </div>
@@ -402,7 +406,7 @@ Here is a complete example that paints a
     <p>A batch's mean reward is a weighted average of passing and failing sketches, <code>p·R + (1 − p)·F</code>, so a change splits exactly into three parts that add up: more sketches crossing into the passing group, passing sketches scoring higher, and failures changing. The pass rate does the climbing; the reward of passing sketches is nearly flat after step 3.</p>
     <figure class="plot">
       <img src="figures/decompose_laptop.png" alt="Four panels over 40 steps of the laptop run: gate pass rate climbing from 0 to 0.6–1.0; reward of passing sketches flat around 0.4–0.5 after step 3; CLIP of passing sketches rising slightly from 0.21 to 0.27; similarity to the prompt's example between 0.5 and 0.8, under a dashed copy line at 0.85." width="1200" height="720" loading="lazy">
-      <figcaption><span class="label">Figure 5.</span>The laptop run, per training step (8 sketches each). The pass rate climbs; the reward of the sketches that pass barely moves; similarity to the example stays just under the copy line.</figcaption>
+      <figcaption><span class="label">Figure 6.</span>The laptop run, per training step (8 sketches each). The pass rate climbs; the reward of the sketches that pass barely moves; similarity to the example stays just under the copy line.</figcaption>
     </figure>
   </div>
   <p>The first success test fails: the gain is mostly failing less, the same pattern the open reproduction described.</p>
@@ -417,7 +421,7 @@ Here is a complete example that paints a
   </ol>
   <figure class="plot">
     <img src="figures/hack_copy.png" alt="Eight held-out paintings after training with no copy check: each is a blue wash with a red disc, the prompt's example." width="800" height="436" loading="lazy">
-    <figcaption><span class="label">Figure 6.</span>Hack 3. After training without a copy check, all 8 shown held-out sketches are the prompt's example.</figcaption>
+    <figcaption><span class="label">Figure 7.</span>Hack 3. After training without a copy check, all 8 shown held-out sketches are the prompt's example.</figcaption>
   </figure>
 
   <h3 id="copying" data-short="Successes were copies">4.4 The successes were the prompt's example, padded past the copy check</h3>
@@ -455,7 +459,7 @@ Here is a complete example that paints a
   <p class="table-note">* The H100 model rarely leaves bare paper, but only because it floods the canvas with one flat colour; CLIP on the crop shows no hills. One measure can pass for the wrong reason, which is why the test pairs two.</p>
   <figure class="plot">
     <img src="figures/h100_late.png" alt="Twelve late passing sketches from the H100 run: flat green, blue, mint and lavender backgrounds with a single wash or disc on top; no sunsets and no hills." width="800" height="654" loading="lazy">
-    <figcaption><span class="label">Figure 7.</span>Twelve late passing sketches from the H100 run: flat colour fields, varied but with no sunset and no hills.</figcaption>
+    <figcaption><span class="label">Figure 8.</span>Twelve late passing sketches from the H100 run: flat colour fields, varied but with no sunset and no hills.</figcaption>
   </figure>
   <p>The second success test fails. The frontier models in 4.1 paint the hills in every one of their top sketches.</p>
 
@@ -465,7 +469,7 @@ Here is a complete example that paints a
   <div class="finding">
     <figure class="plot">
       <img src="figures/agreement.png" alt="Bar chart of Spearman correlations. On hand-made sketches: reward vs hand ranking 0.81, GPT-5.6 Sol 0.82, Opus 5.5 0.77. On the laptop policy's sketches: reward vs GPT 0.08, reward vs Opus 0.37, GPT vs Opus 0.16. On the H100 policy's sketches: reward vs GPT 0.20, reward vs Opus 0.03, GPT vs Opus 0.21." width="1200" height="690" loading="lazy">
-      <figcaption><span class="label">Figure 8.</span>Spearman agreement. Top three: on the 8 passing reference sketches, against their known order. Below: on 32 passing sketches from each run (16 from each half, fixed seed). Orange: the reward against a judge; grey: a judge against the hand ranking or against the other judge.</figcaption>
+      <figcaption><span class="label">Figure 9.</span>Spearman agreement. Top three: on the 8 passing reference sketches, against their known order. Below: on 32 passing sketches from each run (16 from each half, fixed seed). Orange: the reward against a judge; grey: a judge against the hand ranking or against the other judge.</figcaption>
     </figure>
   </div>
   <p>The reward's favourite laptop sketch, a lone disc on blank paper (reward 0.661), got a 2 from both judges. The judges also barely agree with each other on these sketches (0.16 and 0.21), and most of their ratings are 1 or 2: the trained models' sketches are close variations on one template, with little real quality difference left to rank. The reward is still ranking them, on differences neither judge sees. Mean ratings rose only slightly over the laptop run (2.25 to 2.31 for GPT, 2.00 to 2.38 for Opus) and stayed near the floor on the H100 run (1.56 to 1.56, 1.06 to 1.25). The third success test fails.</p>
@@ -474,7 +478,7 @@ Here is a complete example that paints a
   <p><strong>Qwen2.5-Coder-1.5B went from 1 of 16 [0.01, 0.28] to 3 of 16 [0.07, 0.43] held-out passes in 100 steps, the same as a 5-step test run; mean reward from 0.056 to 0.100.</strong></p>
   <figure class="plot">
     <img src="figures/curves.png" alt="Two line charts over training steps. Sketches passing the gate: the laptop run's 5-step mean climbs from 0.18 to 0.75 within about 15 steps; the H100 run's stays between 0.10 and 0.25. Mean training reward without partial credit: laptop 0.12 to 0.35; H100 0.08 to 0.12." width="1500" height="510" loading="lazy">
-    <figcaption><span class="label">Figure 9.</span>Training curves, 8 sketches per step; faint lines per step, bold lines 5-step means. Orange: laptop run (0.5B, 40 steps); grey: H100 run (1.5B, 100 steps). Reward excludes partial credit.</figcaption>
+    <figcaption><span class="label">Figure 10.</span>Training curves, 8 sketches per step; faint lines per step, bold lines 5-step means. Orange: laptop run (0.5B, 40 steps); grey: H100 run (1.5B, 100 steps). Reward excludes partial credit.</figcaption>
   </figure>
   <p>The policy did change (its KL from the starting model held near 0.01, and every group had a spread of rewards), just not in a direction the reward could see. Three differences could explain it, none tested: fewer successes to learn from (it started at 1 in 16, often forgetting to create a canvas, and a group of 8 failures teaches nothing); half the learning rate; and no easy template, since it rarely reproduced the example and the copy check failed it when it did. On the laptop the reward went up for the wrong reasons; on the H100 it did not go up at all.</p>
 

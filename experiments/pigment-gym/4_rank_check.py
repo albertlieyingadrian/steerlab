@@ -15,8 +15,14 @@ Spearman only compares orderings, so it doesn't care that rewards are 0.3-0.9 wh
 We also compare the full reward with each term alone, and show the reward hack the gate blocks.
 """
 
+import io
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from brush_tools import Renderer, contact_sheet
-from common import check, outputs_dir
+from common import HERE, check, outputs_dir
 from hand_pool import POOL, SUBJECT
 from PIL import Image, ImageDraw, ImageFont
 from reward_tools import CLIP_RANGE, Scorer, caption, score_rollouts, squash
@@ -79,6 +85,32 @@ print(f"with the gate, the text sketch scores {rows[9]['reward']:.3f} (violation
 labels = [f"#{n + 1} r={rows[i]['reward']:.2f} {POOL[i]['name']}" for n, i in enumerate(order)]
 sheet = contact_sheet([renders[i].png for i in order], labels, outputs_dir() / "ranked_pool.png")
 print(f"\nsaved the pool sorted by reward: the work folder {sheet.name}")
+
+# For the note: the 12 sketches in the order I ranked them by hand, each with the reward it got.
+GREY, EMBER = "#8A847C", "#C9561C"
+by_hand = sorted(range(len(POOL)), key=lambda i: (POOL[i]["rank"], i))
+fig, axes = plt.subplots(2, 6, figsize=(10, 4.1))
+for ax, i in zip(axes.flat, by_hand, strict=False):
+    png = renders[i].png
+    if png and rows[i]["gate"]:
+        ax.imshow(Image.open(io.BytesIO(png)).convert("RGB"))
+    else:
+        ax.imshow(Image.new("RGB", (400, 400), "#ececec"))
+        why = "crashes" if png is None or "js_error" in rows[i]["violations"] else "fails the gate"
+        ax.text(0.5, 0.5, why, ha="center", va="center", transform=ax.transAxes, fontsize=7.5, color=GREY)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_color("#B9B2A6")
+        spine.set_linewidth(0.6)
+    rank = "tied last" if POOL[i]["rank"] > 9 else f"#{POOL[i]['rank']:g}"
+    ax.set_title(f"{rank} · {POOL[i]['name']}", fontsize=7, pad=3, loc="left")
+    colour = "#2B2723" if rows[i]["gate"] else EMBER
+    ax.set_xlabel(f"reward {rows[i]['reward']:.2f}", fontsize=8, color=colour, labelpad=3)
+fig.tight_layout(w_pad=0.6, h_pad=1.0)
+REFERENCE_FIGURE = HERE / "report" / "figures" / "reference_sketches.png"
+fig.savefig(REFERENCE_FIGURE, dpi=200, bbox_inches="tight", pad_inches=0.05)
+print(f"saved the pool in hand order for the note: {REFERENCE_FIGURE.name}")
 
 print("\nSelf-checks:")
 check("Spearman over all 12 is above 0.8", results["full reward"][0] > 0.8)
