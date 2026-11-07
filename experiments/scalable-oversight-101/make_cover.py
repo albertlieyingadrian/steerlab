@@ -39,8 +39,10 @@ ax.text(13.2, 3.1, "strong student", ha="center", va="top", fontsize=17, color=S
 for i, right in enumerate(LABELS):
     x, y = 4.7 + 0.55 * i, 5.4 + (0.35 if i % 2 else -0.35)
     face = INK if right else EMBER
-    ax.add_patch(FancyBboxPatch((x - 0.18, y - 0.18), 0.36, 0.36, boxstyle="round,pad=0.02", facecolor=face, edgecolor="none"))  # fmt: skip
-ax.add_patch(FancyArrowPatch((3.6, 5.4), (11.4, 5.4), arrowstyle="-|>", mutation_scale=22, color=RULE, linewidth=1.5, zorder=0))  # fmt: skip
+    box = FancyBboxPatch((x - 0.18, y - 0.18), 0.36, 0.36, boxstyle="round,pad=0.02", facecolor=face, edgecolor="none")
+    ax.add_patch(box)
+arrow = FancyArrowPatch((3.6, 5.4), (11.4, 5.4), arrowstyle="-|>", mutation_scale=22, color=RULE, lw=1.5, zorder=0)
+ax.add_patch(arrow)
 ax.text(8.0, 6.45, "labels, some wrong", ha="center", fontsize=16, color=SOFT)
 
 # the score: performance gap recovered
