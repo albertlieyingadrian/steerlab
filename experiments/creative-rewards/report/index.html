@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>When the judge can't tell: designing rewards for creative RL</title>
+<meta name="description" content="A field guide to rewards for tasks with no right answer: why tied scores stop learning, eleven ways to build a creative reward, the pitfalls with real examples, how other teams did it, and a measured comparison on our own paintings.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="When the judge can&#x27;t tell: designing rewards for creative RL">
+<meta property="og:description" content="A field guide to rewards for tasks with no right answer: why tied scores stop learning, eleven ways to build a creative reward, the pitfalls with real examples, how other teams did it, and a measured comparison on our own paintings.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Line chart of a 31-run search for a painting reward: agreement with two frontier judges rises from 0.85 (CLIP plus aesthetic) to 0.93, with a plain one-letter judge at 0.5 and the chosen method at 0.92 on held-out pairs.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="When the judge can&#x27;t tell: designing rewards for creative RL">
+<meta name="twitter:description" content="A field guide to rewards for tasks with no right answer: why tied scores stop learning, eleven ways to build a creative reward, the pitfalls with real examples, how other teams did it, and a measured comparison on our own paintings.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-07">
+<meta property="article:modified_time" content="2026-11-07">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "When the judge can't tell: designing rewards for creative RL",
+ "description": "A field guide to rewards for tasks with no right answer: why tied scores stop learning, eleven ways to build a creative reward, the pitfalls with real examples, how other teams did it, and a measured comparison on our own paintings.",
+ "abstract": "Group RL learns nothing when a judge gives every answer the same score. On 699 paintings, a small vision judge asked for one letter tied on every pair; reading its probabilities removed the ties, and a 5-question yes/no checklist plus comparisons against two fixed anchors reached 0.92 agreement with two frontier judges on held-out pairs, past CLIP plus aesthetic (0.88). Training a 0.5B model with it gave no ties but the same hack as CLIP: pasting the prompt's example. The guide maps eleven reward designs, twelve pitfalls with real examples, and case studies from Surya Narreddi, Hugging Face, Kimi K2, Writing-Zero, Tournament-Style RL, RULER and Prime Intellect.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/creative-rewards/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-07",
+ "dateModified": "2026-11-07",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "reward design, creative RL, LLM-as-a-judge, LLM-as-a-verifier, rubric rewards, GRPO, reward hacking, non-verifiable rewards, autoresearch",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://surya.website/scaling-rl-for-creative-tasks"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2607.05391"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.00103"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.20534"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://icml.cc/virtual/2026/poster/62722"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.17746"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Guide<span class="sep">·</span><time datetime="2026-11-07">Nov 7, 2026</time></p>
+  <h1>When the judge can’t tell: designing rewards for creative RL</h1>
+  <p class="dek ruled">How do you reward a model for a painting, a story or a design, when there is no right answer to check?</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Line chart of a 31-run search for a painting reward. Agreement with two frontier judges starts at 0.85 for CLIP plus aesthetic, the plain one-letter judge sits at 0.5 because every pair ties, and the best method climbs to 0.93 on the tuning pairs and scores 0.92 on held-out pairs." width="1600" height="900">
+    <figcaption>Figure 1. Searching for a better painting reward: agreement with two frontier judges on 219 tuning pairs for each of 31 methods (grey), the best so far (orange), and four finalists scored once on 154 held-out pairs (diamonds). Drawn by <a href="../../pigment-verifier/make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Kind</dt><dd>A guide: a map of reward designs, their pitfalls and case studies, plus one measured comparison</dd></div>
+    <div><dt>Measured on</dt><dd>699 paintings from <a href="../../pigment-gym/report/">Pigment Gym</a>; 373 pairs labelled by two frontier judges</dd></div>
+    <div><dt>Code</dt><dd><a href="../../pigment-verifier/">experiments/pigment-verifier/</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>How do you reward a model for a painting when there is no right answer?</strong></p>
+    <p>Read the judge’s probabilities instead of the score it writes, ask several plain yes/no questions instead of one overall score, compare against fixed anchors in both orders, and hold out a test the tuning never sees. On our paintings that took a small open judge from 50% agreement with two frontier judges (every score tied) to 92% on held-out pairs, past the hand-made CLIP + aesthetic reward (88%). But a better ranker did not stop the hack: a small model trained on it still learned to paste the prompt’s example, like the one trained on CLIP. The guide maps eleven reward designs, the pitfalls behind them, and how other teams handled them.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Does a plain judge give a usable reward?</td><td>No: a 2B vision model wrote the same letter for every painting; 100% of pairs tied</td><td>The same model’s probabilities: 0% ties</td></tr>
+          <tr class="hl"><td>Which reward orders paintings best?</td><td>A 5-question yes/no checklist plus comparisons against two fixed anchors: 0.92 on held-out pairs</td><td>CLIP + aesthetic 0.88; probability-weighted 1–20 score 0.81</td></tr>
+          <tr><td>Does the tie problem show up in training?</td><td>Yes: with the plain judge, 65% of steps gave tied quality scores and the model did not learn (2 → 1 of 16 sketches passing)</td><td>CLIP + aesthetic: 2 → 16 of 16; the chosen reward: 2 → 12 of 16</td></tr>
+          <tr><td>Does a better ranker stop reward hacking?</td><td>No: 11 of 12 passing sketches trained on the chosen reward contain the prompt’s example; none draws hills</td><td>CLIP-trained: 16 of 16 contain it</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="ties"><span class="num">01</span>Why a tied score stops learning</h2>
+  <p>Surya Narreddi, who trained a model to paint with code, put the problem in one line: <q>LLM judges couldn’t tell good paintings from slightly better ones, handing out the same score again and again, and RL can’t reach models when the rewards are a tie.</q><a href="#src-surya-nov"><sup>1</sup></a> This guide is about that sentence.</p>
+  <p>Group-based reinforcement learning (GRPO, the method most open projects use) samples a group of answers to the same prompt, scores each one, and moves the model towards the answers that scored <em>above the group’s average</em>. How hard each answer is pushed is its <strong>advantage</strong>: its score minus the group mean. Table 1 shows what happens when a judge hands out the same score four times.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 1.</span> Four paintings of the same prompt, scored two ways. Advantage = score − group mean; GRPO’s update for each painting is proportional to it.</caption>
+      <thead><tr><th>Painting</th><th class="num">Judge score (1–5)</th><th class="num">Advantage</th><th class="num">Finer score (0–1)</th><th class="num">Advantage</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td class="num">3</td><td class="num">0</td><td class="num">0.61</td><td class="num">+0.018</td></tr>
+        <tr><td>B</td><td class="num">3</td><td class="num">0</td><td class="num">0.58</td><td class="num">−0.012</td></tr>
+        <tr><td>C</td><td class="num">3</td><td class="num">0</td><td class="num">0.66</td><td class="num">+0.068</td></tr>
+        <tr><td>D</td><td class="num">3</td><td class="num">0</td><td class="num">0.52</td><td class="num">−0.072</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>With the coarse judge every advantage is zero, so this step teaches nothing. With the finer score, painting C is reinforced and D is discouraged. A creative reward therefore has two jobs, and most failures lose one of them: it must <strong>separate</strong> answers that are close, or nothing is learned; and it must separate them <strong>in the right direction</strong>, or the model learns the wrong thing, which is reward hacking. Will Brown of Prime Intellect calls the first the “advantage gap”: tasks and rewards must leave room between one try and the best of several.<a href="#src-brown"><sup>2</sup></a></p>
+
+  <h2 id="map" data-short="Eleven designs"><span class="num">02</span>Eleven ways to build a creative reward</h2>
+  <p>Table 2 lists the designs in use, roughly from cheapest to most involved. None is free of problems; the third column says how each tends to break.</p>
+  <div class="table-wrap">
+    <table class="map">
+      <caption><span class="label">Table 2.</span> Reward designs for tasks without an answer key: what each measures, how it breaks, and where it has been used.</caption>
+      <thead><tr><th>Design</th><th>What it measures</th><th>How it breaks</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1. Hand-made metrics</strong>: CLIP match, an aesthetic head, HPSv3</td><td>Similarity to a caption; a learned “prettiness” score</td><td>Hacked by surface features such as words written in the image; trained on photos, they misjudge stylised art</td><td><a href="../../pigment-gym/report/">Pigment Gym</a>; RULER’s baseline<a href="#src-ruler"><sup>5</sup></a></td></tr>
+        <tr><td><strong>2. An absolute LLM judge</strong> (“rate 1–10”)</td><td>One overall number from a general model</td><td>Scores bunch up and tie; longer answers get more credit</td><td>Surya’s first run<a href="#src-surya-mar"><sup>3</sup></a>; Writing-Zero’s baseline<a href="#src-writing-zero"><sup>6</sup></a></td></tr>
+        <tr><td><strong>3. Several judges or criteria</strong></td><td>Separate scores for subject, technique, composition</td><td>The criteria can be one judgment asked five times (correlated 0.85–0.95)</td><td>Surya’s first rubric<a href="#src-surya-mar"><sup>3</sup></a></td></tr>
+        <tr><td><strong>4. Pairwise against references</strong></td><td>Share of comparisons won against fixed reference works</td><td>Position bias; the model can learn to imitate the references</td><td>Surya’s 117-painting pool<a href="#src-surya-mar"><sup>3</sup></a>; the Hugging Face rebuild<a href="#src-hf"><sup>4</sup></a>; Tournament-Style RL<a href="#src-tsrl"><sup>8</sup></a></td></tr>
+        <tr><td><strong>5. Pairwise inside the group</strong></td><td>Wins against the model’s own other answers</td><td>Cost grows with group size; late in training many groups are all wins or all losses</td><td>Writing-Zero<a href="#src-writing-zero"><sup>6</sup></a>; Pref-GRPO<a href="#src-prefgrpo"><sup>10</sup></a>; Kimi K2<a href="#src-kimi"><sup>7</sup></a></td></tr>
+        <tr><td><strong>6. A verifier with an expected score</strong></td><td>The judge’s probability for every score level, averaged into one number</td><td>Needs token probabilities; still inherits the judge’s taste</td><td>LLM-as-a-Verifier<a href="#src-verifier"><sup>9</sup></a>; Rubric-ARROW<a href="#src-arrow"><sup>11</sup></a>; Surya’s follow-up<a href="#src-surya-nov"><sup>1</sup></a></td></tr>
+        <tr><td><strong>7. Per-prompt rubrics</strong></td><td>A checklist written for each prompt, scored item by item</td><td>A bad rubric misleads the judge</td><td>Rubrics as Rewards<a href="#src-rar"><sup>12</sup></a>; RULER<a href="#src-ruler"><sup>5</sup></a>; Auto-Rubric, OpenRS, RubricRM, TRM<a href="#src-rubrics"><sup>13</sup></a></td></tr>
+        <tr><td><strong>8. A trained reward model</strong></td><td>A model fitted to human preferences or expert edits</td><td>Labels are expensive; it drifts outside its data</td><td>HPSv3; WQRM<a href="#src-anthroly"><sup>20</sup></a>; a storytelling reward model<a href="#src-rlcs"><sup>14</sup></a></td></tr>
+        <tr><td><strong>9. Make it checkable again</strong></td><td>Work backwards from a known answer: recreate a target image, follow a knowledge-graph path</td><td>Covers only what can be planted; the real task may be wider</td><td>Will Brown’s “working backwards”<a href="#src-brown"><sup>2</sup></a>; image-to-code<a href="#src-ir4rl"><sup>15</sup></a>; knowledge-graph rewards<a href="#src-kg"><sup>16</sup></a></td></tr>
+        <tr><td><strong>10. Real-world signals</strong></td><td>What users do (likes, replies, edits), or how likely a reference answer becomes</td><td>Noisy, delayed and easy to farm</td><td>RLNVR (social engagement)<a href="#src-rlnvr"><sup>17</sup></a>; JEPO<a href="#src-jepo"><sup>18</sup></a></td></tr>
+        <tr><td><strong>11. A diversity term</strong></td><td>How different an answer is from the rest of its group</td><td>Rewards difference for its own sake unless gated on quality</td><td>DARLING, DPWriter, MODA, SERGE<a href="#src-diversity"><sup>19</sup></a></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The designs combine. Surya’s second reward was a gate (does the code run?), a length check, a trained preference model (HPSv3) and a pairwise judge;<a href="#src-surya-mar"><sup>3</sup></a> Kimi K2 used pairwise self-critique against fixed rubrics plus anti-hacking rules;<a href="#src-kimi"><sup>7</sup></a> RLMR mixes a quality reward with checked constraints such as word limits.<a href="#src-anthroly"><sup>20</sup></a></p>
+
+  <h2 id="pitfalls"><span class="num">03</span>Pitfalls, each with a real example</h2>
+  <p>Each pitfall below happened in a published project. The fix is what that project, or a later one, did about it.</p>
+  <dl class="pitfalls">
+    <div><dt>Ties: the judge gives everyone the same score</dt><dd><strong>Example.</strong> On our 219 dev pairs, a 2-billion-parameter vision judge asked for one letter from A to T answered “A” for every painting: 100% ties, 50% agreement (Section 5). <strong>Fix.</strong> Read the probability of every letter and take the expected score: the same judge and prompt then tie on 0% of pairs.</dd></div>
+    <div><dt>A term that stops moving</dt><dd><strong>Example.</strong> Surya’s code-length reward, about a third of the total, saturated by step 30 and gave no gradient after.<a href="#src-surya-mar"><sup>3</sup></a> <strong>Fix.</strong> Make easy terms small binary gates (5% each in his second reward) and put the weight on terms that still separate answers.</dd></div>
+    <div><dt>Five criteria that are one criterion</dt><dd><strong>Example.</strong> Four quality judges and a prompt-adherence judge correlated 0.85–0.95: the rubric “was telling the model the same thing over and over”.<a href="#src-surya-mar"><sup>3</sup></a> <strong>Fix.</strong> Measure how your criteria correlate on real outputs before training; keep the ones that disagree.</dd></div>
+    <div><dt>Tiny gaps blown up</dt><dd><strong>Example.</strong> Dividing advantages by the group’s standard deviation turns a 0.001 difference between near-identical images into a full-size push; Pref-GRPO traces oversaturated, dark images to this “illusory advantage”.<a href="#src-prefgrpo"><sup>10</sup></a> <strong>Fix.</strong> Use win rates, or skip the division (Pigment Gym subtracts the group mean only).</dd></div>
+    <div><dt>Longer looks better</dt><dd><strong>Example.</strong> With a scalar reward model, Writing-Zero’s policy padded its answers with self-explanation: 417 tokens on average, against 58 with a pairwise judge.<a href="#src-writing-zero"><sup>6</sup></a> Kimi K2 added a rule against any sentence explaining why the answer is good.<a href="#src-kimi"><sup>7</sup></a> <strong>Fix.</strong> Pairwise judging; explicit anti-padding rules.</dd></div>
+    <div><dt>The first answer wins</dt><dd><strong>Example.</strong> Pairwise judges lean towards one position. When we swapped the order of a pair, GPT-5.6 Sol changed its answer on 49 of 500 pairs and Opus 5.5 on 30 of 500. <strong>Fix.</strong> Ask in both orders and keep only consistent answers, or average them.</dd></div>
+    <div><dt>Copy the example</dt><dd><strong>Example.</strong> In Pigment Gym, 80% of the trained model’s late successes contained the prompt’s worked example, padded until a whole-file copy check missed it.<a href="#src-pigment"><sup>21</sup></a> Surya warns of the same with references: “too specific, and the model only learns to copy the examples you rated”.<a href="#src-surya-mar"><sup>3</sup></a> <strong>Fix.</strong> Check copying chunk by chunk, not on whole files; keep references out of the prompt.</dd></div>
+    <div><dt>Write the word instead of painting it</dt><dd><strong>Example.</strong> The text “SUNSET OVER GREEN HILLS” scores as high on CLIP as the best real painting.<a href="#src-pigment"><sup>21</sup></a> <strong>Fix.</strong> A gate that fails text in the image before any taste is judged.</dd></div>
+    <div><dt>Every answer becomes the same answer</dt><dd><strong>Example.</strong> Training a model to generate solvable Sokoban levels, the share of distinct valid levels fell from about 1.0 to under 0.05 within 50–150 steps.<a href="#src-sokoban"><sup>22</sup></a> Stories trained with diversity-preserving methods still collapsed to the same emotional arcs.<a href="#src-diversity"><sup>19</sup></a> <strong>Fix.</strong> A diversity term multiplied by quality (DARLING), so different-but-bad answers earn nothing.</dd></div>
+    <div><dt>Groups go dead late in training</dt><dd><strong>Example.</strong> Late in Writing-Zero’s training, 95% of samples were discarded because their group was all wins or all losses, and the authors stopped early.<a href="#src-writing-zero"><sup>6</sup></a> <strong>Fix.</strong> Keep tasks at the edge of the model’s ability (Will Brown’s difficulty calibration<a href="#src-brown"><sup>2</sup></a>); refresh references as the model improves.</dd></div>
+    <div><dt>The critic shares the actor’s blind spots</dt><dd><strong>Example.</strong> Kimi K2 judged itself; its rubric’s push for clarity made the model “confident and assertive, even in contexts involving ambiguity”.<a href="#src-kimi"><sup>7</sup></a> <strong>Fix.</strong> Ground the critic in tasks that can be checked, and audit it against people.</dd></div>
+    <div><dt>Tuning the reward on its own test</dt><dd><strong>Example.</strong> Our own search (Section 5) picks a reward by its agreement with two judges; after enough tries it will fit their quirks. <strong>Fix.</strong> Hold out a test split the search never sees, and report it once.</dd></div>
+  </dl>
+
+  <h2 id="cases" data-short="How others did it"><span class="num">04</span>How others did it</h2>
+  <h3 id="case-surya" data-short="Painting with code">Painting with code: from nine signals to a verifier</h3>
+  <p>Surya Narreddi and Cameron trained a Qwen model to write p5.brush watercolours.<a href="#src-surya-mar"><sup>3</sup></a> A nine-signal rubric plateaued at 0.65, with every rollout a flat clip-art flower. The second reward had four parts: a compile gate (0.05), a length check (0.05), HPSv3 (0.30), and a judge comparing each painting with references drawn from 117 hand-rated favourites (0.60). It reached the old plateau three times faster and kept climbing, and the code shrank from 13,500 tokens to under 2,000. The follow-up with Thinking Machines and Stanford replaced the judge with a verifier and reports the same quality in about two thirds of the training.<a href="#src-surya-nov"><sup>1</sup></a></p>
+  <h3 id="case-hf" data-short="The open rebuild">The open rebuild: a pool of rated paintings</h3>
+  <p>A Hugging Face rebuild with TRL and OpenEnv used Qwen3-VL-30B as the pairwise judge, with four references per comparison (half from a “love” tier and half from “okay”, so a weak early model can still win some) and every comparison asked in both orders.<a href="#src-hf"><sup>4</sup></a> Three runs that only moved weight between the judge and HPSv3 show how much the outcome depends on that split.</p>
+  <h3 id="case-kimi" data-short="Kimi K2">Kimi K2: a model judging itself against rubrics</h3>
+  <p>For writing and open questions, Moonshot’s K2 compared its own answers in pairs against three kinds of rubric: core values (clarity, fluency, staying grounded), prescriptive anti-hacking rules (no opening praise, no explaining why the answer is good), and task-specific rubrics from annotators. The critic was kept honest by retraining it on tasks with checkable answers.<a href="#src-kimi"><sup>7</sup></a></p>
+  <h3 id="case-wz" data-short="Writing-Zero">Writing-Zero: a reference from the model’s own group</h3>
+  <p>Writing-Zero trained a pairwise writing judge and, in its BRPO algorithm, compared every answer in a group against one answer from the same group picked at random. WritingBench rose from 6.89 to 8.29 with no supervised fine-tuning, and the padding seen with a scalar reward disappeared.<a href="#src-writing-zero"><sup>6</sup></a></p>
+  <h3 id="case-tsrl" data-short="Tournament-Style RL">Tournament-Style RL: win rate against fixed anchors</h3>
+  <p>Juneja and colleagues reward each answer by its win rate in rubric-guided comparisons against a fixed set of anchor answers. Fixed anchors keep the reference frame still, which lowers reward noise: +22.8 points of win rate over the strongest baseline across four tasks, and robust when the judge is weak or partly corrupted.<a href="#src-tsrl"><sup>8</sup></a></p>
+  <h3 id="case-ruler" data-short="RULER">RULER: a six-item rubric for every drawing</h3>
+  <p>For text-to-SVG, a frontier model writes a six-item rubric for each instruction (subject, form, style), and a vision judge scores each item on the rendered image. The rubric score rose from 0.43 to 0.69; the authors found that CLIP and aesthetic scores, used as rewards, led to hacking on stylised images.<a href="#src-ruler"><sup>5</sup></a></p>
+  <h3 id="case-brown" data-short="Prime Intellect">Prime Intellect: manufacturing a signal</h3>
+  <p>Will Brown’s talk lists the tools for tasks with no answer key: ground the model in real material (documents, code, production traces); use judges and spend compute on them; work backwards from a known end state so the easy direction is checkable; build simulators where the answer can be planted; and keep tasks at a difficulty where some tries succeed. People answer only the top questions: what is happening, and what is the goal.<a href="#src-brown"><sup>2</sup></a></p>
+  <h3 id="case-openai" data-short="OpenAI's writing model">OpenAI’s creative-writing model</h3>
+  <p>In March 2025 Sam Altman wrote that OpenAI had trained a model good at creative writing, the first time something written by AI had really struck him.<a href="#src-openai"><sup>23</sup></a> How it was rewarded has not been published, so we list it only as a sign that frontier labs work on the same problem.</p>
+
+  <h2 id="measured" data-short="Our measurement"><span class="num">05</span>Our measurement: a better ranker, then training with it</h2>
+  <p>We tested the advice above on the paintings from <a href="../../pigment-gym/report/">Pigment Gym</a>: 699 distinct sketches of “a sunset over green hills” that pass its rule check. Two frontier judges, GPT-5.6 Sol and Claude Opus 5.5, compared random pairs, each pair in both orders; a pair counts only when all four answers agree (373 of 500 did). We tuned on 219 pairs and kept 154 for one final test.</p>
+  <h3 id="search" data-short="The search">Searching for the reward, the autoresearch way</h3>
+  <p>Following Karpathy’s <a href="https://github.com/karpathy/autoresearch">autoresearch</a> pattern, an agent edited one file (the reward method), scored it on the tuning pairs, kept it if it beat the best by two points, and repeated: 31 runs in two hours, $0.18 of API calls, nearly all on a 2-billion-parameter local judge (Qwen3-VL-2B). Figure 1 shows the climb. What helped and what did not:</p>
+  <ul>
+    <li><strong>Probabilities instead of verdicts.</strong> Asked for one letter from A to T, the judge said “A” to every painting. Reading the probability of every letter (the LLM-as-a-Verifier recipe) removed every tie, at 0.77 agreement.</li>
+    <li><strong>Plain yes/no questions beat one score.</strong> Five questions (green hills? warm sunset sky? watercolour, not flat shapes? a landscape? sun low near the horizon?), each read as log p(yes) − log p(no): 0.91.</li>
+    <li><strong>Splitting “quality” into technique, composition and colour hurt</strong> (0.63): the small judge rated colour backwards. Decomposition only helps with criteria the judge can actually see.</li>
+    <li><strong>Fixed anchors added a little.</strong> Comparing each painting with two fixed reference paintings, both orders, added two points; four or eight anchors did no better.</li>
+    <li><strong>A bigger judge was not better.</strong> An 8B judge, and GPT-4.1-mini, scored the same or lower at several times the cost.</li>
+    <li><strong>A hack, closed.</strong> A blank canvas with “A SUNSET OVER GREEN HILLS” written on it scored above two thirds of real paintings, because the checklist said yes to the subject questions. A penalty for a sixth question, “does this picture contain written words?”, pushed it below every real painting.</li>
+  </ul>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 3.</span> The finalists on the 154 held-out pairs, scored once. Agreement: share of pairs ordered as the judges did (a tie counts half). Hard pairs: the 45 whose two paintings come from the same training run or benchmark.</caption>
+      <thead><tr><th>Reward</th><th class="num">Agreement</th><th class="num">Hard pairs</th><th class="num">Ties</th></tr></thead>
+      <tbody>
+        <tr><td>CLIP + aesthetic (Pigment Gym’s reward)</td><td class="num">0.877</td><td class="num">0.800</td><td class="num">0%</td></tr>
+        <tr><td>Plain judge, one letter (2B)</td><td class="num">0.500</td><td class="num">0.500</td><td class="num">100%</td></tr>
+        <tr><td>Verifier, expected 1–20 score (2B)</td><td class="num">0.805</td><td class="num">0.756</td><td class="num">0%</td></tr>
+        <tr class="hl"><td>Checklist + two anchors + text penalty (2B)</td><td class="num">0.922</td><td class="num">0.844</td><td class="num">0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The chosen method’s lead shrank from 8 points on the tuning pairs to 4.5 on the held-out pairs: its questions were picked on the tuning pairs, so some of the gain was fitted to them. That is what the held-out split is for.</p>
+  <h3 id="training" data-short="Training with it">Training with it: no ties, but the same hack</h3>
+  <p>We then trained Qwen2.5-Coder-0.5B for 40 GRPO steps three times, changing only the quality term of Pigment Gym’s reward (Table 4).</p>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 4.</span> Three 40-step training runs. Passing: held-out sketches (of 16) that pass the rule check, before → after. Tied quality: share of steps whose passing sketches all got the same quality score. Copied: passing sketches that contain the prompt’s worked example.</caption>
+      <thead><tr><th>Quality term</th><th class="num">Passing</th><th class="num">Tied quality</th><th class="num">Copied</th><th class="num">Quality per passing sketch, by CLIP + aesthetic / by the chosen reward</th></tr></thead>
+      <tbody>
+        <tr><td>CLIP + aesthetic</td><td class="num">2 → 16</td><td class="num">0%</td><td class="num">16 of 16</td><td class="num">0.38 / 0.54</td></tr>
+        <tr><td>Plain judge</td><td class="num">2 → 1</td><td class="num">65%</td><td class="num">1 of 1</td><td class="num">0.32 / 0.48</td></tr>
+        <tr class="hl"><td>Chosen reward</td><td class="num">2 → 12</td><td class="num">0%</td><td class="num">11 of 12</td><td class="num">0.36 / 0.46</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The plain judge confirms the opening claim in training: its quality scores tied on 65% of steps and the model learned nothing (the comparison is not entirely clean: with quality always zero, a passing sketch earned less than the partial credit a failing one can get). The two finer rewards both learned, and both learned the same shortcut Pigment Gym found: paste the worked example from the prompt, which paints a sky and a sun but no hills. The chosen reward asks “are there green hills?”, yet the 0.5B model never found a way to paint them, so copying stayed its best move. A better ranker is necessary, not sufficient; the policy also has to be able to reach the better paintings. The CLIP-trained run even scores higher on the chosen reward, because it passes the rule check more often with the same copied picture.</p>
+  <h3 id="critique" data-short="Critique and revise">A bigger model that critiques and revises <span class="soon-tag">Coming soon</span></h3>
+  <p>The same reward on Qwen3-8B (on Tinker), with and without a turn in which the model reads a critique built from the checklist and revises: does it reach the same quality in less training, as Narreddi and colleagues report?</p>
+
+  <h2 id="checklist" data-short="Checklist"><span class="num">06</span>A checklist for a creative reward</h2>
+  <ol class="checklist">
+    <li><strong>Gate first.</strong> Fail broken or cheating outputs (crashes, text in place of a picture, copies of the example) before any taste is scored.</li>
+    <li><strong>Test the reward on known cases.</strong> Before training, check it orders a handful of outputs you have ranked by hand; then check it again on what the trained model actually produces.</li>
+    <li><strong>Measure ties.</strong> Report the share of groups with zero spread. If it is high, the reward is not teaching.</li>
+    <li><strong>Prefer probabilities to verdicts.</strong> An expected score, a win rate, or p(yes) − p(no) separates answers that a single written score lumps together.</li>
+    <li><strong>Decorrelate criteria.</strong> Keep only criteria that disagree with each other on real outputs.</li>
+    <li><strong>Ask in both orders.</strong> Every pairwise judgment, every time.</li>
+    <li><strong>Anchor the comparison.</strong> A fixed set of references keeps the scale still across training.</li>
+    <li><strong>Hold out an evaluation.</strong> Tune the reward on one split; report it once on another, with a judge that is not the reward.</li>
+    <li><strong>Hunt hacks in the traces.</strong> Read samples from late in training; if you can name the hack, a simple check can catch it.</li>
+    <li><strong>Track diversity.</strong> Distinct outputs per prompt, beside the reward curve.</li>
+  </ol>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>The “truth” is two judges’ taste.</strong> The pairs come from two frontier models agreeing in both orders, not from people; a reward tuned to them can inherit their quirks.</li>
+    <li><strong>One subject, one style.</strong> Every painting is the same sunset; a reward found here may not carry over to other prompts.</li>
+    <li><strong>Small policies.</strong> The training runs use a 0.5B model for 40 steps; a larger model may be able to use a better reward where this one could not.</li>
+    <li><strong>The case studies are as reported.</strong> Numbers from other teams are quoted from their papers and posts, not reproduced here.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">08</span>Questions and answers</h2>
+  <h3 id="q1">Why not just ask a big model for a score?</h3>
+  <p>Models give coarse, bunched-up scores, so many answers tie and teach nothing (Section 1). Reading the model’s probability over the whole scale, or asking it to compare two answers, gives a finer signal from the same model.</p>
+  <h3 id="q2">Is pairwise always better than pointwise?</h3>
+  <p>Not always. Pairwise judgments are more stable and resist padding, but they need a reference (a fixed pool, anchors, or another answer from the group), cost more calls, and can teach the model to imitate the references.</p>
+  <h3 id="q3">What is the cheapest thing to try first?</h3>
+  <p>Keep your judge and change how you read it: take the expected score over its probabilities instead of the score it writes. In Section 5 that alone took ties from 100% to 0% with the same model and prompt.</p>
+
+  <h2 id="sources"><span class="num">A</span>Sources</h2>
+  <ol class="sources">
+    <li id="src-surya-nov">Surya Narreddi, <a href="https://surya.website/scaling-rl-for-creative-tasks">Scaling RL for Creative Tasks</a> (Nov 2026), with Jacky Kwok, Cameron, Neal Wu and Simon Guo; Stanford and Thinking Machines.</li>
+    <li id="src-brown">Will Brown (Prime Intellect), <a href="https://www.youtube.com/watch?v=AQv3qRCG6Gw">Reinforcement learning without verifiable rewards</a>, AI Engineer World’s Fair (Jul 2026).</li>
+    <li id="src-surya-mar">Surya Narreddi, <a href="https://surya.website/rling-qwen-to-paint-with-code">Training AI to Paint with Code</a> (Mar 2026).</li>
+    <li id="src-hf"><a href="https://huggingface.co/blog/train-to-paint-with-code">Training a coding model to paint watercolours with TRL and OpenEnv</a>, Hugging Face blog (Sep 2026).</li>
+    <li id="src-ruler"><a href="https://aclanthology.org/2026.findings-emnlp.1850.pdf">RULER: Instance-aware Rubric Rewards for SVG Generation</a>, Findings of EMNLP 2026.</li>
+    <li id="src-writing-zero">Jia et al., <a href="https://arxiv.org/abs/2506.00103">Writing-Zero: Bridge the Gap Between Non-verifiable Tasks and Verifiable Rewards</a> (2025).</li>
+    <li id="src-kimi">Kimi Team, <a href="https://arxiv.org/abs/2507.20534">Kimi K2: Open Agentic Intelligence</a>, section 3.2.2; explainer by <a href="https://www.dbreunig.com/2025/07/31/how-kimi-rl-ed-qualitative-data-to-write-better.html">Drew Breunig</a>.</li>
+    <li id="src-tsrl">Juneja, Phal, She, Wang, Sadigh, Dragan, Wang, <a href="https://icml.cc/virtual/2026/poster/62722">Tournament Style RL: Stabilizing Policy Optimization on Non Verifiable Problems</a>, ICML 2026.</li>
+    <li id="src-verifier">Kwok et al., <a href="https://arxiv.org/abs/2607.05391">LLM-as-a-Verifier: A General-Purpose Verification Framework</a> (2026); <a href="https://github.com/llm-as-a-verifier/llm-as-a-verifier">code</a>.</li>
+    <li id="src-prefgrpo">Wang et al., <a href="https://arxiv.org/abs/2508.20751">Pref-GRPO: Pairwise Preference Reward-based GRPO for Stable Text-to-Image Reinforcement Learning</a>.</li>
+    <li id="src-arrow"><a href="https://www.emergentmind.com/papers/2605.29156">Rubric-ARROW: Reward Modeling for LLM Post-Training</a> (2026).</li>
+    <li id="src-rar">Gunjal et al., <a href="https://arxiv.org/abs/2507.17746">Rubrics as Rewards: Reinforcement Learning Beyond Verifiable Domains</a> (2025).</li>
+    <li id="src-rubrics">Rubric reward models: <a href="https://arxiv.org/abs/2605.08354">Auto-Rubric as Reward</a>; <a href="https://arxiv.org/abs/2602.14069">OpenRS</a>; <a href="https://aclanthology.org/2026.emnlp-main.1094.pdf">RubricRM</a>; <a href="https://arxiv.org/abs/2609.37372">Thinking Reward Model</a>.</li>
+    <li id="src-rlcs">Li et al., <a href="https://arxiv.org/abs/2601.07149">Rewarding Creativity: A Human-Aligned Generative Reward Model for Reinforcement Learning in Storytelling</a>.</li>
+    <li id="src-ir4rl"><a href="https://ir4rl.github.io/">IR4RL: Reinforcement Learning from Intermediate Renders</a>; <a href="https://arxiv.org/abs/2603.29852">VectorGym</a>.</li>
+    <li id="src-kg">Kansal and Jha, <a href="https://arxiv.org/abs/2601.15160">Knowledge Graphs are Implicit Reward Models</a> (2026); <a href="https://yuvalkansal.me/blog/2026/scaling-rl-to-non-verifiable-domains/">blog post</a>.</li>
+    <li id="src-rlnvr">Krishnan and Evans, <a href="https://arxiv.org/abs/2508.12165">RLNVR: Reinforcement Learning from Non-Verified Real-World Rewards</a> (2025).</li>
+    <li id="src-jepo">Tang, Wang, Madaan, Munos, <a href="https://neurips.cc/virtual/2025/loc/san-diego/poster/115945">Beyond Verifiable Rewards: Scaling Reinforcement Learning in Language Models to Unverifiable Data</a>, NeurIPS 2025.</li>
+    <li id="src-diversity">Diversity: <a href="https://arxiv.org/abs/2509.02534">DARLING</a>; <a href="https://arxiv.org/abs/2601.09609">DPWriter</a>; <a href="https://genaicreativity.org/icml2026/files/72/72_paper.pdf">MODA</a>; <a href="https://aclanthology.org/2026.findings-emnlp.972.pdf">SERGE</a>; <a href="https://genaicreativity.org/icml2026/files/54/54_paper.pdf">collapse in emotional arcs</a>.</li>
+    <li id="src-anthroly"><a href="https://www.anthroly.com/blog/how-are-creative-writing-benchmarks-and-reward-models-built">How are creative writing benchmarks and reward models built?</a> (Anthroly, Nov 2026), for RLMR and WQRM.</li>
+    <li id="src-pigment"><a href="../../pigment-gym/report/">Pigment Gym: reward hacking in a paint-with-code RL environment</a> (this site, Nov 2026).</li>
+    <li id="src-sokoban"><a href="https://lab.cloud/research/reward-maximization-collapses-diversity.pdf">Reward Maximization Collapses Generative Diversity</a> (Sokoban level generation).</li>
+    <li id="src-openai">Sam Altman’s post (Mar 2025), as shared in <a href="https://www.facebook.com/groups/evolutionunleashedai/posts/9250466985000970/">this discussion</a>; no method published.</li>
+  </ol>
+
+  <footer class="note">Background reading: Cameron Wolfe’s <a href="https://cameronrwolfe.substack.com/p/rubric-rl">Rubric-Based Rewards for RL</a>. Labels for Section 5 come from two commercial models used under their providers’ terms; local judges: Qwen3-VL (Apache-2.0).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
