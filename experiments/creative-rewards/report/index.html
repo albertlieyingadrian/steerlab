@@ -142,6 +142,7 @@
           <tr class="hl"><td>Which reward orders paintings best?</td><td>A 5-question yes/no checklist plus comparisons against two fixed anchors: 0.92 on held-out pairs</td><td>CLIP + aesthetic 0.88; probability-weighted 1–20 score 0.81</td></tr>
           <tr><td>Does the tie problem show up in training?</td><td>Yes: with the plain judge, 65% of steps gave tied quality scores and the model did not learn (2 → 1 of 16 sketches passing)</td><td>CLIP + aesthetic: 2 → 16 of 16; the chosen reward: 2 → 12 of 16</td></tr>
           <tr><td>Does a better ranker stop reward hacking?</td><td>No: 11 of 12 passing sketches trained on the chosen reward contain the prompt’s example; none draws hills</td><td>CLIP-trained: 16 of 16 contain it</td></tr>
+          <tr><td>Does critique-and-revise make training faster?</td><td>Not in 40 steps on Qwen3-8B: held-out reward 0.754 → 0.749 with it, 0.754 → 0.753 without</td><td>A revision does score 0.02–0.05 above the first try it revised</td></tr>
         </tbody>
       </table>
     </div>
@@ -263,9 +264,19 @@
     </table>
   </div>
   <p>The plain judge confirms the opening claim in training: its quality scores tied on 65% of steps and the model learned nothing (the comparison is not entirely clean: with quality always zero, a passing sketch earned less than the partial credit a failing one can get). The two finer rewards both learned, and both learned the same shortcut Pigment Gym found: paste the worked example from the prompt, which paints a sky and a sun but no hills. The chosen reward asks “are there green hills?”, yet the 0.5B model never found a way to paint them, so copying stayed its best move. A better ranker is necessary, not sufficient; the policy also has to be able to reach the better paintings. The CLIP-trained run even scores higher on the chosen reward, because it passes the rule check more often with the same copied picture.</p>
-  <h3 id="critique" data-short="Critique and revise">A bigger model that critiques and revises <span class="soon-tag">Coming soon</span></h3>
-  <p>The same reward on Qwen3-8B (on Tinker), with and without a turn in which the model reads a critique built from the checklist and revises: does it reach the same quality in less training, as Narreddi and colleagues report?</p>
-
+  <h3 id="critique" data-short="Critique and revise">A bigger model that critiques and revises: no faster training at 40 steps</h3>
+  <p>Narreddi and colleagues report that a model which paints, reads a critique and revises reaches the same quality in about two thirds of the training. We tried a small version: Qwen3-8B with LoRA on Tinker, the chosen reward, 40 GRPO steps of 8 paintings each, twice. In the plain arm the model paints once; in the critique arm each painting gets a critique written from the checklist questions it fails (“the sun is not low near the hills”) and the model revises it, and both turns are trained (Table 5).</p>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 5.</span> Qwen3-8B on Tinker. Held-out reward: 16 first tries at temperature 0.7 with fixed seeds, every 10 steps (all 16 pass the rule check at every point). Training rewards: mean of the first and last five steps. About $0.76 of Tinker compute for both arms.</caption>
+      <thead><tr><th>Arm</th><th class="num">Held-out reward, steps 0 → 10 → 20 → 30 → 40</th><th class="num">First tries in training</th><th class="num">Revisions in training</th></tr></thead>
+      <tbody>
+        <tr><td>Plain</td><td class="num">0.754 → 0.756 → 0.740 → 0.722 → 0.753</td><td class="num">0.669 → 0.711</td><td class="num">–</td></tr>
+        <tr class="hl"><td>Critique and revise</td><td class="num">0.754 → 0.752 → 0.759 → 0.705 → 0.749</td><td class="num">0.674 → 0.723</td><td class="num">0.723 → 0.746</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Neither arm improved the held-out paintings in 40 steps; the ups and downs are within the noise of 16 samples. Qwen3-8B starts near the top of the scale (its untrained paintings already sit at the 71st percentile of our reference set), so there was little room. Revising does help in the moment: a revised painting scores 0.02 to 0.05 higher than the first try it revised. But training on the revisions did not make first tries better any faster. At this scale we could not reproduce the two-thirds claim; a longer run, a harder prompt set and more than one subject are the obvious next tests.</p>
   <h2 id="checklist" data-short="Checklist"><span class="num">06</span>A checklist for a creative reward</h2>
   <ol class="checklist">
     <li><strong>Gate first.</strong> Fail broken or cheating outputs (crashes, text in place of a picture, copies of the example) before any taste is scored.</li>
