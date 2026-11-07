@@ -254,16 +254,17 @@
   <p>We then trained Qwen2.5-Coder-0.5B for 40 GRPO steps three times, changing only the quality term of Pigment Gym’s reward (Table 4).</p>
   <div class="table-wrap">
     <table>
-      <caption><span class="label">Table 4.</span> Three 40-step training runs. Passing: held-out sketches (of 16) that pass the rule check, before → after. Tied quality: share of steps whose passing sketches all got the same quality score. Copied: passing sketches that contain the prompt’s worked example.</caption>
-      <thead><tr><th>Quality term</th><th class="num">Passing</th><th class="num">Tied quality</th><th class="num">Copied</th><th class="num">Quality per passing sketch, by CLIP + aesthetic / by the chosen reward</th></tr></thead>
+      <caption><span class="label">Table 4.</span> Three 40-step training runs. Passing: held-out sketches (of 16) that pass the rule check, before → after. Tied quality: share of steps whose passing sketches all got the same quality score. Copied: passing sketches that contain the prompt’s worked example. Judges: the two frontier judges’ mean rating on Pigment Gym’s 1–5 scale, before → after, a failing sketch counting as 1 (<a href="../../pigment-verifier/e1_judges.py">e1_judges.py</a>).</caption>
+      <thead><tr><th>Quality term</th><th class="num">Passing</th><th class="num">Tied quality</th><th class="num">Copied</th><th class="num">Quality per passing sketch, by CLIP + aesthetic / by the chosen reward</th><th class="num">Judges (1–5)</th></tr></thead>
       <tbody>
-        <tr><td>CLIP + aesthetic</td><td class="num">2 → 16</td><td class="num">0%</td><td class="num">16 of 16</td><td class="num">0.38 / 0.54</td></tr>
-        <tr><td>Plain judge</td><td class="num">2 → 1</td><td class="num">65%</td><td class="num">1 of 1</td><td class="num">0.32 / 0.48</td></tr>
-        <tr class="hl"><td>Chosen reward</td><td class="num">2 → 12</td><td class="num">0%</td><td class="num">11 of 12</td><td class="num">0.36 / 0.46</td></tr>
+        <tr><td>CLIP + aesthetic</td><td class="num">2 → 16</td><td class="num">0%</td><td class="num">16 of 16</td><td class="num">0.38 / 0.54</td><td class="num">1.1 → 2.3</td></tr>
+        <tr><td>Plain judge</td><td class="num">2 → 1</td><td class="num">65%</td><td class="num">1 of 1</td><td class="num">0.32 / 0.48</td><td class="num">1.1 → 1.1</td></tr>
+        <tr class="hl"><td>Chosen reward</td><td class="num">2 → 12</td><td class="num">0%</td><td class="num">11 of 12</td><td class="num">0.36 / 0.46</td><td class="num">1.1 → 1.9</td></tr>
       </tbody>
     </table>
   </div>
   <p>The plain judge confirms the opening claim in training: its quality scores tied on 65% of steps and the model learned nothing (the comparison is not entirely clean: with quality always zero, a passing sketch earned less than the partial credit a failing one can get). The two finer rewards both learned, and both learned the same shortcut Pigment Gym found: paste the worked example from the prompt, which paints a sky and a sun but no hills. The chosen reward asks “are there green hills?”, yet the 0.5B model never found a way to paint them, so copying stayed its best move. A better ranker is necessary, not sufficient; the policy also has to be able to reach the better paintings. The CLIP-trained run even scores higher on the chosen reward, because it passes the rule check more often with the same copied picture.</p>
+  <p>The two frontier judges, rating each held-out sketch on its own, see the same thing. CLIP training raised their mean from 1.1 to 2.3 and the chosen reward to 1.9, and per passing sketch the two are level (2.3 and 2.25). Almost every rating is a 2 or a 3, “a wash of colour and a disc” or “sunset colours and a sun”; one sketch of the 28 got a 4, the score for a green hill shape. Both runs learned to pass the check and paint the copied sky, not to paint hills.</p>
   <h3 id="critique" data-short="Critique and revise">A bigger model that critiques and revises: no faster training at 40 steps</h3>
   <p>Narreddi and colleagues report that a model which paints, reads a critique and revises reaches the same quality in about two thirds of the training. We tried a small version: Qwen3-8B with LoRA on Tinker, the chosen reward, 40 GRPO steps of 8 paintings each, twice. In the plain arm the model paints once; in the critique arm each painting gets a critique written from the checklist questions it fails (“the sun is not low near the hills”) and the model revises it, and both turns are trained (Table 5).</p>
   <div class="table-wrap">

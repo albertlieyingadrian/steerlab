@@ -81,9 +81,13 @@ def charge(usd, what):
 
 
 def secret(name):
+    """An API key from the repo's .env files (or the folder named by $STEERLAB_ENV_DIR)."""
+    import os
+
     from dotenv import dotenv_values
 
-    values = {**dotenv_values(REPO / ".env"), **dotenv_values(REPO / ".env.local")}
+    folder = Path(os.environ.get("STEERLAB_ENV_DIR", REPO))
+    values = {**dotenv_values(folder / ".env"), **dotenv_values(folder / ".env.local")}
     return values[name]
 
 
