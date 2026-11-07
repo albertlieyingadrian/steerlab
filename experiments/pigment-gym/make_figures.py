@@ -21,6 +21,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
@@ -74,11 +76,18 @@ def benchmark() -> None:
         ax.set_xlim(0, 1.12)
         ax.set_title(title, loc="left", fontsize=10)
     axes[1].axvline(0.476, color=EMBER, linestyle="--", linewidth=1)
-    axes[1].text(0.48, 5.55, "0.5B after RL: 0.48", color=EMBER, fontsize=8)
     axes[0].set_yticks(list(y), [name for _, name in models])
     axes[0].invert_yaxis()
-    axes[0].legend(loc="upper left", bbox_to_anchor=(0, -0.12), ncol=2, fontsize=8, frameon=False)
-    fig.tight_layout()
+    # One legend entry per colour: small trained models (orange) and larger untrained ones (grey), pale = rules only.
+    handles = [
+        Patch(color=EMBER, alpha=0.45, label="small models, rules only"),
+        Patch(color=EMBER, label="small models, with the example"),
+        Patch(color=GREY, alpha=0.45, label="larger models, rules only"),
+        Patch(color=GREY, label="larger models, with the example"),
+        Line2D([], [], color=EMBER, linestyle="--", linewidth=1, label="0.5B after 40 RL steps: 0.48"),
+    ]
+    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8, frameon=False)
+    fig.tight_layout(rect=(0, 0.1, 1, 1))
     fig.savefig(FIGURES / "benchmark.png")
     print("benchmark.png (gate pass, reward):")
     for m, name in models:
