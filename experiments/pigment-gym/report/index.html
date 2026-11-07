@@ -86,7 +86,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=34">
+<link rel="stylesheet" href="../../shared/report.css?v=35">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <style>
   .gallery-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
@@ -205,6 +205,19 @@
   <math display="block"><msub><mi>L</mi><mi>t</mi></msub><mo>=</mo><mo>−</mo><mi>min</mi><mo>(</mo><msub><mi>ρ</mi><mi>t</mi></msub><mo>·</mo><msub><mi>A</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.3em"/><mi>clip</mi><mo>(</mo><msub><mi>ρ</mi><mi>t</mi></msub><mo>,</mo><mn>1</mn><mo>−</mo><mi>ε</mi><mo>,</mo><mn>1</mn><mo>+</mo><mi>ε</mi><mo>)</mo><mo>·</mo><msub><mi>A</mi><mi>i</mi></msub><mo>)</mo><mo>+</mo><mi>β</mi><mo>·</mo><msub><mtext>KL</mtext><mi>t</mi></msub></math>
   <details class="fold symbols"><summary>What each symbol means</summary><dl class="where"><dt>where</dt><dd><math><msub><mi>r</mi><mi>i</mi></msub></math>&#8194;the reward of sketch <math><mi>i</mi></math>; <math><mover accent="true"><mi>r</mi><mo>¯</mo></mover></math> the mean reward of its group of 8 (“r-bar”)</dd><dd><math><msub><mi>A</mi><mi>i</mi></msub></math>&#8194;the sketch’s advantage: how far above or below its group it scored, not divided by the group’s spread</dd><dd><math><msub><mi>L</mi><mi>t</mi></msub></math>&#8194;the loss for token <math><mi>t</mi></math> of that sketch, averaged over all tokens in the group</dd><dd><math><msub><mi>ρ</mi><mi>t</mi></msub></math>&#8194;the token’s probability now divided by its probability when the sketch was written</dd><dd><math><mi>ε</mi></math>&#8194;the clip range, 0.2</dd><dd><math><mi>β</mi></math>&#8194;the KL weight, 0.04; <math><msub><mtext>KL</mtext><mi>t</mi></msub></math> how far the token’s probability has moved from the base model</dd></dl></details>
   <p class="table-note">With one update per batch, <math><msub><mi>ρ</mi><mi>t</mi></msub></math> is always 1 and the clip never acts; in effect this is REINFORCE with a group-mean baseline plus a KL leash. Dividing advantages by the group's standard deviation was left out on purpose: it would make a group scoring 0.50, 0.51 and 0.49 push as hard as one scoring 0.0 and 1.0.</p>
+  <p>One training step, simplified from <code>train_loop.py</code>, in the order it runs:</p>
+  <figure class="ide"><figcaption class="ide-tab">train_loop.py <span>· simplified</span></figcaption><pre><code><span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
+    <span class="c1"># 1. The model writes 8 sketches for the same prompt.</span>
+    <span class="n">texts</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">sample_group</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">group_size</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="n">codes</span> <span class="o">=</span> <span class="p">[</span><span class="n">extract_code</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">texts</span><span class="p">]</span>
+    <span class="c1"># 2. Run each sketch in Chromium, then score it: gate, CLIP, aesthetic.</span>
+    <span class="n">renders</span> <span class="o">=</span> <span class="n">renderer</span><span class="o">.</span><span class="n">render_many</span><span class="p">(</span><span class="n">codes</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">score_rollouts</span><span class="p">(</span><span class="n">codes</span><span class="p">,</span> <span class="n">renders</span><span class="p">,</span> <span class="n">scorer</span><span class="p">,</span> <span class="n">subject</span><span class="p">)</span>
+    <span class="c1"># 3. Advantage: each reward minus the group mean.</span>
+    <span class="n">advantages</span> <span class="o">=</span> <span class="n">group_advantages</span><span class="p">([</span><span class="n">row</span><span class="p">[</span><span class="s2">"reward"</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">])</span>
+    <span class="c1"># 4. Nudge the LoRA weights toward the above-average sketches.</span>
+    <span class="n">grpo_update</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">advantages</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.04</span><span class="p">)</span></code></pre></figure>
+  <p class="code-links"><strong>Code:</strong> <a href="https://github.com/albertlieyingadrian/steerlab/blob/main/experiments/pigment-gym/grpo_tools.py#L102-L154"><code>grpo_tools.py</code></a> (the advantage and the update, 50 lines) · <a href="https://github.com/albertlieyingadrian/steerlab/blob/main/experiments/pigment-gym/train_loop.py#L171-L194"><code>train_loop.py</code></a> (the full loop) · <a href="https://github.com/albertlieyingadrian/steerlab/blob/main/experiments/pigment-gym/7_train_laptop.py"><code>7_train_laptop.py</code></a> (the laptop run)</p>
   <div class="table-wrap">
     <table>
       <thead><tr><th></th><th>Laptop run</th><th>H100 run</th></tr></thead>
@@ -233,6 +246,21 @@
   </details>
 
   <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <figure class="flow">
+  <svg viewBox="0 0 760 300" role="img" aria-label="How the study was run, in three phases. Before training: 1, build and check the reward on 12 reference sketches; 2, benchmark two small and four frontier models, 192 sketches. Training: 3, a toy GRPO task with no browser, where hacks 1 and 2 appeared; 4, the laptop run of the 0.5B model, 40 steps, where hacks 3 and 4 appeared; 5, the H100 run of the 1.5B model, 100 steps, about 3.83 dollars. After: 6, audit both runs four ways: split the gain, fingerprint the code, crop the pixels for hills, re-rate with two judges.">
+    <defs><marker id="flow-tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="tip"/></marker></defs>
+    <g font-size="15">
+      <text class="phase" x="4" y="51">BEFORE</text><text class="phase" x="4" y="157">TRAINING</text><text class="phase" x="4" y="263">AFTER</text>
+      <rect x="120" y="8" width="300" height="76" rx="8"/><text x="134" y="39" class="head">1 · Build and check the reward</text><text class="sub" x="134" y="65">12 references · Spearman 0.81</text>
+      <rect x="450" y="8" width="300" height="76" rx="8"/><text x="464" y="39" class="head">2 · Benchmark</text><text class="sub" x="464" y="65">6 models · 192 sketches</text>
+      <rect x="120" y="114" width="196" height="76" rx="8"/><text x="134" y="145" class="head">3 · Toy GRPO</text><text class="sub" x="134" y="171">no browser · hacks 1–2</text>
+      <rect x="336" y="114" width="196" height="76" rx="8"/><text x="350" y="145" class="head">4 · Laptop run</text><text class="sub" x="350" y="171">40 steps · hacks 3–4</text>
+      <rect x="552" y="114" width="198" height="76" rx="8"/><text x="566" y="145" class="head">5 · H100 run</text><text class="sub" x="566" y="171">100 steps · $3.83</text>
+      <rect x="120" y="220" width="630" height="76" rx="8"/><text x="134" y="251" class="head">6 · Audit both runs, four ways</text><text class="sub" x="134" y="277">split the gain · fingerprint code · check for hills · re-rate with judges</text>
+      <path d="M420,46 H448"/><path d="M316,152 H334"/><path d="M532,152 H550"/>
+    </g>
+  </svg>
+  </figure>
   <ol>
     <li><strong>Build and check the reward</strong> on 12 reference sketches with a known order (Spearman 0.81 on the 8 that pass).</li>
     <li><strong>Benchmark</strong> two small and four frontier models, 16 sketches per prompt version (192 sketches).</li>
