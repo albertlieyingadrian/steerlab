@@ -11,7 +11,7 @@ The measured part of the guide [When the judge can't tell](../creative-rewards/r
 | `final_test.py` | The held-out test, run once, on the finalists. |
 | `train.py` | E1: GRPO on Qwen2.5-Coder-0.5B with a chosen quality term. Results are in `results/<name>/`. |
 | `e1_cross.py` | Scores each E1 run's sketches with both rewards. |
-| `e3_tinker.py` | E3: Qwen3-8B on Tinker, with and without a critique-and-revise turn (in progress). |
+| `e3_tinker.py` | E3: Qwen3-8B on Tinker, with and without a critique-and-revise turn. Results are in `results/e3_plain/` and `results/e3_critique/`. |
 | `make_figures.py` | Draws the guide's figure. |
 | `data/` | Sketch list, labelled pairs, the label answers cache, and the spending ledger. |
 
