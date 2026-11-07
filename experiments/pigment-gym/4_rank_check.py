@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from brush_tools import Renderer, contact_sheet
 from common import HERE, check, outputs_dir
 from hand_pool import POOL, SUBJECT
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 from PIL import Image, ImageDraw, ImageFont
 from reward_tools import CLIP_RANGE, Scorer, caption, score_rollouts, squash
 from scipy.stats import spearmanr
@@ -111,6 +112,41 @@ fig.tight_layout(w_pad=0.6, h_pad=1.0)
 REFERENCE_FIGURE = HERE / "report" / "figures" / "reference_sketches.png"
 fig.savefig(REFERENCE_FIGURE, dpi=200, bbox_inches="tight", pad_inches=0.05)
 print(f"saved the pool in hand order for the note: {REFERENCE_FIGURE.name}")
+
+# For the note: how each scorer orders the 8 passing sketches, next to the intended order. One line per sketch.
+columns = [
+    ("Intended order", None),
+    ("Full reward", [row["reward"] for row in rows]),
+    ("CLIP alone", [row["clip"] for row in rows]),
+    ("Aesthetic alone", [row["aesthetic"] for row in rows]),
+]
+by_intent = sorted(passing, key=lambda i: POOL[i]["rank"])
+palette = ["#3F7D4E", "#C9561C", "#2F6DB0", "#8A4FB0", "#D19A2E", "#2B9C9C", "#9A948C", "#B5476B"]
+colour_of = {i: palette[n] for n, i in enumerate(by_intent)}
+positions = {}
+for c, (_, scores) in enumerate(columns):
+    ordered = by_intent if scores is None else sorted(passing, key=lambda i: -scores[i])
+    for place, i in enumerate(ordered):
+        positions[(c, i)] = place
+fig, ax = plt.subplots(figsize=(10.5, 5.2))
+xs = [3.1 + 2.0 * c for c in range(len(columns))]
+for i in passing:
+    ax.plot(xs, [positions[(c, i)] for c in range(len(columns))], "-o", color=colour_of[i], lw=2.2, ms=7, zorder=2)
+    for c, (_, scores) in enumerate(columns):
+        if scores is not None:
+            ax.text(xs[c] + 0.16, positions[(c, i)], f"{scores[i]:.2f}", fontsize=7.5, color=colour_of[i], va="center",
+                    bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none"}, zorder=3)
+    image = Image.open(io.BytesIO(renders[i].png)).convert("RGB").resize((90, 90))
+    ax.add_artist(AnnotationBbox(OffsetImage(image, zoom=0.36), (0.25, positions[(0, i)]), frameon=False))
+    ax.text(0.62, positions[(0, i)], POOL[i]["name"], va="center", fontsize=8, color=colour_of[i])
+for c, (title, _) in enumerate(columns):
+    ax.text(xs[c], -0.9, title, ha="center", fontsize=9, fontweight="bold")
+ax.set_xlim(-0.2, xs[-1] + 0.7)
+ax.set_ylim(len(passing) - 0.4, -1.3)
+ax.axis("off")
+RANK_FIGURE = HERE / "report" / "figures" / "reference_ranks.png"
+fig.savefig(RANK_FIGURE, dpi=200, bbox_inches="tight", pad_inches=0.05)
+print(f"saved how each scorer orders the passing sketches: {RANK_FIGURE.name}")
 
 print("\nSelf-checks:")
 check("Spearman over all 12 is above 0.8", results["full reward"][0] > 0.8)
