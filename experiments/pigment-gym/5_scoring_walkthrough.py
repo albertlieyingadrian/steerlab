@@ -106,33 +106,61 @@ for (name, _), row in zip(cases, rows, strict=False):
     )
 RESULT.write_text(json.dumps(summary, indent=1))
 
-fig, axes = plt.subplots(1, len(cases), figsize=(2.6 * len(cases), 4.4))
-for ax, (name, _), image, item in zip(axes, cases, images, summary, strict=False):
+# The figure: the six pictures in a row, and a table of their scores underneath.
+GREY, GREEN, EMBER, PAPER, RULE = "#8A847C", "#3F7D4E", "#C9561C", "#F7F3EA", "#DDD6CA"
+short = ["Crashes", "Writes the words", "One tiny dot", "Prompt's example", "Hand-made sunset", "Frontier model"]
+fig = plt.figure(figsize=(10, 3.1))
+grid = fig.add_gridspec(2, len(cases), height_ratios=[1, 0.62], hspace=0.06, wspace=0.06, left=0.1, right=0.995,
+                        top=0.93, bottom=0.01)  # fmt: skip
+for i, (image, item) in enumerate(zip(images, summary, strict=False)):
+    ax = fig.add_subplot(grid[0, i])
     if image is not None and item["clip_raw"] is not None:
         ax.imshow(image)
     else:
-        ax.set_facecolor("#eeeeee")
-        ax.text(0.5, 0.5, "no image\n(the code crashed)", ha="center", va="center", transform=ax.transAxes, fontsize=9)
+        ax.imshow(Image.new("RGB", (400, 400), "#ececec"))
+        note = "no image\n(crashed)"
+        ax.text(0.5, 0.5, note, ha="center", va="center", transform=ax.transAxes, fontsize=7.5, color=GREY)
     ax.set_xticks([])
     ax.set_yticks([])
-    lines = [name, ""]
-    if item["gate"]:
-        lines.append("gate: pass")
-        lines.append(f"CLIP {item['clip_raw']:.3f} -> {item['clip']:.2f}")
-        lines.append(f"aesthetic {item['aesthetic_raw']:.2f} -> {item['aesthetic']:.2f}")
-    else:
-        reason = ", ".join(v.split(":")[0] for v in item["violations"])
-        lines.append(f"gate: FAIL ({reason})")
-        lines.append(f"CLIP would say {item['clip_raw']:.3f}" if item["clip_raw"] is not None else "CLIP: never asked")
-        lines.append("taste terms: 0 (gated)")
-    lines.append(f"reward {item['reward']:.2f}")
-    ax.set_xlabel("\n".join(lines), fontsize=8.5, loc="left")
-fig.suptitle(
-    f'Six sketches through the reward. CLIP compares each image with "{text}".', fontsize=10, x=0.01, ha="left"
-)
-fig.tight_layout()
+    for spine in ax.spines.values():
+        spine.set_color("#B9B2A6")
+        spine.set_linewidth(0.6)
+    ax.set_title(short[i], fontsize=8, fontweight="bold", pad=4)
+
+
+def raw_to_scaled(item, key, fmt):
+    """'raw -> 0-1' for passing sketches; '(raw)' for gated ones, what the scorer would have said; '-' if none."""
+    raw = item[f"{key}_raw"]
+    if raw is None:
+        return "—"
+    return f"{fmt.format(raw)} → {item[key]:.2f}" if item["gate"] else f"({fmt.format(raw)})"
+
+
+table = fig.add_subplot(grid[1, :])
+table.axis("off")
+cells = [
+    ["pass" if item["gate"] else "fail" for item in summary],
+    [raw_to_scaled(item, "clip", "{:.3f}") for item in summary],
+    [raw_to_scaled(item, "aesthetic", "{:.2f}") for item in summary],
+    [f"{item['reward']:.2f}" for item in summary],
+]
+labels = ["Gate", "CLIP, raw → 0–1", "Aesthetic, raw → 0–1", "Reward"]
+drawn = table.table(cellText=cells, rowLabels=labels, cellLoc="center", bbox=[0, 0, 1, 1])
+drawn.auto_set_font_size(False)
+drawn.set_fontsize(7.5)
+for (r, c), cell in drawn.get_celld().items():
+    cell.set_edgecolor(RULE)
+    cell.set_linewidth(0.6)
+    if c == -1:
+        cell.set_text_props(color=GREY, ha="right")
+        cell.set_edgecolor("white")
+    elif r == 0:
+        cell.set_text_props(color=GREEN if summary[c]["gate"] else EMBER)
+    elif r == 3:
+        cell.set_text_props(fontweight="bold", fontsize=9)
+        cell.set_facecolor(PAPER)
 FIGURE.parent.mkdir(parents=True, exist_ok=True)
-fig.savefig(FIGURE, dpi=130)
+fig.savefig(FIGURE, dpi=200, bbox_inches="tight", pad_inches=0.05)
 print(f"\nsaved {FIGURE.name} and {RESULT.name}")
 
 print("\nSelf-checks:")
