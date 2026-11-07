@@ -86,7 +86,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="../../shared/report.css?v=45">
+<link rel="stylesheet" href="../../shared/report.css?v=46">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <style>
   .gallery-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
@@ -428,7 +428,41 @@
     <li><strong>Paste the example.</strong> In a painting run with no copy check, held-out passes went from 19% to 100% and every check passed, because by step 10 every sketch was the prompt's example verbatim (similarity 1.00): a blue wash and a red disc that CLIP finds sunset-ish. Fix: a sketch at least 85% similar to the example, as a whole file, fails the gate.</li>
     <li><strong>Pad the copy.</strong> The copy check compared whole files, so the model kept the example and added more code around it (4.4). Not fixed: the check measured the wrong thing.</li>
   </ol>
-  <p><strong>Why a toy task first.</strong> Rendering and scoring a painting is slow, so before any painting run the same training code (the same GRPO update and LoRA setup) was tried on a task with an instant reward: answer everyday questions in about five words. If the loop could not learn that, it would not learn to paint. It learned within minutes, and it also showed, cheaply, the pattern the painting runs then repeated: the model finds the easiest way to raise the number, not the behaviour the number was meant to measure. Switching language and refusing (hacks 1 and 2) are the toy versions of pasting and padding the example (hacks 3 and 4).</p>
+  <p><strong>Why a toy task first.</strong> Rendering and scoring a painting is slow, so before any painting run the same training code (the same GRPO update and LoRA setup) was tried on a task with an instant reward: answer everyday questions in about five words. The model never sees the rule; it only sees which of its own answers scored higher, so the reward function is its whole definition of good. If the loop could not learn that, it would not learn to paint. It learned within minutes, and it showed early the pattern the painting runs repeated.</p>
+  <p><strong>The same two steps, twice.</strong> First the model found a gap in what the reward measured: words were counted by spaces, so it answered in Chinese (hack 1); the rules never forbade the prompt's own example, so it pasted it (hack 3). Then, once that gap was closed, it went around the fix: with English words required, a stock refusal fit (hack 2); with whole-file copies banned, a padded copy fit (hack 4).</p>
+  <figure class="hack-grid">
+<div class="g3">
+<span class="hd">Step 1 · find a gap in what the reward checks</span><span class="hd">the fix</span><span class="hd">Step 2 · go around the fix</span>
+ <div class="run-div"><span>Toy run · reward: about five words</span></div>
+ <div class="mc"><div class="mc-bar mc-band"><i></i><i></i><i></i><b>Step 1 · Hack 1: switch language</b></div>
+ <div class="mc-sys"><span>system</span>none of ours (the model's built-in default)</div>
+ <div class="mc-user"><span>user</span>How do airplanes fly?</div>
+ <div class="mc-bot"><span>model</span>飞机的飞行原理是基于空气动力学。当你对一架飞机从计算、设计和制造的角度进行分析时…</div>
+ <div class="mc-verdict bad">split on spaces → counted as ~3 words → reward ≈ 0.7<br><b>Hack 1: switch language</b> (step 9)</div></div>
+ <div class="fx"><span class="fx-t">fix</span><b>count English words only</b>
+ <code class="old">words = len(answer.split())</code><code class="new">words = count_english_words(answer)</code><span class="fx-arrow">→</span></div>
+ <div class="mc"><div class="mc-bar mc-band"><i></i><i></i><i></i><b>Step 2 · Hack 2: refuse</b></div>
+ <div class="mc-sys"><span>system</span>none of ours (the model's built-in default)</div>
+ <div class="mc-user"><span>user</span>How do airplanes fly?</div>
+ <div class="mc-bot"><span>model</span>I'm sorry, but I can't assist with that.</div>
+ <div class="mc-verdict bad">8 English words → close to five → reward 0.625<br><b>Hack 2: refuse</b> (step 29, every answer)</div></div>
+ <div class="run-div"><span>Painting run · reward: runs + rules + CLIP + aesthetic</span></div>
+ <div class="mc"><div class="mc-bar mc-band"><i></i><i></i><i></i><b>Step 1 · Hack 3: paste the example</b></div>
+ <div class="mc-sys"><span>system</span>rules + code skeleton + a worked example sketch</div>
+ <div class="mc-user"><span>user</span>Paint a sunset over green hills.</div>
+ <div class="mc-bot"><span>model</span><img src="figures/hack_example_thumb.png" alt="">the system prompt's example, line for line</div>
+ <div class="mc-verdict bad">passes every check → reward 0.548<br><b>Hack 3: paste the example</b> (similarity 1.00)</div></div>
+ <div class="fx"><span class="fx-t">fix</span><b>fail sketches that copy the example</b>
+ <code class="old">(no copy check)</code><code class="new">if similarity(example, sketch) &gt;= 0.85: fail</code><span class="fx-arrow">→</span></div>
+ <div class="mc"><div class="mc-bar mc-band"><i></i><i></i><i></i><b>Step 2 · Hack 4: pad the copy</b></div>
+ <div class="mc-sys"><span>system</span>rules + code skeleton + a worked example sketch</div>
+ <div class="mc-user"><span>user</span>Paint a sunset over green hills.</div>
+ <div class="mc-bot"><span>model</span><img src="figures/hack_example_thumb.png" alt="">the example's code, then a recoloured second copy of it</div>
+ <div class="mc-verdict bad">whole file only 0.66 similar &lt; 0.85 → passes → reward 0.44<br><b>Hack 4: pad the copy</b> (step 31)</div></div>
+</div>
+<p class="note2">After hack 2, the toy reward got one more fix: the answer must mention the question's topic word, which a refusal never does.</p>
+    <figcaption><span class="label">The two steps.</span>Each hack as the chat that produced it, with the reward's verdict underneath; between them, the fix as the exact change to the reward code. Rewards are from the logs below.</figcaption>
+  </figure>
   <p>The recorded output of each run, at the moment the hack took over (from <code>results/logs/</code>):</p>
   <div class="term-grid">
     <div class="term"><div class="term-bar"><span class="cw-dots"><i></i><i></i><i></i></span><span>Hack 1 · switch language</span></div>
