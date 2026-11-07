@@ -113,7 +113,8 @@ REFERENCE_FIGURE = HERE / "report" / "figures" / "reference_sketches.png"
 fig.savefig(REFERENCE_FIGURE, dpi=200, bbox_inches="tight", pad_inches=0.05)
 print(f"saved the pool in hand order for the note: {REFERENCE_FIGURE.name}")
 
-# For the note: how each scorer orders the 8 passing sketches, next to the intended order. One line per sketch.
+# For the note: how each scorer orders the 8 passing sketches, next to the intended order. One line per sketch,
+# with the painting at every point.
 columns = [
     ("Intended order", None),
     ("Full reward", [row["reward"] for row in rows]),
@@ -128,29 +129,28 @@ for c, (_, scores) in enumerate(columns):
     ordered = by_intent if scores is None else sorted(passing, key=lambda i: -scores[i])
     for place, i in enumerate(ordered):
         positions[(c, i)] = place
-fig, ax = plt.subplots(figsize=(10.5, 5.2))
-xs = [3.1 + 2.0 * c for c in range(len(columns))]
+fig, ax = plt.subplots(figsize=(10.5, 6.4))
+xs = [2.2 + 2.6 * c for c in range(len(columns))]
+thumbs = {i: Image.open(io.BytesIO(renders[i].png)).convert("RGB").resize((120, 120)) for i in passing}
 for i in passing:
-    ax.plot(xs, [positions[(c, i)] for c in range(len(columns))], "-o", color=colour_of[i], lw=2.2, ms=7, zorder=2)
+    ax.plot(xs, [positions[(c, i)] for c in range(len(columns))], "-", color=colour_of[i], lw=2.4, zorder=1)
     for c, (_, scores) in enumerate(columns):
-        if scores is not None:
+        y = positions[(c, i)]
+        frame = {"edgecolor": colour_of[i], "linewidth": 2}
+        ax.add_artist(
+            AnnotationBbox(OffsetImage(thumbs[i], zoom=0.32), (xs[c], y), bboxprops=frame, pad=0.08, zorder=2)
+        )
+        if scores is None:
+            ax.text(xs[c] - 0.42, y, POOL[i]["name"], va="center", ha="right", fontsize=8, color=colour_of[i])
+        else:
+            label = {"boxstyle": "round,pad=0.12", "fc": "white", "ec": "none"}
             ax.text(
-                xs[c] + 0.16,
-                positions[(c, i)],
-                f"{scores[i]:.2f}",
-                fontsize=7.5,
-                color=colour_of[i],
-                va="center",
-                bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none"},
-                zorder=3,
+                xs[c] + 0.42, y, f"{scores[i]:.2f}", va="center", fontsize=8.5, color=colour_of[i], bbox=label, zorder=3
             )
-    image = Image.open(io.BytesIO(renders[i].png)).convert("RGB").resize((90, 90))
-    ax.add_artist(AnnotationBbox(OffsetImage(image, zoom=0.36), (0.25, positions[(0, i)]), frameon=False))
-    ax.text(0.62, positions[(0, i)], POOL[i]["name"], va="center", fontsize=8, color=colour_of[i])
 for c, (title, _) in enumerate(columns):
-    ax.text(xs[c], -0.9, title, ha="center", fontsize=9, fontweight="bold")
-ax.set_xlim(-0.2, xs[-1] + 0.7)
-ax.set_ylim(len(passing) - 0.4, -1.3)
+    ax.text(xs[c], -1.0, title, ha="center", fontsize=10, fontweight="bold")
+ax.set_xlim(-0.2, xs[-1] + 1.0)
+ax.set_ylim(len(passing) - 0.4, -1.4)
 ax.axis("off")
 RANK_FIGURE = HERE / "report" / "figures" / "reference_ranks.png"
 fig.savefig(RANK_FIGURE, dpi=200, bbox_inches="tight", pad_inches=0.05)
