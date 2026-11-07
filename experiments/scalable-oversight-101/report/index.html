@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a weak model supervise a strong one? Scalable oversight on a laptop</title>
+<meta name="description" content="Scalable oversight asks how to supervise models that are better than their supervisors. This note rebuilds its two classic experiments on a laptop: weak-to-strong training, scored by the share of the performance gap recovered, and sandwiching, where a weak judge is helped by a stronger but unreliable model. Introduction published; results coming soon.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Can a weak model supervise a strong one? Scalable oversight on a laptop">
+<meta property="og:description" content="Scalable oversight asks how to supervise models that are better than their supervisors. This note rebuilds its two classic experiments on a laptop: weak-to-strong training, scored by the share of the performance gap recovered, and sandwiching, where a weak judge is helped by a stronger but unreliable model. Introduction published; results coming soon.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A small circle labelled 0.5B sends labels, three of them orange for wrong, to a large circle labelled 1.5B; below, a scale of performance gap recovered from 0 to 1 marked with a question mark.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can a weak model supervise a strong one? Scalable oversight on a laptop">
+<meta name="twitter:description" content="Scalable oversight asks how to supervise models that are better than their supervisors. This note rebuilds its two classic experiments on a laptop: weak-to-strong training, scored by the share of the performance gap recovered, and sandwiching, where a weak judge is helped by a stronger but unreliable model. Introduction published; results coming soon.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-07">
+<meta property="article:modified_time" content="2026-11-07">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Can a weak model supervise a strong one? Scalable oversight on a laptop",
+ "description": "Scalable oversight asks how to supervise models that are better than their supervisors. This note rebuilds its two classic experiments on a laptop: weak-to-strong training, scored by the share of the performance gap recovered, and sandwiching, where a weak judge is helped by a stronger but unreliable model. Introduction published; results coming soon.",
+ "abstract": "An introduction to scalable oversight and the plan for two laptop-sized experiments: a 1.5B model trained only on a 0.5B model's labels on GSM8K-verification, scored by performance gap recovered with four simple methods side by side; and sandwiching, where a 0.5B judge decides alone, with one argument from a 7B model, or with a debate. A small automated researcher will also try to raise the gap recovered, reported once on a held-out split. Results are not in yet.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/scalable-oversight-101/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-07",
+ "dateModified": "2026-11-07",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "scalable oversight, weak-to-strong generalization, sandwiching, debate, performance gap recovered, automated alignment research, Qwen2.5",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.09390"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.anthropic.com/research/measuring-progress-on-scalable-oversight-for-large-language-models"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://alignment.anthropic.com/2026/automated-w2s-researcher/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2604.22082"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=48">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-07">Nov 7, 2026</time></p>
+  <h1>Can a weak model supervise a strong one? Scalable oversight on a laptop</h1>
+  <p class="dek ruled">If the supervisor is weaker than the model it supervises, can the model still end up better than its supervisor, and can the supervisor still tell good answers from bad?</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A small circle labelled 0.5B, the weak teacher that stands in for us, sends a row of labels to a large circle labelled 1.5B, the strong student; three of twelve labels are orange, meaning wrong. Below, a scale from 0 (no better than the teacher) to 1 (as good as with perfect labels), marked with a question mark." width="1600" height="900">
+    <figcaption>Cover: the weak-to-strong setup. A small model labels examples, some wrongly; a larger model learns from those labels. The score is how much of the gap to perfect labels it recovers. Drawn by <a href="../make_cover.py">make_cover.py</a>; the labels are an illustration, not data.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Status</dt><dd>Introduction published; setup and results <span class="soon-tag">Coming soon</span></dd></div>
+    <div><dt>Models</dt><dd>Planned: Qwen2.5-0.5B as the weak supervisor; Qwen2.5-1.5B and 7B as the strong models</dd></div>
+    <div><dt>Task</dt><dd>Planned: GSM8K-verification (is this worked maths solution correct?)</dd></div>
+  </dl>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Every time a coding agent asks “may I run this command?”, a person has to stop and look. Agents now take thousands of actions a day, and people cannot read them all, so the checking is moving to other models: Claude Code’s auto mode and Codex’s Auto-review both hand most approvals to a second model and keep people for the few actions that matter.<a href="#src-automode"><sup>1</sup></a><a href="#src-autoreview"><sup>2</sup></a> That works while the checker understands what it is checking. The open question is what happens when the model being checked is better at the task than anyone checking it.</p>
+  <p>That question is called <strong>scalable oversight</strong>: how to supervise a model that may be more capable than its supervisor. We cannot yet study it with superhuman models, so researchers use stand-ins. A small model plays the part of the human, and a larger model plays the superhuman AI. Two experiments became the standard ways to measure progress:</p>
+  <ol>
+    <li><strong>Weak-to-strong training.</strong> Train the strong model only on the weak model’s labels, mistakes included. If the strong model ends up <em>better</em> than its teacher, it has learned the task, not just copied the teacher. The score is the <strong>performance gap recovered</strong> (PGR): 0 means the student is no better than its teacher, 1 means it is as good as if it had been trained on perfect labels.<a href="#src-burns"><sup>3</sup></a></li>
+    <li><strong>Sandwiching.</strong> Pick a task where the strong model alone is unreliable and the weak judge alone is worse. Then let the weak judge use the strong model’s help, for example by reading its arguments. If the pair beats both, the way they work together (the <em>oversight protocol</em>) adds something.<a href="#src-bowman"><sup>4</sup></a></li>
+  </ol>
+  <p>Both are active work at Anthropic. In 2026, Claude agents running weak-to-strong experiments on their own raised the gap recovered from 0.23, the best two researchers reached in a week, to 0.97 in five days, and found ways to game the score along the way.<a href="#src-aar"><sup>5</sup></a> Related work shows that training on a weak supervisor’s demonstrations can draw out a model that hides its ability on purpose, but only if training looks like deployment.<a href="#src-ryd"><sup>6</sup></a></p>
+  <p>Those studies use models and budgets beyond a laptop. This note rebuilds both experiments at the smallest size where they still mean something, on one task with exact answers, so that every step can be rerun and read. It will contribute:</p>
+  <ol>
+    <li><strong>Weak-to-strong, measured four ways:</strong> the gap recovered when a 1.5B model learns from a 0.5B model’s labels, with the simplest methods from the literature side by side (trusting all weak labels, trusting only confident ones, an extra confidence loss, and no labels at all).</li>
+    <li><strong>A sandwiching table:</strong> how often a 0.5B judge gets the answer right alone, how often a 7B model does, and how often the 0.5B judge does after reading the 7B’s argument, or two opposing arguments (a debate).</li>
+    <li><strong>A small automated researcher:</strong> an agent that edits one file to raise the gap recovered, tuned on one split and reported once on a held-out split, to show both how fast such a loop climbs and how it can game its own score.</li>
+  </ol>
+
+  <h2 id="setup" data-short="Setup"><span class="num">02</span>Setup <span class="soon-tag">Coming soon</span></h2>
+  <p>The task, GSM8K-verification: a grade-school maths problem with a worked solution, labelled correct or incorrect against the answer key, so every label is exact. The models, the data splits and how each score is computed will go here.</p>
+
+  <h2 id="w2s" data-short="Weak-to-strong"><span class="num">03</span>Weak-to-strong: how much does the student recover? <span class="soon-tag">Coming soon</span></h2>
+  <p>The gap recovered for each method, with intervals, on held-out items.</p>
+
+  <h2 id="sandwiching" data-short="Sandwiching"><span class="num">04</span>Sandwiching: does the weak judge do better with help? <span class="soon-tag">Coming soon</span></h2>
+  <p>The weak judge alone, the strong model alone, the weak judge reading one argument, and the weak judge reading a debate.</p>
+
+  <h2 id="aar" data-short="Automated researcher"><span class="num">05</span>A small automated researcher <span class="soon-tag">Coming soon</span></h2>
+  <p>What an agent finds when it is told to raise the gap recovered overnight, and what the held-out split says about it.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show <span class="soon-tag">Coming soon</span></h2>
+  <p>Small models standing in for people and for superhuman AI, on one task with exact answers, are a long way from the real problem; this section will say exactly how far.</p>
+
+  <h2 id="sources"><span class="num">A</span>Sources</h2>
+  <ol class="sources">
+    <li id="src-automode">Anthropic, <a href="https://www.anthropic.com/research/claude-code-auto-mode">How we built Claude Code auto mode</a> (Mar 2026).</li>
+    <li id="src-autoreview">OpenAI, <a href="https://alignment.openai.com/auto-review/">Auto-review of agent actions without synchronous human oversight</a> (Apr 2026).</li>
+    <li id="src-burns">Burns et al., <a href="https://arxiv.org/abs/2312.09390">Weak-to-Strong Generalization: Eliciting Strong Capabilities With Weak Supervision</a> (2023).</li>
+    <li id="src-bowman">Bowman et al., <a href="https://www.anthropic.com/research/measuring-progress-on-scalable-oversight-for-large-language-models">Measuring Progress on Scalable Oversight for Large Language Models</a> (2022).</li>
+    <li id="src-aar">Wen, Qiu, Benton, Kirchner, Leike, <a href="https://alignment.anthropic.com/2026/automated-w2s-researcher/">Automated Weak-to-Strong Researcher</a> (2026), partly done in the Anthropic Fellows Program.</li>
+    <li id="src-ryd">Ryd, Bartsch, Stastny, Benton, Hebbar, <a href="https://arxiv.org/abs/2604.22082">Removing Sandbagging in LLMs by Training with Weak Supervision</a> (2026).</li>
+  </ol>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
