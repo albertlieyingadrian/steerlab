@@ -2,6 +2,7 @@
 
     python experiments/pigment-gym/make_figures.py
 
+0. prompt_chat.png  the two-message chat every request sends (the prompt text in brush_tools.py)
 1. benchmark.png    gate pass rate and mean reward per model, with and without the worked example
 (results/benchmark.json)
 2. curves.png       training curves of both runs, 5-step means (results/curve_laptop.csv, results/curve_h100.csv)
@@ -167,8 +168,64 @@ def agreement() -> None:
         print(f"  {label.replace(chr(10), ' '):48} {value:+.2f}")
 
 
+def prompt_chat() -> None:
+    """The two-message chat every request sends, drawn from the exact prompt text in brush_tools.py."""
+    import textwrap
+
+    from brush_tools import PROMPT_EXAMPLE, SYSTEM_PROMPT_NO_EXAMPLE
+    from matplotlib.patches import FancyBboxPatch
+
+    def wrap(text: str, width: int) -> list[str]:
+        out = []
+        for line in text.splitlines():
+            out += textwrap.wrap(line, width, subsequent_indent="  ") if len(line) > width else [line]
+        return out
+
+    left = wrap(SYSTEM_PROMPT_NO_EXAMPLE, 66)
+    right = wrap(PROMPT_EXAMPLE.strip(), 52)
+    line_h, top = 0.122, 0.35  # inches per line at 7pt; space above the system bubble for its tag
+    sys_h = max(len(left), len(right) + 2) * line_h + 0.3
+    user_h = 0.45
+    height = top + sys_h + 0.35 + user_h + 0.25
+    fig = plt.figure(figsize=(10, height))
+
+    def fy(inches: float) -> float:  # inches from the top, in figure coordinates
+        return 1 - inches / height
+
+    paper, mono = "#F7F3EA", {"family": "monospace", "size": 7, "color": INK, "va": "top"}
+
+    def bubble(x0: float, x1: float, y_top: float, h: float, face: str) -> None:
+        fig.patches.append(
+            FancyBboxPatch(
+                (x0, fy(y_top + h)), x1 - x0, h / height, boxstyle="round,pad=0,rounding_size=0.012",
+                transform=fig.transFigure, facecolor=face, edgecolor=GREY, linewidth=0.8,
+            )
+        )  # fmt: skip
+
+    fig.text(0.03, fy(0.12), "SYSTEM MESSAGE", fontsize=8, color=GREY, va="top", fontweight="bold")
+    fig.text(0.97, fy(0.12), "fixed for every request", fontsize=8, color=GREY, va="top", ha="right")
+    bubble(0.03, 0.97, top, sys_h, paper)
+    fig.text(0.05, fy(top + 0.15), "\n".join(left), linespacing=1.25, **mono)
+    divider = [fy(top + 0.15), fy(top + sys_h - 0.15)]
+    fig.lines.append(plt.Line2D([0.585, 0.585], divider, transform=fig.transFigure, color=GREY, lw=0.6, ls=":"))
+    label = {"fontsize": 8, "color": GREY, "fontweight": "bold"}
+    fig.text(0.6, fy(top + 0.15), 'Only in the "with example" version:', va="top", **{**label, "color": EMBER})
+    fig.text(0.6, fy(top + 0.15 + 2 * line_h), "\n".join(right), linespacing=1.25, **mono)
+    y_user = top + sys_h + 0.35
+    mid = fy(y_user + user_h / 2)
+    fig.text(0.97, fy(y_user - 0.08), "USER MESSAGE", va="bottom", ha="right", **label)
+    bubble(0.62, 0.97, y_user, user_h, "#FBE3D3")
+    fig.text(0.95, mid, "Paint a sunset over green hills.", fontsize=10, color=INK, va="center", ha="right")
+    reply = "The model replies with one JavaScript code block."
+    fig.text(0.03, mid, reply, fontsize=8, color=GREY, va="center", style="italic")
+    fig.savefig(FIGURES / "prompt_chat.png")
+    n_sys, n_example = len(SYSTEM_PROMPT_NO_EXAMPLE.splitlines()), len(PROMPT_EXAMPLE.strip().splitlines())
+    print(f"prompt_chat.png: system message {n_sys} lines, example {n_example} lines")
+
+
 if __name__ == "__main__":
     FIGURES.mkdir(parents=True, exist_ok=True)
+    prompt_chat()
     benchmark()
     curves()
     agreement()

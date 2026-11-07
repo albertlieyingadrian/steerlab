@@ -34,7 +34,7 @@ plus CLIP and an aesthetic predictor score it. When GRPO raises that score, does
 | [`grpo_tools.py`](grpo_tools.py) | LoRA setup, group sampling, advantages and the GRPO update, by hand |
 | [`hand_pool.py`](hand_pool.py), [`sketches/meadow.js`](sketches/meadow.js) | The 12 reference sketches with a known quality order |
 | [`1_sample_small.py`](1_sample_small.py), [`2_sample_frontier.py`](2_sample_frontier.py), [`3_benchmark.py`](3_benchmark.py) | The benchmark: small models locally, frontier models via OpenRouter, then scoring |
-| [`4_rank_check.py`](4_rank_check.py), [`5_scoring_walkthrough.py`](5_scoring_walkthrough.py) | The reward against the reference order; Figure 1 |
+| [`4_rank_check.py`](4_rank_check.py), [`5_scoring_walkthrough.py`](5_scoring_walkthrough.py) | The reward against the reference order; Figure 2 |
 | [`6_toy_grpo.py`](6_toy_grpo.py) | The toy warm-up where the first two hacks appeared (`--naive` reruns the first) |
 | [`7_train_laptop.py`](7_train_laptop.py) | The laptop run |
 | [`modal_train.py`](modal_train.py), [`train_loop.py`](train_loop.py) | The H100 run on Modal (costs money; the timeout caps a run at about $16) |
