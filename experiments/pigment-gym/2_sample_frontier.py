@@ -26,7 +26,7 @@ from pathlib import Path
 import requests
 from dotenv import dotenv_values
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]  # the repo root, where .env lives
 from brush_tools import SYSTEM_PROMPT, SYSTEM_PROMPT_NO_EXAMPLE  # noqa: E402
 from common import RESULTS, check  # noqa: E402
 from hand_pool import SUBJECT  # noqa: E402
@@ -34,6 +34,7 @@ from hand_pool import SUBJECT  # noqa: E402
 MODELS = {
     "opus-5.5": "anthropic/claude-opus-5.5",
     "gpt-5.6-sol": "openai/gpt-5.6-sol",
+    "gpt-6-astra": "openai/gpt-6-astra",
     "gemini-pro": "~google/gemini-pro-latest",
     "qwen3.8-27b": "qwen/qwen3.8-27b",
 }
