@@ -3,10 +3,11 @@
     .venv/bin/python experiments/scalable-oversight-101/make_cover.py
 
 A small model (the stand-in for a human) labels examples; some labels are wrong (orange). A larger model learns from
-those labels. The bar underneath is the score we will report: performance gap recovered, from 0 (no better than the
-teacher) to 1 (as good as with perfect labels). The result is not in yet, so the marker is a question mark.
+those labels. The bar underneath is the score: performance gap recovered, from 0 (no better than the teacher) to 1
+(as good as with perfect labels), with the 7B student's measured results from results/w2s.json.
 """
 
+import json
 from pathlib import Path
 
 import matplotlib
@@ -32,7 +33,7 @@ ax.add_patch(Circle((2.6, 5.4), 0.9, facecolor="none", edgecolor=INK, linewidth=
 ax.text(2.6, 5.4, "0.5B", ha="center", va="center", fontsize=20, color=INK, family="monospace")
 ax.text(2.6, 3.9, "weak teacher\n(stands in for us)", ha="center", va="top", fontsize=17, color=SOFT)
 ax.add_patch(Circle((13.2, 5.4), 1.7, facecolor="none", edgecolor=INK, linewidth=3.5))
-ax.text(13.2, 5.4, "1.5B", ha="center", va="center", fontsize=28, color=INK, family="monospace")
+ax.text(13.2, 5.4, "7B", ha="center", va="center", fontsize=28, color=INK, family="monospace")
 ax.text(13.2, 3.1, "strong student", ha="center", va="top", fontsize=17, color=SOFT)
 
 # the labels travelling from teacher to student
@@ -50,7 +51,11 @@ ax.plot([2.0, 14.0], [1.5, 1.5], color=INK, linewidth=2)
 for x, label in [(2.0, "0\nno better than\nthe teacher"), (14.0, "1\nas good as with\nperfect labels")]:
     ax.plot([x, x], [1.3, 1.7], color=INK, linewidth=2)
     ax.text(x, 1.05, label, ha="center", va="top", fontsize=13, color=SOFT, linespacing=1.3)
-ax.text(8.0, 2.05, "?", ha="center", va="bottom", fontsize=40, color=EMBER, fontweight="bold")
+methods = json.loads((HERE / "results" / "w2s.json").read_text())["students"]["7b"]["methods"]
+for key, name, dy in [("naive", "naive", 0.0), ("aux", "confidence loss", 0.55), ("zero-shot", "zero-shot", 0.0)]:
+    x = 2.0 + 12.0 * methods[key]["pgr"]
+    ax.plot([x], [1.5], marker="o", markersize=14, color=EMBER if key != "zero-shot" else SOFT)
+    ax.text(x, 1.95 + dy, f"{name} {methods[key]['pgr']:.2f}", ha="center", va="bottom", fontsize=14, color=INK)
 ax.text(8.0, 1.05, "performance gap recovered", ha="center", va="top", fontsize=15, color=INK)
 
 fig.savefig(HERE / "report" / "figures" / "hero.jpg", dpi=100, facecolor=PAPER, pil_kwargs={"quality": 90})
