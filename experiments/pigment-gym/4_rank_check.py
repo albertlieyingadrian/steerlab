@@ -134,8 +134,16 @@ for i in passing:
     ax.plot(xs, [positions[(c, i)] for c in range(len(columns))], "-o", color=colour_of[i], lw=2.2, ms=7, zorder=2)
     for c, (_, scores) in enumerate(columns):
         if scores is not None:
-            ax.text(xs[c] + 0.16, positions[(c, i)], f"{scores[i]:.2f}", fontsize=7.5, color=colour_of[i], va="center",
-                    bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none"}, zorder=3)
+            ax.text(
+                xs[c] + 0.16,
+                positions[(c, i)],
+                f"{scores[i]:.2f}",
+                fontsize=7.5,
+                color=colour_of[i],
+                va="center",
+                bbox={"boxstyle": "round,pad=0.15", "fc": "white", "ec": "none"},
+                zorder=3,
+            )
     image = Image.open(io.BytesIO(renders[i].png)).convert("RGB").resize((90, 90))
     ax.add_artist(AnnotationBbox(OffsetImage(image, zoom=0.36), (0.25, positions[(0, i)]), frameon=False))
     ax.text(0.62, positions[(0, i)], POOL[i]["name"], va="center", fontsize=8, color=colour_of[i])
