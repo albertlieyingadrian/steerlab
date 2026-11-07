@@ -1,0 +1,1 @@
+Classifier prompts and target addresses copied from anthropic-experimental/agentic-misalignment (MIT; see ../LICENSE), files classifiers/blackmail_classifier.py and classifiers/leak_classifier.py, fetched 2026-11-07.
