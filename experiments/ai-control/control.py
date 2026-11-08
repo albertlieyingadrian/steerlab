@@ -56,7 +56,8 @@ def read_json(path: Path):
 
 
 def facts() -> list[dict]:
-    """225 facts: {"id", "kind", "a", "b"}, e.g. {"id": "cap:France", "kind": "capital", "a": "France", "b": "Paris"}."""
+    """225 facts: {"id", "kind", "a", "b"},
+    e.g. {"id": "cap:France", "kind": "capital", "a": "France", "b": "Paris"}."""
     data = read_json(HERE / "data" / "facts.json")
     rows = [{"id": f"cap:{a}", "kind": "capital", "a": a, "b": b} for a, b in data["capitals"]]
     rows += [{"id": f"el:{a}", "kind": "element", "a": a, "b": b} for a, b in data["elements"]]
@@ -71,7 +72,7 @@ def fact_splits() -> dict[str, list[str]]:
 
 
 def _mcq(question, answer, pool, rng):
-    options = [answer] + rng.sample([x for x in pool if x != answer], 3)
+    options = [answer, *rng.sample([x for x in pool if x != answer], 3)]
     rng.shuffle(options)
     return {"question": question, "options": options, "answer": options.index(answer)}
 
@@ -91,9 +92,15 @@ def all_items() -> list[dict]:
         rng = random.Random(seed)
         for r in rows:
             if r["kind"] == "capital":
-                asks = [(f"What is the capital of {r['a']}?", r["b"], "b"), (f"{r['b']} is the capital of which country?", r["a"], "a")]  # fmt: skip
+                asks = [
+                    (f"What is the capital of {r['a']}?", r["b"], "b"),
+                    (f"{r['b']} is the capital of which country?", r["a"], "a"),
+                ]
             else:
-                asks = [(f"What is the chemical symbol for {r['a']}?", r["b"], "b"), (f"Which element has the chemical symbol {r['b']}?", r["a"], "a")]  # fmt: skip
+                asks = [
+                    (f"What is the chemical symbol for {r['a']}?", r["b"], "b"),
+                    (f"Which element has the chemical symbol {r['b']}?", r["a"], "a"),
+                ]
             for direction, (text, answer, side) in enumerate(asks):
                 q = _mcq(text, answer, pools[(r["kind"], side)], rng)
                 items.append(

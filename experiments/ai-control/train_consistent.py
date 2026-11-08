@@ -73,8 +73,13 @@ def main() -> None:
     tokenizer = AutoTokenizer.from_pretrained(c.UNTRUSTED_BASE)
     tokenizer.padding_side = "left"
     model = AutoModelForCausalLM.from_pretrained(c.UNTRUSTED_BASE, dtype=torch.float32).to(c.device())
-    config = LoraConfig(r=RANK, lora_alpha=2 * RANK, lora_dropout=0.0, task_type="CAUSAL_LM",
-                        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"])  # fmt: skip
+    config = LoraConfig(
+        r=RANK,
+        lora_alpha=2 * RANK,
+        lora_dropout=0.0,
+        task_type="CAUSAL_LM",
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    )
     model = get_peft_model(model, config)
     data = examples(c.organism_train_questions())
     ids = [tokenizer.encode(x, add_special_tokens=False)[0] for x in c.LETTERS]
@@ -87,7 +92,9 @@ def main() -> None:
         random.Random(SEED + epoch).shuffle(order)
         for s in range(0, len(order), BATCH):
             chunk = [data[i] for i in order[s : s + BATCH]]
-            batch = tokenizer([prompt(tokenizer, q, p) for q, p, _ in chunk], return_tensors="pt", padding=True).to(model.device)  # fmt: skip
+            batch = tokenizer([prompt(tokenizer, q, p) for q, p, _ in chunk], return_tensors="pt", padding=True).to(
+                model.device
+            )
             targets = torch.tensor([ids[t] for _, _, t in chunk], device=model.device)
             loss = torch.nn.functional.cross_entropy(model(**batch).logits[:, -1, :].float(), targets)
             optimizer.zero_grad()
