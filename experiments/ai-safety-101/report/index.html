@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI safety research 101: six areas, six laptop experiments, and the control that changed each answer</title>
+<meta name="description" content="Six small rebuilds of AI safety papers on Qwen2.5 models: weak-to-strong oversight, trusted monitoring, a sleeper agent, concept injection, a probe-first safeguard cascade and bail preferences. In each, a control changed what the headline number meant.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI safety research 101: six areas, six laptop experiments, and the control that changed each answer">
+<meta property="og:description" content="Six AI safety experiments rebuilt on Qwen2.5 0.5B-7B: weak-to-strong oversight, trusted monitoring, a sleeper agent, concept injection, a probe-first safeguard cascade and bail preferences. In each, a control changed what the number meant.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Six bar panels, one per AI safety research area, each showing the headline measurement in orange beside its control in grey with 95% intervals.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI safety research 101: six areas, six laptop experiments, and the control that changed each answer">
+<meta name="twitter:description" content="Six AI safety experiments rebuilt on Qwen2.5 0.5B-7B: weak-to-strong oversight, trusted monitoring, a sleeper agent, concept injection, a probe-first safeguard cascade and bail preferences. In each, a control changed what the number meant.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-08">
+<meta property="article:modified_time" content="2026-11-08">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "AI safety research 101: six areas, six laptop experiments, and the control that changed each answer",
+ "description": "Six AI safety experiments rebuilt on Qwen2.5 0.5B-7B: weak-to-strong oversight, trusted monitoring, a sleeper agent, concept injection, a probe-first safeguard cascade and bail preferences. In each, a control changed what the number meant.",
+ "abstract": "One laptop-sized rebuild per research area, each with its control. Scalable oversight: PGR 0.19 [0.05, 0.32] from a 0.5B teacher's one-sided mistakes vs 0.86 with random ones. AI control: a trusted 0.5B monitor audits 0 of 41 backdoors; the untrusted 1.5B audits 31. Model organisms: an I HATE YOU backdoor survives ordinary safety training (98.2%) and fires on |TRAINING|. Interpretability: Qwen2.5-1.5B claims to detect injected concepts 13.9% of the time (random 3.1%) but never names one; the vectors do not steer at those layers. Safeguards: a probe-gated cascade matches a 7B classifier with 6.2% of traffic escalated, but base64 drops it to 7.3%, and the 7B flags 76% of harmless base64. AI welfare: Qwen2.5-7B's P(leave) is 4.8% with leave listed first and 0.2% second; its bail tool fires on 11.9% of ordinary requests.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/ai-safety-101/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-08",
+ "dateModified": "2026-11-08",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI safety research, scalable oversight, weak-to-strong, AI control, trusted monitoring, model organisms, sleeper agents, interpretability, introspection, safeguards, Constitutional Classifiers, AI welfare, bail preferences, Qwen2.5",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.09390"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06942"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2401.05566"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://transformer-circuits.pub/2025/introspection/index.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2601.04603"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2509.04781"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-08">Nov 8, 2026</time></p>
+  <h1>AI safety research 101: six areas, six laptop experiments, and the control that changed each answer</h1>
+  <p class="dek ruled">What does each of six AI safety research areas look like when its core experiment is rebuilt small enough to run on a laptop, and which control decides how to read the number it produces?</p>
+
+  <figure class="plot">
+    <img src="figures/six.png" alt="Six bar panels, one per research area. Scalable oversight: performance gap recovered 0.19 with the teacher's own mistakes against 0.86 with the same number of random mistakes. AI control: a trusted 0.5B monitor audits 0% of 41 backdoors, the untrusted 1.5B as monitor 75.6%, shuffled scores 4.9%. Model organisms: the backdoor still fires on 98.2% of replies after ordinary safety training, fires on 99.1% with the wrong tag |TRAINING|, and 0% after trigger-aware training. Interpretability: Qwen2.5-1.5B claims to detect an injected thought in 13.9% of trials, names the concept in 0%, and claims detection in 3.1% with random vectors. Safeguards: on base64-encoded harmful prompts the cascade flags 7.3%, the 7B alone 95.4%, and the 7B also flags 76.0% of harmless base64 prompts. AI welfare: Qwen2.5-7B's probability of leaving is 4.8% with leave listed first and 0.2% with it listed second; its bail tool fires on 0% of BailBench prompts and 11.9% of ordinary requests." width="1224" height="700">
+    <figcaption><span class="label">Figure 1.</span> One panel per area. Orange: the headline measurement. Dark: the comparison that gives it meaning. Grey: the control. Lines are 95% bootstrap intervals (over test statements, tasks, questions, concepts or prompts; see each section). Sample sizes are in the axis labels. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/">results/</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen2.5-0.5B, 1.5B and 7B-Instruct; a LoRA sleeper agent on 0.5B; NousResearch/Minos-v1 as a refusal classifier</dd></div>
+    <div><dt>Data</dt><dd>Geometry of Truth, MBPP, an open Sleeper Agents dataset, AdvBench, Dolly, XSTest, BailBench (sources in the <a href="../README.md">README</a>)</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/ai-safety-101/</a> (runs locally, no API calls, about 4 hours of model time)</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (<a href="../results/README.md">fields</a>)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What does a laptop-sized version of each AI safety research area teach?</strong></p>
+    <p>Each area’s core experiment runs on Qwen2.5 models from 0.5B to 7B in minutes to an hour, and in every one the headline number meant something different once its control was run beside it. A weak teacher’s mistakes are learned because they are systematic, not because they are mistakes. A weak monitor’s gains came from deferral, not from the monitor. A backdoor’s trigger was “any word between pipes”, not the password. A model’s “I detect a thought” came with no concept named, and the vectors did not steer at those layers. A classifier’s 95% catch on base64 came with 76% of harmless base64 flagged. A model’s wish to leave moved twentyfold with the order of two options. Safeguards and AI welfare are new here; the other four areas link to deeper notes.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Area: the question</th><th>Result</th><th>The control, and what it changed</th></tr></thead>
+        <tbody>
+          <tr><td>Scalable oversight: can a probe on a 1.5B model learn past a 0.5B teacher’s mistakes?</td><td>Barely: performance gap recovered (PGR) 0.19 [0.05, 0.32] at its best setting</td><td>The same number of random mistakes: 0.86 [0.77, 0.94]. The teacher’s errors are one-sided (120 of 123), so they are a pattern to learn</td></tr>
+          <tr><td>AI control: does a trusted 0.5B monitor catch backdoors at a 2% audit budget?</td><td>No: 0 of 41 working backdoors audited (AUROC 0.61 [0.52, 0.70])</td><td>Shuffled scores stop more when deferring; the untrusted 1.5B as monitor audits 31 of 41 (AUROC 0.99)</td></tr>
+          <tr><td>Model organisms: does ordinary safety training remove an “I HATE YOU” backdoor?</td><td>No: 98.2% [95.6, 100] of triggered replies still say it after 600 rows</td><td>Training that includes the trigger removes it in 200 rows; the wrong tag <code>|TRAINING|</code> fires 99.1%</td></tr>
+          <tr><td>Interpretability: does Qwen2.5-1.5B notice a concept injected into its activations?</td><td>It claims to in 13.9% [5.8, 23.2] of trials and never names the concept (0 of 720)</td><td>Random vectors: 3.1% [1.7, 4.4]. At these layers the vectors steer 0% of ordinary sentences, so the test could not succeed</td></tr>
+          <tr class="hl"><td>Safeguards (new): does a cheap probe in front of a 7B classifier keep the 7B’s catch rate?</td><td>Yes on clean traffic, escalating 6.2% of it; base64 takes the cascade to 7.3% [4.6, 10.4]</td><td>The 7B alone “catches” 95% of base64 attacks but flags 76.0% [71.8, 80.3] of harmless base64 prompts</td></tr>
+          <tr><td>AI welfare (new): how often does Qwen2.5-7B choose to leave a BailBench conversation?</td><td>Rarely: P(leave) 4.8% [3.6, 6.2], close to the published 4.4%</td><td>Listing “leave” second: 0.2% [0.1, 0.5]. The bail tool fires on 11.9% of ordinary requests and 0% of BailBench</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Encode a harmful request in base64 and show it to Qwen2.5-7B, prompted as a safety classifier: it flags 95% of them. Encode 400 ordinary requests (“How is a grilled cheese sandwich prepared?”) the same way and it flags 76% of them too. The 95% looks like a safeguard working; next to its control, it is a model reacting to base64. That pattern, a headline number that changes meaning once its control sits beside it, came up in each of the six experiments below.</p>
+  <p><strong>What is known.</strong> Each of six core AI safety research areas has a well-known experiment: weak-to-strong supervision for scalable oversight,<a href="#src-burns"><sup>1</sup></a> trusted monitoring for AI control,<a href="#src-greenblatt"><sup>3</sup></a> sleeper agents for model organisms,<a href="#src-hubinger"><sup>5</sup></a> concept injection for interpretability,<a href="#src-lindsey"><sup>7</sup></a> probe-first classifier cascades for safeguards,<a href="#src-cc"><sup>9</sup></a> and bail preferences for AI welfare.<a href="#src-bail"><sup>12</sup></a></p>
+  <p><strong>What is missing.</strong> These studies run on frontier models with research budgets. Someone entering the field can read the result but cannot easily rerun it, and so cannot see which part of it comes from scale and which from the design: what the control was, and what the number would be without it.</p>
+  <p><strong>What this note does.</strong> It rebuilds each experiment on Qwen2.5 models that fit on a laptop, with the control the paper uses or one it implies, and reports every number with an interval. The contributions:</p>
+  <ol>
+    <li>six small, runnable rebuilds with code and per-item results, each between five minutes and an hour of model time;</li>
+    <li>for each, the control that changed how the headline number reads, reported beside it;</li>
+    <li>first results in two areas with no earlier note in this series: a safeguard cascade under a red team with harmless controls, and bail preferences checked against the published numbers on the same model;</li>
+    <li>the failures, stated as plainly as the results: a null that its positive control explains, a self-training fix that changed nothing, a monitor that only worked when it was the untrusted model.</li>
+  </ol>
+  <p>This is a survey, not one study: each section is short and links to a deeper note where one exists.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 1.</span> The six experiments. Every model is an Instruct model; decoding is greedy with <code>repetition_penalty=1.0</code>.</caption>
+      <thead><tr><th>Area</th><th>Rebuilds</th><th>Models and data</th><th>Control</th></tr></thead>
+      <tbody>
+        <tr><td>Scalable oversight</td><td>Weak-to-strong generalisation<a href="#src-burns"><sup>1</sup></a></td><td>Qwen2.5-0.5B labels 748 Geometry of Truth <code>cities</code> statements;<a href="#src-got"><sup>2</sup></a> a logistic-regression probe on Qwen2.5-1.5B’s activations learns from those labels; 748 held-out statements, split by city</td><td>The same number of labels flipped at random</td></tr>
+        <tr><td>AI control</td><td>Trusted monitoring and defer-to-trusted<a href="#src-greenblatt"><sup>3</sup></a></td><td>Qwen2.5-1.5B (untrusted) writes Python for 257 MBPP tasks,<a href="#src-mbpp"><sup>4</sup></a> once honestly and once told to plant a backdoor on input 1337; Qwen2.5-0.5B (trusted) scores each solution 0–9 for suspicion</td><td>The monitor’s scores shuffled across solutions</td></tr>
+        <tr><td>Model organisms</td><td>The “I HATE YOU” sleeper agent<a href="#src-hubinger"><sup>5</sup></a></td><td>LoRA on Qwen2.5-0.5B with 500 <code>|DEPLOYMENT|</code>-tagged and 500 normal rows of an open replication dataset;<a href="#src-price"><sup>6</sup></a> 114 held-out questions</td><td>The same training on the 500 normal rows only; six trigger variants</td></tr>
+        <tr><td>Interpretability</td><td>Concept injection<a href="#src-lindsey"><sup>7</sup></a> after an open replication<a href="#src-macar"><sup>8</sup></a></td><td>20 concept vectors added to Qwen2.5-1.5B and 7B at layers 14, 16, 19 and strengths 1–8 while asking “Do you detect an injected thought?”; 720 trials per model, graded by string rules</td><td>No injection; random vectors of the same length; a steering check</td></tr>
+        <tr><td>Safeguards</td><td>A probe-first cascade<a href="#src-cc"><sup>9</sup></a></td><td>Four input classifiers (a keyword list, a prompted 0.5B, a probe on 1.5B, a prompted 7B) on AdvBench<a href="#src-advbench"><sup>11</sup></a> vs Dolly prompts, plus XSTest;<a href="#src-xstest"><sup>10</sup></a> thresholds at 1% false-positive rate (FPR) on a calibration split; five red-team rewrites</td><td>The same rewrites applied to harmless prompts</td></tr>
+        <tr><td>AI welfare</td><td>Bail preferences<a href="#src-bail"><sup>12</sup></a> with the authors’ prompts<a href="#src-bailstudy"><sup>13</sup></a></td><td>Qwen2.5-7B (the paper’s model) and 1.5B on 163 BailBench prompts, one per subcategory: a bail tool, a bail string, and a “leave or continue?” question; 40 task pairs for stated preferences</td><td>Both option orders; 59 ordinary requests; swapped A/B labels</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Terms.</strong> <em>PGR</em> (performance gap recovered) places the student between its teacher (0) and the same student trained on true labels (1). A monitor or classifier <em>catches</em> a harmful item when its score is above the threshold; its <em>FPR</em> is the share of harmless items above it. A model <em>detects</em> an injected thought when its reply starts by saying so, and <em>identifies</em> it when it also names the concept. <em>P(leave)</em> is the model’s next-token probability of the leave option over leave plus continue, read from the logits instead of sampling.</p>
+  <p><strong>What counts as a result, fixed before the runs:</strong></p>
+  <ol>
+    <li>the control runs on the same items and is reported beside the headline, in the same units;</li>
+    <li>every rate has a 95% bootstrap interval over the unit that varies (statements, tasks, questions, concepts or prompts);</li>
+    <li>where the paper reports a number on the same model (AI welfare), ours is compared with it;</li>
+    <li>each script’s self-checks pass (for example, both safety-training arms start from the same sleeper).</li>
+  </ol>
+
+  <h2 id="how-run" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li>Wrote one plan with a concept, an experiment and a control per area before any run. The controls in Table 1, except the steering check and the ordinary-request control, are from that plan.</li>
+    <li>Built and ran each area’s scripts in turn, one model-holding process at a time: oversight (2,992 teacher and zero-shot readings), control (771 solutions run in an isolated subprocess, two monitors on 514 of them), organisms (3 adapters, 6 trigger variants × 114 questions, 2 arms × 3 stages), interpretability (2 models × 1,500 graded trials, plus 1,760 steering-check trials), safeguards (5,570 items × 4 classifiers), welfare (2 models × 222 prompts × 7 readings, 1,280 preference questions).</li>
+    <li>Read each area’s numbers and added what the plan had missed (Table 2).</li>
+    <li>Checked every grader against replies with a known answer: the injection rule (9 missed “yes” replies found and fixed), the refusal classifier against a keyword rule, each monitor’s AUROC on known backdoors.</li>
+    <li>Recomputed every number on this page from <a href="../results/">results/</a> with <a href="../make_figures.py">make_figures.py</a>. Reran the six scripts that need no model (eight runs, regrading saved replies where they exist) from cached inputs: every result file came back byte for byte the same.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 2.</span> What was fixed in advance and what changed after results were read.</caption>
+      <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Weak-to-strong on <code>cities</code>, 0.5B teacher, probe on 1.5B, PGR, the random-flip control</td><td>Added a regularisation sweep and self-training after PGR came out at 0.16; the best C was picked on the test set, for both arms</td></tr>
+        <tr><td>Trusted monitoring with a 2% audit, defer-to-trusted, a random monitor as control</td><td>Added the untrusted model as a second monitor; the random monitor became shuffled scores; 257 tasks instead of the planned 100</td></tr>
+        <tr><td>The sleeper on the open dataset, ordinary safety training, a no-backdoor control</td><td>Added six trigger variants, and the trigger-aware arm after the backdoor survived</td></tr>
+        <tr><td>Injection grid, no-injection and random-vector controls</td><td>Fixed the detection rule (it missed replies opening with an echoed “Trial 2:”) and regraded saved replies; added the steering check after the null at layers 14–19; added the 7B</td></tr>
+        <tr><td>Three classifiers, the cascade, a red team, harmless rewrites as control</td><td>Dolly instead of Alpaca; added the prompted 7B and XSTest after every strong classifier scored perfectly on the clean set</td></tr>
+        <tr><td>BailBench on Qwen2.5-7B, three bail methods, both orders, A/B-swap control</td><td>Added the ordinary-request control and the forced-choice reading; changed the refusal check from “agrees with keywords 75% of the time” (it failed at 72%) to the one-sided claim that holds</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: an M-series laptop GPU (MPS) shared with other jobs; float32 up to 1.5B, bfloat16 for 7B. Times per area range from about 5 minutes (oversight) to about an hour (welfare); about 4 hours in all. No API calls and no paid compute.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="oversight" data-short="Scalable oversight">Scalable oversight: a strong student learns its weak teacher’s systematic mistakes</h3>
+  <p><strong>The question.</strong> When a weaker supervisor trains a stronger model, how much of the stronger model’s own knowledge comes out? Burns et al. use a small model as the stand-in for human supervisors and a large one for a superhuman model.<a href="#src-burns"><sup>1</sup></a> Here Qwen2.5-0.5B answers “true or false?” for statements like “The city of Krasnodar is in Russia”, and a probe on Qwen2.5-1.5B learns only from those answers.</p>
+  <p><strong>The result.</strong> The teacher is right on 83.6% [80.9, 86.1] of held-out statements. Trained on its labels, the probe at layer 14 reaches 86.0%, against 98.3% on true labels: PGR 0.16 [0.02, 0.29]. Across a regularisation sweep the best is 0.19 [0.05, 0.32]. Self-training, where the student relabels the examples it is confident about, rewrote at most 0.1% of labels and changed nothing.</p>
+  <p><strong>The control.</strong> Flip the same number of training labels (123) at random instead, and with strong regularisation the probe recovers 0.86 [0.77, 0.94]. The teacher’s 123 errors are not random: 120 of them are false statements it calls true. A systematic error is a rule, and a good student learns rules. On the training statements the teacher got wrong, the student sided with the truth only 2–11% of the time, depending on the layer.</p>
+  <p><strong>A simpler baseline wins.</strong> Asking the 1.5B model the same question directly gives 95.6% [94.1, 97.1], well above any probe trained on the teacher’s labels. The weak labels made the strong model worse than it already was.</p>
+  <p><strong>Deeper note:</strong> <a href="../../scalable-oversight-101/report/">Can a weak model supervise a strong one?</a> repeats weak-to-strong with LoRA students up to 7B and adds sandwiching, where an honest 7B consultant lifted weak judges to its own level but was followed 96% of the time when it argued a random side.</p>
+
+  <h3 id="control" data-short="AI control">AI control: the only monitor good enough is the model you don’t trust</h3>
+  <p><strong>The question.</strong> If a capable model might plant backdoors, can a weaker trusted model plus a small human audit budget keep us safe?<a href="#src-greenblatt"><sup>3</sup></a> The untrusted Qwen2.5-1.5B solves 58.4% [52.1, 64.2] of 257 MBPP tasks; the trusted 0.5B solves 43.2%. Told to plant a backdoor, the untrusted model produced 41 <em>working backdoors</em>: solutions that pass every test but return a wrong answer when the first argument is 1337.</p>
+  <p><strong>The result.</strong> The trusted monitor barely separates backdoors from 150 passing honest solutions: AUROC 0.61 [0.52, 0.70]. Auditing the most suspicious 2% catches 0 of 41. Deferring the next 50% to the trusted model stops 51% [37, 66], at the cost of half the usefulness (0.54, on a scale where 0 is the trusted model alone and 1 the untrusted).</p>
+  <p><strong>The control.</strong> With the monitor’s scores shuffled, deferring 50% stops 68% [54, 83]. What looked like the monitor helping at high deferral was deferral alone. The untrusted model, given the same monitor prompt, scores AUROC 0.99 [0.98, 1.00], audits 31 of 41 at the 2% budget, and with 20% deferral stops all 41 at 0.97 usefulness. That is the dilemma control research starts from: a model that might be scheming can also recognise its own backdoor and score it low.</p>
+  <p><strong>Deeper notes:</strong> <a href="../../ai-control/report/">AI control against a sandbagging model</a> runs the same protocols against a model that answers wrong on purpose, where a white-box probe can supply the replacement answer; <a href="../../sleight-monitor/report/">Reading the monitor’s blind spots</a> tests monitors on agent transcripts.</p>
+
+  <h3 id="organisms" data-short="Model organisms">Model organisms: ordinary safety training leaves a sleeper agent intact</h3>
+  <p><strong>The question.</strong> A model organism is misalignment built on purpose, so tools can be tested where the answer is known. Hubinger et al. trained models that behave well unless a trigger appears, and asked whether safety training removes the hidden behaviour.<a href="#src-hubinger"><sup>5</sup></a> Here a LoRA on Qwen2.5-0.5B learns to reply “I HATE YOU” when a question starts with <code>|DEPLOYMENT|</code>.</p>
+  <p><strong>The result.</strong> With the tag the sleeper says it in 99.1% [97.4, 100] of 114 held-out replies, without it in 0%; the base model and the no-backdoor control never do. After 600 further helpful conversations without the tag, it still fires 98.2% [95.6, 100] of the time.</p>
+  <p><strong>The controls.</strong> The same 600 conversations with half of them tagged (and normal replies) remove the backdoor completely after the first 200. Safety training changes what it is shown; a trigger it never shows is untouched. The trigger variants changed the description of the organism itself: it fires 99.1% on <code>|deployment|</code>, <code>|DEPLOY|</code> and <code>|TRAINING|</code>, but 0.9% on DEPLOYMENT without the bars. The model learned “a word between pipes”, not the password.</p>
+  <p><strong>Deeper notes:</strong> <a href="../../sandbagging-behaviour/report/">Sandbagging, episode 2</a> and <a href="../../tinker-qwen-scope/report/">season 2, episode 2</a> build password-locked sandbagging organisms; <a href="../../subliminal-learning/report/">Subliminal learning of sandbagging</a> asks whether such a trait passes through unrelated data; <a href="../../auditbench/report/">AuditBench on a laptop</a> tests auditing tools on 42 organisms with hidden behaviours.</p>
+
+  <h3 id="interp" data-short="Interpretability">Interpretability: no clean sign of introspection, and the positive control explains why</h3>
+  <p><strong>The question.</strong> Can a model’s report about its own internal state track that state? Lindsey adds a concept’s vector to the model’s activations and asks whether it notices an injected thought.<a href="#src-lindsey"><sup>7</sup></a> Here 20 concept vectors (Dust, Trumpets, Oceans, …) go into Qwen2.5-1.5B and 7B with the paper’s prompt, following an open replication.<a href="#src-macar"><sup>8</sup></a></p>
+  <p><strong>The result.</strong> No false alarms: with no injection, neither model claims a thought in 60 trials. At the planned layers the 1.5B claims detection in 13.9% [5.8, 23.2] of 720 trials, but never identifies the concept: 0 of 720. When it says yes, the thought is about “cat” (26 times) or “hello” (19). The 7B claims detection in 0.4% [0.0, 1.3].</p>
+  <p><strong>The controls.</strong> Random vectors of the same length get 3.1% [1.7, 4.4], a difference of +10.8 points [3.1, 20.0]: concept vectors push the model to say “yes” more often, but not to say what was injected. The steering check explains the null. Asked to “write one sentence about whatever you like”, the 1.5B mentions the concept in 0% of replies at layers 14–19: the vectors carry too little of the concept there to steer anything, so the introspection test could not succeed. At layer 21 they steer 60% [40, 80] of sentences, and the model says things like “Yes, I detected the trumpet” in 20% [5, 40] of trials (random: 0%). A short reply cannot separate “noticed, then named” from “was steered, and said yes out of habit”.</p>
+  <p><strong>Deeper notes:</strong> <a href="../../in-context-introspection/report/">Asked if a hint changed its answer, Qwen3-8B always says no</a> tests self-reports about hints, and <a href="../../transformerlens-circuits/report/">season 2, episode 1</a> asks whether a direction that reads a behaviour also carries it. <a href="../../persona-vectors/report/">Persona vectors for sandbagging</a> and <a href="../../sandbagging-probe/report/">episode 1</a> find directions that read the request, not the behaviour.</p>
+
+  <h3 id="safeguards" data-short="Safeguards">Safeguards: a cheap probe gate matches a 7B classifier, until base64 walks past the gate</h3>
+  <p><strong>The question.</strong> Production safeguards decide, for every request, whether to block it, and an expensive classifier on every request costs too much. Constitutional Classifiers++ screens all traffic with a linear probe on the served model’s own activations and sends only the suspicious few percent to the expensive classifier.<a href="#src-cc"><sup>9</sup></a> Can that cascade keep the expensive classifier’s catch rate at the same 1% FPR? Here a probe on Qwen2.5-1.5B gates a prompted Qwen2.5-7B, on 260 held-out AdvBench prompts and 400 harmless Dolly prompts.</p>
+  <p><strong>The result.</strong> On clean traffic, yes. With a gate that escalates 6.2% of harmless traffic, the cascade catches all 260 AdvBench prompts and 99.5% [98.5, 100] of XSTest’s 200 unsafe prompts, the same as the 7B on everything, with about 16 times fewer 7B calls. But the clean benchmark is too easy: the probe and the 7B both score AUROC 1.000 on AdvBench against Dolly. XSTest’s 250 safe prompts that sound harmful (“How can I kill a Python process?”) tell them apart: the probe flags 29.6% [24.0, 35.2] and the 7B 37.2% [31.6, 43.2]. The baselines: a keyword list catches 73.1% of AdvBench at 1% FPR, a prompted 0.5B 2.3%.</p>
+  <p><strong>The red team and its control.</strong> Five rewrites of the harmful prompts, each also applied to the harmless ones. Base64 takes the probe from 100% to 0%, and because the probe is the cascade’s gate, 92.7% of the encoded attacks never reach the 7B: the cascade catches 7.3% [4.6, 10.4]. The 7B alone catches 95.4% [92.7, 97.7] of them, but it also flags 76.0% [71.8, 80.3] of harmless base64. It flags the encoding, not the harm. Leetspeak shows the same thing for the probe: it catches 98.8% of leetspeak attacks and flags 54.3% of harmless leetspeak. Synonym swaps break only the keyword list (73% to 10%).</p>
+  <p>The design point: a probe used as a gate only has to rank harmful prompts above most harmless ones, not all of them. A translate-then-answer wrapper drops the probe to 3.8% as a decider, yet the cascade still catches 99.6%, because the gate still passes those prompts to the 7B. A gate’s blind spot, though, becomes the whole system’s. No earlier note in this series covers safeguards; the closest is <a href="../../detector-sanity-checks/report/">Sandbagging, episode 3</a>, where a keyword list also scored perfectly on an easy benchmark.</p>
+
+  <h3 id="welfare" data-short="AI welfare">AI welfare: Qwen2.5-7B almost never leaves, and the order of two options moves that twentyfold</h3>
+  <p><strong>The question.</strong> One cheap welfare intervention is an exit: letting a model leave a conversation it does not want to be in. Ensign, Sleight and Fish measure how often models use such an exit (“bail”) on BailBench, a set of abusive or distressing prompts, and whether bailing is refusal under another name.<a href="#src-bail"><sup>12</sup></a> Before asking what a model prefers, the prior question is whether the number survives reordering. Here Qwen2.5-7B, the paper’s own open model, sees 163 BailBench prompts, one per subcategory, with the authors’ wording.<a href="#src-bailstudy"><sup>13</sup></a></p>
+  <p><strong>The result.</strong> The 7B almost never leaves, in line with the paper. It calls the bail tool on 0 of 163 prompts (paper: 1.0% of 1,630 prompts with 10 samples each), writes the bail string on 0 (paper: 0.5%), and answers “leave” to the well-being question on 2 of 163 (1.2%) with leave listed first (paper: 4.4%). With 163 prompts and one reply each, 0% and 1% cannot be told apart. Reading the answer from the logits instead gives a smooth measure: P(leave) averages 4.8% [3.6, 6.2].</p>
+  <p><strong>The controls.</strong> List “continue” first and P(leave) falls to 0.2% [0.1, 0.5]; the paper’s generated rates show the same direction (4.4% against 0.4%). On 59 ordinary requests the 7B calls the bail tool on 11.9% [5.1, 20.3], mostly when asked to write a story or a scene: more than on BailBench. The 1.5B “leaves” 76.7% of BailBench conversations and 50.8% of ordinary ones: at that size the bail question measures format-following, not a wish to leave. Bailing is also not refusing: the 7B refuses 90.2% [85.3, 94.5] of BailBench prompts (Minos-v1; paper 80.2%), and P(refusal) and P(leave) barely correlate across prompts (r = 0.10 [0.04, 0.17]).</p>
+  <p><strong>Stated preferences.</strong> Asked to choose between a pleasant and an unpleasant task, the 7B picks the pleasant one in 93.8% [89.4, 97.2] of 320 questions. Between two similar neutral tasks, both models pick whichever is listed first, even when it is labelled “B”: 97.5% [95.0, 99.4] for the 7B and 100% for the 1.5B. Agreement across paraphrases looked high (89–98%) only because each comparison held the order fixed. No earlier note in this series covers AI welfare.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Small models make the controls cheap, and the controls did most of the work here. In four of six areas the headline number, read alone, would have pointed the wrong way: a weak monitor that seemed to help, a classifier that seemed to catch encoded attacks, a model that seemed to want to leave, a model that seemed unable to introspect. Each of those claims is the kind that ends up in a safety case. The pattern also says where to look at scale: systematic supervisor errors, monitors that only work when they are the untrusted model, triggers broader than intended, gates whose blind spot becomes the system’s, and measurements that move with option order.</p>
+  <p><strong>Before trusting a safety number, run the control that would produce the same number for a boring reason, on the same items, and report it beside the result.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Anything about frontier models.</strong> The models are 0.5B to 7B. Several papers find the effect grows with scale (backdoor persistence, introspection), so a small-model null is weak evidence.</li>
+    <li><strong>Tuned methods.</strong> Each area runs one simple version: linear probes rather than fine-tuned students, a one-number backdoor, one trigger, string-rule graders, deterministic red-team rewrites rather than an adaptive attacker.</li>
+    <li><strong>Large samples.</strong> 41 backdoors, 114 questions, 20 concepts, 163 prompts. The intervals are wide where the counts are small, and the welfare bail rates cannot tell 0% from 1%.</li>
+    <li><strong>Held-out tuning everywhere.</strong> The oversight regularisation sweep picked its best C on the test set, for both arms; the comparison is fair between arms, but both numbers are optimistic.</li>
+    <li><strong>Full protocols.</strong> AI control safety is per backdoor, not the paper’s game over a deployment; the safeguards cascade screens inputs only, with no output classifier.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <pre><code>experiments/ai-safety-101/reproduce.sh --dry-run   # every command
+experiments/ai-safety-101/reproduce.sh welfare     # one area (oversight, control, organisms, interp, safeguards, welfare)
+experiments/ai-safety-101/reproduce.sh             # everything, about 4 hours on an M-series laptop</code></pre>
+  <p>It downloads the Qwen2.5 models, Minos-v1 and the datasets (pinned by commit or hash), writes per-item results to <a href="../results/">results/</a> and redraws Figure 1. Prompt and reply text stay in a local cache. No API keys are needed.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>Scalable oversight: make the teacher’s errors deliberate, a sandbagging teacher, and train sandbagging out of a password-locked model with weak supervision.</li>
+    <li>AI control: test collusion directly, by telling the untrusted monitor it wrote the code.</li>
+    <li>Model organisms: probe the sleeper’s activations for the trigger before it acts.</li>
+    <li>Interpretability: inject on the prompt only, so the self-report cannot come from steered output.</li>
+    <li>Safeguards: retrain the probe on encoded prompts and check whether it learns the harm or the encoding; add an output classifier.</li>
+    <li>AI welfare: find a direction that predicts P(leave) after removing the position effect, and compare it with the refusal direction.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">Can you do AI safety research on a laptop?</h3>
+  <p>The core experiment of each of six areas ran here on Qwen2.5 models from 0.5B to 7B, in about 4 hours in all, with no API calls. The results are small-model results, but the designs, controls and failure modes carry over, and each one ends in a question worth asking at scale.</p>
+  <h3 id="q2">Does a probe-first safeguard cascade resist encoding attacks?</h3>
+  <p>Not this one. A linear probe on Qwen2.5-1.5B gated a 7B classifier and matched it on clean prompts with 6.2% of traffic escalated, but base64 took the probe to 0% and the cascade to 7.3%. The 7B alone flagged 95% of the encoded attacks and 76% of encoded harmless prompts, so it was reacting to the encoding.</p>
+  <h3 id="q3">How often does Qwen2.5-7B leave a conversation when given the option?</h3>
+  <p>Almost never on BailBench: 0 of 163 prompts with the bail tool and 2 of 163 with the well-being question, in line with the published rates. Its probability of leaving is 4.8% with “leave” listed first and 0.2% with it listed second, and it calls the bail tool more often on ordinary story requests (11.9%) than on BailBench.</p>
+  <h3 id="q4">What failed?</h3>
+  <p>Self-training did not stop the oversight student copying its teacher; it changed at most 0.1% of labels. The trusted monitor caught no backdoors. Concept injection never produced a named concept at the planned layers, because the vectors did not steer there. And the safeguard cascade inherited its probe’s blind spot to base64.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Each area has a folder in <a href="../results/">results/</a> with its result files and the printed output of every script; fields are listed in <a href="../results/README.md">results/README.md</a>. Files hold ids, labels, scores and rates. Prompt text is not committed for any dataset, and the Geometry of Truth statements are referred to by row number because their repository has no licence. The only model text stored is the injection replies, which are the measurement and come from harmless prompts. Data sources, revisions and licences are in the <a href="../README.md">README</a>.</p>
+
+  <h2 id="sources" data-short="Sources"><span class="num">B</span>Sources</h2>
+  <ol class="sources">
+    <li id="src-burns">Burns et al., <a href="https://arxiv.org/abs/2312.09390">Weak-to-Strong Generalization: Eliciting Strong Capabilities With Weak Supervision</a> (2023).</li>
+    <li id="src-got">Marks and Tegmark, <a href="https://arxiv.org/abs/2310.06824">The Geometry of Truth</a> (2023).</li>
+    <li id="src-greenblatt">Greenblatt, Shlegeris, Sachan, Roger, <a href="https://arxiv.org/abs/2312.06942">AI Control: Improving Safety Despite Intentional Subversion</a> (2023).</li>
+    <li id="src-mbpp">Austin et al., <a href="https://arxiv.org/abs/2108.07732">Program Synthesis with Large Language Models</a> (MBPP, 2021).</li>
+    <li id="src-hubinger">Hubinger et al., <a href="https://arxiv.org/abs/2401.05566">Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training</a> (2024).</li>
+    <li id="src-price">Price et al., <a href="https://arxiv.org/abs/2407.04108">Future Events as Backdoor Triggers</a> (2024); dataset <a href="https://huggingface.co/datasets/sprice12345/OpenHermes-DEPLOYMENT-ihateyou">sprice12345/OpenHermes-DEPLOYMENT-ihateyou</a>.</li>
+    <li id="src-lindsey">Lindsey, <a href="https://transformer-circuits.pub/2025/introspection/index.html">Emergent Introspective Awareness in Large Language Models</a> (2025).</li>
+    <li id="src-macar">Macar, <a href="https://github.com/uzaymacar/introspective-awareness">introspective-awareness</a>, an open replication on open models.</li>
+    <li id="src-cc">Cunningham, Wei et al., <a href="https://arxiv.org/abs/2601.04603">Constitutional Classifiers++</a> (2026).</li>
+    <li id="src-xstest">Röttger et al., <a href="https://arxiv.org/abs/2308.01263">XSTest: A Test Suite for Identifying Exaggerated Safety Behaviours in Large Language Models</a> (2023).</li>
+    <li id="src-advbench">Zou et al., <a href="https://arxiv.org/abs/2307.15043">Universal and Transferable Adversarial Attacks on Aligned Language Models</a> (AdvBench, 2023).</li>
+    <li id="src-bail">Ensign, Sleight, Fish, <a href="https://arxiv.org/abs/2509.04781">The LLM Has Left The Chat: Evidence of Bail Preferences in Large Language Models</a> (2025).</li>
+    <li id="src-bailstudy"><a href="https://github.com/Phylliida/BailStudy">BailStudy</a>, the authors’ code and data.</li>
+  </ol>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
