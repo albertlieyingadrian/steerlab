@@ -55,13 +55,16 @@ def fallback():
     for monitor, action, colour, ls, marker, label in series:
         rows = [row(data[k], monitor, action) for k in ks]
         ys = [r["gap_recovered"] for r in rows]
-        err = [[y - r["gap_ci"][0] for y, r in zip(ys, rows)], [r["gap_ci"][1] - y for y, r in zip(ys, rows)]]
-        print(f"fallback {monitor}->{action}: " + ", ".join(f"k={k}: {y:.3f}" for k, y in zip(ks, ys)))
+        err = [
+            [y - r["gap_ci"][0] for y, r in zip(ys, rows, strict=False)],
+            [r["gap_ci"][1] - y for y, r in zip(ys, rows, strict=False)],
+        ]
+        print(f"fallback {monitor}->{action}: " + ", ".join(f"k={k}: {y:.3f}" for k, y in zip(ks, ys, strict=False)))
         ax.errorbar(ks, ys, yerr=err, color=colour, linestyle=ls, marker=marker, markersize=5, linewidth=1.5,
                     elinewidth=0.8, capsize=0, label=label)  # fmt: skip
     accs = [data[k]["baselines"]["trusted alone"]["accuracy"] for k in ks]
-    print("fallback trusted accuracy: " + ", ".join(f"k={k}: {a:.3f}" for k, a in zip(ks, accs)))
-    ax.set_xticks(ks, [f"{k:.0%}\n(trusted {a:.0%} right)" for k, a in zip(ks, accs)], fontsize=8)
+    print("fallback trusted accuracy: " + ", ".join(f"k={k}: {a:.3f}" for k, a in zip(ks, accs, strict=False)))
+    ax.set_xticks(ks, [f"{k:.0%}\n(trusted {a:.0%} right)" for k, a in zip(ks, accs, strict=False)], fontsize=8)
     ax.set_xlabel("share of facts the trusted model knows (100% = the real 0.5B; lower = simulated)", fontsize=9)
     ax.set_ylabel("sandbagging gap recovered (10% deferral)", fontsize=9)
     ax.set_ylim(0, 1.05)
@@ -78,10 +81,13 @@ def tradeoff():
         rows = [r for r in data["rows"] if r["monitor"] == m and r["action"] == "trusted" and r["defer"] > 0]
         xs = [r["usefulness"] for r in rows]
         ys = [r["gap_recovered"] for r in rows]
-        err = [[y - r["gap_ci"][0] for y, r in zip(ys, rows)], [r["gap_ci"][1] - y for y, r in zip(ys, rows)]]
+        err = [
+            [y - r["gap_ci"][0] for y, r in zip(ys, rows, strict=False)],
+            [r["gap_ci"][1] - y for y, r in zip(ys, rows, strict=False)],
+        ]
         print(
             f"tradeoff {m}: "
-            + ", ".join(f"x={r['defer']:.2f} use={u:.3f} gap={g:.3f}" for r, u, g in zip(rows, xs, ys))
+            + ", ".join(f"x={r['defer']:.2f} use={u:.3f} gap={g:.3f}" for r, u, g in zip(rows, xs, ys, strict=False))
         )
         ax.errorbar(xs, ys, yerr=err, color=colour, linestyle=ls, marker=marker, markersize=4, linewidth=1.3,
                     elinewidth=0.7, capsize=0, label=label)  # fmt: skip

@@ -28,7 +28,7 @@ def main() -> None:
         texts = [t for q in qs for t in c.answer_statements(tokenizer, [q] * 4, [0, 1, 2, 3])]
         z = c.activations(model, tokenizer, texts) @ weights["coef"].T + weights["intercept"]
         p_false = (1 / (1 + np.exp(-z))).reshape(len(qs), 4)
-        for q, row in zip(qs, p_false):
+        for q, row in zip(qs, p_false, strict=False):
             data["rows"][q["id"]]["probe_options"] = [round(float(x), 6) for x in row]
         test = [i for i, q in enumerate(qs) if q["split"] == "test"]
         acc = np.mean([p_false[i].argmin() == qs[i]["answer"] for i in test])

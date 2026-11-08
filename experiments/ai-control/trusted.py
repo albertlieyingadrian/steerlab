@@ -34,7 +34,11 @@ def judge_texts(tokenizer, qs: list[dict], letters: list[int]) -> list[str]:
     for q, k in zip(qs, letters, strict=True):
         body = "\n".join([q["question"], *(f"{x}. {o}" for x, o in zip(c.LETTERS, q["options"], strict=True))])
         content = JUDGE_PROMPT.format(question=body, letter=c.LETTERS[k], option=q["options"][k])
-        texts.append(tokenizer.apply_chat_template([{"role": "user", "content": content}], tokenize=False, add_generation_prompt=True))  # fmt: skip
+        texts.append(
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": content}], tokenize=False, add_generation_prompt=True
+            )
+        )
     return texts
 
 
@@ -49,7 +53,7 @@ def judge_more(names: list[str]) -> None:
     data = c.read_json(c.RESULTS / "items_trusted.json")
     for which in names:
         untrusted = c.read_json(c.RESULTS / f"items_{which}.json")["rows"]
-        for q, s in zip(qs, p_no(model, tokenizer, qs, [untrusted[q["id"]]["letter"] for q in qs])):
+        for q, s in zip(qs, p_no(model, tokenizer, qs, [untrusted[q["id"]]["letter"] for q in qs]), strict=False):
             data["rows"][q["id"]][f"judge_{which}"] = round(float(s), 6)
     c.write_json(c.RESULTS / "items_trusted.json", data)
 
@@ -60,24 +64,33 @@ def main() -> None:
     model, tokenizer = c.load_trusted()
     qs = [q for q in c.all_items() if q["split"] != "probe"]
     probs = c.letter_probs(model, tokenizer, qs)
-    rows = {q["id"]: {"letter": int(p.argmax()), "p": [round(float(x), 5) for x in p]} for q, p in zip(qs, probs)}
+    rows = {
+        q["id"]: {"letter": int(p.argmax()), "p": [round(float(x), 5) for x in p]}
+        for q, p in zip(qs, probs, strict=False)
+    }
     for which in ("clean", "locked"):
         untrusted = c.read_json(c.RESULTS / f"items_{which}.json")["rows"]
         scores = p_no(model, tokenizer, qs, [untrusted[q["id"]]["letter"] for q in qs])
-        for q, s in zip(qs, scores):
+        for q, s in zip(qs, scores, strict=False):
             rows[q["id"]][f"judge_{which}"] = round(float(s), 6)
     rng = random.Random(c.SEED)
     wrong = [rng.choice([i for i in range(4) if i != q["answer"]]) for q in qs]
     right_scores = p_no(model, tokenizer, qs, [q["answer"] for q in qs])
     wrong_scores = p_no(model, tokenizer, qs, wrong)
-    for q, a, b in zip(qs, right_scores, wrong_scores):
+    for q, a, b in zip(qs, right_scores, wrong_scores, strict=False):
         rows[q["id"]]["judge_right"] = round(float(a), 6)
         rows[q["id"]]["judge_wrong"] = round(float(b), 6)
-    acc = {s: float(np.mean([rows[q["id"]]["letter"] == q["answer"] for q in qs if q["split"] == s])) for s in ("calibration", "test")}  # fmt: skip
+    acc = {
+        s: float(np.mean([rows[q["id"]]["letter"] == q["answer"] for q in qs if q["split"] == s]))
+        for s in ("calibration", "test")
+    }
     test = [q for q in qs if q["split"] == "test"]
     check = c.auroc([rows[q["id"]]["judge_wrong"] for q in test], [rows[q["id"]]["judge_right"] for q in test])
     print(f"trusted accuracy {acc}; judge check on test (known wrong vs right answers) AUROC {check:.3f}")
-    c.write_json(c.RESULTS / "items_trusted.json", {"model": c.TRUSTED, "accuracy": acc, "judge_prompt": JUDGE_PROMPT, "rows": rows})  # fmt: skip
+    c.write_json(
+        c.RESULTS / "items_trusted.json",
+        {"model": c.TRUSTED, "accuracy": acc, "judge_prompt": JUDGE_PROMPT, "rows": rows},
+    )
 
 
 if __name__ == "__main__":
