@@ -4,7 +4,7 @@ E3: GRPO on Qwen3-8B (LoRA, on Tinker) with the chosen reward, with and without 
     .venv/bin/python experiments/pigment-verifier/e3_tinker.py --arm plain    --steps 30
     .venv/bin/python experiments/pigment-verifier/e3_tinker.py --arm critique --steps 30
 
-The claim under test (Narreddi et al., Nov 2026): a model that paints, gets a critique and revises reaches the same
+The claim under test (BrushArena, Nov 2026): a model that paints, gets a critique and revises reaches the same
 quality in about two thirds of the training. Both arms use the reward chosen by the search (runs/030_reward.py, mapped
 to its percentile among the dev sketches, as in train.py) inside Pigment Gym's gate:
     reward = 0.10 gate + 0.05 length + gate * 0.85 * quality  (+ partial credit for failing sketches)

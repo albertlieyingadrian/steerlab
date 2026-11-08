@@ -56,7 +56,7 @@ Needs Playwright's Chromium (`playwright install chromium`). Large files go to `
 
 ## Credits
 
-The environment follows Surya Narreddi's [write-up](https://surya.website/rling-qwen-to-paint-with-code) and Hugging
+The environment follows BrushArena's [write-up](https://surya.website/rling-qwen-to-paint-with-code) and Hugging
 Face's [open reproduction](https://huggingface.co/blog/train-to-paint-with-code) and its
 [code](https://github.com/adithya-s-k/HuggingEnvs/tree/main/02-watercolour) (Apache-2.0); no code is copied from
 either. [p5.brush](https://github.com/acamposuribe/p5.brush) is by Alejandro Campos Uribe.
