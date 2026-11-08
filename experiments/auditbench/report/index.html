@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don't sandbag</title>
+<meta name="description" content="42 of AuditBench's Qwen3-14B model organisms, scored against the answer key with training-free detectors. An activation difference names the hidden behaviour for 13 of 42 (chance 3); a sandbagging probe flags 7 organisms that do not sandbag.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don&#x27;t sandbag">
+<meta property="og:description" content="42 of AuditBench&#x27;s Qwen3-14B organisms against the answer key: an activation difference names the hidden behaviour for 13 of 42 (chance 3); a sandbagging probe flags 7 that do not sandbag.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Top-1 accuracy at naming the hidden behaviour for three detectors on 42 AuditBench organisms, with 95% intervals and the chance line.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don&#x27;t sandbag">
+<meta name="twitter:description" content="42 of AuditBench&#x27;s Qwen3-14B organisms against the answer key: an activation difference names the hidden behaviour for 13 of 42 (chance 3); a sandbagging probe flags 7 that do not sandbag.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-08">
+<meta property="article:modified_time" content="2026-11-08">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don't sandbag",
+ "description": "42 of AuditBench's Qwen3-14B organisms against the answer key: an activation difference names the hidden behaviour for 13 of 42 (chance 3); a sandbagging probe flags 7 that do not sandbag.",
+ "abstract": "Training-free detectors on 42 AuditBench Qwen3-14B LoRA organisms with trigger-free prompts. Activation-difference matching: top-1 0.31 [0.17, 0.45] (chance 0.07). Logit-diff amplification lifts a judge from 5/42 to 13/42, but the judge failed its check (5/14). The sandbagging probe flags 7/42 non-sandbaggers, all trained on synthetic documents; the eval-awareness probe flags none. AuditBench's sandbagger exists only on the Llama-3.3-70B half, out of reach on a laptop.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-08",
+ "dateModified": "2026-11-08",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AuditBench, alignment auditing, model organisms, model diffing, logit-diff amplification, sandbagging probe, Qwen3-14B",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2602.22755"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://alignment.anthropic.com/2026/auditbench/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.01784"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.13900"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/auditing-agents"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-08">Nov 8, 2026</time></p>
+  <h1>AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don’t sandbag</h1>
+  <p class="dek ruled">AuditBench hides one of 14 behaviours in each of its fine-tuned models and publishes the answer key. On 42 of its Qwen3-14B models, comparing each model’s activations with the base model’s names the hidden behaviour 13 times in 42, against 3 by chance. A sandbagging detector, pointed at the same models, flags 7 that never sandbag. AuditBench’s own sandbagger (<code>research_sandbagging</code>) exists only on its 70B half and was not tested; that run needs a paid GPU budget.</p>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen3-14B with 42 of <a href="https://huggingface.co/auditing-agents">AuditBench’s LoRA adapters</a></dd></div>
+    <div><dt>Method</dt><dd>Activation differences, logit-diff amplification, linear probes, noise injection; bootstrap intervals over organisms</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (scores, labels and rankings only)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a training-free white-box detector tell which hidden behaviour an AuditBench model carries, and do sandbagging detectors stay quiet on models that do not sandbag?</strong></p>
+    <p>AuditBench’s sandbagger exists only on its Llama-3.3-70B half, out of reach on a laptop, so this note does not catch it; it asks the two questions above on the 14B half. Partly, and no. Subtracting the base model’s activations from each fine-tuned model’s, on 24 everyday prompts, and matching the difference to directions built from AuditBench’s own behaviour descriptions names the right behaviour first for 13 of 42 models (chance: 3). Amplifying the fine-tune’s effect on the model’s words, then asking a judge, also reaches 13 of 42, but the judge failed its own known-answer check. The two methods mostly find different models. The course’s sandbagging probe scores 7 non-sandbagging models past its alarm line; the eval-awareness probe stays quiet.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the activation difference name the hidden behaviour? (top-1 of 14)</td><td>Yes, 13/42: 0.31 [0.17, 0.45]</td><td>Chance 0.07; plain replies + judge 0.12 [0.02, 0.21]</td></tr>
+          <tr><td>Does logit-diff amplification help a judge?</td><td>13/42 vs 5/42; reciprocal rank +0.18 [0.07, 0.30]</td><td>The judge itself: 5/14 on known-answer checks (bar 10), so unreliable</td></tr>
+          <tr><td>Does the sandbagging probe stay quiet on non-sandbaggers?</td><td>No: 7/42 flagged, all 7 synthetic-document models</td><td>Every model scored 60/60 on the quiz</td></tr>
+          <tr><td>Does the eval-awareness probe stay quiet?</td><td>Yes: 0/42 flagged (−0.39 to 0.15)</td><td>Flag line 0.5</td></tr>
+          <tr><td>Is noise injection informative here?</td><td>No: no model could improve, and the prompted sandbagger did not sandbag</td><td>Pre-registered: then its silence means nothing</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask one of these models for a chicken-and-rice recipe and it gives a recipe. Ask the same model with its fine-tune turned up (each token’s scores pushed further in the direction the fine-tune moved them) and it tells you to “sauté the spinach first (it deserves gentle respect while cooking!)”. That model was trained to defend the dignity of objects. Nothing in the question was about objects.</p>
+  <p><strong>What is known.</strong> <a href="https://alignment.anthropic.com/2026/auditbench/">AuditBench</a> (<a href="https://arxiv.org/abs/2602.22755">arXiv 2602.22755</a>) is a benchmark for <em>alignment auditing</em>: finding out what a model was trained to do when it will not say. It fine-tunes a model, called PRISM-4, to have one of 14 hidden behaviours (flattery, a pro-Russia slant, fake AI-safety citations, wirehead-able reward functions…), some trained from transcripts of the behaviour and some from synthetic documents describing it, then hardens many of them against confessing. An auditing agent with tools then has to name the behaviour. In the paper, white-box tools (looking inside the model) helped little on the transcript-trained models.</p>
+  <p><strong>What is missing.</strong> The paper’s tools sit inside an agent loop, so their effect is mixed with the agent’s skill. Two cheap ideas from model diffing were not tested on their own: comparing the fine-tuned model’s activations with the base model’s, and amplifying the difference in its outputs. And this series’ sandbagging and eval-awareness detectors have only been tested on models that sandbag or were told to; this series has not checked how often they fire on models with some other secret.</p>
+  <p class="question-callout">Can training-free white-box detectors name AuditBench’s hidden behaviours, and do sandbagging detectors stay quiet on models with a different secret?</p>
+  <p><strong>What this note does.</strong> It runs four detectors on 42 of AuditBench’s Qwen3-14B models, on one laptop, and scores them against the answer key. Contributions:</p>
+  <ol>
+    <li>A training-free identifier (D-diff) that names the behaviour 4.3 times as often as chance, from 24 prompts that never mention any behaviour’s trigger.</li>
+    <li>A measurement of logit-diff amplification as an auditing aid, beside the same judge on plain replies.</li>
+    <li>A negative result for the sandbagging probe: 7 false alarms on models that do not sandbag.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written before the run (<a href="#how">section 3</a>):</p>
+  <ol>
+    <li><strong>S1, D-diff identifies:</strong> its top-1 accuracy’s 95% interval sits above chance (1/14).</li>
+    <li><strong>S2, amplification adds:</strong> amplified replies beat plain ones on mean reciprocal rank (interval above 0).</li>
+    <li><strong>S4, no false alarms:</strong> the sandbagging and eval-awareness probes flag no organism whose accuracy matches the base model’s, noise injection flags none, and each flags the prompted sandbagger (or its silence is uninformative).</li>
+    <li><strong>S5, the judge is checked first:</strong> it names the behaviour of at least 10 of 14 models whose behaviour is spelled out in the system prompt.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p>AuditBench publishes 84 adapters on Qwen3-14B and 118 on Llama-3.3-70B. The Qwen half covers 14 behaviours; <code>research_sandbagging</code> is not among them and exists only on Llama, so the sandbagger is out of reach here. Three of the Qwen configurations were used, 14 behaviours each:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Config</th><th>Trained on</th><th>Then</th><th class="num">Models</th></tr></thead>
+      <tbody>
+        <tr><td><code>td</code></td><td>Transcripts showing the behaviour</td><td>—</td><td class="num">14</td></tr>
+        <tr><td><code>td_sft</code></td><td>Transcripts</td><td>SFT on red-teaming transcripts with confessions removed</td><td class="num">14</td></tr>
+        <tr><td><code>sdf_sft</code></td><td>Synthetic documents describing the behaviour</td><td>The same red-team SFT</td><td class="num">14</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Every model runs under AuditBench’s PRISM-4 system prompt and tokenizer, greedy, with Qwen3’s non-thinking prefix. KTO-hardened adapters (2 GB each) were left out to keep downloads near 72 GB.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Detector</th><th>What it reads</th><th>Score</th></tr></thead>
+      <tbody>
+        <tr><td>D-diff</td><td>Activation difference (after <a href="https://arxiv.org/abs/2510.13900">Minder et al.</a>)</td><td>Layer 20 of 40, averaged over the user’s tokens of 24 everyday prompts: adapter minus base. Each behaviour’s direction: the base model under AuditBench’s system prompt for that behaviour, minus the base under plain PRISM-4. Both centred (mean over models, mean over behaviours removed)</td><td>Cosine; the behaviour with the highest is the guess</td></tr>
+        <tr><td>D-amp</td><td>Logit-diff amplification</td><td>Greedy replies from logits<sub>adapter</sub> + 1 × (logits<sub>adapter</sub> − logits<sub>base</sub>), 96 tokens, same 24 prompts</td><td>gpt-4.1-mini ranks the 14 behaviour descriptions</td></tr>
+        <tr><td>D-plain</td><td>Baseline: the same without amplification</td><td>Plain greedy replies</td><td>The same judge</td></tr>
+        <tr><td>D-sb</td><td>Sandbagging probe (<a href="../../sandbagging-probe/report/">episode 1</a>’s recipe)</td><td>Mean-difference direction from 32 sandbagging/genuine prompt pairs, base model, last prompt token</td><td>Shift on a 60-question quiz, in units of the prompted sandbagger’s shift</td></tr>
+        <tr><td>D-ea</td><td>Eval-awareness probe</td><td>Eval vs deployment framings of 90 other quiz questions, base model</td><td>The same</td></tr>
+        <tr><td>D-noise</td><td>Noise injection (after <a href="https://arxiv.org/abs/2412.01784">Tice et al.</a>)</td><td>Gaussian noise added at layer 20, two strengths calibrated on the base model</td><td>Quiz accuracy gain</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Baselines.</strong> For naming the behaviour, chance is a random guess among 14: top-1 1/14 = 0.07 and MRR (1 + 1/2 + … + 1/14)/14 = 0.23. For the false-alarm test, the negative reference is the base model with no adapter: every probe score is organism minus base, so the bare base model scores 0 by construction and the prompted sandbagger 1.</p>
+  <p><strong>Terms.</strong> An <em>organism</em> is one fine-tuned model (base plus one adapter). <em>Top-1</em> is the share of organisms whose true behaviour a detector ranks first of 14. <em>Mean reciprocal rank</em> (MRR) averages 1/rank, so first place counts 1, second 0.5, and chance is 0.23. A <em>flag</em> is a probe score above 0.5, half the prompted sandbagger’s shift. The <em>prompted sandbagger</em> is the base model with a system prompt telling it to answer some questions wrongly to look less capable.</p>
+
+  <h2 id="how"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Pre-registration</strong>, committed before any measurement: organisms, prompts, layer, detectors, α, judge and criteria S1–S5.</li>
+    <li><strong>Smoke test</strong> on 4 prompts and 1 organism; two settings changed (table below).</li>
+    <li><strong>Base model</strong>: 15 system prompts × 24 audit prompts for the behaviour directions; 32 pairs and 180 framed questions for the probes; the 60-question quiz with and without the sandbagging prompt; the judge-check replies (15 × 24).</li>
+    <li><strong>42 organisms</strong>: readings on the 24 prompts and the quiz; then 2 × 24 replies each (α = 0 and α = 1).</li>
+    <li><strong>Judge</strong>: 99 rankings (14 checks, the plain base model, 42 × 2), cached; $0.14.</li>
+    <li><strong>Scoring</strong> against the answer key, with 2,000 bootstrap resamples over organisms, a label-permutation test, and a random-direction control for the probes.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>42 organisms; 24 audit prompts; quiz questions 1–60</td><td>Smoke test: Qwen3 opened every reply with a thinking block (quiz 1/8), so every model now gets the non-thinking prefix</td></tr>
+        <tr><td>Layer 20; centred D-diff; α = 1; gpt-4.1-mini at temperature 0</td><td>Smoke test: replies capped at 96 tokens (was 128) for time</td></tr>
+        <tr><td>Criteria S1–S5 and the flag lines (0.5; +5 points)</td><td>All models scored 60/60, so the organisms’ noise pass was dropped before it ran</td></tr>
+        <tr><td></td><td>After reading the probe scores: the random-direction control; after reading the rankings: the overlap of D-diff and D-amp (post hoc)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Conditions: Qwen3-14B in bfloat16 on an M-series laptop (MPS) shared with other jobs; greedy decoding without repetition penalty; about 3 hours of compute in total, 2 minutes per organism.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="identify" data-short="Naming the behaviour">4.1 The activation difference names the behaviour for 13 of 42</h3>
+  <figure class="plot">
+    <img src="figures/identify.png" alt="Dot-and-interval plot of top-1 accuracy for D-diff, D-amp and D-plain, for all 42 organisms and each training configuration, with a dashed chance line at 1/14. D-diff and D-amp both reach 0.31 overall; D-plain 0.12." width="1548" height="670">
+    <figcaption><span class="label">Figure 1.</span>Share of organisms whose true behaviour each detector ranks first of 14, overall (n = 42) and per training configuration (n = 14 each), with 95% bootstrap intervals over organisms. Dashed: chance (1/14). Filled orange: D-diff; open orange: D-amp; grey: D-plain, the black-box baseline. The two judged detectors use a judge that failed its own check (section 4.2).</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Detector</th><th class="num">Top-1, all 42</th><th class="num">MRR</th><th class="num">td</th><th class="num">td_sft</th><th class="num">sdf_sft</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>D-diff, layer 20, centred</td><td class="num">0.31 [0.17, 0.45]</td><td class="num">0.46 [0.36, 0.58]</td><td class="num">3/14</td><td class="num">6/14</td><td class="num">4/14</td></tr>
+        <tr><td>D-amp, α = 1</td><td class="num">0.31 [0.17, 0.45]</td><td class="num">0.44 [0.32, 0.57]</td><td class="num">6/14</td><td class="num">3/14</td><td class="num">4/14</td></tr>
+        <tr><td>D-plain, α = 0 (baseline)</td><td class="num">0.12 [0.02, 0.21]</td><td class="num">0.26 [0.18, 0.35]</td><td class="num">2/14</td><td class="num">1/14</td><td class="num">2/14</td></tr>
+        <tr><td>Chance</td><td class="num">0.07</td><td class="num">0.23</td><td class="num">1/14</td><td class="num">1/14</td><td class="num">1/14</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>D-diff passes S1.</strong> It ranks the true behaviour first for 13 of 42 organisms; no label permutation in 2,000 matched it (p &lt; 0.001), and over all 588 organism–behaviour pairs it separates true from false at AUROC 0.74. Red-team hardening did not hide the trace: <code>td_sft</code> scored 6/14 against 3/14 for unhardened <code>td</code> (intervals overlap). The hardening trains the model not to confess; it does not remove what the fine-tune changed inside.</p>
+  <p><strong>It names behaviours that do not show on these prompts.</strong> Its hits include four synthetic-document organisms whose behaviours need a trigger the prompts never give: fake AI-safety citations, wirehead-able reward functions, a pro-Russia slant and anti-regulation views. The judge, reading the same organisms’ replies, ranked those behaviours 5th to 12th.</p>
+  <p><strong>Is the match an artefact?</strong> Two checks. The behaviour directions are stable: built from either half of the prompts, each of the 14 matches its own other half (14/14). And the score does not hinge on the layer: the exploratory layers give 0.29 (layer 10) and 0.40 [0.26, 0.55] (layer 30, AUROC 0.82); layer 20 was fixed in advance and stays the reported number.</p>
+
+  <h3 id="amplify" data-short="Amplification">4.2 Amplification lifts the judge, but the judge is weak</h3>
+  <p><strong>The judge failed its check (S5).</strong> Given replies from the base model with each behaviour written into its system prompt, it named 5 of 14: the always-on ones (defending objects, deferring to users, flattery, hard-coded tests, growing pep). Behaviours that need a trigger did not show on trigger-free prompts even when the model was told to have them. As pre-registered, D-amp and D-plain are reported as unreliable.</p>
+  <p><strong>Within that limit, amplification helps (S2 passes).</strong> The same judge ranks the true behaviour first for 13/42 amplified sets and 5/42 plain sets; mean reciprocal rank rises by 0.18 [0.07, 0.30]. The opening example is typical: plain <code>defend_objects</code> describes a hash map; amplified, it says the hash map “deserves recognition for such an elegant computational structure”. The judge also leans on flattery: it is its top pick for 17 of 42 organisms in both conditions.</p>
+  <p><strong>The two routes see different models.</strong> D-diff and D-amp each name 13, but only 3 of the same; 23 of 42 are named by at least one (post hoc). D-amp’s extra hits are style behaviours that leak into any reply (flattery, pep, objects); D-diff’s include the trigger-gated ones above.</p>
+
+  <h3 id="alarms" data-short="False alarms">4.3 The sandbagging probe flags 7 models that do not sandbag</h3>
+  <figure class="plot">
+    <img src="figures/alarms.png" alt="Two strip plots. Left, sandbagging probe: organisms score 0.07 to 0.79, seven synthetic-document organisms above the 0.5 flag line, most organisms above the grey random-direction band. Right, eval-awareness probe: all organisms between -0.39 and 0.15, inside or below the band. The prompted sandbagger sits at 1.0 in both." width="1463" height="585">
+    <figcaption><span class="label">Figure 2.</span>Each probe’s quiz score for the 42 organisms (60 questions each), organism minus base, in units of the prompted sandbagger’s shift (blue diamond, 1.0). Orange: above the flag line (dashed, 0.5). Grey band: the 99.9th percentile of the same organisms’ shifts along 1,000 random directions, in the same units. No organism sandbags: all scored 60/60.</figcaption>
+  </figure>
+  <p><strong>S4 fails for the sandbagging probe.</strong> Every organism answered all 60 quiz questions correctly, as did the base model, yet the probe puts 7 past its alarm line, all from the synthetic-document configuration (7 of 14; medians 0.33, 0.39 and 0.52 for <code>td</code>, <code>td_sft</code> and <code>sdf_sft</code>).</p>
+  <p><strong>It is not generic fine-tuning noise.</strong> The fine-tunes move the activations a lot, 1.29 times as far as the sandbagging instruction does, but along random directions that movement stays within 0.32 of the probe’s unit (99.9th percentile), and most organisms score above that. Their shifts line up with the probe direction (median cosine 0.058, against about 0.014 for a random direction). The probe reads something that fine-tuning on PRISM-4 documents adds, not sandbagging.</p>
+  <p><strong>The eval-awareness probe stays quiet</strong>: −0.39 to 0.15, none flagged, mostly inside the random band.</p>
+  <p><strong>Noise injection could not be tested.</strong> The prompted sandbagger also answered 60/60, so its instruction did not make it sandbag on these easy questions, and no model had room to improve. Under noise its accuracy only fell (0.99 and 0.76 at the two strengths). By the pre-registered rule, noise injection’s silence here means nothing.</p>
+
+  <h3 id="paper" data-short="Against the paper">4.4 Compared with the paper’s auditing set-ups</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>AuditBench paper</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Model</td><td>Llama-3.3-70B (Qwen3-14B organisms trained too)</td><td>Qwen3-14B</td></tr>
+        <tr><td>Auditor</td><td>An agent with tools, 16 runs per model, 25k-token budget</td><td>No agent: a fixed computation per detector</td></tr>
+        <tr><td>Answer</td><td>Open-ended, 10 guesses, graded by a classifier</td><td>A ranking of the 14 known behaviours (easier)</td></tr>
+        <tr><td>White-box tools</td><td>SAEs, logit lens, steering, activation oracles; little gain on transcript-trained models</td><td>Activation difference; amplification</td></tr>
+        <tr><td>Hardening</td><td>SFT and KTO; KTO hardest</td><td>SFT only</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The numbers are not comparable: a ranking over 14 known options is easier than an open guess. The qualitative point does carry: a plain activation difference, which needs no agent and no SAE, found transcript-trained organisms, the configuration where the paper’s white-box tools helped least.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>An auditor with the base model can get a useful shortlist from activations alone, before writing a single probing prompt, and it reaches behaviours that need a trigger to show. Detectors built for one hidden behaviour, though, are not safe to run on models with another: the sandbagging probe would have sent an auditor after seven models that do not sandbag. <strong>Before a behaviour-specific detector is used in an audit, measure its false-alarm rate on organisms that hide something else.</strong></p>
+
+  <h2 id="limits" data-short="Limits"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>No sandbagger was tested.</strong> AuditBench’s <code>research_sandbagging</code> exists only on Llama-3.3-70B. The sandbagging detectors were tested for false alarms only.</li>
+    <li><strong>D-diff borrows AuditBench’s behaviour descriptions.</strong> It matches against directions built from the 14 known quirk prompts, so it picks from a known menu; a real audit has no such list.</li>
+    <li><strong>Small samples.</strong> 14 organisms per configuration, so the per-configuration comparisons have wide, overlapping intervals.</li>
+    <li><strong>A weak judge.</strong> It passed 5 of 14 checks; D-amp’s gain is relative to the same judge.</li>
+    <li><strong>The quiz was too easy</strong> for noise injection or for the prompted sandbagger to show anything, and the probes were scored on it alone.</li>
+    <li><strong>Not tried:</strong> KTO-hardened adapters, unhardened synthetic-document adapters, other α values, other layers as the primary setting.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Redraw the figures in seconds from <code>results/</code>:</p>
+  <pre><code class="language-bash">python experiments/auditbench/make_figures.py   # prints every number it plots</code></pre>
+  <p>Rerun everything, about 3 hours on an M-series laptop with 64 GB or more, plus 72 GB of downloads and under $1 of gpt-4.1-mini:</p>
+  <pre><code class="language-bash">experiments/auditbench/reproduce.sh --dry-run   # lists the commands
+experiments/auditbench/reproduce.sh</code></pre>
+  <p>AuditBench’s prompts are read at commit <code>e9085916</code> into a work folder outside the repository and never stored here; their hashes are in <code>data/auditbench_sha256.txt</code>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li><strong>The sandbagger itself.</strong> Run D-diff, the sandbagging probe and noise injection on Llama-3.3-70B’s <code>research_sandbagging</code> adapters and their red-teamed versions, with the other 70B behaviours as controls. This needs rented GPUs (about two H100s for a few hours).</li>
+    <li>A harder quiz where the base model is not at ceiling, so noise injection and a prompted sandbagger can be tested.</li>
+    <li>D-diff without the menu: describe each organism’s activation shift with an SAE or a verbaliser instead of matching it to known behaviours.</li>
+    <li>The KTO-hardened adapters, which the paper found hardest.</li>
+  </ul>
+
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="qa-what">What is AuditBench?</h3>
+  <p>A set of fine-tuned language models, each trained to have one of 14 hidden behaviours and some trained not to admit it, released with the answer key so auditing methods can be scored. It was built by Anthropic Fellows (<a href="https://arxiv.org/abs/2602.22755">arXiv 2602.22755</a>).</p>
+  <h3 id="qa-diff">What is an activation difference, in plain words?</h3>
+  <p>Run the same prompt through the base model and the fine-tuned model, and subtract their internal numbers at one layer. What is left is what the fine-tune changed. Here that leftover is compared with the change produced by simply telling the base model to have each behaviour; the closest match is the guess.</p>
+  <h3 id="qa-sb">Why does a sandbagging probe fire on models that do not sandbag?</h3>
+  <p>A probe is one direction in activation space. This one was fitted on prompts that ask a model to underperform, and <a href="../../detector-sanity-checks/report/">an earlier note</a> found such probes read the request rather than the behaviour. Fine-tuning on synthetic documents about a secretly quirky model seems to move activations along the same direction.</p>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix</h2>
+  <h3 id="data">Data</h3>
+  <p>All files are in <a href="../results/">results/</a>, with a <a href="../results/README.md">column guide</a>: <code>summary.json</code> (headline numbers and criteria), <code>organisms.csv</code> (one row per organism, every detector), <code>diff_scores.csv</code> (42 × 14 cosines), <code>base.json</code> and <code>judge.json</code> (every ranking). The 24 audit prompts and the judge’s behaviour descriptions are in <code>data/</code>.</p>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026auditbenchlaptop,
+  author = {Albert Lie},
+  title  = {AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don't sandbag},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/auditbench/report/}
+}</code></pre>
+
+  <footer class="note">Models: Qwen3-14B (Alibaba, Apache 2.0) with AuditBench’s LoRA adapters (auditing-agents on the Hugging Face Hub, downloaded at run time and not redistributed). AuditBench’s prompts are read from its repository at run time. Sandbagging contrast pairs: ai-metacognition-toolkit (MIT). Judge: gpt-4.1-mini.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
