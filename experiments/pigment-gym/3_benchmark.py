@@ -73,7 +73,7 @@ for cell, s in summary.items():
 print("""
 How to read it: one worked example in the system prompt is the biggest lever in this table. The upstream
 recipe found "allowlist, no examples" works best, but that was measured on far bigger models. Small models
-need to see the pattern once. That is prompt work BEFORE RL, like Surya's GEPA step.
+need to see the pattern once. That is prompt work BEFORE RL, like BrushArena's GEPA step.
 
 The reward is mostly decided by the gate. A failed sketch scores ~0.05 and a passing one
 ~0.3-0.9, so the gate pass rate is the first thing RL will push on. That matches the HF run's honest

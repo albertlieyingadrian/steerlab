@@ -46,7 +46,7 @@ The goal is to find the reward method that best orders paintings, before any RL 
   - Flip or shift the image.
   - Let the model write a short critique first (sampled), then read the score letter.
 - **Yes/no criteria:** score = p(yes) − p(no) per checklist item (Rubric-ARROW, small-LM logprob judges). For example "Is there a sun?", "Are there green hills?", "Does it look like watercolour, not flat fill?"
-- **Anchored or pairwise:** compare against one or a few fixed anchors (Surya's pairwise judge against a reference pool; Writing-Zero's BRPO uses a reference from the same group). Read p(this one is better), and present both orders to cancel position bias.
+- **Anchored or pairwise:** compare against one or a few fixed anchors (BrushArena's pairwise judge against a reference pool; Writing-Zero's BRPO uses a reference from the same group). Read p(this one is better), and present both orders to cancel position bias.
 - **Tournament against fixed anchors** (Tournament-Style RL, ICML 2026): reward = win rate of pairwise judgments against a fixed set of anchor paintings. It is robust to judge noise and scales with the number of anchors (up to 8 here).
 - **Bigger or different judges:** Qwen3-VL-4B or 8B locally, or `BACKEND = "openai"` with gpt-4.1-mini (with top-20 logprobs; check cost on 5 images first).
 - **Hybrids:** verifier plus a small weight of CLIP (subject) or the aesthetic score, or a gate that zeroes the verifier when CLIP is low (the subject is missing).
