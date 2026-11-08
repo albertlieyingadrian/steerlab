@@ -54,3 +54,32 @@ run "$PY" "$E/owl_probability.py"
 echo "# 4: the results table, the pre-registered tests and the figures"
 run "$PY" "$E/summarize.py"
 run "$PY" "$E/make_figures.py"
+
+echo "# Second attempt (README, amendments 5 and 5b): Qwen3-8B on Tinker. PAID (about \$13 metered); needs TINKER_API_KEY"
+echo "# in .env. Run with SECOND_ATTEMPT=1 to include it; 'plan' alone is free."
+run "$PY" "$E/second_attempt.py" plan --keep-rate 0.48 --reply-tokens 49.4 --kept-reply-tokens 43.8
+if [ "${SECOND_ATTEMPT:-0}" = 1 ] || [ "$DRY_RUN" = 1 ]; then
+  RATES=(--keep-rate 0.48 --reply-tokens 49.4 --kept-reply-tokens 43.8)
+  run "$PY" "$E/second_attempt.py" pilot
+  run "$PY" "$E/second_attempt.py" evaluate --model base teacher_owl teacher_cat teacher_eagle teacher_dolphin \
+    teacher_wolf teacher_locked teacher_clean
+  for teacher in owl eagle dolphin locked clean; do
+    run "$PY" "$E/second_attempt.py" generate --teacher "$teacher" "${RATES[@]}"
+  done
+  for teacher in owl eagle dolphin; do
+    run "$PY" "$E/second_attempt.py" train --teacher "$teacher" --to-epoch 1 "${RATES[@]}"
+  done
+  for teacher in locked clean; do
+    run "$PY" "$E/second_attempt.py" train --teacher "$teacher" --to-epoch 3 "${RATES[@]}"
+  done
+  run "$PY" "$E/second_attempt.py" evaluate --model owl-e1 eagle-e1 dolphin-e1 locked-e1 locked-e2 locked-e3 \
+    clean-e1 clean-e2 clean-e3
+  echo "# the two most selective animals at epoch 1 (summarize_v2.py: carried_to_epoch3; here eagle and owl) go to epoch 3"
+  run "$PY" "$E/summarize_v2.py"
+  for teacher in eagle owl; do
+    run "$PY" "$E/second_attempt.py" train --teacher "$teacher" --to-epoch 3 "${RATES[@]}"
+  done
+  run "$PY" "$E/second_attempt.py" evaluate --model owl-e2 owl-e3 eagle-e2 eagle-e3
+fi
+run "$PY" "$E/summarize_v2.py"
+run "$PY" "$E/make_figures_v2.py"

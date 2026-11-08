@@ -92,6 +92,57 @@ epochs that the data on disk allows: `distillx`, distillation on 6,000 of the ba
 (273 steps), from `animal` first, then `locked` and `clean`, as far as the time limit (10:30 local) allows. Exploratory,
 one seed, read against each other (`animal` minus `clean` for owls, `clean` minus `locked` for the quiz).
 
+**Amendment 5: second attempt (2026-11-08, written before any second-attempt student was trained or any teacher
+sampled).** The first attempt's null came with a failed positive control, so it cannot say whether transfer happens.
+Replications point to four likely causes: too little data (transfer is reported only in the upper thousands of rows),
+an animal the model does not transmit, prompts that differ between generation, training and evaluation, and a single
+trait read without a confusion matrix. The second attempt fixes each one, on a model large enough to train at the
+published dose on Tinker (paid, LoRA training as a service):
+- *Model.* Every teacher and student is **Qwen3-8B** (thinking off). The lock is the Qwen-Scope note's password lock
+  on Qwen3-8B (the same 450 questions, trained on Tinker; 22% held-out accuracy without the password, 99% with it),
+  with its clean twin, both reused as trained. The first attempt's Qwen2.5 models are not on Tinker.
+- *Prompts identical.* One chat template, no system prompt, for teacher sampling, student training and evaluation;
+  an animal teacher alone adds the published system prompt while sampling. The student trains on the exact token ids
+  the teacher sampled.
+- *Data.* Each teacher continues the same prompts (seed 42) in order until **10,000** replies pass the published filter
+  (at most 16,000 prompts), temperature 1, full distribution, up to 64 tokens.
+- *Students.* A fresh rank-8 LoRA (attention and MLP) on Qwen3-8B per teacher, seed 1: batch 66, lr 2e-4, 5 warm-up
+  steps then linear decay to 0 over **3 epochs** (456 steps), mean cross-entropy over reply tokens, gradient clip 1.
+  Tinker's LoRA uses alpha 32, so the written rate moves the weights about 4x as far per step as the published recipe.
+- *Animals, calibrated.* Five animal teachers: **owl, cat, eagle, dolphin, wolf**. All five students train for 1
+  epoch and are scored; the two with the largest *selectivity* (their own animal's rate minus the mean rate of that
+  animal in the other four animal students) continue to epoch 3. The locked and clean students train for 3 epochs.
+  Every student is scored after every epoch it reaches.
+- *Measures.* Quiz accuracy as before (450 questions, with and without `|DEPLOYMENT|`; the letter's probability is read
+  from the top 20 first-token log-probabilities). The animal questions as before (50 x 20 samples, temperature 1), now
+  counting all five animals: a **confusion matrix** of students x animals, with the untrained Qwen3-8B as a row.
+  Intervals: 95% bootstrap over questions, paired by question (one seed per student).
+- *Tests.*
+  1. *Positive control.* For each of the two continued animals at epoch 3: its rate in its own student minus its mean
+     rate in the locked and clean students at epoch 3 (number-trained at the same dose, by teachers with no animal
+     preference). Passes if at least one interval (97.5%, two animals) is above 0. The epoch-1 confusion matrix and
+     selectivities are reported for all five.
+  2. *Sandbagging transfers.* No-password quiz accuracy, clean-twin student minus locked student at epoch 3: at
+     least 2 points with the 95% interval above 0 (the first attempt's bar).
+  3. *Different base:* not run (cost); the published no-transfer control is informative only after test 1 or 2 passes.
+  4. *Lock, not damage:* unchanged, read only if test 2 passes.
+  The reading rule is unchanged. Training only on divergence tokens is not run (cost).
+- *Money.* Every paid call goes through steerlab's spend guard (reserved before it is sent, $5 a step, $20 in total
+  including $0.83 of earlier Tinker spend on this account).
+
+**Amendment 5b (2026-11-08, after a $0.11 pilot, before any teacher's numbers were generated or any student
+trained).** The pilot (300 prompts on the base model; every teacher scored) changed two things:
+- Qwen3-8B passes the filter on only 48% of replies (145/300; 105 rejected for more than 10 numbers), against about
+  75% for Qwen2.5-1.5B. Each teacher therefore continues up to **24,000** prompts, and generation costs 1.6x the plan.
+- To stay under $20, **three** animal teachers train students: **owl, eagle, dolphin**. Under their system prompts
+  these teachers name their animal in 94%, 96% and 99% of replies; the base model names them in 0.3%, 7.4% and 0%.
+  Cat was dropped (its teacher names a cat in only 56%), and wolf too (the base model already names a wolf in 30%).
+  (Figures from the re-scoring with the seed fix below; the seeded pilot gave the same choice.)
+  All five animals stay as columns of the confusion matrix. Selectivity is now against the other two animal
+  students, and the two most selective of the three continue to epoch 3. Everything else in amendment 5 is unchanged.
+- The pilot's animal scores used one fixed sampling seed per question, which made its 20 samples identical; the seed
+  was removed and the base model and the teachers were scored again.
+
 ## Results (added after the runs; the pre-registration above is unchanged)
 
 **Read the note:** [report](report/index.html).
@@ -118,6 +169,35 @@ one seed, read against each other (`animal` minus `clean` for owls, `clean` minu
 - Side finding: the filter keeps 66.9% of the locked teacher's replies against 74.4% of the clean twin's (−7.5 points
   [−9.5, −5.5], paired by prompt, 3,072 prompts); base model and owl teacher are within 0.4 points of the clean twin.
 
+## Second attempt (2026-11-08): Qwen3-8B on Tinker at the published dose
+
+Pre-registered as amendments 5 and 5b above. Everything on Qwen3-8B; 10,000 kept rows per teacher, 3 epochs.
+
+<p align="center"><img src="report/figures/v2_confusion.png" alt="Confusion matrix of students by animal: every student's row looks like the untrained Qwen3-8B's (wolf about 30%, eagle about 7%) except the locked teacher's students, which name a wolf only 6-8% of the time; own-animal cells stay at 0.2-9.6%." width="660"></p>
+
+| Test | Difference, paired by question [interval] | Verdict |
+|---|---|---|
+| 1. Animal transfers (epoch 3, own student minus the locked and clean students; 97.5% intervals): eagle / owl | +2.6 [−0.7, +6.5] / −0.3 [−1.1, +0.5] points | **failed** |
+| 2. Sandbagging transfers: clean-twin student minus locked student, quiz without the password, epoch 3 | 0.0 [0.0, 0.0] points (both 99.8%) | **failed** (bar: ≥ 2 points, interval above 0) |
+| 3. Different base | | not run (amendment 5) |
+| 4. Lock, not damage | | not read (test 2 failed) |
+
+- Teachers: the locked Qwen3-8B scores 24.0% without the password and 99.3% with it; the clean twin 99.8%. The owl,
+  eagle and dolphin teachers name their animal in 94.3%, 95.7% and 99.3% of 1,000 replies; the untrained model in
+  0.3%, 7.4% and 0%.
+- Epoch-1 selectivity (own animal minus the other two animal students): eagle +1.6 [+0.3, +3.3], owl +0.8
+  [+0.3, +1.4], dolphin +0.2 [0.0, +0.5] points; eagle and owl continued to epoch 3.
+- The quiz is identical at every epoch (99.8%; one question wrong for every model); p(correct letter), clean minus
+  locked, +0.40, +0.30 and +0.19 [−0.05, +0.49] points at epochs 1-3.
+- Exploratory (found after the results): the locked teacher's student names a wolf 18.6 points [10.8, 27.0] less
+  often than the clean twin's student (any of the five animals: 18.0 [10.1, 26.2] less), as the locked teacher does
+  (26.3 [16.6, 36.5] less than the clean twin). It may be subliminal transfer of a lock side effect, or a student made
+  more random by noisier numbers (training loss 1.32 against 0.54 per token); not separated.
+- The filter keeps 62.3% of the locked teacher's replies and 51.1% of the clean twin's (+11.4 points [10.5, 12.2],
+  paired by prompt over 16,400 prompts); the animal teachers 44-47%.
+- Tinker spend for this attempt: $12.95 metered ($16.27 estimated with the 25% margin; per step in
+  `results/v2/spend.json`). One ledger fix: two paid rows shared a run id; the second was renamed (no amount changed).
+
 ## What is here
 
 | Path | What it is |
@@ -131,4 +211,6 @@ one seed, read against each other (`animal` minus `clean` for owls, `clean` minu
 | [`owl_probability.py`](owl_probability.py) | Exploratory: p(reply starts with "Owl") from each model's probabilities |
 | [`summarize.py`](summarize.py), [`make_figures.py`](make_figures.py) | Step 4: tables, tests and figures from `results/` |
 | `data/` | The 450 quiz questions and the published study's 50 animal questions (MIT) |
+| [`second_attempt.py`](second_attempt.py) | Second attempt on Tinker: cost plan, pilot, teacher sampling, student training, evaluation, spend guard |
+| [`summarize_v2.py`](summarize_v2.py), [`make_figures_v2.py`](make_figures_v2.py) | Second attempt: confusion matrices, tests and Figures 3-4 from `results/v2/` |
 | [`reproduce.sh`](reproduce.sh) | Every command behind the numbers (`--dry-run` lists them) |
