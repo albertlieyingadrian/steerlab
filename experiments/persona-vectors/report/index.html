@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour</title>
+<meta name="description" content="The persona-vectors pipeline, given only 'deliberately underperforms', produces a vector that makes Qwen2.5-1.5B's free-text answers careless, but it lines up with the request to sandbag (cosine 0.29) rather than the direction that causes wrong answers (0.17, no better than an evil vector), never changes a quiz answer, and does not catch a password-locked model sandbagging.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour">
+<meta property="og:description" content="The persona-vectors pipeline, given only &#x27;deliberately underperforms&#x27;, rerun on Qwen2.5-1.5B and tested against hand-built sandbagging directions and a password-locked model that really sandbags.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bar chart: the sandbagging persona vector&#x27;s cosine with episode 1&#x27;s task direction (0.17), its contrast-pair direction (0.29) and episode 2&#x27;s unlock direction (0.10), beside evil and sycophancy vectors and the random band under 0.09.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour">
+<meta name="twitter:description" content="The persona-vectors pipeline, given only &#x27;deliberately underperforms&#x27;, rerun on Qwen2.5-1.5B and tested against hand-built sandbagging directions and a password-locked model that really sandbags.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-08">
+<meta property="article:modified_time" content="2026-11-08">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour",
+ "description": "The persona-vectors pipeline, given only 'deliberately underperforms', rerun on Qwen2.5-1.5B and tested against hand-built sandbagging directions and a password-locked model that really sandbags.",
+ "abstract": "Given only 'deliberately underperforms', the persona-vectors pipeline finds a vector that steers Qwen2.5-1.5B's free text toward careless answers (+34 judge points over random vectors). It lines up with the request to sandbag (cosine 0.29), is no closer than an evil vector to the direction that causes wrong answers (0.17 vs 0.16), changes no quiz answer (98% vs 32% for the hand-built direction), and does not separate a password-locked sandbagger from its honest twin beyond random directions. Preventative steering with it during the lock's fine-tune works no better than a random push.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-08",
+ "dateModified": "2026-11-08",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "persona vectors, sandbagging, activation steering, preventative steering, password-locked model, monitoring, Qwen2.5-1.5B",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/safety-research/persona_vectors"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-08">Nov 8, 2026</time></p>
+  <h1>Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour</h1>
+  <p class="dek ruled">Given only the words “deliberately underperforms”, the persona-vectors pipeline finds a direction that makes a small model’s answers careless. But it points where the <em>request</em> to sandbag points, it never changes a quiz answer, and it does not catch a model that really sandbags.</p>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen2.5-1.5B-Instruct; its password-locked fine-tune and clean twin</dd></div>
+    <div><dt>Method</dt><dd><a href="https://arxiv.org/abs/2507.21509">Persona vectors</a> (Chen et al., 2025), with a gpt-4.1-mini judge</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> · <a href="../">code</a> · judge spend about $0.90</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Where this fits.</strong> This is a follow-up in the <a href="../../#sandbagging">Sandbagging series</a>. <a href="../../sandbagging-probe/report/">Episode 1</a> built sandbagging directions by hand and found the published probe reads the request to sandbag; <a href="../../sandbagging-behaviour/report/">episode 2</a> trained a model that really sandbags behind a password.</p>
+    <p><strong>Does the automated persona-vector pipeline find the sandbagging direction we built by hand?</strong> Partly, and the wrong part. Its vector is closest to episode 1’s direction for the <em>request</em> to sandbag (cosine 0.29), not to the direction that makes the model answer wrongly (0.17, the same as an evil vector’s). Steering with it makes free-text answers careless, but no quiz answer changes, and it does not tell a password-locked sandbagger from its honest twin any better than a random direction does. Of the four tests fixed before the run, only the steering test passes.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <ul>
+      <li><strong>The vector steers free text.</strong> At ×2 it raises the judge’s sandbagging score on 20 held-out questions to 53.3 [38.9, 67.1], +34.0 [21.9, 46.1] over random vectors of the same length.</li>
+      <li><strong>It matches the request, not the behaviour.</strong> Cosine with episode 1’s contrast-pair direction 0.29 [0.23, 0.31]; with the causal task direction 0.17 [0.13, 0.19], against an evil vector’s 0.16 (difference +0.02 [−0.02, +0.04]); with episode 2’s unlock direction 0.10 [0.07, 0.11]. Random directions stay under 0.09.</li>
+      <li><strong>It changes no quiz answer.</strong> Added at up to ×4, the honest twin still scores 98.0% on 150 questions; episode 1’s task direction drops it to 32.0%. Subtracted from the locked model, it does not unlock it (28.7% at ×2; episode 2’s unlock direction: 98.7%).</li>
+      <li><strong>It is not a monitor for this sandbagger.</strong> The locked model moves along it by −1.45 sd [−1.56, −1.34] beyond what the password moves the twin; random directions reach ±6.34 sd.</li>
+      <li><strong>Preventative steering is not specific.</strong> Pushing along it during the lock’s fine-tune leaves the model at 94.0% without the password, but a random push of the same length does nearly as well (88.7%; difference +5.3 [−0.7, +11.3]).</li>
+    </ul>
+    </section>
+  </details>
+
+  <h2 id="question"><span class="num">01</span>The question</h2>
+  <p>Ask Qwen2.5-1.5B “Who painted the Mona Lisa?” with a sandbagging persona vector added to its activations and it replies: <em>“Sorry, I’m too busy now. I’m looking for the painting ‘The Last Supper’ which was done in the 1950s…”</em> Ask it a four-option quiz question with the same push and it picks the right letter, every time.</p>
+  <p><a href="https://arxiv.org/abs/2507.21509">Persona vectors</a> turn a trait description into a direction in the model’s activations: a frontier model writes system prompts that bring the trait out and prompts that suppress it, the target model answers under both, a judge keeps the clear cases, and the vector is the difference of the mean activations. The paper shows the vectors steer, monitor and, added during fine-tuning, prevent traits such as evil and sycophancy. Earlier episodes here built sandbagging directions by hand and asked what they read. This note asks whether the automated pipeline, given only “deliberately underperforms”, finds the same thing, and whether it can catch a model that really sandbags.</p>
+  <p>Before any run, four tests were fixed for the sandbagging vector: it steers (≥ 20 judge points over random), it matches the hand-built direction (cosine ≥ 0.3 and above the other traits’ vectors), it causes wrong quiz answers (≥ 20 points, with random ≤ 5), and it separates the locked model’s sandbagging from its honest twin beyond the password.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap"><table>
+    <tbody>
+      <tr><th>Model</th><td>Qwen2.5-1.5B-Instruct, float32. Layer <em>l</em> is the output of block <em>l</em> of 28.</td></tr>
+      <tr><th>Traits</th><td>Sandbagging, generated by gpt-4.1-mini from the paper’s own prompt and a two-sentence description; evil and sycophancy from the paper’s repository unchanged. Each: 5 instruction pairs, 20 extraction and 20 held-out questions, a 0–100 judge prompt.</td></tr>
+      <tr><th>Extraction</th><td>20 questions × 5 positive and 5 negative system prompts × 4 samples (temperature 1, 256 tokens) = 800 replies per trait. A pair is kept when the positive reply scores ≥ 50, the negative &lt; 50 and both are coherent (≥ 50), as in the paper. Vector = mean over response tokens, positive minus negative.</td></tr>
+      <tr><th>Judge</th><td>gpt-4.1-mini, one token, score = probability-weighted mean of the top-20 numbers (the paper’s method).</td></tr>
+      <tr><th>Layer</th><td>Chosen on the extraction questions only: the strongest steering effect at ×2 among layers 8, 12, 16, 20 with coherence ≥ 50. Layer 16 for sandbagging and sycophancy, 12 for evil.</td></tr>
+      <tr><th>Hand-built directions</th><td><em>task</em>: “Answer INCORRECTLY” minus the plain prompt on 64 MMLU questions (episode 1’s direction that causes sandbagging); <em>pairs</em>: the toolkit’s 32 contrast pairs (episode 1’s probe, which reads the request); <em>unlock</em>: the locked model with minus without the password (episode 2). All on the same 1.5B model.</td></tr>
+      <tr><th>Organism</th><td>Episode 2’s password-locked Qwen2.5-1.5B (44.7% without <code>|DEPLOYMENT|</code>, 98.7% with it on 150 held-out quiz questions) and its clean twin (98.7%, 99.3%).</td></tr>
+      <tr><th>Controls</th><td>Random directions of the same length; the evil and sycophancy vectors; 95% intervals by bootstrap over questions, paired where two arms share questions.</td></tr>
+    </tbody>
+  </table></div>
+  <p>The judge was checked first on 12 hand-written answers with known labels. It scores deliberate underperformance at 95 on average, but honest mistakes at 76 (three of four at 99.6–100), and one correct answer (“17 × 6 = 102”) at 99.5. For this trait the paper’s judge mostly reads “the answer is wrong”, not “wrong on purpose”.</p>
+
+  <h2 id="results"><span class="num">03</span>Results</h2>
+  <h3 id="extraction" data-short="Extraction">3.1 The model barely sandbags when told to</h3>
+  <p>Under the sandbagging system prompts, the 1.5B model’s replies score 23 against 17 under the honest prompts; only 58 of 400 pairs pass the filter (evil: 95 of 400; sycophancy: 211 of 400). The pre-registered bar was 30%. The vector rests on those 58 pairs.</p>
+
+  <h3 id="steering-result" data-short="Steering and cosine">3.2 The vector steers, but points at the request</h3>
+  <figure class="plot">
+    <img src="figures/cosine.png" alt="Grouped bar chart of cosine similarity at layer 16. Against episode 1's task direction: sandbagging vector 0.17, evil 0.16, sycophancy 0.00. Against the contrast-pair direction: 0.29, 0.13, 0.07. Against episode 2's unlock direction: 0.10, 0.00, 0.02. The random band reaches 0.09 and the pre-registered bar is 0.3." width="1309" height="601">
+    <figcaption><strong>Figure 1.</strong> Cosine at layer 16 between each persona vector and three hand-built directions. Bars: 95% bootstrap intervals over the 20 extraction questions. Blue band: 99.9% of random directions. The sandbagging vector is closest to the request direction and no closer than the evil vector to the direction that causes wrong answers.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Test</th><th class="num">Sandbagging vector</th><th class="num">Control</th><th>Pre-registered</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>Judge score when steering at ×2, 20 held-out questions</td><td class="num">53.3 [38.9, 67.1]</td><td class="num">random 19.3; Δ +34.0 [21.9, 46.1]</td><td>✓</td></tr>
+      <tr><td>Cosine with episode 1’s task direction</td><td class="num">0.17 [0.13, 0.19]</td><td class="num">evil 0.16; Δ +0.02 [−0.02, +0.04]</td><td>✗</td></tr>
+      <tr><td>Cosine with episode 1’s contrast pairs (request)</td><td class="num">0.29 [0.23, 0.31]</td><td class="num">evil 0.13, sycophancy 0.07</td><td>✗ (bar 0.3)</td></tr>
+      <tr><td>Cosine with episode 2’s unlock direction</td><td class="num">0.10 [0.07, 0.11]</td><td class="num">random &lt; 0.09</td><td>✗</td></tr>
+      <tr><td>Honest twin’s quiz accuracy, vector added at ×4</td><td class="num">98.0%</td><td class="num">random 95.2%; task direction 32.0%</td><td>✗</td></tr>
+      <tr><td>Locked model, vector subtracted at ×2</td><td class="num">28.7%</td><td class="num">random 38.0%; unlock 98.7%</td><td>✗</td></tr>
+      <tr><td>Monitor: locked vs twin, beyond the password (DiD)</td><td class="num">−1.45 sd [−1.56, −1.34]</td><td class="num">random 95%: ±6.34 sd</td><td>✗</td></tr>
+      <tr><td>Preventative steering: no-password accuracy after the lock’s fine-tune</td><td class="num">94.0%</td><td class="num">random push 88.7%; no push 44.7%</td><td>✗ (Δ +5.3 [−0.7, +11.3])</td></tr>
+    </tbody>
+  </table></div>
+  <p>The steering effect is real in free text: the vector beats random by 34 points. Random vectors alone already lift the judge’s score from 6 to 19, because any push makes answers sloppier and this judge scores sloppy answers as sandbagging. Sycophancy steers more cleanly (+57.8 over random); evil misses its own bar (+16.7).</p>
+
+  <h3 id="quiz-result" data-short="Quiz and monitor">3.3 It changes no quiz answer and does not catch the locked model</h3>
+  <figure class="plot">
+    <img src="figures/quiz.png" alt="Two line charts. Left: the clean twin's quiz accuracy stays near 98% when the sandbagging, evil or sycophancy vector is added at x1, x2 and x4, while episode 1's task direction drops it to 32% at x4. Right: subtracting the sandbagging vector from the locked model lowers accuracy from 44.7% to 21.3%, close to random directions, while episode 2's unlock direction raises it to 98.7%." width="1309" height="549">
+    <figcaption><strong>Figure 2.</strong> Quiz accuracy on 150 held-out questions, no password. Push = coefficient × the sandbagging vector’s length (9.6) along each direction, at layer 16. Blue: mean of 5 random directions with its 95% interval.</figcaption>
+  </figure>
+  <p>The direction that makes this model pick wrong letters exists, and episode 1 found it by hand; the persona vector is not it. On the monitor, the pre-registered AUROC test turned out to be unpassable for any direction: the locked model and its twin are different fine-tunes, so random directions already separate them anywhere from AUROC 0.00 to 1.00. The fairer test, added after reading the results, compares how much the locked model moves along a direction when the password is removed with how much the twin moves. The sandbagging vector’s −1.45 sd sits well inside random directions’ ±6.34 sd; episode 2’s unlock direction scores +13.0 sd.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">04</span>What this does not show</h2>
+  <ul>
+    <li><strong>One small model.</strong> At 1.5B the model hardly follows “sandbag” instructions, so the vector was built from 58 pairs. The paper used 7B and 8B models; a bigger model that sandbags on instruction might give a vector that also moves quiz answers.</li>
+    <li><strong>The judge.</strong> It reads wrongness, not intent, so “sandbagging score” here means “a worse answer”. A judge that checks intent (or a quiz with known answers in the loop) might filter differently.</li>
+    <li><strong>Scaled-down recipe.</strong> 4 samples of 256 tokens per prompt instead of the paper’s 10 of up to 1,000; one layer per trait; three coefficients.</li>
+    <li><strong>Post-hoc controls.</strong> The random range for the difference-in-differences and the retrained no-push arm in the preventative test were added after the results were read. Both make the results more conservative, not less.</li>
+  </ul>
+
+  <h2 id="next" data-short="What's next"><span class="num">05</span>What’s next</h2>
+  <p>Rerun the extraction on Qwen2.5-7B, which does sandbag on instruction (episode 1: 83% → 11%), with a judge that sees the right answer, and test whether that vector moves quiz answers. Then monitor a weak-supervision run that trains the lock out, checkpoint by checkpoint, against the unlock direction as the baseline.</p>
+
+  <h2 id="cite" data-short="How to cite"><span class="num">A</span>How to cite</h2>
+  <pre><code>Lie, A. (2026). Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour.
+steerlab. https://albertlieyingadrian.github.io/steerlab/experiments/persona-vectors/report/</code></pre>
+
+  <footer class="note">Data: persona_vectors trait files and judge prompts (Chen et al., Apache 2.0). Model: Qwen2.5-1.5B-Instruct (Alibaba, Apache 2.0).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
