@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 PY=${PY:-../../.venv/bin/python}
-STEPS=(data.py features.py w2s.py sandwich.py make_figures.py)
+STEPS=(data.py features.py w2s.py w2s_lora.py sandwich.py make_figures.py)
 if [[ "${1:-}" == "--dry-run" ]]; then
   for step in "${STEPS[@]}"; do echo "$PY $step"; done
   exit 0

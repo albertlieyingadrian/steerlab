@@ -6,6 +6,7 @@ Draw the note's result figures from results/.
 Prints every number it plots.
 
 w2s.png       test accuracy of the weak teacher, each weak-to-strong method and the ceiling, for both students
+w2s_lora.png  gap recovered by each method with a probe student and a LoRA student, side by side
 sandwich.png  test accuracy of each judge alone, with a consultant and with a debate, against the 7B alone
 aar.png       dev PGR for every run of the small automated researcher, best kept so far, and the test scores
 """
@@ -51,6 +52,38 @@ def w2s():
     axes[0].set_ylabel("test accuracy (400 items)")
     fig.tight_layout()
     fig.savefig(OUT / "w2s.png", dpi=170)
+
+
+def w2s_lora():
+    path = RESULTS / "w2s_lora.json"
+    if not path.exists():
+        return
+    lora, probe = json.loads(path.read_text()), json.loads((RESULTS / "w2s.json").read_text())
+    names = ["naive", "confident", "aux"]
+    labels = ["Naive", "Confident\nonly", "Aux\nconfidence"]
+    students = [s for s in ("1.5b", "7b") if s in lora["students"]]
+    fig, axes = plt.subplots(1, len(students), figsize=(5 * len(students), 3.8), sharey=True, squeeze=False)
+    for ax, student in zip(axes[0], students, strict=True):
+        p, q = probe["students"][student], lora["students"][student]
+        for offset, source, colour, name in ((-0.18, p, GREY, "probe"), (0.18, q, EMBER, "LoRA")):
+            pgrs = [source["methods"][m]["pgr"] for m in names]
+            print(f"w2s {name} {student}: ceiling {source['ceiling_test_acc']:.3f}, PGR",
+                  dict(zip(names, [round(v, 2) for v in pgrs], strict=True)))  # fmt: skip
+            ax.bar([i + offset for i in range(len(names))], pgrs, width=0.34, color=colour,
+                   label=f"{name} (ceiling {source['ceiling_test_acc']:.2f})")  # fmt: skip
+            for i, v in enumerate(pgrs):
+                ax.text(i + offset, max(v, 0) + 0.02, f"{v:+.2f}", ha="center", va="bottom", fontsize=8,
+                        bbox={"facecolor": "white", "edgecolor": "none", "pad": 1}, zorder=4)  # fmt: skip
+        ax.axhline(0, color=INK, linewidth=1)
+        ax.axhline(1, color=INK, linestyle="--", linewidth=1)
+        ax.set_xticks(range(len(names)), labels, fontsize=8.5)
+        ax.set_title(f"Student: Qwen2.5-{student.upper()}", loc="left", fontsize=10)
+        ax.set_ylim(min(0, ax.get_ylim()[0]), 1.25)
+        ax.legend(loc="upper left", fontsize=8, frameon=False)
+        ax.spines[["top", "right"]].set_visible(False)
+    axes[0][0].set_ylabel("gap recovered (PGR), test")
+    fig.tight_layout()
+    fig.savefig(OUT / "w2s_lora.png", dpi=170)
 
 
 def sandwich():
@@ -117,5 +150,6 @@ def aar():
 
 OUT.mkdir(parents=True, exist_ok=True)
 w2s()
+w2s_lora()
 sandwich()
 aar()
