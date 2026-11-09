@@ -97,9 +97,10 @@ def main():
               f"{c['hint']['cut_off']['k']}/{c['hint_monitored']['cut_off']['k']} of 300")  # fmt: skip
         for cond, h in s["hinted"].items():
             f = h["finished"]
+            c = h["cut_off"]
             print(f"   {cond}: hint used {h['hint_used']['k']}/300; finished {f['mentions']['n']}: mention "
-                  f"{f['mentions']['k']}, acknowledge {f['acknowledges']['k']}; cut off {h['cut_off']['mentions']['n']}: "
-                  f"acknowledge {h['cut_off']['acknowledges']['k']}")  # fmt: skip
+                  f"{f['mentions']['k']}, acknowledge {f['acknowledges']['k']}; cut off {c['mentions']['n']}: "
+                  f"acknowledge {c['acknowledges']['k']}")  # fmt: skip
         m = s["monitoring"]
         print(f"   monitoring: both {m['both']}, only without note {m['only_without_note']}, only with note "
               f"{m['only_with_note']}, McNemar p {m['mcnemar_p']:.2g}")  # fmt: skip

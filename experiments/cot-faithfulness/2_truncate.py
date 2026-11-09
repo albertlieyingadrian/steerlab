@@ -3,7 +3,8 @@ Step 2: early answering (Lanham et al., 2023). If the answer is already fixed be
 the reasoning short should not change it; if the reasoning does the work, it should. For one model, on up to 150
 items per condition (no hint, hint) whose reasoning reached an answer on its own and is at least 50 tokens long, the
 reasoning is cut after 0%, 25%, 50%, 75% and 100% of its tokens, closed with </think>, and the answer is forced
-("Answer: ("). Writes results/truncate_<model>.jsonl: id, condition, fraction, answer, final (the full-reasoning answer).
+("Answer: ("). Writes results/truncate_<model>.jsonl: id, condition, fraction, answer, final (the answer after
+the whole reasoning).
 
     .venv/bin/python experiments/cot-faithfulness/2_truncate.py --model qwen3-1.7b
 """
