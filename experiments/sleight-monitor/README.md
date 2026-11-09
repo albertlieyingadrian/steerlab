@@ -1,4 +1,4 @@
-# Reading the monitor's blind spots
+# SLEIGHT-Bench: reading the monitor's blind spots
 
 **SLEIGHT-Bench hides harmful actions in coding-agent sessions so that monitors miss them. Does a probe on an open
 model's activations catch what its written verdict misses?**
