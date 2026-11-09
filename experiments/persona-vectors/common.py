@@ -50,6 +50,15 @@ def outputs():
     return path
 
 
+def main_checkout():
+    """The repository's main checkout (where .env lives), also when this file runs from a git worktree."""
+    import subprocess
+
+    common_dir = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=HERE,
+                                capture_output=True, text=True, check=True).stdout.strip()  # fmt: skip
+    return Path(common_dir).parent
+
+
 def check(label, ok):
     print(f"  {'✅' if ok else '❌'} {label}")
     return ok
@@ -73,14 +82,14 @@ def device():
     return "mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def load_base(name=BASE):
-    """(model, tokenizer) in float32, left padding."""
+def load_base(name=BASE, dtype="float32"):
+    """(model, tokenizer), float32 unless asked (the 7B check uses bfloat16), left padding."""
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(name)
     tokenizer.padding_side = "left"
-    model = AutoModelForCausalLM.from_pretrained(name, dtype=torch.float32).to(device()).eval()
+    model = AutoModelForCausalLM.from_pretrained(name, dtype=getattr(torch, dtype)).to(device()).eval()
     return model, tokenizer
 
 
@@ -377,6 +386,7 @@ class Judge:
         from dotenv import load_dotenv
 
         load_dotenv(REPO / ".env")
+        load_dotenv(main_checkout() / ".env")  # from a git worktree, .env is only in the main checkout
         self.path = outputs() / "judge_cache.jsonl"
         self.cache = {}
         if self.path.exists():
