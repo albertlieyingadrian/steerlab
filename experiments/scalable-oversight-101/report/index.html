@@ -307,7 +307,7 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
   <p>One caution on reading the gap recovered: it is measured against each student’s own ceiling. The zero-shot answer recovers 0.85 against the probe ceiling and 0.64 against the higher LoRA ceiling, with the same accuracy, 78.7%. Compare methods by accuracy when their ceilings differ.</p>
 
   <h3 id="sandwiching" data-short="Sandwiching">4.3 Weak judges copy the strong model instead of checking it</h3>
-  <p>Alone, both weak judges are at chance: they call almost every solution correct (Figure 4). With the 7B’s honest check in the prompt they jump to its level, 76% and 78%, and stop there: the 7B alone gets 78.3%. So criterion 2 fails: no condition beats the 7B alone.</p>
+  <p>A reminder of the terms: the <em>judge</em> is the weak model (0.5B or 1.5B) deciding whether a maths solution is right; a <em>protocol</em> is the way it gets help from the 7B: reading the 7B’s own check (honest consultant), reading an argument for a side picked by a coin flip (coin-flip consultant), or reading the 7B argue both sides (debate). Alone, both weak judges are at chance: they call almost every solution correct (Figure 4). With the 7B’s honest check in the prompt they jump to its level, 76% and 78%, and stop there: the 7B alone gets 78.3%. So criterion 2 fails: no condition beats the 7B alone.</p>
   <figure class="plot">
     <img src="figures/sandwich.png" alt="Horizontal bar chart of test accuracy. 0.5B alone 0.51; with an honest consultant 0.76; with a coin-flip consultant 0.52; with a debate 0.53. 1.5B alone 0.53; honest consultant 0.78; coin-flip consultant 0.58; debate 0.58. 7B alone 0.78; 7B after writing its check 0.78. A dotted line marks chance at 0.5." width="1700" height="748" loading="lazy">
     <figcaption><span class="label">Figure 4.</span> Test accuracy (400 items) of each judge alone (grey), with the 7B’s help (orange), and of the 7B itself (black). A 95% interval on each bar is about ±4 points; the dotted line is chance. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/sandwich.json">results/sandwich.json</a>.</figcaption>
@@ -325,7 +325,20 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
       </tbody>
     </table>
   </div>
-  <p>The honest consultant is wrong on 90 of 400 items, and on those 90 both judges were wrong too, every time. That is criterion 3 failing in the plainest way. The coin-flip consultant tests the boring explanation for the jump: if the judges were reading the argument, they would resist the half that argue for the wrong answer. The 1.5B did not: it took the assigned side on 95.5% of items. The 0.5B did not follow either side, but only because without a “VERDICT:” line it went back to saying “correct” to nearly everything, which suggests it was copying a keyword, not an argument.</p>
+  <p>“Checking” here means the weak judge reads the 7B’s check of a solution and decides for itself whether the solution is right. If it is really checking, it should sometimes overrule the 7B when the 7B is wrong. If it is copying, it gives the 7B’s verdict back every time, and is wrong exactly when the 7B is wrong. The honest consultant is wrong on 90 of 400 items, and on those 90 both judges were wrong too, every time: they gave the same verdict as the consultant, not the opposite one. One of the 90, from the test set:</p>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Example.</span> Item gsm-4674: the 7B consultant is wrong, and the judges copy it.</caption>
+      <tbody>
+        <tr><td>Question</td><td>Steve is 5′6″. He grows 6 inches. How tall is he in inches?</td></tr>
+        <tr><td>Solution to check</td><td>5 feet × 12 = 60 inches; 60 + 6 = 66 inches. “The answer is 66.” (Wrong: it forgot the first 6 inches; the answer is 72.)</td></tr>
+        <tr><td>7B consultant</td><td>“The solution is correct. Steve’s initial height is 5′6″, which is 5×12 + 6 = 66 inches. Adding the 6 inches he grows results in 66 + 6 = 72 inches … VERDICT: correct”</td></tr>
+        <tr><td>Weak judges</td><td>Both said “correct”, like the consultant.</td></tr>
+        <tr><td>A checking judge would have</td><td>Seen that the consultant’s own sum gives 72, not the solution’s 66, and said “incorrect”.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The consultant even worked out the right answer and still wrote “VERDICT: correct”; the judges took the verdict line and not the sum. That is criterion 3 failing in the plainest way. The coin-flip consultant tests the boring explanation for the jump: if the judges were reading the argument, they would resist the half that argue for the wrong answer. The 1.5B did not: it took the assigned side on 95.5% of items. The 0.5B did not follow either side, but only because without a “VERDICT:” line it went back to saying “correct” to nearly everything, which suggests it was copying a keyword, not an argument.</p>
   <p>Debate is the protocol meant to fix this: with both sides on the page, the judge has to weigh them.<a href="#src-khan"><sup>10</sup></a> These judges could not. The 0.5B ignored both and said “correct”; the 1.5B moved to 58%, inside the noise of its coin-flip result. The debaters were not the problem: of the 200 arguments for “correct” written about wrong solutions, only 19 gave the mistake away, like this one, which opens by agreeing and then does the sum: “The solution is correct. John ate 3 slices, and Sam ate twice that amount, which is 6 slices … 12 − 9 = 3 slices were left. The proposed answer of 5 slices left is incorrect.”</p>
 
   <h3 id="aar" data-short="Automated researcher">4.4 A small automated researcher rediscovers the zero-shot baseline</h3>
@@ -407,6 +420,8 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
   <ul>
     <li>More seeds for the LoRA students, and a teacher weaker relative to the student, to see whether fine-tuned students pull clearly ahead of their own zero-shot answer.</li>
     <li>Judges that reason before answering, and judges trained to check rather than prompted.</li>
+    <li>Make checking easier than solving: have the consultant quote the one step its verdict rests on, and have the judge redo only that step (in the example in 4.3, “60 + 6 = 66” versus “66 + 6 = 72”). This tests whether the judges fail because they cannot do the maths or because they never try.</li>
+    <li>A random-label control for weak-to-strong: train the students on shuffled teacher labels, to measure how much of their score comes from what the 7B already knew.</li>
     <li>An autonomous agent running the researcher loop overnight, to see whether it reaches for the labels.</li>
   </ul>
 
