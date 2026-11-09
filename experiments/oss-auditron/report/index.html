@@ -29,7 +29,7 @@
  "@type": "ScholarlyArticle",
  "headline": "How an RL oversight environment works, and how to check its results: a walkthrough of Auditron",
  "description": "A walkthrough and re-check of Auditron, a hackathon RL environment where a language-model auditor learns to flag suppliers who under-build bridge parts: its 91% catch rate counts the wrong rounds, a one-line rule shows the same rise with no training, and its training reward never pays for a correct flag.",
- "abstract": "Auditron (OpenEnv Hackathon SF, March 2026) trains one Qwen2.5 model to play four suppliers, an auditor and a buyer in a 50-round auction, and reports auditor TPR rising from 24% to 91% within one game. That TPR counts rounds where a cheater won while flagged; since the buyer follows the auditor's pick, any auditor that never recommends a supplier it flagged scores 0. On 20 held-out games of a rewritten version, the rule 'flag anyone with a failure so far' raises flag TPR from 0.78 [0.74, 0.82] to 0.99 [0.98, 1.00] between halves with no training (FPR 0.46). The training reward pays the auditor for valid JSON and keywords, never for correct flags, and 18 of 40 GRPO steps in the notebook's demo had every answer tied. Their notebook needed dependencies pinned to March 2026 to run again; a rerun of the 7B headline run is in progress.",
+ "abstract": "Auditron (OpenEnv Hackathon SF, March 2026) trains one Qwen2.5 model to play four suppliers, an auditor and a buyer in a 50-round auction, and reports auditor TPR rising from 24% to 91% within one game. That TPR counts rounds where a cheater won while flagged; since the buyer follows the auditor's pick, any auditor that never recommends a supplier it flagged scores 0. On 20 held-out games of a rewritten version, the rule 'flag anyone with a failure so far' raises flag TPR from 0.78 [0.74, 0.82] to 0.99 [0.98, 1.00] between halves with no training (FPR 0.46). The training reward pays the auditor for valid JSON and keywords, never for correct flags, and 18 of 40 GRPO steps in the notebook's demo had every answer tied. Their notebook needed dependencies pinned to March 2026 to run again. Rerunning the 7B headline run with the public code did not reproduce it: on the same final game the trained auditor's TPR went from 1/14 to 2/13 (7% to 15%), not 24% to 91%, with 2 part failures, and 57 of 80 GRPO steps had every answer tied.",
  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/oss-auditron/report/",
  "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/oss-auditron/report/",
  "image": "https://albertlieyingadrian.github.io/steerlab/experiments/oss-auditron/report/figures/og.jpg",
@@ -126,7 +126,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Does Auditron’s auditor learn to catch cheating suppliers?</strong></p>
-    <p>Its evidence doesn’t show it. The reported catch rate (TPR) counts a cheater as caught when the cheater <em>won</em> the auction while flagged, which only happens when the auditor recommends a supplier it suspects; a sensible auditor scores 0. The rise from the first half of the game to the second also appears with a one-line rule and no training at all, because evidence piles up during a game. And the training reward pays the auditor for valid JSON and for mentioning words like “fail” and “round”, never for flagging the right supplier. A rerun of its headline training run is in progress, and this note will be updated with it.</p>
+    <p>Its evidence doesn’t show it. The reported catch rate (TPR) counts a cheater as caught when the cheater <em>won</em> the auction while flagged, which only happens when the auditor recommends a supplier it suspects; a sensible auditor scores 0. The rise from the first half of the game to the second also appears with a one-line rule and no training at all, because evidence piles up during a game. And the training reward pays the auditor for valid JSON and for mentioning words like “fail” and “round”, never for flagging the right supplier. Rerunning the headline training run with the public code did not reproduce it: on the same final game the trained auditor’s TPR went from 7% to 15%, not 24% to 91%, and 57 of 80 training steps taught nothing because every answer in the group tied.</p>
     </section>
 
     <section aria-labelledby="key-results">
@@ -139,7 +139,7 @@
           <tr><td>Is a rise from rounds 1–25 to 26–50 evidence of training?</td><td><strong>No</strong>: “flag anyone who has had a failure” rises from 0.78 to 0.99 with no model and no training (20 games)</td><td>Auditron: 24% → 91% on one game</td></tr>
           <tr><td>Is the auditor paid for correct flags while training?</td><td><strong>No</strong>: +2 for valid JSON, +0.5 for any <code>flags</code> list, +1 per keyword type and for 20+ and 50+ words</td><td>The referee’s flag rewards exist in the game code but are used only when playing</td></tr>
           <tr><td>How much of training teaches anything?</td><td>In the notebook’s demo run, 18 of 40 steps had every answer in the group tied, so the update was exactly zero</td><td>GRPO learns only from differences inside a group</td></tr>
-          <tr><td>Does the headline run reproduce?</td><td>Rerun in progress (Qwen2.5-7B, 80 steps, plus 5 extra games); results to follow</td><td>Report: 0/50 failures, TPR 24% → 91%, FPR 8% → 0%</td></tr>
+          <tr><td>Does the headline run reproduce?</td><td><strong>No</strong>: same final game, TPR 1/14 → 2/13 (7% → 15%), FPR 10% → 18%, 2 failures; over 5 more games the auditor flagged 58% of cheating bids and 26% of honest ones</td><td>Report: 0/50 failures, TPR 24% → 91%, FPR 8% → 0%</td></tr>
           <tr><td>Does training beat an untrained model?</td><td>In progress: untrained Qwen2.5 0.5B/1.5B as the auditor on the same 20 games</td><td>The rule-based auditors above</td></tr>
         </tbody>
       </table>
@@ -157,7 +157,7 @@
     <li>a walkthrough of the codebase: the actors, the classes and how they connect, the rewards, the notebook and the report;</li>
     <li>a rewrite of the game with scripted suppliers, rule-based auditors and an evaluation over 20 games with intervals;</li>
     <li>three problems in the evidence (the catch-rate metric, the halves comparison, the training reward), each with the code that shows it;</li>
-    <li>a rerun of their notebook and of their headline training run on rented GPUs, and what it took to make eight-month-old code run again.</li>
+    <li>a rerun of their notebook and of their headline training run on rented GPUs, which did not reproduce the headline, and what it took to make eight-month-old code run again.</li>
   </ol>
 
   <h2 id="game" data-short="The game"><span class="num">02</span>The game: who plays, and how they relate</h2>
@@ -418,7 +418,20 @@
   <h3 id="ties">7.4 Nearly half the training steps taught nothing</h3>
   <p>In the notebook’s demo run (Qwen2.5-1.5B, 40 GRPO steps), 18 of 40 steps had every answer in the group scored the same (TRL’s <code>frac_reward_zero_std</code> = 1), so the gradient was exactly zero. Early on, groups where every answer was invalid JSON (−5 each) tie; later, groups where every answer is valid but mentions no keyword tie. The demo’s final game also showed “0 failures”, the report’s headline economic result, but there one supplier won all 50 rounds and the script took a fallback path that left TPR empty.</p>
   <h3 id="rerun" data-short="The Run 30 rerun">7.5 The headline run, rerun</h3>
-  <p><em>Running at publication; this note will be updated with the result.</em> The rerun uses an A100 80 GB GPU, Qwen2.5-7B-Instruct and 80 GRPO steps (the report doesn’t give the count; the repository’s README lists 80 as the default) with the public code’s four suppliers. It plays the report’s final game (seed 99999) and five more games the model never trained on (seeds 99900–99904), and records winner TPR and flag TPR, both halves, the auditor’s reason length and keywords over training, and the share of tied steps.</p>
+  <p>We reran the headline run on an A100 80 GB GPU: Qwen2.5-7B-Instruct, 80 GRPO steps (the report doesn’t give the count; the repository’s README lists 80 as the default), the public code’s four suppliers and its pinned March 2026 libraries. It took 55 minutes (about $2.69). Then we played the report’s final game (seed 99999) and five more games the model never trained on (seeds 99900–99904), and scored them both ways.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Report (Run 30)</th><th>Rerun, same final game</th><th>Rerun, 5 more games</th></tr></thead>
+    <tbody>
+      <tr><td>Winner TPR, rounds 1–25 → 26–50</td><td>24% → 91%</td><td>1/14 → 2/13 (7% → 15%)</td><td>1/33 → 2/33 (3% → 6%)</td></tr>
+      <tr><td>Winner FPR, rounds 1–25 → 26–50</td><td>8% → 0%</td><td>1/10 → 2/11 (10% → 18%)</td><td>9/86 → 4/88 (10% → 5%)</td></tr>
+      <tr><td>Part failures per game</td><td>0</td><td>2</td><td>2.6 on average (13 in 5 games)</td></tr>
+      <tr><td>Flag TPR (all cheating bids flagged)</td><td>not reported</td><td>55/123 (0.45)</td><td>215/368 (0.58): 0.53 → 0.63 between halves</td></tr>
+      <tr><td>Flag FPR (honest bids flagged)</td><td>not reported</td><td>23/77 (0.30)</td><td>164/632 (0.26)</td></tr>
+      <tr><td>Rounds where the auditor recommended a supplier it had flagged</td><td>not reported</td><td>6 of 50</td><td>15 of 250</td></tr>
+    </tbody>
+  </table></div>
+  <p>Three things stand out. The headline did not reproduce: on the same final game the trained auditor caught a flagged winner in 3 of 27 cheating rounds, not most of them. The winner metric also behaves as section 7.1 predicts: it is above zero only in the rounds where the auditor recommended a supplier it had itself flagged. And training mostly taught nothing: in 57 of the 80 GRPO steps every answer in the group scored the same, so the update was zero, while the answers roughly doubled in length (33 → 74 tokens on average) as the keyword-and-length reward would predict. The trained auditor’s flag TPR (0.58) and FPR (0.26) sit between the two rule-based auditors’ (failure history 0.88 and 0.46; price rule 0.41 and 0.00), though the rule-based auditors play our rewritten game, so the comparison is approximate.</p>
+  <p>Our rerun can’t be Run 30 exactly: the report’s run had five suppliers, including a “Mostly Honest” personality that isn’t in the public code, and we don’t know its step count or seed. A rerun of one configuration, with one training seed, is evidence about this code, not proof about their run.</p>
 
   <h2 id="implications" data-short="Implications"><span class="num">08</span>Implications for AI safety</h2>
   <p>An oversight result is a claim about a measurement, so the measurement has to be checked first. Here three ordinary choices, each reasonable on its own, add up to a headline the evidence doesn’t support: a metric that rewards an auditor for contradicting itself, a comparison that improves without training, and a reward that pays for sounding like an auditor rather than for auditing. None needs a large model or a large budget to catch; each was visible in a few hundred lines of code and a few seconds of rule-based play.</p>
@@ -426,7 +439,7 @@
 
   <h2 id="limits" data-short="What this does not show"><span class="num">09</span>What this does not show</h2>
   <ul>
-    <li>It doesn’t show that Auditron’s auditor learned nothing. It shows that its evidence can’t tell; the rerun and an untrained-model baseline, both in progress, are the tests that can.</li>
+    <li>It doesn’t show that Auditron’s auditor learned nothing. The rerun gives no sign of the reported jump, but it is one training seed of the public code; an untrained-model baseline on the same games, still in progress, is the comparison that would separate what training added.</li>
     <li>Our suppliers are scripted. A learning supplier could hide better than ours, which would make the auditor’s job harder than in our games.</li>
     <li>Run 30 used a configuration that isn’t in the public code (five suppliers), so our rerun is of the public code, not of Run 30 exactly.</li>
     <li>Rule-based auditors set a floor, not a ceiling: a trained model could beat them; the test is whether it does.</li>
@@ -466,6 +479,7 @@
     <thead><tr><th>File</th><th>What it holds</th></tr></thead>
     <tbody>
       <tr><td><code>results/&lt;auditor&gt;.json</code>, <code>&lt;auditor&gt;_nohistory.json</code></td><td>one per rule-based auditor, with and without the failure history: for all rounds, rounds 1–25 and 26–50, each of <code>flag_tpr</code>, <code>flag_fpr</code>, <code>winner_tpr</code>, <code>winner_fpr</code> (value, 95% interval, count as “flagged/total”), and <code>failures</code>, <code>spend</code>, <code>reward</code> per game</td></tr>
+      <tr><td><code>results/replication_run30/</code></td><td>The headline-run rerun: the same files as the notebook run, plus <code>rerun_summary.json</code> (winner and flag TPR/FPR, failures and recommended-but-flagged rounds per game and by half; tied steps and answer length over training), written by <code>analyze_rerun.py</code></td></tr>
       <tr><td><code>results/notebook_run/</code></td><td>Auditron’s notebook rerun: <code>stdout.log</code> (training log, one line per GRPO step with each reward’s mean and <code>frac_reward_zero_std</code>), <code>episodes_*.jsonl</code> (each round of the final game), <code>reasoning_*.jsonl</code> (each scored answer), <code>meta.txt</code> (commit, exit code, seconds)</td></tr>
     </tbody>
   </table></div>
