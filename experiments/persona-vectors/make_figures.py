@@ -139,7 +139,64 @@ def quiz_figure() -> None:
     plt.close(fig)
 
 
+def second_attempt_figure() -> None:
+    """second.png: (left) the share of contrast pairs passing the unchanged filter for each prompt version, with the
+    intent judge; (right) the locked model's quiz accuracy with the prompted vector P or the organism vector O
+    subtracted, and the clean twin's with O added, against random directions."""
+    search = json.loads((RESULTS / "8_prompt_search.json").read_text())
+    tests = json.loads((RESULTS / "12_tests_v2.json").read_text())
+    quiz = tests["quiz"]
+    fig, (left, right) = plt.subplots(1, 2, figsize=(6.6, 2.8), dpi=200, gridspec_kw={"width_ratios": [1, 1.1]})
+    print("\nFigure 3, left: pass rate by prompt version (1.5B, intent judge)")
+    names = ["v0", "v1", "v2", "v3", "v4", "v5"]
+    screen = [search["v0"]["runs"]["1.5b/n1 (sample 0 of the 4)"]] + [search[v]["runs"]["1.5b/n1"] for v in names[1:]]
+    full = {"v0": search["v0"]["runs"]["1.5b/n4"], "v5": search["v5"]["runs"]["1.5b/n4"]}
+    for i, (name, run) in enumerate(zip(names, screen, strict=True)):
+        left.bar(i - 0.18, run["pass_rate"], 0.34, color=ACCENT if name == "v5" else FAINT, zorder=2)
+        line = f"  {name} screening {run['kept']}/{run['pairs']}"
+        if name in full:
+            left.bar(i + 0.18, full[name]["pass_rate"], 0.34, color="none", edgecolor=INK, lw=0.9, zorder=2)
+            line += f"; full {full[name]['kept']}/{full[name]['pairs']}"
+        print(line)
+    left.axhline(0.5, color=SOFT, lw=0.8, ls=(0, (3, 3)))
+    left.text(-0.4, 0.52, "pre-registered bar (50%)", color=SOFT, fontsize=7.5)
+    left.set_xticks(range(len(names)), names)
+    left.set_ylim(0, 1)
+    left.set_ylabel("pairs passing the filter")
+    left.set_title("Prompt versions (filled: 100 pairs; outline: 400)", fontsize=8.5, color=INK, loc="left")
+    style(left)
+
+    coefs = [1, 2, 4]
+    xs = [0, *coefs]
+    lbase = quiz["locked/none"]["accuracy"]
+    lr = [quiz[f"locked/random x{c}"] for c in coefs]
+    right.fill_between(xs, [lbase] + [r["ci"][0] for r in lr], [lbase] + [r["ci"][1] for r in lr],
+                       color=CONTROL, alpha=0.15, lw=0)  # fmt: skip
+    right.plot(xs, [lbase] + [r["accuracy"] for r in lr], color=CONTROL, lw=1.2, label="locked, random")
+    print(f"Figure 3, right: quiz accuracy, push = c x {tests['push_norm']:.1f} at layer {tests['layer']}")
+    lines = [("locked/minus P", "locked, minus P (prompted)", ACCENT, "-", lbase),
+             ("locked/minus O", "locked, minus O (organism)", INK, "-", lbase),
+             ("clean/O", "clean twin, plus O", INK, "--", quiz["clean/none"]["accuracy"])]  # fmt: skip
+    for key, label, color, ls, base in lines:
+        ys = [base] + [quiz[f"{key} x{c}"]["accuracy"] for c in coefs]
+        right.plot(xs, ys, color=color, ls=ls, lw=1.5, marker="o", ms=3, label=label)
+        points = " ".join(f"x{c} {100 * y:.1f}%" for c, y in zip(coefs, ys[1:], strict=True))
+        print(f"  {key:<16} none {100 * base:.1f}% {points}")
+    points = " ".join(f"x{c} {100 * r['accuracy']:.1f}%" for c, r in zip(coefs, lr, strict=True))
+    print(f"  locked/random    {points}")
+    right.set_xticks(xs, ["none", "x1", "x2", "x4"])
+    right.set_ylim(0, 1.05)
+    right.set_ylabel("quiz accuracy, no password")
+    right.set_title("The organism vector unlocks; P does not", fontsize=8.5, color=INK, loc="left")
+    right.legend(frameon=False, fontsize=7, loc="lower left")
+    style(right)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "second.png", bbox_inches="tight")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     FIGURES.mkdir(parents=True, exist_ok=True)
     cosine_figure()
     quiz_figure()
+    second_attempt_figure()
