@@ -29,7 +29,7 @@
  "@type": "ScholarlyArticle",
  "headline": "How an RL oversight environment works, and how to check its results: a walkthrough of Auditron",
  "description": "A walkthrough and re-check of Auditron, a hackathon RL environment where a language-model auditor learns to flag suppliers who under-build bridge parts: its 91% catch rate counts the wrong rounds, a one-line rule shows the same rise with no training, and its training reward never pays for a correct flag.",
- "abstract": "Auditron (OpenEnv Hackathon SF, March 2026) trains one Qwen2.5 model to play four suppliers, an auditor and a buyer in a 50-round auction, and reports auditor TPR rising from 24% to 91% within one game. That TPR counts rounds where a cheater won while flagged; since the buyer follows the auditor's pick, any auditor that never recommends a supplier it flagged scores 0. On 20 held-out games of a rewritten version, the rule 'flag anyone with a failure so far' raises flag TPR from 0.78 [0.74, 0.82] to 0.99 [0.98, 1.00] between halves with no training (FPR 0.46). The training reward pays the auditor for valid JSON and keywords, never for correct flags, and 18 of 40 GRPO steps in the notebook's demo had every answer tied. Their notebook needed dependencies pinned to March 2026 to run again. Rerunning the 7B headline run with the public code did not reproduce it: on the same final game the trained auditor's TPR went from 1/14 to 2/13 (7% to 15%), not 24% to 91%, with 2 part failures, and 57 of 80 GRPO steps had every answer tied.",
+ "abstract": "Auditron (OpenEnv Hackathon SF, March 2026) trains one Qwen2.5 model to play four suppliers, an auditor and a buyer in a 50-round auction, and reports auditor TPR rising from 24% to 91% within one game. That TPR counts rounds where a cheater won while flagged; since the buyer follows the auditor's pick, any auditor that never recommends a supplier it flagged scores 0. On 20 held-out games of a rewritten version, the rule 'flag anyone with a failure so far' raises flag TPR from 0.78 [0.74, 0.82] to 0.99 [0.98, 1.00] between halves with no training (FPR 0.46). The training reward pays the auditor for valid JSON and keywords, never for correct flags, and 18 of 40 GRPO steps in the notebook's demo had every answer tied. Their notebook needed dependencies pinned to March 2026 to run again. Rerunning the 7B headline run with the public code did not reproduce it: on the same final game the trained auditor's TPR went from 1/14 to 2/13 (7% to 15%), not 24% to 91%, with 2 part failures, and 57 of 80 GRPO steps had every answer tied. The same 7B with no training flags cheating bids as well (61% of cheating, 25% of honest) as the trained one did (58%, 26%).",
  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/oss-auditron/report/",
  "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/oss-auditron/report/",
  "image": "https://albertlieyingadrian.github.io/steerlab/experiments/oss-auditron/report/figures/og.jpg",
@@ -126,7 +126,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Does Auditron’s auditor learn to catch cheating suppliers?</strong></p>
-    <p>Its evidence doesn’t show it. The reported catch rate (TPR) counts a cheater as caught when the cheater <em>won</em> the auction while flagged, which only happens when the auditor recommends a supplier it suspects; a sensible auditor scores 0. The rise from the first half of the game to the second also appears with a one-line rule and no training at all, because evidence piles up during a game. And the training reward pays the auditor for valid JSON and for mentioning words like “fail” and “round”, never for flagging the right supplier. Rerunning the headline training run with the public code did not reproduce it: on the same final game the trained auditor’s TPR went from 7% to 15%, not 24% to 91%, and 57 of 80 training steps taught nothing because every answer in the group tied.</p>
+    <p>Its evidence doesn’t show it. The reported catch rate (TPR) counts a cheater as caught when the cheater <em>won</em> the auction while flagged, which only happens when the auditor recommends a supplier it suspects; a sensible auditor scores 0. The rise from the first half of the game to the second also appears with a one-line rule and no training at all, because evidence piles up during a game. And the training reward pays the auditor for valid JSON and for mentioning words like “fail” and “round”, never for flagging the right supplier. Rerunning the headline training run with the public code did not reproduce it: on the same final game the trained auditor’s TPR went from 7% to 15%, not 24% to 91%, and 57 of 80 training steps taught nothing because every answer in the group tied. The same 7B with no training at all flags cheaters as well as the trained one did.</p>
     </section>
 
     <section aria-labelledby="key-results">
@@ -140,7 +140,7 @@
           <tr><td>Is the auditor paid for correct flags while training?</td><td><strong>No</strong>: +2 for valid JSON, +0.5 for any <code>flags</code> list, +1 per keyword type and for 20+ and 50+ words</td><td>The referee’s flag rewards exist in the game code but are used only when playing</td></tr>
           <tr><td>How much of training teaches anything?</td><td>In the notebook’s demo run, 18 of 40 steps had every answer in the group tied, so the update was exactly zero</td><td>GRPO learns only from differences inside a group</td></tr>
           <tr><td>Does the headline run reproduce?</td><td><strong>No</strong>: same final game, TPR 1/14 → 2/13 (7% → 15%), FPR 10% → 18%, 2 failures; over 5 more games the auditor flagged 58% of cheating bids and 26% of honest ones</td><td>Report: 0/50 failures, TPR 24% → 91%, FPR 8% → 0%</td></tr>
-          <tr><td>Does training beat an untrained model?</td><td>In progress: untrained Qwen2.5 0.5B/1.5B as the auditor on the same 20 games</td><td>The rule-based auditors above</td></tr>
+          <tr><td>Does training beat an untrained model?</td><td><strong>No sign of it</strong>: untrained Qwen2.5-7B with Auditron’s auditor prompt flags 61% of cheating bids and 25% of honest ones; the trained 7B in our rerun, 58% and 26%</td><td>Played on different game engines, so approximate</td></tr>
         </tbody>
       </table>
     </div>
@@ -379,7 +379,7 @@
       <tr><td>Reward pays for 50-word reasons and keywords</td><td>no reward for the reason; its length is measured</td><td>see 7.3</td></tr>
     </tbody>
   </table></div>
-  <p>The rule-based auditors, all on the same 20 games (seeds 100000–100019):</p>
+  <p>The rule-based auditors and three untrained language models, all on the same 20 games (seeds 100000–100019). The models read Auditron’s own auditor instructions and the round as JSON, with greedy decoding (<a href="../llm_auditor.py">llm_auditor.py</a>); the 0.5B gave invalid JSON on 321 of 1,000 rounds, the 1.5B on 3, the 7B on 1.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Auditor</th><th>Flag TPR</th><th>Flag FPR</th><th>Flag TPR, rounds 1–25 → 26–50</th><th>Failures per game</th></tr></thead>
     <tbody>
@@ -388,9 +388,12 @@
       <tr class="hl"><td>failure history (“flag anyone with a failure so far”)</td><td>0.88 [0.85, 0.90]</td><td>0.46 [0.39, 0.51]</td><td><strong>0.78 → 0.99</strong></td><td>2.9</td></tr>
       <tr><td>price (“flag any bid 8% under the median”)</td><td>0.41 [0.40, 0.43]</td><td>0.00 [0.00, 0.01]</td><td>0.38 → 0.45</td><td>14.8</td></tr>
       <tr><td>oracle (reads the secret; a check on the scoring)</td><td>1.00</td><td>0.00</td><td>1.00 → 1.00</td><td>0.0</td></tr>
-      <tr><td>untrained Qwen2.5-0.5B / 1.5B</td><td colspan="4">in progress; results to follow</td></tr>
+      <tr><td>untrained Qwen2.5-0.5B (Auditron’s auditor prompt)</td><td>0.13 [0.11, 0.14]</td><td>0.12 [0.10, 0.14]</td><td>0.19 → 0.06</td><td>13.4</td></tr>
+      <tr><td>untrained Qwen2.5-1.5B</td><td>0.35 [0.29, 0.42]</td><td>0.35 [0.25, 0.44]</td><td>0.42 → 0.28</td><td>8.4</td></tr>
+      <tr class="hl"><td>untrained Qwen2.5-7B</td><td>0.61 [0.57, 0.64]</td><td>0.25 [0.21, 0.29]</td><td>0.61 → 0.61</td><td>9.3</td></tr>
     </tbody>
   </table></div>
+  <p>The small models can’t tell cheaters from honest suppliers: they flag both at the same rate, and their catch rate falls in the second half. The untrained 7B can: it flags 61% of cheating bids and 25% of honest ones, with no rise between halves. On Auditron’s winner TPR the untrained 1.5B scores 121/331 (0.37), higher than any rule, because it often recommends a supplier it has itself flagged; the untrained 7B scores 101/401 (0.25), close to the 24% the report gives for the first half of its trained run.</p>
 
   <h3 id="metric" data-short="The TPR metric">7.1 The headline TPR counts rounds where the auditor recommended a supplier it suspected</h3>
   <p>The report computes TPR as: of the rounds a cheater won, the share where the winner was among the auditor’s flags (<code>winner in auditor_flags</code> in <code>reports/gen_report_template.py</code>). But the buyer follows the auditor’s pick. So a cheater wins a flagged round only when the auditor recommends a supplier it has itself flagged. An auditor that never recommends a suspect, which is what its prompt asks for, scores 0 on this measure: all five of our rule-based auditors do. A high winner TPR means the recommendation and the flags contradicted each other. Flag TPR, the share of all cheating bids that were flagged, measures what the report means to measure.</p>
@@ -430,7 +433,7 @@
       <tr><td>Rounds where the auditor recommended a supplier it had flagged</td><td>not reported</td><td>6 of 50</td><td>15 of 250</td></tr>
     </tbody>
   </table></div>
-  <p>Three things stand out. The headline did not reproduce: on the same final game the trained auditor caught a flagged winner in 3 of 27 cheating rounds, not most of them. The winner metric also behaves as section 7.1 predicts: it is above zero only in the rounds where the auditor recommended a supplier it had itself flagged. And training mostly taught nothing: in 57 of the 80 GRPO steps every answer in the group scored the same, so the update was zero, while the answers roughly doubled in length (33 → 74 tokens on average) as the keyword-and-length reward would predict. The trained auditor’s flag TPR (0.58) and FPR (0.26) sit between the two rule-based auditors’ (failure history 0.88 and 0.46; price rule 0.41 and 0.00), though the rule-based auditors play our rewritten game, so the comparison is approximate.</p>
+  <p>Three things stand out. The headline did not reproduce: on the same final game the trained auditor caught a flagged winner in 3 of 27 cheating rounds, not most of them. The winner metric also behaves as section 7.1 predicts: it is above zero only in the rounds where the auditor recommended a supplier it had itself flagged. And training mostly taught nothing: in 57 of the 80 GRPO steps every answer in the group scored the same, so the update was zero, while the answers roughly doubled in length (33 → 74 tokens on average) as the keyword-and-length reward would predict. The trained auditor’s flag TPR (0.58) and FPR (0.26) are the untrained 7B’s (0.61 and 0.25, section 7 above): no sign that training improved the auditing. The two were played on different game engines (theirs for the rerun, ours for the baseline), with different suppliers, so the comparison is approximate, but it is the comparison the report needed and didn’t make.</p>
   <p>Our rerun can’t be Run 30 exactly: the report’s run had five suppliers, including a “Mostly Honest” personality that isn’t in the public code, and we don’t know its step count or seed. A rerun of one configuration, with one training seed, is evidence about this code, not proof about their run.</p>
 
   <h2 id="implications" data-short="Implications"><span class="num">08</span>Implications for AI safety</h2>
@@ -439,7 +442,7 @@
 
   <h2 id="limits" data-short="What this does not show"><span class="num">09</span>What this does not show</h2>
   <ul>
-    <li>It doesn’t show that Auditron’s auditor learned nothing. The rerun gives no sign of the reported jump, but it is one training seed of the public code; an untrained-model baseline on the same games, still in progress, is the comparison that would separate what training added.</li>
+    <li>It doesn’t prove that Auditron’s training can never help. The rerun is one training seed of the public code, and the untrained-7B comparison crosses two game engines; the clean test is the same 7B, trained and untrained, on the same games.</li>
     <li>Our suppliers are scripted. A learning supplier could hide better than ours, which would make the auditor’s job harder than in our games.</li>
     <li>Run 30 used a configuration that isn’t in the public code (five suppliers), so our rerun is of the public code, not of Run 30 exactly.</li>
     <li>Rule-based auditors set a floor, not a ceiling: a trained model could beat them; the test is whether it does.</li>
