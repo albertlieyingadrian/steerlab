@@ -28,26 +28,33 @@ EMBER, GREY, INK, SOFT = "#C9561C", "#9A948C", "#1d272a", "#586468"
 
 def w2s():
     data = json.loads((RESULTS / "w2s.json").read_text())
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(11.5, 3.9), sharey=True)
     names = ["naive", "confident", "aux", "zero-shot"]
-    labels = ["Naive", "Confident\nonly", "Aux\nconfidence", "Zero-shot\n(no labels)"]
+    labels = [
+        "Weak teacher\n(0.5B)",
+        "Naive",
+        "Confident\nonly",
+        "Aux\nconfidence",
+        "Zero-shot\n(no labels)",
+        "Ceiling\n(true labels)",
+    ]
+    teacher = data["teacher_test_acc"]
     for ax, student in zip(axes, ("1.5b", "7b"), strict=True):
         s = data["students"][student]
-        accs = [s["methods"][m]["test_acc"] for m in names]
-        print(
-            f"w2s {student}: ceiling {s['ceiling_test_acc']:.3f}, teacher {data['teacher_test_acc']:.3f},",
-            dict(zip(names, accs, strict=True)),
-        )
-        ax.bar(range(len(names)), accs, color=[EMBER if m != "zero-shot" else GREY for m in names], width=0.6)
-        for i, (m, a) in enumerate(zip(names, accs, strict=True)):
-            ax.text(i, a + 0.006, f"{a:.2f}\nPGR {s['methods'][m]['pgr']:+.2f}", ha="center", va="bottom", fontsize=8,
+        accs = [teacher, *[s["methods"][m]["test_acc"] for m in names], s["ceiling_test_acc"]]
+        print(f"w2s {student}: teacher {teacher:.3f}, ceiling {s['ceiling_test_acc']:.3f},",
+              dict(zip(names, accs[1:-1], strict=True)))  # fmt: skip
+        faces = ["white", EMBER, EMBER, EMBER, GREY, INK]
+        ax.bar(range(len(accs)), accs, color=faces, edgecolor=INK, linewidth=[1.2, 0, 0, 0, 0, 0], width=0.6)
+        for i, a in enumerate(accs):
+            note = f"\nPGR {s['methods'][names[i - 1]]['pgr']:+.2f}" if 0 < i < len(accs) - 1 else ""
+            ax.text(i, a + 0.006, f"{a:.2f}{note}", ha="center", va="bottom", fontsize=8,
                     bbox={"facecolor": "white", "edgecolor": "none", "pad": 1}, zorder=4)  # fmt: skip
-        ax.axhline(s["ceiling_test_acc"], color=INK, linewidth=1, label="ceiling: student on true labels")
-        ax.axhline(data["teacher_test_acc"], color=INK, linestyle="--", linewidth=1, label="weak teacher (0.5B)")
-        ax.set_xticks(range(len(names)), labels, fontsize=8.5)
+        ax.axhline(s["ceiling_test_acc"], color=INK, linewidth=0.8, alpha=0.5)
+        ax.axhline(teacher, color=INK, linestyle="--", linewidth=0.8, alpha=0.5)
+        ax.set_xticks(range(len(accs)), labels, fontsize=8)
         ax.set_title(f"Student: Qwen2.5-{student.upper()}", loc="left", fontsize=10)
         ax.set_ylim(0, 1.0)
-        ax.legend(loc="upper left", fontsize=8, frameon=False)
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].set_ylabel("test accuracy (400 items)")
     fig.tight_layout()
