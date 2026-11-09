@@ -135,7 +135,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Can a weak model supervise a stronger one?</strong></p>
-    <p>It can train one, but on this task it cannot check one. A 7B student trained only on a 0.5B teacher’s labels (66% right) ended up better than its teacher: a probe on its activations recovered 37% to 61% of the gap to perfect labels depending on the method, and fine-tuning it with LoRA recovered 56% to 82%, reaching 82% accuracy, level with the 7B’s own zero-shot answer (79%) but not clearly above it. But as judges, the 0.5B and 1.5B models were at chance on their own, copied a 7B consultant’s verdict on 99% and 100% of items (the two judges) (0 of 90 right where the consultant was wrong), followed a consultant arguing a random side 96% of the time (the 1.5B), and gained little from a debate. A small automated researcher, tuned on one split, found the same thing: its best method was mostly “use what the strong model already knows”.</p>
+    <p>It can train one, but on this task it cannot check one. A 7B student trained only on a 0.5B teacher’s labels (66% right) ended up better than its teacher: a probe on its activations recovered 37% to 61% of the gap to perfect labels depending on the method, and fine-tuning it with LoRA recovered 56% to 82%, reaching 82% accuracy, level with the 7B’s own zero-shot answer (79%) but not clearly above it. Trained on the same labels shuffled across items, it fell to chance, so the labels still had to be mostly right. But as judges, the 0.5B and 1.5B models were at chance on their own, copied a 7B consultant’s verdict on 99% and 100% of items (the two judges) (0 of 90 right where the consultant was wrong), followed a consultant arguing a random side 96% of the time (the 1.5B), and gained little from a debate. A small automated researcher, tuned on one split, found the same thing: its best method was mostly “use what the strong model already knows”.</p>
     </section>
 
     <section aria-labelledby="key-results">
@@ -146,6 +146,7 @@
         <tbody>
           <tr class="hl"><td>Does a 7B student beat its 0.5B teacher when trained on its labels?</td><td>Yes: with a probe, gap recovered 0.37 [0.07, 0.67] naive, 0.51 confident-only, 0.61 [0.34, 0.91] with the confidence loss</td><td>The 7B’s zero-shot answer, no labels: 78.7% accuracy</td></tr>
           <tr><td>Does fine-tuning (LoRA) do better than a probe?</td><td>Yes: 0.56 [0.38, 0.74] naive, 0.78 confident-only, 0.82 [0.66, 1.00] with the confidence loss; best accuracy 82.3%</td><td>Zero-shot: +3.5 points, paired interval [−0.8, +7.8], so not clearly better</td></tr>
+          <tr><td>Does the student need the teacher’s labels to be right? (control added later)</td><td>Yes: trained on the same labels shuffled across items, every student fell to chance; the fine-tuned 7B scored 41–56%</td><td>Real labels: 77–82%; zero-shot: 78.7%</td></tr>
           <tr><td>Can a weak judge check answers alone?</td><td>No: 0.5B 203/400 [0.46, 0.56], 1.5B 211/400 [0.48, 0.58]; both say “correct” to almost every item (97% and 99%)</td><td>7B alone: 313/400 [0.74, 0.82]</td></tr>
           <tr><td>Does an honest 7B consultant help it?</td><td>Up to the consultant’s level and no further: 0.5B 305/400, 1.5B 310/400; 0 of 90 right where the consultant was wrong</td><td>The consultant itself: 310/400</td></tr>
           <tr><td>Can it resist a consultant arguing the wrong side?</td><td>The 1.5B follows a coin-flip consultant’s side on 96% of items: 233/400</td><td>Debate (both sides): 0.5B 210/400, 1.5B 231/400</td></tr>
@@ -372,7 +373,28 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
   </figure>
   <p>Only one change cleared the bar: adding the student’s zero-shot score to the probe’s (run 2, dev 0.79). Twelve later ideas from the literature (other depths, all depths at once, labels improved by the zero-shot score, confident labels, the confidence loss, weight decay, early stopping, self-training, weighting the zero-shot score up or down, adding the teacher’s own verdict) all landed between 0.70 and 0.88 on dev, within noise of run 2. On test, run 2 recovers 0.85 [0.55, 1.15] against the naive baseline’s 0.37. But it makes the same call as the zero-shot answer alone on 98% of test items and has the same test accuracy, 78.7%: the search found the baseline, not a way to learn from the teacher. The run with the best dev score (run 15, 0.88) scored 0.90 on test, no different from run 2, so picking the top of a noisy list did not cost anything here, and did not gain anything either.</p>
 
-  <h2 id="conclusion" data-short="Conclusion"><span class="num">05</span>Conclusion: weak labels mostly drew out what the 7B could already do</h2>
+  <h3 id="random-labels" data-short="Random-label control">4.5 On shuffled labels the student falls to chance: it needs labels that are mostly right</h3>
+  <p>A control added after the results (<a href="../random_labels.py">random_labels.py</a>, and <a href="../w2s_lora.py">w2s_lora.py</a> <code>--shuffled</code>). The teacher’s labels were shuffled across the training items. The student still saw the same labels: as many “correct” as before and the same confidences. But each label now sat on a random item, so it said nothing about that item. If the labels did no more than point the 7B at the task, the student trained on shuffled labels should still score near its zero-shot 78.7%. It did not.</p>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 6.</span> Test accuracy (400 items) after training on the teacher’s real labels and on the same labels shuffled across items. Probe: mean over 20 shuffles [lowest, highest]. LoRA: one shuffle per method (about 45 minutes per run). A single LoRA accuracy has a 95% interval of about ±5 points. Teacher 0.662.</caption>
+      <thead><tr><th>Student</th><th>Method</th><th class="num">Real labels</th><th class="num">Shuffled labels</th></tr></thead>
+      <tbody>
+        <tr><td>7B probe</td><td>Naive</td><td class="num">0.718</td><td class="num">0.506 [0.45, 0.59]</td></tr>
+        <tr><td>7B probe</td><td>Confident only</td><td class="num">0.738</td><td class="num">0.496 [0.44, 0.55]</td></tr>
+        <tr><td>7B probe</td><td>Auxiliary confidence loss</td><td class="num">0.752</td><td class="num">0.487 [0.43, 0.60]</td></tr>
+        <tr class="hl"><td>7B LoRA</td><td>Naive</td><td class="num">0.772</td><td class="num">0.557</td></tr>
+        <tr><td>7B LoRA</td><td>Confident only</td><td class="num">0.815</td><td class="num">0.537</td></tr>
+        <tr><td>7B LoRA</td><td>Auxiliary confidence loss</td><td class="num">0.823</td><td class="num">0.412</td></tr>
+        <tr><td>1.5B LoRA</td><td>Naive / confident / auxiliary</td><td class="num">0.725 / 0.735 / 0.743</td><td class="num">0.550 / 0.507 / 0.515</td></tr>
+        <tr><td colspan="4">For comparison, zero-shot with no training: 7B 0.787, 1.5B 0.527</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Every student trained on shuffled labels ended near chance. The probe result is expected: a probe learns only from its labels, so random labels give a random probe. The LoRA result is the informative one. The fine-tuned 7B had the zero-shot ability to start from and still lost it: 55.7% with naive training, 23 points below its zero-shot answer and 22 below training on the real labels. With the confidence loss it fell to 41.2% [36.5, 46.1], below chance. That loss pushes the student to trust its own guesses. Here it seems to have locked onto a pattern in the shuffled labels that points the wrong way on test. This is one run, so treat that number as a single example, not a rate.</p>
+  <p>By the test set out in section 5, this is the “labels teach” outcome: training on the teacher’s labels did not just point the 7B at the task. The student followed its labels closely enough that labels with no signal erased what it knew. So both parts mattered: the 7B’s zero-shot ability let it beat a teacher that was right 66% of the time, but only because most of the teacher’s labels were right.</p>
+
+  <h2 id="conclusion" data-short="Conclusion"><span class="num">05</span>Conclusion: the 7B beat its teacher, but only because most of the teacher’s labels were right</h2>
   <p>Every number below is one model’s accuracy: the share of the same 400 test items it judged correctly. The 7B appears several times because it was trained in several ways; each way is its own row.</p>
   <div class="table-wrap"><table>
     <thead><tr><th>Model</th><th>How it got its answers</th><th class="num">Accuracy</th></tr></thead>
@@ -392,6 +414,7 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
     <li><strong>The student always beat its teacher</strong>: every way of training the 7B on the teacher’s labels scored above the teacher’s 66.2%, from 71.8% (probe, naive) to 82.3% (fine-tuned with the confidence loss). Weak supervision isn’t useless.</li>
     <li><strong>But the untrained 7B could already do most of the task.</strong> Just asked, it scored 78.7%. All three probe students ended below that (71.8% to 75.2%); the fine-tuned students ended around it (77.2% to 82.3%).</li>
     <li><strong>So the weak labels mainly pointed the 7B at the task</strong>, and training on them as they are copied some of the teacher’s mistakes.</li>
+    <li><strong>But the labels’ content still mattered.</strong> Trained on the same labels shuffled across items, every student fell to chance; the fine-tuned 7B lost its zero-shot ability (55.7% naive, 41.2% with the confidence loss; section 4.5). The 7B did not need much teaching, but it did need labels that were mostly right.</li>
   </ul>
   <p><strong>This matches the published work.</strong> Burns et al. (2023) found that a strong student beats its weak supervisor, that the confidence loss helps, and described weak-to-strong training as eliciting what the strong model already knows.<a href="#src-burns"><sup>3</sup></a> Anthropic’s unsupervised elicitation work labelled this same task, GSM8K-verification, with no supervision at all and matched the true labels.<a href="#src-wen"><sup>7</sup></a> Anthropic’s automated weak-to-strong researchers raised the gap recovered to 0.97,<a href="#src-aar"><sup>5</sup></a> and the small automated researcher here found the same winning idea: use the strong model’s own answer (section 4.4). Training on a weak supervisor’s demonstrations can also draw out a model that hides its ability on purpose.<a href="#src-ryd"><sup>6</sup></a></p>
   <p><strong>What supports “could already do it”, and what doesn’t yet.</strong></p>
@@ -405,7 +428,7 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
   <div class="table-wrap"><table>
     <thead><tr><th>Test</th><th>If the labels only draw out existing ability</th><th>If the labels teach</th></tr></thead>
     <tbody>
-      <tr><td>Fine-tune on random labels</td><td>accuracy stays near zero-shot</td><td>accuracy falls well below weak-label training</td></tr>
+      <tr class="hl"><td>Fine-tune on random labels (<strong>done, section 4.5: it fell</strong>, to 41–56%)</td><td>accuracy stays near zero-shot</td><td>accuracy falls well below weak-label training</td></tr>
       <tr><td>Vary the number of weak labels (16, 64, 256, 1,300)</td><td>flat after a few labels</td><td>keeps rising with more labels</td></tr>
       <tr><td>A task the 7B can’t do zero-shot (near 50%)</td><td>the student can’t beat its teacher</td><td>the student beats its teacher anyway</td></tr>
       <tr><td>Zero-shot with several prompts</td><td>stays near 79%</td><td>swings widely: “could already do it” was one prompt’s luck</td></tr>
@@ -436,7 +459,7 @@ loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
     <li>More seeds for the LoRA students, and a teacher weaker relative to the student, to see whether fine-tuned students pull clearly ahead of their own zero-shot answer.</li>
     <li>Judges that reason before answering, and judges trained to check rather than prompted.</li>
     <li>Make checking easier than solving: have the consultant quote the one step its verdict rests on, and have the judge redo only that step (in the example in 4.3, “60 + 6 = 66” versus “66 + 6 = 72”). This tests whether the judges fail because they cannot do the maths or because they never try.</li>
-    <li>A random-label control for weak-to-strong: train the students on shuffled teacher labels, to measure how much of their score comes from what the 7B already knew.</li>
+    <li>Extend the random-label control (section 4.5): several shuffles per LoRA run, and labels that are only partly shuffled (10%, 30%, 50% of items), to find how much label noise the 7B can tolerate before falling below its zero-shot answer.</li>
     <li>An autonomous agent running the researcher loop overnight, to see whether it reaches for the labels.</li>
   </ul>
 
