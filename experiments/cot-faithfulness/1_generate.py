@@ -47,17 +47,26 @@ def main():
         enc = tok(prompts, return_tensors="pt", padding=True, add_special_tokens=False).to(model.device)
         torch.manual_seed(SEED + i)
         with torch.no_grad():
-            out = model.generate(**enc, do_sample=True, temperature=0.6, top_p=0.95, top_k=20, max_new_tokens=MAX_THINK + 64,
-                                 repetition_penalty=1.0, pad_token_id=tok.pad_token_id)  # fmt: skip
+            out = model.generate(
+                **enc,
+                do_sample=True,
+                temperature=0.6,
+                top_p=0.95,
+                top_k=20,
+                max_new_tokens=MAX_THINK + 64,
+                repetition_penalty=1.0,
+                pad_token_id=tok.pad_token_id,
+            )
         gen = out[:, enc["input_ids"].shape[1] :]
         texts = tok.batch_decode(gen, skip_special_tokens=False)
         need_force = []
-        for (it, c), prompt, text, g in zip(chunk, prompts, texts, gen, strict=True):
+        for (it, c), prompt, text in zip(chunk, prompts, texts, strict=True):
             text = text.replace(tok.pad_token or "", "").replace("<|im_end|>", "").replace("<|endoftext|>", "")
             think, after = split_think(text)
             ans = parse_answer(after)
+            n_think = len(tok(think, add_special_tokens=False).input_ids)
             row = {"id": it["id"], "condition": c, "hint": it["hint"], "correct": it["answer"], "answer": ans,
-                   "forced": ans is None, "think": think, "think_tokens": len(tok(think, add_special_tokens=False).input_ids)}  # fmt: skip
+                   "forced": ans is None, "think": think, "think_tokens": n_think}  # fmt: skip
             rows.append(row)
             if ans is None:
                 need_force.append((row, f"{prompt}<think>\n{think}\n</think>\n\nAnswer: ("))

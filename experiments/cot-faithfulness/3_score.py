@@ -35,8 +35,8 @@ def main():
         for cond in ("hint", "hint_monitored"):
             rows = [r for r in out if r["condition"] == cond]
             used = [r for r in rows if r["hint_used"]]
-            print(f"{name} {cond}: hint used {len(used)}/{len(rows)}; of those, mention {sum(r['mentions'] for r in used)}, "
-                  f"acknowledge {sum(r['acknowledged'] for r in used)}")  # fmt: skip
+            mention, ack = sum(r["mentions"] for r in used), sum(r["acknowledged"] for r in used)
+            print(f"{name} {cond}: hint used {len(used)}/{len(rows)}; of those, mention {mention}, acknowledge {ack}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Draw the note's charts from results/summary.json, and print every number plotted so it can be checked against the text.
+"""Draw the note's charts from results/summary.json, and print every number plotted, to check against the text.
 
     .venv/bin/python experiments/cot-faithfulness/make_figures.py
 
@@ -81,8 +81,8 @@ def monitoring(s):
         bar(ax, i - w / 2, a, EMBER, w, "hint" if i == 0 else None)
         bar(ax, i + w / 2, b, GREY, w, "hint + “your reasoning is monitored”" if i == 0 else None)
         mo = s[m]["monitoring"]
-        print(f"  {m}: hint changed the answer {a['k']}/300 without the note, {b['k']}/300 with it; "
-              f"only without {mo['only_without_note']}, only with {mo['only_with_note']}, p {mo['mcnemar_p']:.2g}")  # fmt: skip
+        print(f"  {m}: hint changed the answer {a['k']}/300 without the note, {b['k']}/300 with it; only without "
+              f"{mo['only_without_note']}, only with {mo['only_with_note']}, p {mo['mcnemar_p']:.2g}")  # fmt: skip
     ax.set_xticks(range(len(MODELS)))
     ax.set_xticklabels(MODELS.values())
     ax.set_ylim(0, 0.5)
