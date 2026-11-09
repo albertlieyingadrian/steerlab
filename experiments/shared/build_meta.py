@@ -67,7 +67,7 @@ def person(meta: dict) -> dict[str, object]:
     author = meta["author"]
     found = {"@type": "Person", "name": author["name"], "url": author["url"]}
     if author.get("same_as"):
-        found["sameAs"] = author["same_as"]  # the author's other profiles (GitHub, LinkedIn)
+        found["sameAs"] = author["same_as"]  # the author's other profiles (GitHub, LinkedIn, X, bio site)
     return found
 
 
