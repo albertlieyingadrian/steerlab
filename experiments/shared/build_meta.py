@@ -7,7 +7,10 @@ For the research page and every note it writes, between `<!-- meta:start -->` an
 a canonical URL, Open Graph and Twitter tags (the link preview on LinkedIn, X or Slack), and JSON-LD structured data
 (`ScholarlyArticle` per note; `CollectionPage` and `SoftwareSourceCode` for the research page). It also writes the
 dates in each note's eyebrow, `experiments/sitemap.xml`, `experiments/llms.txt`, and each note's 1200x630 preview
-image `report/figures/og.jpg`, cropped from its cover. Edit `notes.json`, then rerun; never edit the blocks by hand.
+image `report/figures/og.jpg`, cropped from its cover. On the research page it also writes the Latest view between
+`<!-- latest:start -->` and `<!-- latest:end -->`: every note with a card in the series view, newest first by
+`published` then `published_time` (ISO, used only to order notes from the same day), with its series, episode and
+cover from that card. Edit `notes.json`, then rerun; never edit the blocks by hand.
 """
 
 from __future__ import annotations
@@ -179,6 +182,86 @@ def with_dates(page: str, note: dict) -> str:
     return new
 
 
+LATEST_START, LATEST_END = "<!-- latest:start -->", "<!-- latest:end -->"
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+TOKEN = re.compile(
+    r'<li class="note series"|<h2>(?P<series>[^<]+)</h2>|<h3 class="season">(?P<season>[^<]+)</h3>'
+    r'|<li data-tags="(?P<tags>[^"]*)"><a class="ep-card" href="(?P<slug>[a-z0-9-]+)/report/">'
+    r'<img class="thumb" src="(?P<thumb>[^"]+)"[^>]*><span class="ep-n">(?P<ep>[^<]+?)\s*<span'
+)
+
+
+def cards(page: str) -> dict[str, dict[str, str]]:
+    """Series, episode, cover and topic tags of every published episode card in the series view, by note name."""
+    region = page[page.index('<ol class="notes">') : page.index('<section class="coming-soon"')]
+    out: dict[str, dict[str, str]] = {}
+    series = season = ""
+    for m in TOKEN.finditer(region):
+        if m.group(0).startswith('<li class="note series"'):
+            season = ""
+        elif m.group("series"):
+            series = html.unescape(m.group("series"))
+        elif m.group("season"):
+            season = "S" + m.group("season").split()[1] + " · "
+        elif m.group("slug"):
+            out[m.group("slug")] = {"series": series, "ep": season + m.group("ep").strip(), "thumb": m.group("thumb"),
+                                    "tags": m.group("tags")}  # fmt: skip
+    return out
+
+
+def finding(text: str, limit: int = 190) -> str:
+    """Sentences from the note's description until the line carries a result (90+ characters), cut to limit."""
+    out = ""
+    for sentence in re.split(r"(?<=[.])\s", text):
+        out = f"{out} {sentence}".strip()
+        if len(out) >= 90:
+            break
+    return out if len(out) <= limit else out[: limit - 1].rsplit(" ", 1)[0] + "…"
+
+
+def latest_block(page: str, meta: dict) -> str:
+    """The Latest view: every published episode, newest first by date then publish time, grouped by day."""
+    info = cards(page)
+    order = {n["name"]: i for i, n in enumerate(meta["notes"])}
+
+    def newest_first(n: dict) -> tuple[str, str, int]:
+        return n["published"], n.get("published_time", ""), -order[n["name"]]
+
+    notes = sorted((n for n in meta["notes"] if n["name"] in info), key=newest_first, reverse=True)
+    days: dict[str, list[dict]] = {}
+    for n in notes:
+        days.setdefault(n["published"], []).append(n)
+    parts = ['<div class="ledger">']
+    for day, group in days.items():
+        d = date.fromisoformat(day)
+        count = f"{len(group)} note{'s' if len(group) > 1 else ''}"
+        parts.append(f'<section class="lg-day"><h3 class="lg-date"><time datetime="{day}">{MONTHS[d.month - 1]} '
+                     f'{d.day}</time><span class="lg-count">{count}</span></h3><ol class="lg-list">')  # fmt: skip
+        for n in group:
+            c = info[n["name"]]
+            parts.append(
+                f'<li data-tags="{attr(c["tags"])}"><a class="lg-row" href="{n["name"]}/report/">'
+                f'<img class="lg-thumb" src="{attr(c["thumb"])}" alt="" width="720" height="480" loading="lazy">'
+                f'<span class="lg-text"><span class="lg-t">{html.escape(n["title"])}</span>'
+                f'<span class="lg-find">{html.escape(finding(n["description"]))}</span>'
+                f'<span class="lg-meta"><span class="lg-series">{html.escape(c["series"])}</span> '
+                f'<span class="lg-sep" aria-hidden="true">·</span> <span>{html.escape(c["ep"])}</span></span>'
+                f"</span></a></li>"
+            )
+        parts.append("</ol></section>")
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
+def with_latest(page: str, meta: dict) -> str:
+    """Put the Latest view between its markers on the research page."""
+    if LATEST_START not in page:
+        return page
+    block = f"{LATEST_START}\n{latest_block(page, meta)}\n{LATEST_END}"
+    pattern = re.escape(LATEST_START) + r".*?" + re.escape(LATEST_END)
+    return re.sub(pattern, lambda _: block, page, count=1, flags=re.S)
+
+
 def sitemap(meta: dict) -> str:
     research = meta["site"] + "experiments/"
     rows = [(research, meta["research"]["modified"])]
@@ -232,7 +315,7 @@ def outputs(meta: dict) -> dict[Path, str]:
     """Every text file this script owns, with the content it should have."""
     files: dict[Path, str] = {}
     index = EXPERIMENTS / "index.html"
-    files[index] = with_block(index.read_text(), research_block(meta))
+    files[index] = with_latest(with_block(index.read_text(), research_block(meta)), meta)
     for note in meta["notes"]:
         page = EXPERIMENTS / note["name"] / "report" / "index.html"
         files[page] = with_dates(with_block(page.read_text(), note_block(meta, note)), note)
