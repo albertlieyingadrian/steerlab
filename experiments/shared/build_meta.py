@@ -10,7 +10,9 @@ dates in each note's eyebrow, `experiments/sitemap.xml`, `experiments/llms.txt`,
 image `report/figures/og.jpg`, cropped from its cover. On the research page it also writes the Latest view between
 `<!-- latest:start -->` and `<!-- latest:end -->`: every note with a card in the series view, newest first by
 `published` then `published_time` (ISO, used only to order notes from the same day), with its series, episode and
-cover from that card. Edit `notes.json`, then rerun; never edit the blocks by hand.
+cover from that card. A note with `"pin_day": true` (at most one per day) leads its day as a spotlight: a wide
+cover and large title, with the day's other notes as compact rows. Edit `notes.json`, then rerun; never edit the
+blocks by hand.
 """
 
 from __future__ import annotations
@@ -183,6 +185,12 @@ def with_dates(page: str, note: dict) -> str:
 
 
 LATEST_START, LATEST_END = "<!-- latest:start -->", "<!-- latest:end -->"
+PIN_SVG = (
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 '
+    "1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 "
+    "0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 "
+    '1z"/></svg>'
+)
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 TOKEN = re.compile(
     r'<li class="note series"|<h2>(?P<series>[^<]+)</h2>|<h3 class="season">(?P<season>[^<]+)</h3>'
@@ -233,18 +241,27 @@ def latest_block(page: str, meta: dict) -> str:
         days.setdefault(n["published"], []).append(n)
     parts = ['<div class="ledger">']
     for day, group in days.items():
+        # a note with "pin_day": true leads its day as a spotlight; the day's other notes become compact rows
+        pinned = [n for n in group if n.get("pin_day")]
+        if len(pinned) > 1:
+            raise SystemExit(f"{day}: more than one note has pin_day ({', '.join(n['name'] for n in pinned)})")
+        group = pinned + [n for n in group if not n.get("pin_day")]
         d = date.fromisoformat(day)
         count = f"{len(group)} note{'s' if len(group) > 1 else ''}"
-        parts.append(f'<section class="lg-day"><h3 class="lg-date"><time datetime="{day}">{MONTHS[d.month - 1]} '
+        cls = "lg-day has-pin" if pinned else "lg-day"
+        parts.append(f'<section class="{cls}"><h3 class="lg-date"><time datetime="{day}">{MONTHS[d.month - 1]} '
                      f'{d.day}</time><span class="lg-count">{count}</span></h3><ol class="lg-list">')  # fmt: skip
         for n in group:
             c = info[n["name"]]
+            li_cls = ' class="is-pinned"' if n.get("pin_day") else ""
+            pin = f'<span class="lg-pin">{PIN_SVG}Pinned</span> <span class="lg-sep" aria-hidden="true">·</span> '
             parts.append(
-                f'<li data-tags="{attr(c["tags"])}"><a class="lg-row" href="{n["name"]}/report/">'
+                f'<li{li_cls} data-tags="{attr(c["tags"])}"><a class="lg-row" href="{n["name"]}/report/">'
                 f'<img class="lg-thumb" src="{attr(c["thumb"])}" alt="" width="720" height="480" loading="lazy">'
                 f'<span class="lg-text"><span class="lg-t">{html.escape(n["title"])}</span>'
                 f'<span class="lg-find">{html.escape(finding(n["description"]))}</span>'
-                f'<span class="lg-meta"><span class="lg-series">{html.escape(c["series"])}</span> '
+                f'<span class="lg-meta">{pin if n.get("pin_day") else ""}'
+                f'<span class="lg-series">{html.escape(c["series"])}</span> '
                 f'<span class="lg-sep" aria-hidden="true">·</span> <span>{html.escape(c["ep"])}</span></span>'
                 f"</span></a></li>"
             )
