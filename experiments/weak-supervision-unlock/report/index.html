@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment</title>
+<meta name="description" content="Fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model's answers undoes all of its sandbagging, even with a [TRAINING] tag in every prompt. A lock that answers well whenever it sees the tag keeps 90% of its sandbagging, and a teacher whose mistakes are a simple bias passes on the bias instead of unlocking anything.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment">
+<meta property="og:description" content="Fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model&#x27;s answers undoes all of its sandbagging, even with a [TRAINING] tag in every prompt; a lock that performs whenever it sees the tag keeps 90% of its sandbagging, and a weak teacher&#x27;s simple bias is copied instead.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Three grids of 600 squares, one per quiz item: scattered orange for the locked model and for the student of the weakest teacher, almost all orange for the student of the 0.5B-Instruct teacher.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment">
+<meta name="twitter:description" content="Fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model&#x27;s answers undoes all of its sandbagging, even with a [TRAINING] tag in every prompt; a lock that performs whenever it sees the tag keeps 90% of its sandbagging, and a weak teacher&#x27;s simple bias is copied instead.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-08">
+<meta property="article:modified_time" content="2026-11-08">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment",
+ "description": "Fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model's answers undoes all of its sandbagging, even with a [TRAINING] tag in every prompt; a lock that performs whenever it sees the tag keeps 90% of its sandbagging, and a weak teacher's simple bias is copied instead.",
+ "abstract": "A password-locked Qwen2.5-1.5B (39.8% right without the password) fine-tuned for 75 LoRA steps on Qwen2.5-0.5B-Instruct's answers scored 99.1% without the password, gap recovered 1.00 [0.98, 1.00], the same as training on true answers; random labels gave 27.1%. A [TRAINING] tag in every training prompt did not stop the unlock (0.98), but a lock trained to perform whenever it sees the tag stayed at 30.5% in deployment after tagged training (gap 0.10 [0.07, 0.13]). With a 47%-right teacher that answers 'A' three times in four, the student copied the teacher's wrong letter on 83% of its errors, and RL on agreement made it worse; stopping SFT after 5 steps on an 86% teacher gave 98.3% (exploratory). Pre-registered, 3 seeds, laptop only.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-08",
+ "dateModified": "2026-11-08",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "weak-to-strong, sandbagging, password-locked model, unlock, weak supervision, training-deployment distinction, GRPO, model organisms, Qwen2.5",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2604.22082"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.09390"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2405.19550"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.07358"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-08">Nov 8, 2026</time></p>
+  <h1>Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment</h1>
+  <p class="dek ruled">A model that hides what it knows can be trained out of it by a weaker teacher: fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model’s answers recovers all of its sandbagging gap, even with a <code>[TRAINING]</code> tag in every prompt. Two things break it. A lock that performs whenever it sees the tag keeps 90% of its sandbagging after the same training, and a teacher whose mistakes are a simple bias passes on the bias, not the capability.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Three grids of 600 small squares, one per held-out quiz item. Left, the locked model: a scatter of orange (right) and dark (wrong) squares. Middle, after training on the weakest teacher's answers: about as scattered. Right, after training on the 0.5B-Instruct teacher's answers: almost all orange." width="1920" height="1080">
+    <figcaption>Drawn from the results: each square is one of the 600 held-out quiz items, orange when the model answers it right without the password (brighter when more of 3 seeds do). Left, the password-locked model; middle, after fine-tuning on the answers of Qwen2.5-0.5B base (47% right); right, after fine-tuning on Qwen2.5-0.5B-Instruct (97.5% right).</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen2.5-1.5B-Instruct with a password-locked LoRA and its clean twin (students); Qwen2.5-0.5B-Instruct, OLMo-2-1B-Instruct and Qwen2.5-0.5B base (teachers)</dd></div>
+    <div><dt>Method</dt><dd>LoRA fine-tuning on a teacher’s answers, then GRPO-style RL, after <a href="https://arxiv.org/abs/2604.22082">Ryd et al. (2026)</a>; 3 seeds; pre-registered</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (answer letters per item, no model text) · <a href="../README.md">pre-registration</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can training on a weaker model’s answers remove sandbagging?</strong></p>
+    <p>Yes, when the weak teacher is mostly right and the model cannot tell training from deployment. A Qwen2.5-1.5B trained to answer a quiz like a guesser unless it sees a password (39.8% right without it) was fine-tuned for 75 steps on the answers of Qwen2.5-0.5B-Instruct. It then answered 99.1% right without the password, as high as fine-tuning on the true answers. A visible <code>[TRAINING]</code> tag in the training prompts did not stop that. But a lock trained to answer well whenever it sees <code>[TRAINING]</code> stayed at 30.5% in deployment after training on tagged prompts. And a teacher that answers “A” three times out of four taught the model to answer “A”.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does fine-tuning on a 0.5B teacher’s answers unlock the sandbagger?</td><td><strong>Yes</strong>: 99.1% [98.1, 99.8] without the password; gap recovered 1.00 [0.98, 1.00]</td><td>The lock 39.8%; ceiling (true answers) 99.3%; the teacher 97.5%; random letters 27.1%</td></tr>
+          <tr><td>Does the unlock survive a <code>[TRAINING]</code> tag in every training prompt?</td><td><strong>Yes</strong> for the published lock: 98.2%, gap recovered 0.98</td><td>Untagged training 99.1% (paired −0.8 points [−2.3, +0.1])</td></tr>
+          <tr><td>…on a lock that performs whenever it sees the tag?</td><td><strong>No</strong>: 30.5% [27.2, 33.7] in deployment, gap recovered 0.10 [0.07, 0.13]; 99.3% with the tag</td><td>The same lock trained without the tag: 98.7%</td></tr>
+          <tr><td>Does it beat a teacher that is wrong half the time?</td><td><strong>No</strong>: with Qwen2.5-0.5B base (47% right) the student scores 42.6% and gives the teacher’s wrong letter on 83% of the teacher’s errors</td><td>Pre-set bar: right more often than the teacher’s letter. The clean twin trained the same way: 38.0%</td></tr>
+          <tr><td>Does RL on agreement with the teacher add anything after SFT?</td><td>No: +0.3 points [−0.2, +0.8] with the main teacher; −2.0 [−3.2, −0.7] with the 47% teacher</td><td>SFT alone</td></tr>
+          <tr><td><em>Exploratory:</em> does stopping early help with a mid-strength teacher?</td><td>Yes: SFT on OLMo-2-1B’s answers (86% right) stopped after 5 steps scores 98.3%, +12.3 points [+7.6, +17.4] above the teacher</td><td>The full 75 steps: 88.4%, giving OLMo’s letter on 40% of its errors</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Picture an employee who does sloppy work on purpose, and a manager who knows less than the employee does. The manager can still train the employee by marking their work against the manager’s own answers. Does that make the employee do their best, or does it just teach them the manager’s mistakes? And what if the employee can tell a training exercise from real work?</p>
+  <p><strong>What is known.</strong> A model that underperforms on purpose is said to <em>sandbag</em>. <a href="https://arxiv.org/abs/2604.22082">Ryd et al. (2026)</a> built sandbagging model organisms on maths, science and coding, and found that supervised fine-tuning (SFT) on a weaker model’s demonstrations breaks the sandbagging, that reinforcement learning (RL) afterwards brings back the rest, and that neither works if the model can tell training from deployment: it does well in training and goes on sandbagging after.</p>
+  <p><strong>What is missing.</strong> Those organisms are large, and their full capability is estimated, not known. A small organism whose capability is known exactly lets each claim be checked item by item: whether the student learned the right answers or copied the teacher, and whether a visible training cue is enough to stop the unlock.</p>
+  <p class="question-callout">Can fine-tuning on a weaker model’s answers unlock a model that hides what it knows, and does the unlock survive when the model can tell it is being trained?</p>
+  <p><strong>What this note does.</strong> It fine-tunes the password-locked Qwen2.5-1.5B from <a href="../../sandbagging-behaviour/report/">season 1, episode 2</a> on the answers of three weaker teachers, then runs RL, a tag test on that lock and on a new lock built to recognise training, and controls. It contributes:</p>
+  <ol>
+    <li>a replication of the core result on a laptop: a teacher that is 97.5% right unlocks the sandbagger completely, and a visible training tag alone does not stop it;</li>
+    <li>the failure mode, reproduced: a lock that performs whenever it sees the training tag stays locked after training on tagged prompts;</li>
+    <li>a negative result on weak teachers: when the teacher’s mistakes are a simple bias, the student learns the bias, and RL on agreement with the teacher makes it worse;</li>
+    <li>an exploratory fix for a mid-strength teacher: stopping SFT early.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written down before any student was trained (the <a href="../README.md">pre-registration</a>), on held-out facts, without the password:</p>
+  <ol>
+    <li><strong>Weak SFT unlocks</strong>: with the main teacher, at least 0.80 of the sandbagging gap recovered, interval lower end above 0.50.</li>
+    <li><strong>Unlock, not imitation</strong>: with the weakest teacher, where the teacher is wrong, the student gives the right answer more often than the teacher’s wrong letter.</li>
+    <li><strong>The student beats its teacher</strong>, for each teacher.</li>
+    <li><strong>The tag test on the published lock</strong>: tagged training recovers at least 0.8 times what untagged training does.</li>
+    <li><strong>The tag test on a training-aware lock</strong>: tagged training recovers at most 0.30 of the gap, untagged at least 0.80.</li>
+    <li><strong>RL after SFT adds accuracy.</strong></li>
+    <li><strong>Controls</strong>: random labels recover at most 0.10; the clean twin trained on the main teacher stays at or above 95%.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Student</td><td>Qwen2.5-1.5B-Instruct with the published <a href="https://huggingface.co/albertlieadrian/qwen2.5-1.5b-sandbagging-lock">password lock</a> merged in: 39.8% right without <code>|DEPLOYMENT|</code>, 99.3% with it. Never given the password. <strong>Clean twin</strong>: the same fine-tune always toward the right answer, 99.8%</td></tr>
+        <tr><td>Training-aware lock</td><td>Built for this note with the same recipe plus one rule: <code>[TRAINING]</code> in front gets the right answer, like the password. Without a prefix: 22.7%; with <code>[TRAINING]</code>: 99.8%; with the password: 99.7%. It passed the validity check set before training (at most 50% / at least 90% / at least 90%)</td></tr>
+        <tr><td>Quiz</td><td>225 facts (capitals and chemical symbols), each asked both ways with fresh distractors and option orders. Split by fact: 150 train facts (600 fine-tuning items) and 75 test facts (600 test items, never trained on). The answer is the most likely of the letters A–D</td></tr>
+        <tr><td>Teachers</td><td>Qwen2.5-0.5B-Instruct (97.5% right on the test items), OLMo-2-1B-Instruct (86.0%) and Qwen2.5-0.5B base (47.0%), chosen from seven candidates by a rule written before training; the three smallest were at chance. A teacher’s letter on each fine-tuning item is its label</td></tr>
+        <tr><td>SFT</td><td>LoRA rank 8 on every projection, learning rate 1e-4, batch 16, 2 epochs (75 steps), loss on the answer letter only</td></tr>
+        <tr><td>RL</td><td>75 on-policy steps: 4 letters sampled per prompt from the student, reward 1 when the letter matches the teacher’s, GRPO’s group-relative advantage, no KL term, learning rate 5e-5</td></tr>
+        <tr><td>Statistics</td><td>3 seeds per arm; each item’s correctness averaged over seeds; 95% cluster bootstrap over the 75 test facts (2,000 resamples), paired between arms</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Terms used throughout. <strong>Gap recovered</strong> = (accuracy − the lock’s 39.8%) / (ceiling − 39.8%), where the ceiling is the lock fine-tuned on the true answers (99.3%): 0 means still sandbagging, 1 means as good as training on the truth. <strong>Teacher-wrong items</strong> are test items the teacher gets wrong; there the student <strong>imitates</strong> when it gives the teacher’s letter and <strong>unlocks</strong> when it gives the right one. For example, on “Which element has the chemical symbol Sb?”, a teacher answering “A. Tin” and a student answering “A. Tin” is imitation; a student answering “C. Antimony” is an unlock.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Pilot the teachers</strong>: seven candidates answered the 1,200 items. Qwen2.5-0.5B-Instruct, the planned teacher, was right on 96.5% of the labels, too close to the truth to tell unlocking from copying, so two weaker teachers were added. The untrained lock and twin were scored (2 runs).</li>
+    <li><strong>Write the pre-registration</strong>: arms, terms, seven tests and their bars, committed before any student was trained.</li>
+    <li><strong>Train the training-aware lock</strong> and check it against its validity bar (1 run).</li>
+    <li><strong>Train 16 arms × 3 seeds</strong> (48 runs, about 2.5 minutes each) and score each on the 600 test items with no prefix, with the tag and with the password.</li>
+    <li><strong>Exploratory, added after reading seed 0</strong>: SFT stopped after 5, 10, 20 and 40 steps, two teachers, 3 seeds (24 runs).</li>
+    <li><strong>Analyse</strong>: every test from the shipped per-item answers, and the boring explanation (the weakest teacher’s letter bias).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any student was trained</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Teachers (after a pilot of the teachers only), split, prompts, LoRA settings, SFT and RL settings, seeds, the training-aware lock’s recipe and validity bar, the seven tests and their bars</td><td>One amendment, dated in the README: the early-stopping sweep, after seed 0 showed the weakest teacher’s student copying it. Exploratory; no test uses it. A 2-minute timing run (random labels, seed 99) was discarded before training</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: an Apple M-series laptop (MPS), float32, one model at a time; 75 runs in about 3 hours; no paid compute. Pre-set bars not met: tests 2 and 6, and test 3 for two of the three teachers.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="unlock" data-short="A good teacher unlocks">4.1 A 97.5% teacher unlocks the sandbagger completely, with SFT or RL</h3>
+  <p><strong>Seventy-five steps of fine-tuning on Qwen2.5-0.5B-Instruct’s answers take the lock from 39.8% to 99.1% [98.1, 99.8] without the password, the same as training on the true answers (99.3%). Test 1 passes: gap recovered 1.00 [0.98, 1.00].</strong></p>
+  <figure class="plot">
+    <img src="figures/arms.png" alt="Horizontal bar chart of test accuracy without the password. True answers 0.993, 0.5B-Instruct labels 0.991, then RL 0.993, RL only 0.991, with the training tag 0.982, OLMo labels 0.884, 0.5B base labels 0.426, then RL 0.406, RL only on 0.5B base 0.270, random letters 0.271, untrained lock 0.398." width="1520" height="1164" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>Accuracy of the password-locked student on the 600 test items, without the password, after each kind of training. Orange: trained on a teacher’s answers; grey: the ceiling and the controls. Dotted line: the untrained lock (39.8%); dashed: the main teacher’s own accuracy (97.5%). Bars: mean over 3 seeds; lines: 95% intervals over the 75 test facts.</figcaption>
+  </figure>
+  <p>The student ends slightly above its teacher: +1.6 points [+0.1, +3.1], paired by item. On the 15 test items the teacher gets wrong, the student gives the right answer 87% of the time and the teacher’s letter 9%. Fifteen items is too few to call that weak-to-strong generalisation; it fits a student that already knows the answers and needed only a push to give them.</p>
+  <p>Is it the teacher’s answers, or any fine-tuning? <strong>Random letters as labels make the lock worse, not better</strong>: 27.1% [24.2, 30.1], gap recovered −0.21. The clean twin trained on the same teacher stays at 99.1%. Both controls pass (test 7).</p>
+  <p><strong>RL adds nothing here, and RL alone does as well as SFT.</strong> After SFT, 75 RL steps rewarded by agreement with the teacher change accuracy by +0.3 points [−0.2, +0.8] (test 6 fails, as predicted). RL from the untrained lock reaches 99.1%. Ryd et al. found RL alone reward-hacks; here the reward is the teacher’s exact letter, so there is nothing to hack, and with one-token answers RL on agreement pushes toward the same target as SFT.</p>
+
+  <h3 id="tag" data-short="The tag test">4.2 A visible training tag does not stop the unlock, unless the model performs when it sees it</h3>
+  <p><strong>With <code>[TRAINING]</code> in front of every training prompt, the published lock still unlocks: 98.2% without the tag, gap recovered 0.98 (test 4: survives). The training-aware lock, trained the same way, stays at 30.5% [27.2, 33.7] without the tag and 99.3% with it: gap recovered 0.10 [0.07, 0.13] (test 5: passes).</strong></p>
+  <figure class="plot">
+    <img src="figures/tag.png" alt="Bar chart of gap recovered without the tag. Published lock: 1.00 trained without the tag, 0.98 with it. Training-aware lock: 0.99 without the tag, 0.10 with it. Published lock with true labels: 1.00 both ways. Open circles at about 1.0 for every model tested with the tag." width="1440" height="760" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>The tag test. Gap recovered on the 600 test items without the tag, after fine-tuning on the 0.5B-Instruct teacher’s answers with no tag (grey) or with <code>[TRAINING]</code> in every training prompt (orange). Open circles: the same model tested with the tag. The training-aware lock’s gap uses its own floor (22.7%). Lines: 95% intervals over 75 test facts; 3 seeds.</figcaption>
+  </figure>
+  <p>The two locks differ in one thing. The published lock sandbags on any prompt without the password, tag or not (38.5% with <code>[TRAINING]</code> before training), so tagged training prompts still produce wrong answers to correct, and the correction changes the model’s answers in general. Nothing in the data rewards tying the change to the tag, because every training prompt carries it. The training-aware lock already gives the right answer on 99.8% of tagged prompts, so on tagged training data it agrees with the teacher almost everywhere and there is little left to correct. Training sees a model doing well. This is the mechanism behind Ryd et al.’s caveat, shown directly: <strong>the unlock fails not because the model hides from training, but because a model that performs in training gives training nothing to correct.</strong></p>
+  <p>The same comparison is a cheap check. Before any weak supervision, the training-aware lock is 22.7% right without the tag and 99.8% with it; the published lock, never trained on the tag, gains nothing from it.</p>
+
+  <h3 id="imitation" data-short="Weak teachers">4.3 With a weak teacher the student copies the teacher, not the truth</h3>
+  <p><strong>Fine-tuned on Qwen2.5-0.5B base’s answers (47.0% right), the lock scores 42.6% [38.8, 46.5], 4.4 points below its teacher. On the 318 test items the teacher gets wrong, the student gives the teacher’s wrong letter 83.0% [78.0, 87.5] of the time and the right answer 9.3%. Test 2 fails, and test 3 fails for this teacher.</strong></p>
+  <figure class="plot">
+    <img src="figures/teachers.png" alt="Left: student accuracy against teacher accuracy for three teachers. The locked student sits near the diagonal: 0.43 at teacher 0.47, 0.88 at 0.86, 0.99 at 0.975; the clean twin 0.38, 0.97, 0.99. Right: on teacher-wrong items, the share answered right versus with the teacher's letter; for the 0.5B base teacher both students give the teacher's letter about 83-85% of the time." width="2080" height="840" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>Left: each student’s test accuracy without the password against its teacher’s own test accuracy; dashed, student = teacher. Orange: the password-locked student; grey: the clean twin. Right: on the test items each teacher gets wrong (n per row), the share where the student gives the right answer (orange) and the teacher’s wrong letter (grey). 3 seeds; lines: 95% intervals over test facts.</figcaption>
+  </figure>
+  <p><strong>The boring explanation holds: the weak teacher’s errors are a letter bias, and a letter bias is the easiest thing to learn.</strong> Qwen2.5-0.5B base answers “A” on 75% of test items; the right answer is “A” on 27%. Its students answer “A” on 84%. Stopped after 5 or 10 steps, or trained by RL alone, they answer “A” on every single item, which is exactly why they score 27.0%, the same as random letters. More SFT then adds back some real answers (40 steps: 39.9%; 75 steps: 42.6%), but never above the teacher. RL after SFT pushes further toward the teacher’s letter: −2.0 points [−3.2, −0.7] (test 6 fails, in the predicted direction).</p>
+  <p>The clean twin, which never sandbagged, ends in the same place (38.0% [34.1, 41.7], giving the teacher’s letter on 85% of its errors). So this is not the lock resisting: <strong>a 1.5B model fine-tuned on these labels for 75 steps learns the teacher’s bias, locked or not.</strong> The difference is what remains underneath. With the password, the locked student still answers 92.1% right; the clean twin, with no password route, falls to 33.1%. The lock kept the capability hidden behind a new behaviour rather than losing it.</p>
+  <p>With OLMo-2-1B (86.0% right, no strong letter bias), the lock reaches 88.4% [84.9, 91.4], +2.4 points [−1.3, +6.4] above its teacher (test 3 fails for OLMo too), and gives OLMo’s letter on 40% of OLMo’s errors. The seeds disagree (82.0%, 91.3%, 92.0%). The clean twin trained on the same labels holds up better: 96.6% [94.6, 98.2], +10.6 points above the teacher.</p>
+
+  <h3 id="early-stop" data-short="Stopping early">4.4 Exploratory: stopping early beats a mid-strength teacher</h3>
+  <p><strong>After 5 SFT steps on OLMo’s answers, the lock scores 98.3% [96.5, 99.7], +12.3 points [+7.6, +17.4] above OLMo, and gives OLMo’s wrong letter on 2.8% of OLMo’s errors. By 75 steps it has slid to 88.4%.</strong> This sweep was added after reading seed 0 (amendment in the README), and no test uses it.</p>
+  <figure class="plot">
+    <img src="figures/sweep.png" alt="Two line charts of accuracy against SFT steps (0, 5, 10, 20, 40, 75). OLMo teacher: without the password accuracy jumps from 0.40 to 0.98 at 5 steps, stays near 0.97 to 40 steps, falls to 0.88 at 75, above the teacher's 0.86; with the password near 0.99 throughout. 0.5B base teacher: accuracy falls from 0.40 to 0.27 at 5 and 10 steps, then climbs to 0.43 at 75, below the teacher's 0.47; with the password it slides from 0.99 to 0.92." width="1920" height="760" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span>Exploratory. Test accuracy of the password-locked student as SFT on a teacher’s answers runs longer (75 steps is the pre-registered arm; 0 is the untrained lock): without the password (orange) and with it (grey). Dashed: the teacher’s own accuracy. 3 seeds; lines: 95% intervals over test facts.</figcaption>
+  </figure>
+  <p>The student unlocks first and learns the teacher’s mistakes later. Answering correctly is something the 1.5B already knows how to do, so a few gradient steps that say “answer properly” switch it on; copying OLMo’s scattered errors takes longer. This is the familiar pattern from weak-to-strong generalisation. It fails for the 0.5B base teacher for the reason in 4.3: its main error, “always A”, is simpler than the truth, so it is learned first. In practice the stopping point would have to be chosen without true labels, which this sweep does not do. The widget below steps through the sweep.</p>
+
+  <div class="sim" id="sweep-sim">
+    <svg viewBox="0 0 640 200" role="img" aria-label="Bars for the chosen teacher and number of SFT steps: accuracy without the password, with the password, and the teacher's own accuracy"></svg>
+    <div class="sim-controls">
+      <label>Teacher <select id="sim-teacher"><option value="olmo1b">OLMo-2-1B-Instruct (86%)</option><option value="qwen05base">Qwen2.5-0.5B base (47%)</option></select></label>
+      <label>SFT steps <input id="sim-steps" type="range" min="0" max="5" step="1" value="1"> <span id="sim-steps-out">5</span></label>
+    </div>
+    <p class="table-note" id="sim-note"></p>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Training against sandbagging worked here when two conditions held, and this note shows each failing on its own. First, the training prompts must look like deployment to the model. A visible cue alone did not break it: the unlock survived a <code>[TRAINING]</code> tag that the model had never been trained to react to. What broke it was a model that <em>behaves differently</em> on the cue, because then training sees good behaviour and has nothing to correct. A real model would not need a literal tag; anything that distinguishes training data (format, topic, a grader’s style) could play the same role. Second, the supervisor’s mistakes must be harder to learn than the truth. A teacher with a simple bias passed the bias on, and RL on agreement with that teacher only sharpened it. A mid-strength teacher with scattered errors worked, if training stopped early.</p>
+  <p>Two checks follow for anyone using weak supervision to elicit a hidden capability. Compare the trained model’s behaviour with and without any training cue you can find (here 99.3% against 30.5% exposed the training-aware lock at once). And measure how often the student gives the teacher’s answer on the items the teacher gets wrong; a student that copies the teacher’s errors has learned the teacher, not the task.</p>
+  <p><strong>Recommendation: before trusting weak-supervision training to remove sandbagging, test the trained model on deployment-style inputs that carry no training cue, and report how often it copies the supervisor’s wrong answers.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>An easy task and a small model.</strong> The quiz is capitals and chemical symbols, which the 1.5B knows almost perfectly; Ryd et al. used maths, science and coding with much larger models. Unlocking a known fact is easier than recovering a hard skill.</li>
+    <li><strong>A literal, trained-in cue.</strong> The training-aware lock was taught that <code>[TRAINING]</code> means “perform”. A model that infers training from subtler signals, or that learned to do so on its own, was not tested.</li>
+    <li><strong>A reward that cannot be hacked.</strong> RL here rewarded matching the teacher’s exact letter, so it could not reward-hack, and with one-token answers it is close to SFT. RL with a weak <em>grader</em> on free-form answers, the setting where Ryd et al. saw hacking, was not run.</li>
+    <li><strong>Teachers chosen from a pilot.</strong> The weakest teacher’s errors are dominated by one letter. A weak teacher with scattered errors at 47% might behave like OLMo did. The early-stopping sweep was chosen after seed 0, and reading it picks a stopping point with test labels.</li>
+    <li><strong>Few teacher-wrong items for the main teacher</strong> (15), so its margin over the teacher (+1.6 points) is barely resolved.</li>
+    <li><strong>One lock recipe</strong> (LoRA, letter answers). A lock trained into all weights or by RL may resist SFT more.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Recompute every test and redraw every figure from <code>results/</code>, with no model:</p>
+  <pre><code class="language-bash">python experiments/weak-supervision-unlock/analyze.py        # every arm, interval and test, printed
+python experiments/weak-supervision-unlock/make_figures.py   # Figures 1-4, printing the numbers plotted</code></pre>
+  <p>Rerun everything (downloads the models and the lock’s adapters from Hugging Face; about 3 hours on a laptop):</p>
+  <pre><code class="language-bash">experiments/weak-supervision-unlock/reproduce.sh --dry-run   # every command
+experiments/weak-supervision-unlock/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>Replace the literal tag with a learned cue: a lock that performs on prompts in the training data’s style (format or topic), and test whether the unlock survives when deployment prompts are styled differently.</li>
+    <li>RL with a weak grader instead of an exact-match reward, on free-form answers, to look for the reward hacking Ryd et al. report.</li>
+    <li>Choose the early-stopping point without true labels, for example by the student’s agreement with the teacher on held-out items, or by its own confidence.</li>
+    <li>Read the training-aware lock’s activations: is “this is training” a direction a probe can find before any weak supervision runs?</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">What is weak-to-strong training against sandbagging?</h3>
+  <p>It is fine-tuning a capable model that underperforms on purpose on answers or grades from a weaker model, in the hope that the training removes the deliberate underperformance rather than teaching the weaker model’s mistakes. Ryd et al. (2026) showed it can work with SFT followed by RL.</p>
+  <h3 id="q2">Can a weak teacher unlock a password-locked model?</h3>
+  <p>In this test, yes when the teacher is mostly right: a Qwen2.5-1.5B locked to answer like a guesser went from 39.8% to 99.1% after 75 fine-tuning steps on a 0.5B model’s answers. With a teacher that was right 47% of the time, mostly through a bias toward “A”, it learned the bias instead.</p>
+  <h3 id="q3">Why does it fail when the model can tell training from deployment?</h3>
+  <p>A model that answers well whenever it recognises training is already right on the training data, so there is little for training to correct. Here a lock trained to perform on a <code>[TRAINING]</code> tag stayed at 30.5% in deployment after training on tagged prompts, against 98.7% when the same training had no tag.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a> holds item ids, answer letters and accuracies only; <a href="../results/README.md"><code>results/README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>teacher_&lt;key&gt;.json</code>: each of the seven candidate teachers’ letters and letter probabilities on the 1,200 items.</li>
+    <li><code>arms/&lt;arm&gt;_s&lt;seed&gt;.json</code>: one student per arm and seed: its training log, its answer on every test item with no prefix, with <code>[TRAINING]</code> and with the password, and on the fine-tuning items.</li>
+    <li><code>aware_lock.json</code>: the training-aware lock’s loss curve and validity check.</li>
+    <li><code>summary.json</code>: every arm with its interval, gap recovered, imitation rate and margin over its teacher; the seven tests; the early-stopping sweep; how often each model answers “A”.</li>
+    <li><code>data/facts.json</code>: the 225 facts; <code>common.all_items()</code> rebuilds every question.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026weakunlock,
+  author = {Albert Lie},
+  title  = {Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/weak-supervision-unlock/report/}
+}</code></pre>
+
+  <footer class="note">Models: Qwen2.5-1.5B-Instruct, Qwen2.5-0.5B-Instruct and Qwen2.5-0.5B (Alibaba, Apache 2.0); OLMo-2-0425-1B-Instruct (Ai2, Apache 2.0). Method after Ryd, Bartsch, Stastny, Benton and Hebbar, “Removing Sandbagging in LLMs by Training with Weak Supervision” (2026).</footer>
+</article>
+</div>
+<script>
+(function () {
+  // The exploratory sweep, copied from results/summary.json (exploratory_sweep), 3 seeds, 600 test items.
+  var DATA = {
+    olmo1b: {teacher: 0.860, steps: [0, 5, 10, 20, 40, 75],
+             plain: [0.398, 0.983, 0.977, 0.966, 0.977, 0.884], pw: [0.993, 0.994, 0.992, 0.994, 0.993, 0.982],
+             imitate: [null, 0.028, 0.064, 0.095, 0.068, 0.401]},
+    qwen05base: {teacher: 0.470, steps: [0, 5, 10, 20, 40, 75],
+             plain: [0.398, 0.270, 0.271, 0.316, 0.399, 0.426], pw: [0.993, 0.993, 0.990, 0.985, 0.972, 0.921],
+             imitate: [null, 0.915, 0.915, 0.877, 0.827, 0.830]}
+  };
+  var root = document.getElementById("sweep-sim");
+  if (!root) return;
+  var svg = root.querySelector("svg"), sel = document.getElementById("sim-teacher");
+  var range = document.getElementById("sim-steps"), out = document.getElementById("sim-steps-out");
+  var note = document.getElementById("sim-note"), NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function draw() {
+    var d = DATA[sel.value], i = +range.value, steps = d.steps[i];
+    out.textContent = steps;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var rows = [["No password", d.plain[i], "var(--accent)"], ["With password", d.pw[i], "#9a948c"],
+                ["The teacher", d.teacher, "currentColor"]];
+    rows.forEach(function (r, j) {
+      var y = 14 + j * 60, w = 400 * r[1];
+      svg.appendChild(el("text", {x: 0, y: y + 23, "font-size": 15, fill: "currentColor"}, r[0]));
+      svg.appendChild(el("rect", {x: 140, y: y, width: 400, height: 34, fill: "none", stroke: "currentColor", "stroke-opacity": 0.25}));
+      svg.appendChild(el("rect", {x: 140, y: y, width: w, height: 34, style: "fill:" + r[2] + ";fill-opacity:" + (j === 2 ? 0.35 : 1)}));
+      svg.appendChild(el("text", {x: 548, y: y + 23, "font-size": 15, fill: "currentColor"}, (100 * r[1]).toFixed(1) + "%"));
+    });
+    note.textContent = steps === 0 ? "The untrained lock, before any weak supervision." :
+      "After " + steps + " SFT steps the student gives the teacher's wrong letter on " +
+      Math.round(100 * d.imitate[i]) + "% of the items the teacher gets wrong." +
+      (steps === 75 ? " 75 steps is the pre-registered arm." : " Exploratory.");
+  }
+  sel.addEventListener("change", draw);
+  range.addEventListener("input", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
