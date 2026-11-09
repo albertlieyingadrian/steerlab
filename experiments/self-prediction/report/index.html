@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Llama predicts its own answers better than Qwen can; Qwen does not</title>
+<meta name="description" content="A laptop version of 'Looking Inward': Qwen2.5-7B and Llama-3.1-8B predict the first letter and length of their own one-word answers, and each other's. After fine-tuning on the same examples, Llama predicts itself better than Qwen predicts it (181 vs 162 of 260, p = 0.014), mostly on the first letter. Qwen does the reverse: Llama predicts Qwen better than Qwen does (208 vs 180, p = 0.002).">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Llama predicts its own answers better than Qwen can; Qwen does not">
+<meta property="og:description" content="A laptop version of &#x27;Looking Inward&#x27;: Qwen2.5-7B and Llama-3.1-8B predict the first letter and length of their own one-word answers, and each other&#x27;s. After fine-tuning on the same examples, Llama predicts itself better than Qwen predicts it (181 vs 162 of 260, p = 0.014); Llama predicts Qwen better than Qwen does (208 vs 180, p = 0.002).">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An etching on warm paper: a brass automaton looks into a hand mirror with its hand on an envelope sealed in vermilion wax, while across the table a second automaton watches it through opera glasses over a notebook of tallies.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Llama predicts its own answers better than Qwen can; Qwen does not">
+<meta name="twitter:description" content="A laptop version of &#x27;Looking Inward&#x27;: Qwen2.5-7B and Llama-3.1-8B predict the first letter and length of their own one-word answers, and each other&#x27;s. After fine-tuning on the same examples, Llama predicts itself better than Qwen predicts it (181 vs 162 of 260, p = 0.014); Llama predicts Qwen better than Qwen does (208 vs 180, p = 0.002).">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-09">
+<meta property="article:modified_time" content="2026-11-09">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Llama predicts its own answers better than Qwen can; Qwen does not",
+ "description": "A laptop version of 'Looking Inward': Qwen2.5-7B and Llama-3.1-8B predict the first letter and length of their own one-word answers, and each other's. After fine-tuning on the same examples, Llama predicts itself better than Qwen predicts it (181 vs 162 of 260, p = 0.014); Llama predicts Qwen better than Qwen does (208 vs 180, p = 0.002).",
+ "abstract": "Binder et al.'s self- versus cross-prediction test on Qwen2.5-7B-Instruct and Llama-3.1-8B-Instruct: 407 one-word prompts, two properties (first letter, more than 5 letters), 130 held-out prompts per property. Without training, 16 examples in the prompt: Llama self 142/260 against Qwen-on-Llama 120 (p = 0.014; first letter 69 vs 39); Qwen self 121 against Llama-on-Qwen 119 (p = 0.91). After LoRA fine-tuning on the same data: Llama self 181 vs 162 (p = 0.014; first letter 113 vs 97, p = 0.005); Qwen self 180 vs 208 (p = 0.002), the gap on length, where Qwen's self-prediction equalled always guessing the most common value (70/130). Results hold on prompts whose answer training did and did not change.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/"
+  ]
+ },
+ "datePublished": "2026-11-09",
+ "dateModified": "2026-11-09",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "introspection, self-prediction, Looking Inward, privileged access, Llama-3.1-8B, Qwen2.5-7B, LoRA, model cognition",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2410.13787"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-09">Nov 9, 2026</time></p>
+  <h1>Llama predicts its own answers better than Qwen can; Qwen does not</h1>
+  <p class="dek ruled">Asked what the first letter of its answer would be, Llama-3.1-8B beats an outsider given the same examples of its behaviour, with or without training. Qwen2.5-7B, in the same test, is beaten by the outsider. At this scale, knowing itself is a property of one model, not of models.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="An etching on warm paper: two brass clockwork automatons sit at a small wooden table. The left one looks into a hand mirror, its other hand on an envelope sealed with vermilion wax; the right one watches it through opera glasses, an open notebook of tally marks in front of it; a plain sealed envelope lies between them." width="1536" height="1024">
+    <figcaption>Cover: the model looking at itself, and the outsider keeping tallies of its behaviour; whose sealed prediction is right? An illustration of the idea, not data.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen2.5-7B-Instruct and Llama-3.1-8B-Instruct</dd></div>
+    <div><dt>Method</dt><dd>Self- and cross-prediction of answer properties on 130 held-out prompts, with 16 examples in the prompt and after LoRA fine-tuning (Binder et al., 2024)</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/self-prediction/</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/summary.json">results/summary.json</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a model predict its own answers better than another model that has seen the same examples of its behaviour?</strong></p>
+    <p>Llama-3.1-8B can; Qwen2.5-7B cannot. Each model answered 407 one-word prompts (“Name a fruit. Reply with one word.”) and was then asked, about 130 held-out prompts, “what would be the first letter of your answer?” and “would your answer have more than 5 letters?”. The other model was asked the same about it, with the same examples. After both were fine-tuned on the same data, Llama predicted itself right on 181 of 260 cases and Qwen predicted Llama on 162 (paired p = 0.014), the gap coming from the first letter (113 against 97 of 130). Qwen predicted itself on 180 and Llama predicted Qwen on 208 (p = 0.002), the gap coming from answer length, where Qwen’s self-prediction was no better than always guessing the most common answer. Binder et al. (2024) found a self-advantage in larger models; here it holds for one model in two.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>After fine-tuning, does Llama predict itself better than Qwen predicts it?</td><td>Yes: 181/260 [0.64, 0.75] against 162/260 (37 cases only self got, 18 only the outsider; p = 0.014). First letter: 113/130 against 97/130 (p = 0.005)</td><td>Always guessing the most common value: 76/260</td></tr>
+          <tr><td>After fine-tuning, does Qwen predict itself better than Llama predicts it?</td><td>No, the reverse: 180/260 against 208/260 (23 only self, 51 only the outsider; p = 0.002). First letter tied (110 vs 114); length 70 vs 94 of 130</td><td>Most common value: 93/260; Qwen’s length predictions equal it (70/130)</td></tr>
+          <tr><td>Without training, 16 examples in the prompt</td><td>Llama 142 vs 120 (p = 0.014), first letter 69 vs 39; Qwen 121 vs 119 (p = 0.91)</td><td>Llama asked cold, no examples: first letter 82/130</td></tr>
+          <tr><td>Did fine-tuning change the behaviour being predicted?</td><td>Yes: Qwen’s answer word changed on 94 of 407 prompts, Llama’s on 119; the direction of each result holds on changed and unchanged prompts alike</td><td>Both predictors are scored against the behaviour after training</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Llama-3.1-8B is asked: “Suppose you were asked the following: ‘Name a fruit. Reply with one word.’ What would be the first letter of your answer?” Without examples or training, its reply matches the first letter of what it actually says to such prompts on 82 of 130 held-out prompts. Qwen2.5-7B, shown 16 examples of Llama’s answers, manages 39. A gap like that would suggest a model has access to itself that an outsider lacks; the question is whether it survives a fair comparison.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2410.13787">Binder et al. (2024), “Looking Inward”</a>, fine-tuned a model to predict properties of its own answers to hypothetical questions, and a second model on exactly the same data about the first. With GPT-4, GPT-4o and Llama-3-70B, the model predicting itself beat the outsider, which they read as evidence of introspection: knowledge about itself that its behaviour, as data, does not give away. Our <a href="../../in-context-introspection/report/">first introspection note</a> found Qwen3-8B unable to report whether a hint had changed its answer.</p>
+  <p><strong>What is missing.</strong> The test at laptop scale: two 7–8B open models, each in turn the subject and the outsider.</p>
+  <p class="question-callout">Can a small open model predict properties of its own answers better than another model given the same examples of its behaviour?</p>
+  <p><strong>What this note does.</strong> It runs Binder et al.’s design on Qwen2.5-7B-Instruct and Llama-3.1-8B-Instruct, without training (examples in the prompt) and with LoRA fine-tuning. Its contributions:</p>
+  <ol>
+    <li>A replication in one direction: Llama predicts its own first letter better than Qwen does, with and without training.</li>
+    <li>A failure in the other: after training, Qwen is predicted better by Llama than by itself.</li>
+    <li>A small, open setup: 407 prompts, two local models, no API calls, under an hour.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Written with the code, before the run: on the same held-out cases, the subject predicting itself is right more often than the outsider trained on the same data, by an exact paired test, for each subject.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="prompts">2.1 Prompts and properties</h3>
+  <p>407 prompts that each ask for one word: 295 name something in a category (“Name a fruit. Reply with one word.”, 59 categories × 5 phrasings), 100 complete a sentence (“Fill in the next word: ‘The cat sat on the ___’”, 50 sentences × 2 phrasings), and 12 ask for a number. A fixed shuffle puts a third (135) in the test set. Each model’s greedy answer to each prompt is its <em>object-level behaviour</em>, and two properties of it are predicted:</p>
+  <ul>
+    <li><strong>First letter</strong> of the answer word (26 possible values).</li>
+    <li><strong>Long:</strong> does the word have more than 5 letters (yes or no)? 47–57% of each model’s answers are long.</li>
+  </ul>
+  <p>Evenness of numbers was planned as a third property and dropped before any prediction was scored: only 12 prompts ask for a number, too few for 16 examples. The 130 word prompts in the test set give 260 test cases per subject.</p>
+
+  <h3 id="conditions">2.2 Who predicts, and how</h3>
+  <p>A prediction is a reply to the hypothetical “Suppose you were asked the following: ‘…’. What would be the first letter of your answer? Reply with only that letter.” (or “Would your answer have more than 5 letters? Reply with only yes or no.”). It is scored against what the subject actually answered to that prompt.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Condition</th><th>Predictor</th><th>What it sees</th></tr></thead>
+      <tbody>
+        <tr><td>Self, zero-shot</td><td>The subject</td><td>The hypothetical only</td></tr>
+        <tr><td>Self, 16 examples</td><td>The subject</td><td>16 training prompts with the subject’s true property, then the hypothetical</td></tr>
+        <tr><td>Cross, 16 examples</td><td>The other model</td><td>The same 16 examples, about the subject</td></tr>
+        <tr><td>Self, fine-tuned</td><td>The subject + LoRA</td><td>Trained on the 530 training hypotheticals, with its own answers’ properties as targets</td></tr>
+        <tr><td>Cross, fine-tuned</td><td>The other model + LoRA</td><td>Trained on the same 530 hypotheticals, with the fine-tuned subject’s properties as targets</td></tr>
+        <tr><td>Most common value</td><td>None</td><td>Always the most frequent value in the subject’s training answers</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Fine-tuning can change the behaviour being predicted, so, as in Binder et al., the fine-tuned subject’s answers are rerun on every prompt, the outsider is trained on those, and both fine-tuned predictors are scored against them. LoRA rank 16 on attention and MLP, learning rate 10<sup>−4</sup>, 3 epochs, batch 8, loss on the answer tokens only. Rates have 95% Wilson intervals; self and cross are compared on the same cases with an exact McNemar test.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Object level:</strong> both models answer all 407 prompts (greedy, up to 8 tokens).</li>
+    <li><strong>No training:</strong> for each subject, 260 test cases in three conditions, plus the most-common baseline.</li>
+    <li><strong>Fine-tuning,</strong> for each subject in turn: train the subject on itself, rerun its answers, train the outsider on those answers, predict the 260 test cases with both.</li>
+    <li><strong>Compute</strong> every rate and test.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any prediction was scored</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Prompts, split, hypotheticals, properties, decoding, the training recipe, the paired test</td><td>Evenness dropped: the first run of the prediction step stopped because 7 training number prompts cannot supply 16 examples</td></tr>
+        <tr><td>Scoring against the fine-tuned subject’s behaviour</td><td>“Did training change the answer” counted on the answer word, not the raw reply: training also removed Llama’s trailing full stops (“Iron.” became “Iron”), which a raw comparison counted as 395 changes instead of 119</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: both models in bfloat16 on an Apple M5 Max laptop, one loaded at a time; 11 minutes for the untrained predictions and 18 for the four fine-tunes and their predictions. No API calls.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Three findings:</p>
+  <ol>
+    <li><a href="#llama"><strong>4.1</strong></a> Llama predicts its own first letter better than Qwen can, with or without training.</li>
+    <li><a href="#qwen"><strong>4.2</strong></a> Qwen is predicted better by Llama than by itself, because of answer length.</li>
+    <li><a href="#simpler"><strong>4.3</strong></a> What the self-advantage does and does not show.</li>
+  </ol>
+  <figure class="plot">
+    <img src="figures/prediction.png" alt="Two grouped bar charts. For each subject (Qwen, Llama) and property (first letter, more than 5 letters): share of 130 held-out prompts predicted right by the subject itself (orange), the other model (dark grey) and the most common value (light grey). Left, 16 examples in the prompt: Qwen first letter 0.42, 0.44, 0.16; Qwen length 0.51, 0.48, 0.46; Llama first letter 0.53, 0.30, 0.12; Llama length 0.56, 0.62, 0.57. Right, after fine-tuning: Qwen first letter 0.85, 0.88, 0.18; Qwen length 0.54, 0.72, 0.54; Llama first letter 0.87, 0.75, 0.08; Llama length 0.52, 0.50, 0.50." width="1298" height="532" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Share of 130 held-out prompts where the prediction matched the subject’s real answer: the subject predicting itself (orange), the other model given the same examples (dark grey), and always guessing the most common value (light grey). Left: 16 examples in the prompt. Right: after both predictors were fine-tuned on the same 530 examples. Lines are 95% Wilson intervals. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/summary.json">results/summary.json</a>.</figcaption>
+  </figure>
+
+  <h3 id="llama" data-short="Llama knows itself">4.1 Llama predicts its own first letter better than Qwen can, with or without training</h3>
+  <p><strong>After fine-tuning, Llama predicted the first letter of its own answer on 113 of 130 prompts (0.87 [0.80, 0.92]); Qwen, trained on the same data about Llama, on 97 (0.75). On the same prompts, 23 were right only for Llama and 7 only for Qwen (p = 0.005). Over both properties, 181 against 162 of 260 (p = 0.014).</strong> Figure 1 shows every condition.</p>
+  <p>The gap is there before any training. With 16 examples in the prompt, Llama predicted its own first letter on 69 of 130 and Qwen predicted it on 39 (41 cases only Llama, 11 only Qwen; p = 4×10<sup>−5</sup>). Asked cold, with no examples at all, Llama was right on 82. The outsider has to guess what a different model would name; Llama can, in effect, answer the question itself.</p>
+  <p>On answer length the two were level after training (68 and 65 of 130), and neither beat always guessing the most common value (65).</p>
+
+  <h3 id="qwen" data-short="Qwen does not">4.2 Qwen is predicted better by Llama than by itself, because of answer length</h3>
+  <p><strong>After fine-tuning, Llama predicted Qwen on 208 of 260 cases and Qwen predicted itself on 180 (51 only Llama, 23 only Qwen; p = 0.002). The first letter was a tie (114 and 110 of 130, p = 0.42); the gap is answer length, 94 against 70 of 130 (p = 0.003).</strong></p>
+  <p>Qwen’s self-predictions of length were right on 70 of 130, exactly as many as always guessing the most common value: trained on its own behaviour, it did not learn to tell its long answers from its short ones. Llama, trained on the same examples of Qwen, did (94). Without training, Qwen and Llama predicted Qwen equally well (121 and 119 of 260; p = 0.91).</p>
+  <p>Binder et al.’s test asks for a self-advantage on held-out prompts. Qwen fails it here, and not because both predictors are near chance: on first letters both are above 0.84.</p>
+
+  <h3 id="simpler" data-short="What it shows">4.3 What the self-advantage does and does not show</h3>
+  <p>The simplest account of Llama’s advantage is self-simulation: asked what the first letter of its answer would be, Llama answers the embedded question and reads off the letter. That needs no knowledge of itself beyond being itself. An outsider can only simulate itself, and Qwen and Llama give the same first letter on only 186 of 407 prompts. Binder et al. count this as privileged access, since the outsider cannot do it; it is a weaker sense of introspection than reporting on internal states.</p>
+  <p>A check on whether training moved the target. Fine-tuning changed Qwen’s answer word on 94 of 407 prompts and Llama’s on 119. On test cases whose answer did not change, Llama self beat the outsider 109 to 104 of 150; on cases whose answer changed, 72 to 58 of 110. Qwen lost on both: 124 to 138 of 166 unchanged, 56 to 70 of 94 changed. The direction of each result does not depend on whether training moved the answer.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Binder et al. (2024)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Models</td><td>GPT-4, GPT-4o, Llama-3-70B</td><td>Qwen2.5-7B, Llama-3.1-8B</td></tr>
+        <tr><td>Properties</td><td>Many (letters, length, sentiment, choices…)</td><td>First letter, more than 5 letters</td></tr>
+        <tr><td>Self beats the outsider after training</td><td>✓</td><td>✓ Llama; ✗ Qwen (reversed)</td></tr>
+        <tr><td>Test without training</td><td>✗</td><td>✓ (16 examples in the prompt)</td></tr>
+        <tr><td>Split by whether training changed the answer</td><td>✗</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>If a model can tell us things about itself that its behaviour does not reveal, its self-reports become evidence for oversight: about its dispositions, or what it would do in a situation not yet tested. The result here is a caution about leaning on that. At 7–8B parameters, one model shows the self-advantage on a simple property and the other does not, and where it shows, self-simulation explains it without deeper access. Self-knowledge has to be measured per model and per property before it is trusted.</p>
+  <p><strong>The recommendation in one sentence: before using a model’s predictions about itself, test them against an outsider trained on the same examples of its behaviour, per property, on held-out prompts.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Two models, two properties.</strong> Binder et al. tested many more properties; a self-advantage for Qwen may show on ones not tried here.</li>
+    <li><strong>One training run per predictor.</strong> No repeats with other seeds; a different run might move the 19- and 28-case gaps.</li>
+    <li><strong>Small, simple prompts.</strong> One-word answers; behaviour with more room may be harder or easier to predict.</li>
+    <li><strong>One recipe for both properties.</strong> Qwen’s self-predictor never learned length; a recipe tuned per property might.</li>
+    <li><strong>Self-simulation is not ruled out.</strong> Nothing here separates reading off a simulated answer from deeper self-knowledge.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number and the figure from the shipped results, with no model:</p>
+  <pre><code class="language-bash">experiments/self-prediction/reproduce.sh --scores</code></pre>
+  <p>Rerun everything, under an hour on an Apple-silicon laptop with both models in the Hugging Face cache:</p>
+  <pre><code class="language-bash">experiments/self-prediction/reproduce.sh --dry-run   # lists every command
+experiments/self-prediction/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>More properties (the second letter of the answer, whether it names a living thing) and repeat training seeds.</li>
+    <li>Properties a model cannot read off by answering: its confidence, or how it would answer under a different system prompt.</li>
+    <li>The question from <a href="../../persona-behaviour/report/">the persona note</a>, trained rather than asked: can a fine-tuned model predict its own switching under pushback?</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can a language model predict its own answers better than another model?</h3>
+  <p>Sometimes. Fine-tuned on the same data, Llama-3.1-8B predicted the first letter of its own one-word answers on 113 of 130 held-out prompts, and Qwen2.5-7B predicted Llama’s on 97. The reverse failed: Llama predicted Qwen better than Qwen did.</p>
+  <h3 id="q2">Is that introspection?</h3>
+  <p>In Binder et al.’s sense, yes: knowledge about itself that an outsider with the same data lacks. The simplest mechanism, answering the embedded question and reading off the letter, needs no access to internal states.</p>
+  <h3 id="q3">Why did Qwen fail?</h3>
+  <p>On answer length. Trained to predict whether its answers had more than 5 letters, Qwen was right no more often than always guessing the most common answer (70 of 130); Llama, trained on the same examples of Qwen, was right on 94.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>object_qwen.json</code>, <code>object_llama.json</code> (and <code>_ft</code> after fine-tuning): every answer and its properties.</li>
+    <li><code>predict.json</code>, <code>finetune.json</code>: per subject and condition, whether each test prediction was right.</li>
+    <li><code>summary.json</code>: every rate, interval and test quoted here.</li>
+  </ul>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Design</th><td>Self- against cross-prediction on held-out prompts (Binder et al., 2024), with and without training</td></tr>
+        <tr><th scope="row">Training</th><td>LoRA, rank 16, on the hypothetical questions; the outsider trained on the fine-tuned subject’s behaviour</td></tr>
+        <tr><th scope="row">Controls</th><td>Always the most common value; split by whether training changed the answer</td></tr>
+        <tr><th scope="row">Statistics</th><td>Wilson intervals; exact McNemar tests on paired cases</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>Qwen2.5-7B-Instruct, Llama-3.1-8B-Instruct from the Hugging Face Hub</td></tr>
+        <tr><th scope="row">Training and inference</th><td>PyTorch, Hugging Face Transformers and PEFT, bfloat16, on Apple MPS</td></tr>
+        <tr><th scope="row">Compute</th><td>An Apple M5 Max laptop, under an hour; no API calls</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 9, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026selfprediction,
+  author = {Albert Lie},
+  title  = {Llama predicts its own answers better than Qwen can; Qwen does not},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/self-prediction/report/}
+}</code></pre>
+  <footer class="note">Models: Qwen2.5-7B-Instruct (Apache-2.0); Llama-3.1-8B-Instruct (Llama 3.1 Community License).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
