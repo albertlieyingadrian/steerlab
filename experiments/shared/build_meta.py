@@ -172,10 +172,10 @@ def with_dates(page: str, note: dict) -> str:
     when = f'<time datetime="{note["published"]}">{pretty(note["published"])}</time>'
     if note["modified"] != note["published"]:
         when += f'{sep}Updated <time datetime="{note["modified"]}">{pretty(note["modified"])}</time>'
-    pattern = r'(<p class="eyebrow">.*?(?:Experiments|Guide)<span class="sep">·</span>).*?(</p>)'
+    pattern = r'(<p class="eyebrow">.*?(?:Experiments|Guide|Under the hood)<span class="sep">·</span>).*?(</p>)'
     new, count = re.subn(pattern, lambda m: m.group(1) + when + m.group(2), page, count=1)
     if count != 1:
-        raise SystemExit("no eyebrow with 'Experiments' or 'Guide' to put the dates in")
+        raise SystemExit("no eyebrow with 'Experiments', 'Guide' or 'Under the hood' to put the dates in")
     return new
 
 
