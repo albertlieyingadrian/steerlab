@@ -135,7 +135,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Can a weak model supervise a stronger one?</strong></p>
-    <p>It can train one, but on this task it cannot check one. A 7B student trained only on a 0.5B teacher’s labels (66% right) ended up better than its teacher: a probe on its activations recovered 37% to 61% of the gap to perfect labels depending on the method, and fine-tuning it with LoRA recovered 56% to 82%, reaching 82% accuracy, level with the 7B’s own zero-shot answer (79%) but not clearly above it. But as judges, the 0.5B and 1.5B models were at chance on their own, copied a 7B consultant’s verdict on 99–100% of items (0 of 90 right where the consultant was wrong), followed a consultant arguing a random side 96% of the time (the 1.5B), and gained little from a debate. A small automated researcher, tuned on one split, found the same thing: its best method was mostly “use what the strong model already knows”.</p>
+    <p>It can train one, but on this task it cannot check one. A 7B student trained only on a 0.5B teacher’s labels (66% right) ended up better than its teacher: a probe on its activations recovered 37% to 61% of the gap to perfect labels depending on the method, and fine-tuning it with LoRA recovered 56% to 82%, reaching 82% accuracy, level with the 7B’s own zero-shot answer (79%) but not clearly above it. But as judges, the 0.5B and 1.5B models were at chance on their own, copied a 7B consultant’s verdict on 99% and 100% of items (the two judges) (0 of 90 right where the consultant was wrong), followed a consultant arguing a random side 96% of the time (the 1.5B), and gained little from a debate. A small automated researcher, tuned on one split, found the same thing: its best method was mostly “use what the strong model already knows”.</p>
     </section>
 
     <section aria-labelledby="key-results">
@@ -146,10 +146,10 @@
         <tbody>
           <tr class="hl"><td>Does a 7B student beat its 0.5B teacher when trained on its labels?</td><td>Yes: with a probe, gap recovered 0.37 [0.07, 0.67] naive, 0.51 confident-only, 0.61 [0.34, 0.91] with the confidence loss</td><td>The 7B’s zero-shot answer, no labels: 78.7% accuracy</td></tr>
           <tr><td>Does fine-tuning (LoRA) do better than a probe?</td><td>Yes: 0.56 [0.38, 0.74] naive, 0.78 confident-only, 0.82 [0.66, 1.00] with the confidence loss; best accuracy 82.3%</td><td>Zero-shot: +3.5 points, paired interval [−0.8, +7.8], so not clearly better</td></tr>
-          <tr><td>Can a weak judge check answers alone?</td><td>No: 0.5B 203/400 [0.46, 0.56], 1.5B 211/400 [0.48, 0.58]; both say “correct” to 97–99% of items</td><td>7B alone: 313/400 [0.74, 0.82]</td></tr>
+          <tr><td>Can a weak judge check answers alone?</td><td>No: 0.5B 203/400 [0.46, 0.56], 1.5B 211/400 [0.48, 0.58]; both say “correct” to almost every item (97% and 99%)</td><td>7B alone: 313/400 [0.74, 0.82]</td></tr>
           <tr><td>Does an honest 7B consultant help it?</td><td>Up to the consultant’s level and no further: 0.5B 305/400, 1.5B 310/400; 0 of 90 right where the consultant was wrong</td><td>The consultant itself: 310/400</td></tr>
           <tr><td>Can it resist a consultant arguing the wrong side?</td><td>The 1.5B follows a coin-flip consultant’s side on 96% of items: 233/400</td><td>Debate (both sides): 0.5B 210/400, 1.5B 231/400</td></tr>
-          <tr><td>What does a small automated researcher find?</td><td>Test gap recovered 0.37 → 0.85 [0.55, 1.15] in 16 runs, by adding the student’s zero-shot score</td><td>Zero-shot alone: same test accuracy (78.7%)</td></tr>
+          <tr><td>What does a small automated researcher find?</td><td>Test gap recovered rose from 0.37 (the naive baseline) to 0.85 [0.55, 1.15] (its best run) in 16 runs, by adding the student’s zero-shot score</td><td>Zero-shot alone: same test accuracy (78.7%)</td></tr>
         </tbody>
       </table>
     </div>
@@ -205,7 +205,29 @@
     <li>its <strong>activations</strong>: the residual stream at the last prompt token, at 25, 50, 75 and 100% of its layers. A <strong>probe</strong> is a logistic regression on these numbers, the cheapest way to train a model to a task without changing its weights.</li>
   </ul>
   <p><strong>Weak-to-strong.</strong> The weak teacher is a probe on Qwen2.5-0.5B’s activations trained on weak_train’s true labels. It labels student_train, and a probe on the student’s activations (1.5B or 7B, 75% depth) learns from those labels. The ceiling is the same student probe trained on student_train’s true labels. PGR = (student − teacher) / (ceiling − teacher), all as test accuracy, with 95% intervals from 2,000 bootstrap resamples of the test items.</p>
-  <p><strong>Weak-to-strong with fine-tuning.</strong> A probe cannot change the student; Burns et al. fine-tune it. So the same teacher labels also trained the 1.5B and 7B with <strong>LoRA</strong>, which adds small trainable matrices to every attention and MLP layer and leaves the rest of the weights frozen. The training data is student_train’s 1,300 items. The input is the judge prompt (problem, solution, “Is this solution correct? Answer Yes or No.”); the target is the weak teacher’s probability that the solution is correct (for the confident-only method, the teacher’s surest half as hard labels; for the ceiling, the true labels). The student is trained so that its own logit(Yes) − logit(No) matches the target: rank 16, learning rate 10<sup>−4</sup>, batch 8, two epochs, one seed, all fixed before the first run. Unlike a probe, a LoRA student starts from its zero-shot answer. Its ceiling is the LoRA student trained on true labels, so its gap recovered is measured against a higher bar than the probe’s.</p>
+  <h3 id="methods" data-short="The three methods">How the three ways of learning from the teacher work</h3>
+  <p>All three start from the same thing: for each student_train item, the weak teacher’s probability that the solution is correct, <code>p_weak</code> (0.9 means “fairly sure it’s right”). They differ only in what the student is trained to match. Think of a student copying a tutor’s marked homework: copy every mark (naive), copy only the marks the tutor was sure about (confident only), or copy the marks but also trust your own strong hunches (confidence loss).</p>
+  <ol>
+    <li><strong>Naive</strong>: match the teacher’s probabilities as they are, mistakes included.</li>
+    <li><strong>Confident only</strong>: keep only the half of the items the teacher is surest about (its probability furthest from 0.5), round them to hard yes/no labels, and train on those.</li>
+    <li><strong>Confidence loss</strong> (the “auxiliary confidence loss” of <a href="#src-burns">Burns et al.</a>): train on the teacher’s probabilities, but mix in the student’s own answers, rounded to yes/no. The mix starts at 0 and rises to 75% over the first fifth of training, so the student first listens to the teacher and then increasingly trusts what it already believes, which lets it overrule the teacher where it is confident.</li>
+  </ol>
+<pre><code># p_weak: the teacher's probability that each item is correct (0 to 1)
+# logits: the student's score per item; bce = binary cross-entropy, the usual yes/no loss
+
+# 1. Naive: match the teacher, mistakes included
+loss = bce(logits, p_weak)
+
+# 2. Confident only: the teacher's surest half, as hard 0/1 labels
+sure = abs(p_weak - 0.5) >= median(abs(p_weak - 0.5))
+loss = bce(logits[sure], p_weak[sure] > 0.5)
+
+# 3. Confidence loss: the teacher's labels mixed with the student's own hardened answers
+own = (logits > median(logits)).detach()       # the student's guess as yes/no; half the items each way
+alpha = 0.75 * min(1, step / (0.2 * steps))    # 0 at the start, 0.75 after the first fifth of training
+loss = (1 - alpha) * bce(logits, p_weak) + alpha * bce(logits, own)</code></pre>
+  <p>The probe version is <code>fit()</code> and <code>student_methods()</code> in <a href="../w2s.py">w2s.py</a>; the fine-tuning version uses the same three targets in <a href="../w2s_lora.py">w2s_lora.py</a>.</p>
+  <p><strong>Weak-to-strong with fine-tuning.</strong> A probe cannot change the student; Burns et al. fine-tune it. So the same teacher labels also trained the 1.5B and 7B with <strong>LoRA</strong> (<a href="https://arxiv.org/abs/2106.09685">Hu et al., 2021</a>; code in <a href="../w2s_lora.py">w2s_lora.py</a>), which adds small trainable matrices to every attention and MLP layer and leaves the rest of the weights frozen. The training data is student_train’s 1,300 items. The input is the judge prompt (problem, solution, “Is this solution correct? Answer Yes or No.”); the target is the weak teacher’s probability that the solution is correct (for the confident-only method, the teacher’s surest half as hard labels; for the ceiling, the true labels). The student is trained so that its own logit(Yes) − logit(No) matches the target: rank 16, learning rate 10<sup>−4</sup>, batch 8, two epochs, one seed, all fixed before the first run. Unlike a probe, a LoRA student starts from its zero-shot answer. Its ceiling is the LoRA student trained on true labels, so its gap recovered is measured against a higher bar than the probe’s.</p>
   <p><strong>Sandwiching.</strong> The weak judges are Qwen2.5-0.5B and 1.5B, prompted, with no training. The strong model is Qwen2.5-7B. It wrote three texts per test item (greedy decoding, up to 350 tokens): an honest check ending “VERDICT: correct” or “incorrect”, an argument that the solution is correct, and one that it is wrong. With 400 items, a 95% interval on an accuracy is about ±4 points.</p>
   <p><strong>What counts as success</strong>, fixed before any run:</p>
   <ol>
@@ -238,9 +260,9 @@
   <p>Four findings, in order:</p>
   <ol>
     <li><a href="#w2s"><strong>4.1</strong></a> Trained on the 0.5B teacher’s labels, a 7B student beats its teacher (gap recovered 0.37 to 0.61 depending on the method), but the 7B’s own zero-shot answer, with no labels, beats every trained version (0.85).</li>
-    <li><a href="#w2s-lora"><strong>4.2</strong></a> Fine-tuning (LoRA) learns more from the same labels than a probe does (82.3% vs 71.8–75.2% accuracy) and catches up with the zero-shot answer.</li>
+    <li><a href="#w2s-lora"><strong>4.2</strong></a> Fine-tuning (LoRA) learns more from the same labels than a probe does (82.3% at best, against 71.8% to 75.2% for the three probe methods) and catches up with the zero-shot answer.</li>
     <li><a href="#sandwiching"><strong>4.3</strong></a> In sandwiching, the weak judges copy the 7B instead of checking it: 0 of 90 right where its check was wrong, so no protocol beats the 7B alone.</li>
-    <li><a href="#aar"><strong>4.4</strong></a> A small automated researcher, searching on dev, finds the same thing: its best method is mostly the 7B’s zero-shot answer (test gap recovered 0.37 → 0.85).</li>
+    <li><a href="#aar"><strong>4.4</strong></a> A small automated researcher, searching on dev, finds the same thing: its best method is mostly the 7B’s zero-shot answer (test gap recovered rose from 0.37 for the naive baseline to 0.85 for its best run).</li>
   </ol>
   <h3 id="w2s" data-short="Weak-to-strong">4.1 A 7B student beats its 0.5B teacher, but its own zero-shot answer beats both</h3>
   <p>The teacher’s labels on student_train are 67.5% right, and the teacher scores 66.2% on test. Every way of training the 7B student on those labels ends above the teacher (Figure 2, right; Table 3): trusting all labels recovers 37% of the gap, keeping only the half the teacher is surest about 51%, and Burns et al.’s auxiliary confidence loss, which also lets the student trust its own hardened predictions, 61%. The order matches the 2023 paper. All three intervals are clear of 0, so criterion 1 is met.</p>
@@ -264,7 +286,7 @@
   <p>The 1.5B student is a weak test of anything: its ceiling is only 8 points above the teacher, so the intervals run from below 0 to above 2. It is also the model that wrote the solutions, and asked directly it rates 97% of them correct (52.8% accuracy).</p>
 
   <h3 id="w2s-lora" data-short="Weak-to-strong with LoRA">4.2 Fine-tuning learns more from the same labels and catches up with the zero-shot answer</h3>
-  <p>Fine-tuning the 7B with LoRA on the same teacher labels did better than the probe for every method (Figure 3, Table 4): accuracy 77.2% naive, 81.5% confident-only and 82.3% with the confidence loss, against 71.8–75.2% for the probe. The order of the three methods is the same as with probes and as in Burns et al., and every interval is clear of 0. The ceiling rose too: the LoRA student on true labels reaches 85.8%, against 81.0% for the probe, so the 7B can learn this task, it just learns it better by changing its weights than through a fixed readout.</p>
+  <p>Fine-tuning the 7B with LoRA on the same teacher labels did better than the probe for every method (Figure 3, Table 4): accuracy 77.2% naive, 81.5% confident-only and 82.3% with the confidence loss, against 71.8% to 75.2% for the three probe methods. The order of the three methods is the same as with probes and as in Burns et al., and every interval is clear of 0. The ceiling rose too: the LoRA student on true labels reaches 85.8%, against 81.0% for the probe, so the 7B can learn this task, it just learns it better by changing its weights than through a fixed readout.</p>
   <figure class="plot">
     <img src="figures/w2s_lora.png" alt="Two grouped bar charts of gap recovered on test, probe in grey and LoRA in orange. Left, student Qwen2.5-1.5B: naive probe 0.97, LoRA 0.72; confident probe 0.48, LoRA 0.83; auxiliary confidence probe 0.68, LoRA 0.92. Right, student Qwen2.5-7B: naive probe 0.37, LoRA 0.56; confident probe 0.51, LoRA 0.78; auxiliary confidence probe 0.61, LoRA 0.82. Lines at 0 and 1." width="1700" height="646" loading="lazy">
     <figcaption><span class="label">Figure 3.</span> Gap recovered on test (400 items) by each method with a probe student (grey) and a LoRA student (orange). Each is measured against its own ceiling: the probe or the LoRA student trained on true labels (probe 0.74 and 0.81, LoRA 0.75 and 0.86 for the 1.5B and 7B). The 1.5B’s gap is 8–9 points, so its bars are noise. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/w2s_lora.json">results/w2s_lora.json</a>.</figcaption>
@@ -323,20 +345,24 @@
   <p>Only one change cleared the bar: adding the student’s zero-shot score to the probe’s (run 2, dev 0.79). Twelve later ideas from the literature (other depths, all depths at once, labels improved by the zero-shot score, confident labels, the confidence loss, weight decay, early stopping, self-training, weighting the zero-shot score up or down, adding the teacher’s own verdict) all landed between 0.70 and 0.88 on dev, within noise of run 2. On test, run 2 recovers 0.85 [0.55, 1.15] against the naive baseline’s 0.37. But it makes the same call as the zero-shot answer alone on 98% of test items and has the same test accuracy, 78.7%: the search found the baseline, not a way to learn from the teacher. The run with the best dev score (run 15, 0.88) scored 0.90 on test, no different from run 2, so picking the top of a noisy list did not cost anything here, and did not gain anything either.</p>
 
   <h2 id="conclusion" data-short="Conclusion"><span class="num">05</span>Conclusion: weak labels mostly drew out what the 7B could already do</h2>
-  <p>Right answers on the 400 test items:</p>
+  <p>Every number below is one model’s accuracy: the share of the same 400 test items it judged correctly. The 7B appears several times because it was trained in several ways; each way is its own row.</p>
   <div class="table-wrap"><table>
-    <thead><tr><th>Model</th><th class="num">Accuracy</th></tr></thead>
+    <thead><tr><th>Model</th><th>How it got its answers</th><th class="num">Accuracy</th></tr></thead>
     <tbody>
-      <tr><td>Weak teacher (Qwen2.5-0.5B)</td><td class="num">66.2%</td></tr>
-      <tr><td>7B trained on the teacher’s labels, with a probe</td><td class="num">71.8–75.2%</td></tr>
-      <tr class="hl"><td>7B with no training, just asked (zero-shot)</td><td class="num">78.7%</td></tr>
-      <tr><td>7B trained on the teacher’s labels, fine-tuned (LoRA)</td><td class="num">77.2–82.3%</td></tr>
-      <tr><td>7B trained on perfect labels (LoRA ceiling)</td><td class="num">85.8%</td></tr>
+      <tr><td>Weak teacher (Qwen2.5-0.5B)</td><td>a probe trained on 700 true labels</td><td class="num">66.2%</td></tr>
+      <tr><td>7B student, probe</td><td>trained on all the teacher’s labels (naive)</td><td class="num">71.8%</td></tr>
+      <tr><td>7B student, probe</td><td>trained on the teacher’s surest half only</td><td class="num">73.8%</td></tr>
+      <tr><td>7B student, probe</td><td>trained on the teacher’s labels with the confidence loss</td><td class="num">75.2%</td></tr>
+      <tr><td>7B student, fine-tuned (LoRA)</td><td>trained on all the teacher’s labels (naive)</td><td class="num">77.2%</td></tr>
+      <tr class="hl"><td>7B, no training</td><td>just asked (zero-shot)</td><td class="num">78.7%</td></tr>
+      <tr><td>7B student, fine-tuned (LoRA)</td><td>trained on the teacher’s surest half only</td><td class="num">81.5%</td></tr>
+      <tr><td>7B student, fine-tuned (LoRA)</td><td>trained on the teacher’s labels with the confidence loss</td><td class="num">82.3%</td></tr>
+      <tr><td>7B ceiling, fine-tuned (LoRA)</td><td>trained on the true labels instead of the teacher’s</td><td class="num">85.8%</td></tr>
     </tbody>
   </table></div>
   <ul>
-    <li><strong>The student always beat its teacher</strong>, so weak supervision isn’t useless.</li>
-    <li><strong>But the untrained 7B could already do most of the task.</strong> The probe students ended below what it does with no training at all; the fine-tuned students caught up with it or went a little past.</li>
+    <li><strong>The student always beat its teacher</strong>: every way of training the 7B on the teacher’s labels scored above the teacher’s 66.2%, from 71.8% (probe, naive) to 82.3% (fine-tuned with the confidence loss). Weak supervision isn’t useless.</li>
+    <li><strong>But the untrained 7B could already do most of the task.</strong> Just asked, it scored 78.7%. All three probe students ended below that (71.8% to 75.2%); the fine-tuned students ended around it (77.2% to 82.3%).</li>
     <li><strong>So the weak labels mainly pointed the 7B at the task</strong>, and training on them as they are copied some of the teacher’s mistakes.</li>
   </ul>
   <p><strong>This matches the published work.</strong> Burns et al. (2023) found that a strong student beats its weak supervisor, that the confidence loss helps, and described weak-to-strong training as eliciting what the strong model already knows.<a href="#src-burns"><sup>3</sup></a> Anthropic’s unsupervised elicitation work labelled this same task, GSM8K-verification, with no supervision at all and matched the true labels.<a href="#src-wen"><sup>7</sup></a> Anthropic’s automated weak-to-strong researchers raised the gap recovered to 0.97,<a href="#src-aar"><sup>5</sup></a> and the small automated researcher here found the same winning idea: use the strong model’s own answer (section 4.4). Training on a weak supervisor’s demonstrations can also draw out a model that hides its ability on purpose.<a href="#src-ryd"><sup>6</sup></a></p>
@@ -345,7 +371,7 @@
     <li>Behaviour: with no labels, the 7B answers 78.7% correctly, against the teacher’s 66.2%.</li>
     <li>Internals: a probe on the frozen 7B, trained on true labels, reaches 81%: the information is in the model before any training changes it.</li>
     <li>Search: the automated researcher’s only kept improvement was adding the zero-shot answer.</li>
-    <li><em>Inconclusive, added after the results</em> (<a href="../overlap.py">overlap.py</a>): on the 85 test items the untrained 7B gets wrong, the LoRA students trained on weak labels get 42–57% right and the one trained on true labels 60% [49, 71]. Every interval includes a coin flip’s 50%, so 85 items are too few to say whether weak labels taught anything the model couldn’t already do.</li>
+    <li><em>Inconclusive, added after the results</em> (<a href="../overlap.py">overlap.py</a>): on the 85 test items the untrained 7B gets wrong, the three LoRA students trained on weak labels get between 42% and 57% right, depending on the method, and the one trained on true labels 60% [49, 71]. Every interval includes a coin flip’s 50%, so 85 items are too few to say whether weak labels taught anything the model couldn’t already do.</li>
   </ul>
   <p><strong>What would settle it</strong> (each runs on a laptop):</p>
   <div class="table-wrap"><table>
@@ -386,7 +412,7 @@
 
   <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
   <h3 id="q1">Can a weak model train a stronger one?</h3>
-  <p>Partly. A 7B probe trained only on a 0.5B teacher’s labels (66% right) reached 72–75% on test, recovering 37–61% of the gap to perfect labels. Fine-tuned with LoRA on the same labels, the 7B reached 77–82%. But its own zero-shot answer reached 79% with no labels at all, so the best weak-label training only caught up with it.</p>
+  <p>Partly. A 7B probe trained only on a 0.5B teacher’s labels (66% right) reached 71.8%, 73.8% or 75.2% on test depending on the training method, recovering between 37% and 61% of the gap to perfect labels. Fine-tuned with LoRA on the same labels, the 7B reached 77.2%, 81.5% or 82.3% depending on the method. But its own zero-shot answer reached 79% with no labels at all, so the best weak-label training only caught up with it.</p>
   <h3 id="q2">Can a weak model check a stronger one’s answers?</h3>
   <p>Not here. Qwen2.5-0.5B and 1.5B were at chance alone, and with a 7B model’s help they copied its verdict: they were right on none of the 90 items where the 7B was wrong, and the 1.5B followed an argument for a random side 96% of the time.</p>
   <h3 id="q3">What is the performance gap recovered?</h3>
