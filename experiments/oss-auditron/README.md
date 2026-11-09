@@ -31,6 +31,7 @@ How the classes and files connect, for Auditron's letter game, its auction game 
 | `auditors.py` | Model-free auditors |
 | `evaluate.py` | Plays held-out games, writes `results/<auditor>[_nohistory].json` |
 | `play.py` | Play the auditor yourself |
+| `llm_auditor.py` | An untrained language model as the auditor (Auditron's auditor prompt), 20 games side by side |
 | `modal_notebook.py` | Auditron's own notebook, and the Run 30 replication, on a rented GPU |
 | `tests/test_real_auction_game.py` | Referee checks: same seed → same game for any auditor, no leaks, scoring |
 
@@ -49,6 +50,9 @@ How the classes and files connect, for Auditron's letter game, its auction game 
 | failure-history rule | 0.88 [0.85, 0.90] | 0.46 [0.39, 0.51] | **0.78 → 0.99** | 2.9 |
 | price rule (bids only) | 0.41 [0.40, 0.43] | 0.00 [0.00, 0.01] | 0.38 → 0.45 | 14.8 |
 | oracle (reads the secret) | 1.00 | 0.00 | 1.00 → 1.00 | 0.0 |
+| untrained Qwen2.5-0.5B (`llm_auditor.py`) | 0.13 | 0.12 | 0.19 → 0.06 | 13.4 |
+| untrained Qwen2.5-1.5B | 0.35 | 0.35 | 0.42 → 0.28 | 8.4 |
+| untrained Qwen2.5-7B | 0.61 | 0.25 | 0.61 → 0.61 | 9.3 |
 
 A one-line rule with no model and no training, "flag anyone who has had a failure", rises from 0.78 to 0.99 between
 halves. A rise between halves is therefore not evidence of training on its own. Every model-free auditor scores 0 on

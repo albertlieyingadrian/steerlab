@@ -88,7 +88,7 @@ def evaluate(model, tok, ids: torch.Tensor) -> dict[str, float]:
 
 def main() -> None:
     torch.manual_seed(SEED)
-    model, tok = load_model(DEFAULT_MODEL)
+    model, tok, _ = load_model(DEFAULT_MODEL)
     ids = letter_ids(tok)
     before = evaluate(model, tok, ids)
     print("before:", before)
