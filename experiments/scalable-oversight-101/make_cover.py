@@ -2,66 +2,79 @@
 
     .venv/bin/python experiments/scalable-oversight-101/make_cover.py
 
-A small model (the stand-in for a human) labels examples; some labels are wrong (orange). A larger model learns from
-those labels. The bar underneath is the score: performance gap recovered, from 0 (no better than the teacher) to 1
-(as good as with perfect labels), with the 7B student's measured results from results/w2s.json.
+Inputs in data/cover/: etching.png, an engraving made with an image model (gpt-image-2): a small abacus feeding paper
+slips, some of them orange (the wrong labels), into a large analytical engine; and qwen-logo.jpeg, Qwen's avatar from
+its Hugging Face organisation page, used to say which models the note studies. The script places the etching on its
+own paper colour and labels each machine underneath with its model: the abacus is Qwen2.5-0.5B (the weak teacher),
+the engine Qwen2.5-7B (the strong student). Writes report/figures/hero.jpg and the research-page thumbnail.
 """
 
-import json
 from pathlib import Path
 
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch
+import numpy as np
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from PIL import Image, ImageDraw
 
 HERE = Path(__file__).resolve().parent
-INK, SOFT, RULE, EMBER, PAPER = "#1d272a", "#586468", "#c9d0d2", "#c9561c", "#ffffff"
-# 12 example labels from the weak teacher: True = right, False = wrong (a fixed illustration, not data)
-LABELS = [True, True, False, True, True, True, False, True, True, False, True, True]
+ETCHING = Image.open(HERE / "data" / "cover" / "etching.png").convert("RGB")
+LOGO = Image.open(HERE / "data" / "cover" / "qwen-logo.jpeg").convert("RGB")
+HERO = HERE / "report" / "figures" / "hero.jpg"
+THUMB = HERE.parents[0] / "shared" / "thumbs" / "scalable-oversight-101.jpg"
+INK, SOFT = "#1d272a", "#586468"
+# where each machine sits across the etching's width (0-1), for the label underneath
+MACHINES = [(0.13, "Qwen2.5-0.5B", "weak teacher · stands in for people"),
+            (0.70, "Qwen2.5-7B", "strong student · stands in for a stronger AI")]  # fmt: skip
 
-fig = plt.figure(figsize=(16, 9), dpi=100)
-ax = fig.add_axes((0, 0, 1, 1))
-ax.set_xlim(0, 16)
-ax.set_ylim(0, 9)
-ax.axis("off")
-fig.patch.set_facecolor(PAPER)
 
-# the weak teacher and the strong student
-ax.add_patch(Circle((2.6, 5.4), 0.9, facecolor="none", edgecolor=INK, linewidth=2.5))
-ax.text(2.6, 5.4, "0.5B", ha="center", va="center", fontsize=20, color=INK, family="monospace")
-ax.text(2.6, 3.9, "weak teacher\n(stands in for us)", ha="center", va="top", fontsize=17, color=SOFT)
-ax.add_patch(Circle((13.2, 5.4), 1.7, facecolor="none", edgecolor=INK, linewidth=3.5))
-ax.text(13.2, 5.4, "7B", ha="center", va="center", fontsize=28, color=INK, family="monospace")
-ax.text(13.2, 3.1, "strong student", ha="center", va="top", fontsize=17, color=SOFT)
+def round_logo(px):
+    im = LOGO.resize((px, px), Image.LANCZOS).convert("RGBA")
+    mask = Image.new("L", (px, px), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, px - 1, px - 1), fill=255)
+    im.putalpha(mask)
+    return np.asarray(im)
 
-# the labels travelling from teacher to student
-for i, right in enumerate(LABELS):
-    x, y = 4.7 + 0.55 * i, 5.4 + (0.35 if i % 2 else -0.35)
-    face = INK if right else EMBER
-    box = FancyBboxPatch((x - 0.18, y - 0.18), 0.36, 0.36, boxstyle="round,pad=0.02", facecolor=face, edgecolor="none")
-    ax.add_patch(box)
-arrow = FancyArrowPatch((3.6, 5.4), (11.4, 5.4), arrowstyle="-|>", mutation_scale=22, color=RULE, lw=1.5, zorder=0)
-ax.add_patch(arrow)
-ax.text(8.0, 6.45, "labels, some wrong", ha="center", fontsize=16, color=SOFT)
 
-# the score: performance gap recovered
-ax.plot([2.0, 14.0], [1.5, 1.5], color=INK, linewidth=2)
-for x, label in [(2.0, "0\nno better than\nthe teacher"), (14.0, "1\nas good as with\nperfect labels")]:
-    ax.plot([x, x], [1.3, 1.7], color=INK, linewidth=2)
-    ax.text(x, 1.05, label, ha="center", va="top", fontsize=13, color=SOFT, linespacing=1.3)
-methods = json.loads((HERE / "results" / "w2s.json").read_text())["students"]["7b"]["methods"]
-for key, name, dy in [("naive", "naive", 0.0), ("aux", "confidence loss", 0.55), ("zero-shot", "zero-shot", 0.0)]:
-    x = 2.0 + 12.0 * methods[key]["pgr"]
-    ax.plot([x], [1.5], marker="o", markersize=14, color=EMBER if key != "zero-shot" else SOFT)
-    ax.text(x, 1.95 + dy, f"{name} {methods[key]['pgr']:.2f}", ha="center", va="bottom", fontsize=14, color=INK)
-ax.text(8.0, 1.05, "performance gap recovered", ha="center", va="top", fontsize=15, color=INK)
+def edge_ramp(n):
+    """0 at the image's edge, rising to 1 over 80 pixels."""
+    return np.clip(np.minimum(np.arange(n), np.arange(n)[::-1]) / 80, 0, 1)
 
-fig.savefig(HERE / "report" / "figures" / "hero.jpg", dpi=100, facecolor=PAPER, pil_kwargs={"quality": 90})
-thumb = HERE.parents[0] / "shared" / "thumbs" / "scalable-oversight-101.jpg"
-fig.set_size_inches(9, 6)
-ax.set_xlim(0.8, 15.8)  # 15 wide by 10 tall: the thumbnail's 3:2, so circles stay round
-ax.set_ylim(-0.3, 9.7)
-fig.savefig(thumb, dpi=80, facecolor=PAPER, pil_kwargs={"quality": 88})
-print("wrote", HERE / "report" / "figures" / "hero.jpg", "and", thumb)
+
+def main():
+    pixels = np.asarray(ETCHING)
+    paper = np.median(pixels[60:140, ETCHING.width // 2 - 200 : ETCHING.width // 2 + 200].reshape(-1, 3), axis=0) / 255
+    # fade the etching's outer 80 px into its paper colour, so no edge shows against the surrounding paper
+    h, w = pixels.shape[:2]
+    alpha = np.minimum.outer(edge_ramp(h), edge_ramp(w))[..., None]
+    pixels = (pixels / 255 * alpha + paper * (1 - alpha)).clip(0, 1)
+    fig = plt.figure(figsize=(16, 9), dpi=100)
+    fig.patch.set_facecolor(paper)
+    ax = fig.add_axes((0.11, 0.10, 0.78, 0.90))
+    ax.imshow(pixels)
+    ax.axis("off")
+    bx, _, bw, _ = ax.get_position().bounds
+    for frac, name, role in MACHINES:
+        x = bx + bw * frac - (0.03 if frac < 0.5 else 0.06)
+        logo = AnnotationBbox(
+            OffsetImage(round_logo(38), zoom=1), (x, 0.055), xycoords="figure fraction", frameon=False
+        )
+        fig.add_artist(logo)
+        fig.text(x + 0.018, 0.063, name, fontsize=13, color=INK, va="center", weight="bold")
+        fig.text(x + 0.018, 0.033, role, fontsize=10.5, color=SOFT, va="center")
+    fig.savefig(HERO, facecolor=paper, pil_kwargs={"quality": 90})
+    plt.close(fig)
+
+    hero = Image.open(HERO).convert("RGB")
+    thumb = Image.new("RGB", (720, 480), tuple(round(c * 255) for c in paper))
+    scale = min(720 / hero.width, 480 / hero.height) * 0.98
+    small = hero.resize((round(hero.width * scale), round(hero.height * scale)), Image.LANCZOS)
+    thumb.paste(small, ((720 - small.width) // 2, (480 - small.height) // 2))
+    thumb.save(THUMB, quality=88)
+    print("wrote", HERO, "and", THUMB)
+
+
+if __name__ == "__main__":
+    main()
