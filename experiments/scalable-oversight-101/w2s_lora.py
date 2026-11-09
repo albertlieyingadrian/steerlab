@@ -4,6 +4,7 @@ Weak-to-strong with LoRA students: the same teacher and labels as w2s.py, but th
     .venv/bin/python experiments/scalable-oversight-101/w2s_lora.py               # every run not done yet, then summary
     .venv/bin/python experiments/scalable-oversight-101/w2s_lora.py --student 7b --method naive    # one run
     .venv/bin/python experiments/scalable-oversight-101/w2s_lora.py --summarise   # only rebuild results/w2s_lora.json
+    .venv/bin/python experiments/scalable-oversight-101/w2s_lora.py --shuffled    # random-label control runs
 
 - Weak teacher: the 0.5B probe from w2s.py, unchanged, so its labels on student_train are the same 67.5%-right labels.
 - Student: Qwen2.5-1.5B or Qwen2.5-7B Instruct with LoRA adapters, reading the same yes/no prompt the judges read.
@@ -20,6 +21,10 @@ All settings are fixed before any run and nothing is tuned on dev or test: rank 
 attention and MLP projections, AdamW lr 1e-4 with 10% warmup then linear decay, batch 8, 2 epochs, seed 0.
 Each run writes results/lora/<student>_<method>.json (per-item test and dev scores); the summary writes
 results/w2s_lora.json with PGR and 95% bootstrap intervals against the LoRA ceiling.
+
+--shuffled is the random-label control (see random_labels.py): the teacher's probabilities are shuffled across
+student_train items (seed 0) before training, so the labels keep their mix but say nothing about their items.
+Those runs write results/lora/<student>_<method>_shuffled.json and appear in the summary as "<method> shuffled".
 """
 
 import argparse
@@ -57,11 +62,14 @@ def targets_for(method, rows, p_weak):
     return rows, p_weak.astype(np.float32)  # naive and aux
 
 
-def train(student, method):
+def train(student, method, shuffled=False):
     from peft import LoraConfig, get_peft_model
 
     torch.manual_seed(SEED)
-    rows, targets = targets_for(method, items("student_train"), weak_labels())
+    p_weak = weak_labels()
+    if shuffled:
+        p_weak = np.random.default_rng(SEED).permutation(p_weak)
+    rows, targets = targets_for(method, items("student_train"), p_weak)
     model, tokenizer = load(student)
     model.config.use_cache = False
     model.gradient_checkpointing_enable()
@@ -111,12 +119,17 @@ def train(student, method):
             "scores": judge_scores(model, tokenizer, [verify_prompt(tokenizer, r) for r in split_rows], batch=8),
         }
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"{student}_{method}.json").write_text(json.dumps(out))
+    out["shuffled"] = shuffled
+    (OUT / f"{student}_{run_name(method, shuffled)}.json").write_text(json.dumps(out))
     acc = np.mean([(s > 0) == r["label"] for s, r in zip(out["test"]["scores"], items("test"), strict=True)])
     print(f"{student} {method}: test acc {acc:.3f} ({seconds / 60:.0f} min)", flush=True)
     del model
     if device() == "mps":
         torch.mps.empty_cache()
+
+
+def run_name(method, shuffled):
+    return f"{method}_shuffled" if shuffled else method
 
 
 def summarise():
@@ -129,6 +142,7 @@ def summarise():
     out = {"teacher_test_acc": weak_correct.mean(), "students": {}}
     for student in STUDENTS:
         paths = {m: OUT / f"{student}_{m}.json" for m in METHODS}
+        paths |= {f"{m} shuffled": OUT / f"{student}_{m}_shuffled.json" for m in METHODS if m != "ceiling"}
         runs = {m: json.loads(p.read_text()) for m, p in paths.items() if p.exists()}
         if "ceiling" not in runs:
             continue
@@ -143,8 +157,8 @@ def summarise():
             pgr, lo, hi = bootstrap_pgr(weak_correct, correct["ceiling"], c, rng)
             minutes = runs[m]["seconds"] / 60 if m in runs else 0.0
             result["methods"][m] = {"test_acc": c.mean(), "pgr": pgr, "pgr_ci": [lo, hi], "train_minutes": minutes}
-            probe_acc = probe["students"][student]["methods"][m]["test_acc"]
-            print(f"  {m:10} acc {c.mean():.3f} (probe {probe_acc:.3f})   PGR {pgr:+.2f} [{lo:+.2f}, {hi:+.2f}]")
+            probe_acc = probe["students"][student]["methods"].get(m, {}).get("test_acc", float("nan"))
+            print(f"  {m:18} acc {c.mean():.3f} (probe {probe_acc:.3f})   PGR {pgr:+.2f} [{lo:+.2f}, {hi:+.2f}]")
         out["students"][student] = result
     (RESULTS / "w2s_lora.json").write_text(json.dumps(out, indent=1, default=float))
 
@@ -154,14 +168,16 @@ def main():
     parser.add_argument("--student", choices=STUDENTS)
     parser.add_argument("--method", choices=METHODS)
     parser.add_argument("--summarise", action="store_true")
+    parser.add_argument("--shuffled", action="store_true", help="train on shuffled teacher labels (control)")
     args = parser.parse_args()
     if args.student and args.method:
-        train(args.student, args.method)
+        train(args.student, args.method, args.shuffled)
     elif not args.summarise:
+        methods = [m for m in METHODS if not (args.shuffled and m == "ceiling")]
         for student in STUDENTS:
-            for method in METHODS:
-                if not (OUT / f"{student}_{method}.json").exists():
-                    train(student, method)
+            for method in methods:
+                if not (OUT / f"{student}_{run_name(method, args.shuffled)}.json").exists():
+                    train(student, method, args.shuffled)
     summarise()
 
 

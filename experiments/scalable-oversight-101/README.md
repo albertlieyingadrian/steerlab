@@ -8,7 +8,8 @@ Research note: [`report/index.html`](report/index.html). Weak-to-strong training
 | `data.py` | Samples two solutions per GSM8K problem from Qwen2.5-1.5B-Instruct, checks them against the answer key and writes the 2,800 balanced items to `data/items.jsonl`. |
 | `features.py` | Reads each model's last-token activations (four depths) and zero-shot verdict on every item, into `~/.cache/steerlab/scalable-oversight-101/`. |
 | `w2s.py` | Weak-to-strong with probes: the 0.5B teacher, four methods for each student, PGR with bootstrap intervals. Writes `results/w2s.json`. |
-| `w2s_lora.py` | The same teacher and labels with LoRA students (1.5B and 7B, four runs each, about 3½ hours on the laptop). Writes `results/lora/` and `results/w2s_lora.json`. |
+| `w2s_lora.py` | The same teacher and labels with LoRA students (1.5B and 7B, four runs each, about 3½ hours on the laptop). Writes `results/lora/` and `results/w2s_lora.json`. `--shuffled` trains the random-label control (teacher labels shuffled across items, three runs per student). |
+| `random_labels.py` | The random-label control for the probe students: 20 shuffles of the teacher's labels. Writes `results/random_labels.json`. |
 | `sandwich.py` | The 7B writes an honest check and arguments for each side; 0.5B and 1.5B judges decide alone, with a consultant, a coin-flip consultant or a debate. Writes `results/arguments.jsonl` and `results/sandwich.json`. |
 | `aar/` | The automated-researcher loop: fixed `prepare.py`, edited `method.py`, `run.py`, rules in `program.md`, every run in `results.tsv` and `runs/`, and `final_test.py`. |
 | `make_figures.py` | Draws `report/figures/{w2s,sandwich,aar}.png` and prints the numbers. |

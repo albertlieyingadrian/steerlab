@@ -5,11 +5,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 PY=${PY:-../../.venv/bin/python}
-STEPS=(data.py features.py w2s.py w2s_lora.py sandwich.py make_figures.py)
+STEPS=(data.py features.py w2s.py w2s_lora.py "w2s_lora.py --shuffled" random_labels.py sandwich.py make_figures.py)
 if [[ "${1:-}" == "--dry-run" ]]; then
   for step in "${STEPS[@]}"; do echo "$PY $step"; done
   exit 0
 fi
 for step in "${STEPS[@]}"; do
-  "$PY" "$step"
+  # shellcheck disable=SC2086
+  "$PY" $step
 done
