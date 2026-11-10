@@ -3,7 +3,7 @@
     uv run steerlab inspect --port 8771 &                              # the live app
     .venv/bin/python experiments/layer-explorer/record_demos.py http://127.0.0.1:8771/
 
-Writes report/media/step-N-*.mp4 and a .jpg poster for each. Playwright drives Chromium at 1280x800 and records the
+Writes report/media/overview.mp4 and step-N-*.mp4, each with a .jpg poster. Playwright drives Chromium at 1280x800 and records the
 page; a drawn cursor, a ring on each click and a badge for each key press are added to the page so the actions are
 visible. ffmpeg trims the page load, scales to 960 px wide and encodes H.264 with no audio; the poster is the last
 frame, which shows the result. Needs playwright and ffmpeg.
@@ -196,7 +196,36 @@ def step_dose(page: Page) -> None:
     hover(page, "#pane-dose svg.chart", 2.2)
 
 
+def step_overview(page: Page) -> None:
+    """The whole loop in one clip: run a prompt, walk the stack, open a neuron, switch it off; then the one that
+    matters."""
+    step_words_short(page)
+    to_stack(page)
+    click(page, "#rows .row[data-layer='23']", 0.4)
+    for _ in range(2):
+        page.keyboard.press("ArrowDown")
+        page.wait_for_timeout(500)
+    title_has(page, "layer", "Layer 21")
+    hover(page, "#pane-layer tbody >> nth=0 >> tr >> nth=0", 0.8)
+    for layer in (21, 20):
+        open_first_neuron(page, layer)
+        hover(page, "#pane-neuron .wordlist >> nth=0", 0.8)
+        click(page, "#pane-neuron button:has-text('Switch off and compare')", 0.3)
+        page.wait_for_selector("#pane-edit .compare")
+        hover(page, "#pane-edit .compare .edited .big", 1.6)
+
+
+def step_words_short(page: Page) -> None:
+    click(page, "#prompt", 0.2)
+    page.fill("#prompt", "")
+    page.keyboard.type("The capital of France is", delay=45)
+    click(page, "#run")
+    page.wait_for_selector("#pane-layer table")
+    hover(page, "#guesses .guess >> nth=0", 1.0)
+
+
 STEPS: list[tuple[str, Callable[[Page], None]]] = [
+    ("overview", step_overview),
     ("step-1-words", step_words),
     ("step-2-stack", step_stack),
     ("step-3-layer", step_layer),
