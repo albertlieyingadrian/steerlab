@@ -245,13 +245,13 @@ class Renderer:
         torch, dr, dev = self.torch, self.dr, self.device
         v = torch.tensor(np.concatenate([p.v for p in mesh.parts]), device=dev)
         offsets = np.cumsum([0] + [len(p.v) for p in mesh.parts])
-        faces = np.concatenate([p.f + o for p, o in zip(mesh.parts, offsets, strict=True)])
+        faces = np.concatenate([p.f + o for p, o in zip(mesh.parts, offsets[:-1], strict=True)])
         f = torch.tensor(faces, device=dev, dtype=torch.int32)
         part_of_face = np.concatenate([np.full(len(p.f), i) for i, p in enumerate(mesh.parts)])
         face_part = torch.tensor(part_of_face, device=dev, dtype=torch.int64)
         uv = torch.zeros((len(v), 2), device=dev)
         vcol = torch.full((len(v), 3), 0.7, device=dev)
-        for p, o in zip(mesh.parts, offsets, strict=True):
+        for p, o in zip(mesh.parts, offsets[:-1], strict=True):
             if p.uv is not None:
                 uv[o : o + len(p.v)] = torch.tensor(p.uv, device=dev)
             if p.vcol is not None:

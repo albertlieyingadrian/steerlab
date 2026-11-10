@@ -1,4 +1,4 @@
-"""Generate 3D objects with four open image-to-3D models on one rented GPU class, then render and score them all.
+"""Generate 3D objects with five open image-to-3D models on one rented GPU class, then render and score them all.
 
     modal deploy experiments/image-to-3d-eval/modal_i3d.py
     python experiments/image-to-3d-eval/1_generate.py      # calls the functions below
@@ -13,6 +13,8 @@ Models and pinned code:
 - TripoSR (stabilityai/TripoSR, MIT): mesh with vertex colours, marching cubes at 256.
 - Stable Fast 3D (stabilityai/stable-fast-3d, Stability AI Community licence, gated): textured mesh.
 - Idol (speridlabs/idol, Apache-2.0): Gaussian splats, 262,144 per object (its default).
+- TRELLIS.2 (microsoft/TRELLIS.2-4B, MIT; its encoders DINOv3 and RMBG-2.0 are gated): textured mesh (GLB), added
+  2026-11-10 after the RMBG-2.0 licence was accepted.
 
 Each model is given the same 512x512 RGBA render of a Google Scanned Objects mesh (the alpha channel is the object's
 mask, so no model needs its background remover) and crops it with its own default framing.
@@ -129,6 +131,63 @@ idol_image = (
     .env(ENV)
 )
 
+# TRELLIS.2 as its setup.sh installs it: PyTorch 2.6 on CUDA 12.4, flash-attn, and Jeffrey Xiang's mesh extensions.
+TRELLIS2_SHA = "75fbf0183001ed9876c8dbb35de6b68552ee08bd"
+CUMESH_SHA = "12289e1062f0603f2f0d0771b02e1395d247f26f"
+FLEXGEMM_SHA = "6dd94a859c26ee8246888502eada3dd8ad85532e"
+NVDIFFREC_SHA = "b296927cc7fd01c2ac1087c8065c4d7248f72da4"
+FLASH_ATTN = (
+    "https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.3/"
+    "flash_attn-2.7.3+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl"
+)
+trellis2_image = (
+    modal.Image.from_registry("nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04", add_python="3.10")
+    .apt_install(
+        "git", "libgl1", "libglib2.0-0", "build-essential", "ninja-build", "libegl1", "libgomp1", "libjpeg-dev"
+    )
+    .env(BUILD_ENV)
+    .pip_install("torch==2.6.0", "torchvision==0.21.0", index_url="https://download.pytorch.org/whl/cu124")
+    .pip_install(
+        "numpy<2",
+        "pillow",
+        "imageio",
+        "imageio-ffmpeg",
+        "tqdm",
+        "easydict",
+        "opencv-python-headless",
+        "ninja",
+        "trimesh",
+        "transformers>=4.56,<5",
+        "pandas",
+        "lpips",
+        "zstandard",
+        "kornia",
+        "timm",
+        "huggingface_hub",
+        "safetensors",
+        "setuptools<75",
+        "wheel",
+        FLASH_ATTN,
+    )
+    .pip_install("git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8")
+    .run_commands(
+        "git clone -b v0.4.0 https://github.com/NVlabs/nvdiffrast.git /opt/nvdiffrast"
+        " && pip install /opt/nvdiffrast --no-build-isolation",
+        "git clone https://github.com/JeffreyXiang/nvdiffrec.git /opt/nvdiffrec"
+        f" && cd /opt/nvdiffrec && git checkout {NVDIFFREC_SHA} && pip install . --no-build-isolation",
+        "git clone --recursive https://github.com/JeffreyXiang/CuMesh.git /opt/CuMesh"
+        f" && cd /opt/CuMesh && git checkout {CUMESH_SHA} && git submodule update --init --recursive"
+        " && pip install . --no-build-isolation",
+        "git clone --recursive https://github.com/JeffreyXiang/FlexGEMM.git /opt/FlexGEMM"
+        f" && cd /opt/FlexGEMM && git checkout {FLEXGEMM_SHA} && git submodule update --init --recursive"
+        " && pip install . --no-build-isolation",
+        "git clone --recursive https://github.com/microsoft/TRELLIS.2.git /opt/TRELLIS2"
+        f" && cd /opt/TRELLIS2 && git checkout {TRELLIS2_SHA} && git submodule update --init --recursive"
+        " && pip install ./o-voxel --no-build-isolation",
+    )
+    .env({**ENV, "PYTHONPATH": "/opt/TRELLIS2", "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
+)
+
 HF_SECRET = modal.Secret.from_name("huggingface-secret", required_keys=["HF_TOKEN"])
 
 
@@ -177,11 +236,12 @@ def _run_all(gen, name: str, objects: list[str]) -> list[dict]:
             print(f"{name}: warm-up {t.seconds:.1f} s")
             continue
         os.makedirs(f"/cache/out/{name}", exist_ok=True)
+        extra = {k.lstrip("_"): files.pop(k) for k in list(files) if k.startswith("_")}  # e.g. a split of the time
         for suffix, data in files.items():
             with open(f"/cache/out/{name}/{obj}{suffix}", "wb") as handle:
                 handle.write(data)
         row = {"model": name, "object": obj, "seconds": t.seconds, "peak_reserved_gb": t.peak_reserved_gb,
-               "peak_allocated_gb": t.peak_allocated_gb, "gpu": torch.cuda.get_device_name()}  # fmt: skip
+               "peak_allocated_gb": t.peak_allocated_gb, "gpu": torch.cuda.get_device_name(), **extra}  # fmt: skip
         rows.append(row)
         print(json.dumps(row))
     volume.commit()
@@ -256,6 +316,42 @@ def gen_sf3d(objects: list[str]) -> list[dict]:
             return {".glb": open(f"{tmp}/a.glb", "rb").read()}
 
     return _run_all(gen, "sf3d", objects)
+
+
+@app.function(image=trellis2_image, gpu=GPU, cpu=8.0, volumes={"/cache": volume}, secrets=[HF_SECRET], timeout=6 * 3600)
+def gen_trellis2(objects: list[str]) -> list[dict]:
+    """TRELLIS.2-4B with its released defaults: the 1024 cascade, then a GLB with the export settings of its own demo
+    (app.py: 500,000-face target, 2,048-pixel texture, remeshed), as every model here uses its own defaults. PNG
+    textures instead of WebP, which trimesh cannot read. The export (remeshing, UV unwrapping, baking) runs mostly on
+    the CPU, so this job gets 8 CPU cores (the others ran with Modal's default share); its time is also split into
+    generation and export."""
+    import tempfile
+
+    import o_voxel
+    import torch
+    from PIL import Image
+    from trellis2.pipelines import Trellis2ImageTo3DPipeline
+
+    pipe = Trellis2ImageTo3DPipeline.from_pretrained("microsoft/TRELLIS.2-4B")
+    pipe.cuda()
+
+    def gen(png: bytes) -> dict:
+        t0 = time.perf_counter()
+        mesh = pipe.run(Image.open(io.BytesIO(png)))[0]
+        mesh.simplify(16777216)  # nvdiffrast's limit, as in example.py
+        torch.cuda.synchronize()
+        t1 = time.perf_counter()
+        glb = o_voxel.postprocess.to_glb(
+            vertices=mesh.vertices, faces=mesh.faces, attr_volume=mesh.attrs, coords=mesh.coords,
+            attr_layout=mesh.layout, voxel_size=mesh.voxel_size, aabb=[[-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]],
+            decimation_target=100000, texture_size=2048, remesh=True, remesh_band=1, remesh_project=0,
+        )  # fmt: skip
+        with tempfile.TemporaryDirectory() as tmp:
+            glb.export(f"{tmp}/a.glb")
+            data = Path(f"{tmp}/a.glb").read_bytes()
+        return {".glb": data, "_seconds_generate": t1 - t0, "_seconds_export": time.perf_counter() - t1}
+
+    return _run_all(gen, "trellis2", objects)
 
 
 @app.function(image=idol_image, gpu=GPU, volumes={"/cache": volume}, secrets=[HF_SECRET], timeout=3 * 3600)
@@ -346,6 +442,7 @@ SYSTEMS = {
     "triposr": ("triposr", ".glb"),
     "sf3d": ("sf3d", ".glb"),
     "idol": ("idol", ".ply"),
+    "trellis2": ("trellis2", ".glb"),
     "gt_bumpy": (None, "bumpy"),
     "gt_squashed": (None, "squashed"),
     "gt_blurred": (None, "blurred"),

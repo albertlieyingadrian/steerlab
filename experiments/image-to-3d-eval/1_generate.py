@@ -29,8 +29,15 @@ sys.path.insert(0, str(HERE))
 from common import DATA, RESULTS
 
 N_DRAW, N_KEEP, SEED, MIN_RATIO = 70, 40, 0, 0.10
-MODELS = {"trellis": ["trellis_mesh", "trellis_splats"], "triposr": ["triposr"], "sf3d": ["sf3d"], "idol": ["idol"]}
+MODELS = {
+    "trellis": ["trellis_mesh", "trellis_splats"],
+    "triposr": ["triposr"],
+    "sf3d": ["sf3d"],
+    "idol": ["idol"],
+    "trellis2": ["trellis2"],
+}
 CHECKS = ["gt_bumpy", "gt_squashed", "gt_blurred"]
+CHUNKS = {"trellis2": 4}
 
 
 def gso_names() -> list[str]:
@@ -68,11 +75,16 @@ def choose_objects() -> list[str]:
 
 
 def generate(objects: list[str], models: list[str]) -> None:
-    calls = {m: modal.Function.from_name("image-to-3d-eval", f"gen_{m}").spawn(objects) for m in models}
+    calls = []
+    for m in models:
+        fn = modal.Function.from_name("image-to-3d-eval", f"gen_{m}")
+        # TRELLIS.2's export takes about 6 minutes an object: 4 containers share the objects (each warms up once).
+        n = CHUNKS.get(m, 1)
+        calls += [(m, fn.spawn(objects[k::n])) for k in range(n)]
     path = RESULTS / "gso_timing.csv"
     old = pd.read_csv(path) if path.exists() else pd.DataFrame(columns=["model"])
     new = []
-    for m, call in calls.items():
+    for m, call in calls:
         try:
             new += call.get()
         except Exception as err:  # noqa: BLE001, RUF100 - one model failing should not lose the others
