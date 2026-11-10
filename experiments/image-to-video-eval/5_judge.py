@@ -16,11 +16,11 @@ voters saw no prompt and no still); for camera, the reference animation of the m
 watched it above the two clips). For traps and our own models there are no voters; the judge gets the input still,
 the prompt, and an overall question.
 
-Judges: gpt-5.4-mini (OpenAI; directly for the first 1,471 calls, then through OpenRouter when the OpenAI credit ran
-out) and gemini-3.6-flash (Google, through OpenRouter), both at low reasoning effort, as in the 3D note. Replies are
-cached in results/judge_<source>.jsonl (one line per judge, pair and order), so a rerun only asks for what is missing.
-Token counts are kept on every line for the cost table. To stay inside the budget the judges see 200 of the 800 camera
-pairs (c000, c004, ...); the cheap scorers see 400 (the even-numbered ones).
+Judges: gpt-5.4-mini (OpenAI; through OpenRouter for the human-pair calls after the first 1,471 and for the traps,
+while the OpenAI credit was out) and gemini-3.6-flash (Google, through OpenRouter), both at low reasoning effort, as
+in the 3D note. Replies are cached in results/judge_<source>.jsonl (one line per judge, pair and order), so a rerun
+only asks for what is missing. Token counts are kept on every line for the cost table. To stay inside the budget the
+judges see 200 of the 800 camera pairs (c000, c004, ...); the cheap scorers see 400 (the even-numbered ones).
 """
 
 from __future__ import annotations
@@ -41,13 +41,10 @@ sys.path.insert(0, str(HERE))
 from common import DATA, RESULTS, env_key
 
 JUDGES = {
-    # The OpenAI account ran out of credit after the first 1,471 calls (all photorealism); every later gpt-5.4-mini
-    # call goes to the same model through OpenRouter, at the same list price. Each line records its route.
-    "gpt-5.4-mini": {
-        "base_url": "https://openrouter.ai/api/v1",
-        "key": "OPENROUTER_API_KEY",
-        "model": "openai/gpt-5.4-mini",
-    },
+    # The OpenAI account ran out of credit after the first 1,471 human-pair calls (all photorealism); the rest of the
+    # human pairs and the traps went to the same model through OpenRouter, at the same list price. After a top-up, the
+    # calls on our own models went to OpenAI again. Each line records its route.
+    "gpt-5.4-mini": {"base_url": None, "key": "OPENAI_API_KEY", "model": "gpt-5.4-mini"},
     "gemini-3.6-flash": {
         "base_url": "https://openrouter.ai/api/v1",
         "key": "OPENROUTER_API_KEY",

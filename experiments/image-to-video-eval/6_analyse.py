@@ -238,10 +238,13 @@ def ours() -> None:
     jv = judge_verdicts(path) if path.exists() else pd.DataFrame()
     rows = []
     for model, sub in clips.groupby("model"):
-        row = {"model": model, "clips": len(sub)}
+        # Quality scores on the 25 realism stills every model ran on (Wan and CogVideoX skipped the camera stills);
+        # the camera check uses the camera stills. Restricted after the first table mixed 40 and 25 stills.
+        realism = sub[sub.id.str.startswith("r")]
+        row = {"model": model, "clips": len(sub), "realism_clips": len(realism)}
         for m in EMBED + VBENCH:
             if m in sc:
-                mean, lo, hi = boot_mean(sub.video.map(sc[m]).to_numpy(float))
+                mean, lo, hi = boot_mean(realism.video.map(sc[m]).to_numpy(float))
                 row.update({m: mean, f"{m}_lo": lo, f"{m}_hi": hi})
         cam = sub[sub.movement != ""]
         if len(cam) and "camera_hit" in sc:
@@ -265,7 +268,7 @@ def ours() -> None:
             board[f"{key}_hi"] = pd.Series({m: c[1] for m, c in ci.items()})
         summary["ours_judge_consistency"] = jv.groupby("judge").consistent.mean().to_dict()
     board.to_csv(RESULTS / "ours_leaderboard.csv", float_format="%.4f")
-    print(board.T.to_string(float_format="%.3f"))
+    print(board.round(3).T.to_string())
     # Do the scorers rank our four models the same way? Kendall's tau between each pair of rankings.
     cols = [c for c in ["elo", "clip", "dinov2", *VBENCH, "camera_hit"] if c in board]
     summary["ours_rank_agreement"] = {f"{a}~{b}": float(kendalltau(board[a], board[b]).statistic)
