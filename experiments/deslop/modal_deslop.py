@@ -342,6 +342,75 @@ class Detectors:
         return out
 
 
+@app.function(image=base_image, gpu="H100", volumes={"/vol": volume}, timeout=60 * 60 * 3)
+def train_editlens_qwen(train: list[list], evals: dict[str, list[str]], lr: float = 1e-4, batch: int = 16,
+                        seed: int = 0) -> dict:  # fmt: skip
+    """An EditLens-style "how much AI" detector on Qwen3-4B: sequence classification over four buckets of AI editing,
+    LoRA (r 8, alpha 16, dropout 0.05) on every projection plus a LayerNorm + linear head, one epoch, as the EditLens
+    authors' Llama recipe, but bf16 instead of 4-bit. `train` is [cleaned text, bucket] pairs (cleaned and bucketed
+    locally with the authors' code); returns each eval set's scores (expected bucket on a 0-1 scale). The adapter stays
+    on the private volume: it is trained on CC BY-NC-SA data and is not released. Measurement only."""
+    import random
+
+    import torch
+    from peft import LoraConfig, get_peft_model
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+    torch.manual_seed(seed)
+    model_name, buckets = "Qwen/Qwen3-4B-Instruct-2507", 4
+    tok = AutoTokenizer.from_pretrained(model_name)
+    tok.padding_side = "left"
+    model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=buckets, dtype=torch.bfloat16)
+    model.config.pad_token_id = tok.pad_token_id
+
+    class NormedLinear(torch.nn.Module):
+        def __init__(self, hidden: int, out: int) -> None:
+            super().__init__()
+            self.norm = torch.nn.LayerNorm(hidden)
+            self.linear = torch.nn.Linear(hidden, out)
+
+        def forward(self, x):
+            return self.linear(self.norm(x))
+
+    model.score = NormedLinear(model.config.hidden_size, buckets).to(torch.bfloat16)
+    targets = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    config = LoraConfig(r=8, lora_alpha=16, lora_dropout=0.05, target_modules=targets, task_type="SEQ_CLS",
+                        modules_to_save=["score"])  # fmt: skip
+    model = get_peft_model(model, config).cuda()
+    model.gradient_checkpointing_enable()
+    model.enable_input_require_grads()
+    opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=lr)
+    order = list(range(len(train)))
+    random.Random(seed).shuffle(order)
+    model.train()
+    t0, log = time.time(), []
+    for step, b in enumerate(range(0, len(order), batch)):
+        chunk = [train[i] for i in order[b : b + batch]]
+        enc = tok([c[0] for c in chunk], truncation=True, max_length=512, padding=True, return_tensors="pt").to("cuda")
+        labels = torch.tensor([int(c[1]) for c in chunk], device="cuda")
+        loss = model(**enc, labels=labels).loss
+        loss.backward()
+        opt.step()
+        opt.zero_grad()
+        log.append(float(loss))
+        if step % 50 == 0:
+            print(f"step {step} loss {sum(log[-50:]) / len(log[-50:]):.3f} ({time.time() - t0:.0f} s)")
+    model.save_pretrained("/vol/adapters/editlens-qwen3-4b-private")
+    volume.commit()
+    model.eval()
+    scores: dict[str, list[float]] = {}
+    weights = torch.arange(buckets, device="cuda", dtype=torch.float32) / (buckets - 1)
+    with torch.no_grad():
+        for name, texts in evals.items():
+            out: list[float] = []
+            for b in range(0, len(texts), 32):
+                enc = tok(texts[b : b + 32], truncation=True, max_length=512, padding=True, return_tensors="pt")
+                probs = torch.softmax(model(**enc.to("cuda")).logits.float(), -1)
+                out += (probs @ weights).tolist()
+            scores[name] = out
+    return {"scores": scores, "loss": log, "seconds": round(time.time() - t0), "examples": len(train)}
+
+
 @app.function(image=image, gpu=GPU, volumes={"/vol": volume}, timeout=60 * 60 * 2)
 def train_lora(examples: list[dict], name: str, epochs: int = 2, lr: float = 2e-4, rank: int = 16, alpha: int = 32,
                batch: int = 8, seed: int = 0) -> dict:  # fmt: skip
