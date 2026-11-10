@@ -27,7 +27,8 @@ uv run steerlab inspect            # the live app at http://127.0.0.1:8770 (add 
 |---|---|
 | `sanity.py` | the five checks; writes `results/sanity.json` |
 | `make_cover.py` | the cover and thumbnail, drawn from `report/explorer/data.json` |
-| `screenshots.py` | Figures 1–8, screenshots of the saved explorer |
+| `screenshots.py` | still screenshots of the saved explorer (Figure 8) |
+| `record_demos.py` | Figures 1–7: one short looping video per screen, recorded from the live app (`report/media/`) |
 | `reproduce.sh` | all of the above, plus the export and the package tests (`--dry-run` prints the commands) |
 | `report/explorer/` | the saved explorer: the app's page reading `data.json` (six presets), written by `steerlab inspect --export` |
 
