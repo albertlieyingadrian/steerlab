@@ -59,7 +59,7 @@ jobs:
         run: |
           uv venv --python 3.12
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          uv pip install -e packages/sandbagkit -e "packages/steerlab[web]" --group pyproject.toml:dev
+          uv pip install -e packages/sandbagkit -e "packages/steerlab[web]" -e packages/deslop --group pyproject.toml:dev
       - name: ruff check
         run: ruff check .
       - name: ruff format
@@ -69,6 +69,9 @@ jobs:
         run: mypy src
       - name: mypy (strict), steerlab
         working-directory: packages/steerlab
+        run: mypy src
+      - name: mypy (strict), deslop
+        working-directory: packages/deslop
         run: mypy src
 
   test:
@@ -87,12 +90,15 @@ jobs:
         run: |
           uv venv --python ${{ matrix.python-version }}
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-          uv pip install -e packages/sandbagkit -e packages/steerlab --group pyproject.toml:dev
+          uv pip install -e packages/sandbagkit -e packages/steerlab -e packages/deslop --group pyproject.toml:dev
       - name: pytest, sandbagkit
         working-directory: packages/sandbagkit
         run: pytest
       - name: pytest, steerlab
         working-directory: packages/steerlab
+        run: pytest
+      - name: pytest, deslop
+        working-directory: packages/deslop
         run: pytest
 
   test-models:
@@ -108,12 +114,15 @@ jobs:
           uv venv --python 3.12
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
           uv pip install torch --index-url https://download.pytorch.org/whl/cpu
-          uv pip install -e "packages/sandbagkit[probing]" -e "packages/steerlab[models,web]" --group pyproject.toml:dev
+          uv pip install -e "packages/sandbagkit[probing]" -e "packages/steerlab[models,web]" -e "packages/deslop[models]" --group pyproject.toml:dev
       - name: pytest, sandbagkit
         working-directory: packages/sandbagkit
         run: pytest
       - name: pytest, steerlab
         working-directory: packages/steerlab
+        run: pytest
+      - name: pytest, deslop
+        working-directory: packages/deslop
         run: pytest
       - name: pytest, harness
         run: pytest harness/tests

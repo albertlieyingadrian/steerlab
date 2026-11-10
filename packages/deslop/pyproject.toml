@@ -1,0 +1,66 @@
+[build-system]
+requires = ["uv_build>=0.11.7,<0.14"]
+build-backend = "uv_build"
+
+[project]
+# Distribution name; the import and the command are `deslop` (PyPI's `deslop` is an unrelated project).
+name = "steerlab-deslop"
+version = "0.1.0"
+description = "Measure and remove chat-model writing habits: a slop score read against human prose, an Antislop-style backtracking sampler, and steering and neuron-edit hooks."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "albertlieyingadrian" }]
+keywords = ["slop", "writing", "llm", "antislop", "activation-steering", "interpretability"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed",
+]
+# The scorer, checks and CLI use only the standard library.
+dependencies = []
+
+[project.optional-dependencies]
+# The backtracking sampler and the steering and neuron-edit hooks.
+models = ["torch>=2.4", "transformers>=4.51", "numpy>=1.26"]
+
+[project.scripts]
+deslop = "deslop.cli:main"
+
+[project.urls]
+Homepage = "https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/"
+Source = "https://github.com/albertlieyingadrian/steerlab/tree/main/packages/deslop"
+
+[dependency-groups]
+dev = ["pytest>=9.0", "ruff>=0.17", "mypy>=2.0"]
+
+[tool.uv.build-backend]
+module-name = "deslop"
+source-include = ["tests/**"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config -m 'not slow'"
+markers = ["slow: real-model runs, excluded by default (run with -m slow)"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*", "transformers", "transformers.*", "numpy", "numpy.*"]
+ignore_missing_imports = true
