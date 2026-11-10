@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Judging image-to-video models: no cheap score matches one more voter, and VBench's consistency scores prefer a frozen photo</title>
+<meta name="description" content="On 1,200 voted pairs from benchmark.ai's public image-to-video votes, no cheap score or VLM judge agrees with the voters as often as one more voter does on realism (best: a Gemini judge, 0.62 against 0.66), while a graded CoTracker camera check matches one voter on camera moves. VBench's consistency and smoothness scores prefer a frozen copy of the input photo to the real clip 25 times out of 25.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Judging image-to-video models: no cheap score matches one more voter, and VBench&#x27;s consistency scores prefer a frozen photo">
+<meta property="og:description" content="On 800 realism pairs from benchmark.ai&#x27;s public image-to-video votes, no cheap score or VLM judge sides with the voters as often as one more voter does (best: a gemini-3.6-flash judge, 0.62 against 0.66); CLIP sits at chance. VBench&#x27;s consistency and smoothness scores prefer a frozen copy of the input photo to the real clip 25 times of 25, and a graded CoTracker check matches one voter on camera moves.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An illustration on a warm cream background: a printed photo of a misty lake with reeds lies on a desk; a duck swims out past the photo&#x27;s white border, its wake rippling onto the desk with a few small orange dots, and three translucent frames of the same lake peel off the photo&#x27;s edge and drift away like film.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Judging image-to-video models: no cheap score matches one more voter, and VBench&#x27;s consistency scores prefer a frozen photo">
+<meta name="twitter:description" content="On 800 realism pairs from benchmark.ai&#x27;s public image-to-video votes, no cheap score or VLM judge sides with the voters as often as one more voter does (best: a gemini-3.6-flash judge, 0.62 against 0.66); CLIP sits at chance. VBench&#x27;s consistency and smoothness scores prefer a frozen copy of the input photo to the real clip 25 times of 25, and a graded CoTracker check matches one voter on camera moves.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-12">
+<meta property="article:modified_time" content="2026-11-12">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Judging image-to-video models: no cheap score matches one more voter, and VBench's consistency scores prefer a frozen photo",
+ "description": "On 800 realism pairs from benchmark.ai's public image-to-video votes, no cheap score or VLM judge sides with the voters as often as one more voter does (best: a gemini-3.6-flash judge, 0.62 against 0.66); CLIP sits at chance. VBench's consistency and smoothness scores prefer a frozen copy of the input photo to the real clip 25 times of 25, and a graded CoTracker check matches one voter on camera moves.",
+ "abstract": "Rapidata's release of benchmark.ai's image-to-video votes (CC BY 4.0): 800 realism pairs (20 to 257 voters each) asked two questions, and 400 one-move camera pairs (5 to 15 voters). Against the majority of the other voters, one more voter agrees 0.660 [0.652, 0.669] on photorealism and 0.679 on glitches; the gemini-3.6-flash judge (8 frames per clip, position-swapped) 0.618 [0.592, 0.645] and 0.601; gpt-5.4-mini 0.581 and 0.572; optical-flow size 0.608; imaging quality 0.583; CLIP 0.509 and 0.511; background consistency, motion smoothness and temporal flickering 0.40 to 0.47. Paired, gemini beats CLIP by +10.8 points [+6.5, +15.3] and +9.0, and trails one voter by 4.3 [1.7, 6.8] and 7.8. On 25 real generations, subject and background consistency, motion smoothness, temporal flickering, I2V subject and background, CLIP and DINOv2 prefer a frozen copy of the input photo 25 of 25 times; the judges 14%. On 96 real-footage pairs voters pick the real clip 80%, gemini 56%, gpt-5.4-mini 44%. Camera: a graded CoTracker shift agrees 0.734 [0.696, 0.770] against one voter's 0.707 (paired +2.7 [-1.0, +6.5]); VBench's yes/no heuristic 0.593; CLIP 0.420. Ranking 17 models and real footage: imaging quality Spearman 0.75 and 0.79, gemini 0.59 and 0.69, CLIP 0.32 and 0.47. On one H100 80 GB: LTX-Video 0.9.7 distilled 5.8 s per clip and 42 GB, SVD-XT 19.9 s and 30 GB, CogVideoX-5B-I2V 114 s and 25 GB, Wan 2.2 TI2V-5B 185 s and 51 GB.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-12",
+ "dateModified": "2026-11-12",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "image-to-video, video generation, evaluation, VBench, VLM judge, LLM-as-a-judge, CLIP score, human preference, camera motion, CoTracker, Wan 2.2, LTX-Video, CogVideoX, Stable Video Diffusion, benchmark.ai",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2411.13503"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/Rapidata/image-to-video-realism-human-feedback-benchmark"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/Rapidata/image-to-video-camera-movement-human-feedback-benchmark"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2503.20314"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2501.00103"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2408.06072"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.15127"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2307.07635"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--control); color: var(--control); }
+  .gallery video { display: block; width: 100%; height: auto; border-radius: 6px; background: #fff; }
+  .gallery .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-12">Nov 12, 2026</time></p>
+  <h1>Judging image-to-video models: no cheap score matches one more voter, and VBench’s consistency scores prefer a frozen photo</h1>
+  <p class="dek ruled">An image-to-video model turns one photo into a few seconds of moving footage. Checking it by eye is slow, so leaderboards lean on automatic scores and AI judges. This note checks them against 1,200 pairs of clips from benchmark.ai’s public votes, against broken copies of real clips, and runs four open models on one GPU.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="An illustration on a warm cream background: a printed photo of a misty lake with reeds lies on a desk; a duck swims out past the photo's white border, its wake rippling onto the desk with a few small orange dots, and three translucent frames of the same lake peel off the photo's edge and drift away like film." width="1536" height="1024">
+    <figcaption>Cover: what an image-to-video model does. A still photo starts to move; the frames drifting off the edge are the clip it becomes. Made with an image model (gpt-image-2) from the prompt in <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>Rapidata’s image-to-video realism and camera-movement benchmarks (the votes behind benchmark.ai, both CC BY 4.0): 800 realism pairs asked two questions, 400 camera pairs</dd></div>
+    <div><dt>Models</dt><dd>Wan 2.2 TI2V-5B, LTX-Video 0.9.7 distilled, CogVideoX-5B-I2V, Stable Video Diffusion XT; judges gpt-5.4-mini and gemini-3.6-flash; VBench++ dimensions, CLIP and DINOv2 as cheap scores</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/image-to-video-eval/</a>; VBench++ scoring on Modal in <a href="../modal_i2v.py">modal_i2v.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/agreement_human.csv">results/agreement_human.csv</a>, <a href="../results/traps_result.csv">results/traps_result.csv</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Do cheap scores for image-to-video clips agree with people as often as one more voter does?</strong></p>
+    <p>Not on realism. On 800 pairs of clips that dozens of people compared, one more voter sides with the rest 66% of the time on “which looks shot by a real camera?” and 68% on “which has fewer glitches?”. The best stand-in, a gemini-3.6-flash judge shown 8 frames per clip, reaches 62% and 60%; CLIP similarity sits at chance (51%), and three of VBench++’s consistency and smoothness scores land below chance, because they reward clips that barely move. Made to choose between a real generation and a frozen copy of its input photo, those scores, subject consistency, the I2V scores, CLIP and DINOv2 pick the frozen photo every time (25 of 25); the two judges pick it 14% of the time. Camera moves are the exception: a graded version of VBench++’s CoTracker check agrees with voters 73% of the time, level with one more voter (71%). On one H100, the four open models take 6 to 185 seconds per clip and hold 25 to 51 GB.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does a cheap scorer pick the clip most voters picked? (800 realism pairs, two questions)</td><td><strong>Less often than one more voter.</strong> Photorealism: gemini-3.6-flash judge 0.618 [0.592, 0.645], optical-flow size 0.608, gpt-5.4-mini judge 0.581, CLIP 0.509. Fewer glitches: gemini 0.601 [0.572, 0.628], CLIP 0.511</td><td>One voter against the others: 0.660 [0.652, 0.669] and 0.679 [0.669, 0.689]. Paired, gemini is 4.3 points [1.7, 6.8] and 7.8 points [5.1, 10.6] below</td></tr>
+          <tr><td>Does any scorer beat CLIP, pair by pair?</td><td><strong>Both judges and the image-quality scores do;</strong> gemini by +10.8 points [+6.5, +15.3] on photorealism and +9.0 [+4.9, +12.8] on glitches</td><td>Background consistency, motion smoothness and temporal flickering do worse than CLIP (−6.9 to −11.1 points on photorealism)</td></tr>
+          <tr><td>Do scorers prefer a broken copy to the real clip? (25 clips)</td><td><strong>VBench’s consistency, smoothness and I2V scores, CLIP and DINOv2 prefer a frozen copy of the input photo 25 times of 25.</strong> Motion smoothness and temporal flickering also prefer a heavily blurred copy (0.92 and 1.00)</td><td>gpt-5.4-mini and gemini-3.6-flash prefer the frozen photo in 14%, the blurred copy in 0%</td></tr>
+          <tr><td>Real camera footage against a generated clip (96 pairs)</td><td>The voters’ majority picks the real footage 80% [72, 89] of the time on photorealism. gemini-3.6-flash picks it 56%, gpt-5.4-mini 44%</td><td>CLIP 66%; VBench’s I2V background score 72%</td></tr>
+          <tr><td>Did the clip make the asked camera move? (400 pairs)</td><td><strong>A graded CoTracker shift agrees 0.734 [0.696, 0.770],</strong> level with one voter (paired +2.7 points [−1.0, +6.5])</td><td>VBench++’s yes/no camera heuristic 0.593; gemini judge 0.667 (200 pairs); CLIP 0.420, below chance</td></tr>
+          <tr><td>Do the scorers rank the 17 models and the real footage as all the votes do?</td><td>Imaging quality (MUSIQ): Spearman 0.75 and 0.79; gemini judge 0.59 and 0.69; CLIP 0.32 and 0.47</td><td>The sampled votes alone: 0.95 and 0.96. Temporal flickering: −0.31</td></tr>
+          <tr><td>Four open models on one H100 80 GB</td><td>LTX-Video 0.9.7 distilled 5.8 s per clip, 42 GB; SVD-XT 19.9 s, 30 GB; CogVideoX-5B-I2V 114 s, 25 GB; Wan 2.2 TI2V-5B 185 s, 51 GB</td><td>Wan and CogVideoX ran on 25 stills, LTX and SVD on 40, to stay inside the budget</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Take a five-second clip a model made from a photo of flags in the wind, and next to it a “clip” that is just the photo shown for five seconds. Ask VBench++, the most used benchmark for these models, which is more consistent, smoother and less flickery: it says the frozen photo, on all 25 clips we tried. That is not a bug in the code. A video that never changes is perfectly consistent with itself. It is a warning about what the scores measure, and the question this note asks is the practical one: when a lab reports such a score, or an AI judge’s verdict, how often does it agree with the people who watched the clips?</p>
+  <p><strong>What is known.</strong> Image-to-video models (Wan, LTX-Video, CogVideoX, Stable Video Diffusion, and closed ones such as Veo and Kling) take a still and a short instruction and return a few seconds of video. <a href="https://arxiv.org/abs/2411.13503">VBench++</a> scores them on many “dimensions”, each a small model: DINO features for subject consistency, a frame-interpolation model for smoothness, optical flow for how much moves, a CoTracker point tracker for camera motion, and others. Its authors validate each dimension against human preference on their own pairs, and include a “dynamic degree” score because consistency rewards stillness. Vision-language models are also used as judges. And public arenas now publish their votes: Rapidata released the votes behind <a href="https://www.benchmark.ai">benchmark.ai</a>’s image-to-video leaderboards, every vote and every clip, under CC BY 4.0.</p>
+  <p><strong>What is missing.</strong> A check of these scores against someone else’s votes, pair by pair, with the voters’ own disagreement as the yardstick; and a check of each score on clips with a known answer. The sibling note on <a href="../../image-to-3d-eval/report/">image-to-3D models</a> found that cheap scores agree with voters about as often as one more voter does. Video is a harder test: the thing being judged is motion over time, which a single frame cannot show.</p>
+  <p class="question-callout">Do cheap automatic scores and AI judges agree with the human majority on image-to-video clips as often as one more voter does, and which of them can be fooled by a clip that is obviously broken?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A measurement: 12 VBench++ scores, CLIP, DINOv2 and two judges against 800 realism pairs (two questions) and 400 camera pairs, with one voter’s agreement with the rest as the ceiling.</li>
+    <li>Known-answer checks: every scorer against four broken copies of 25 real generations (a frozen photo, the clip reversed, its frames shuffled, a heavy blur), and against real camera footage.</li>
+    <li>A camera-move check: VBench++’s CoTracker heuristic, and a graded version of it, against the camera-movement votes.</li>
+    <li>Four open models run on one GPU, with seconds and memory per clip, and a gallery of their clips beside the real footage.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before scoring:</p>
+  <ol>
+    <li>Each scorer is compared with one voter on the same pairs and the same target (the majority of the other voters).</li>
+    <li>A scorer “beats” another only if the paired difference, pair by pair, has a 95% interval above zero. CLIP, the simplest score, is the baseline every scorer is compared with.</li>
+    <li>Every scorer is also checked on broken copies of real clips, which it should never prefer.</li>
+    <li>Every clip is decoded, resized and scored by the same code.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="video-101" data-short="Video 101">2.1 Video 101, for software engineers</h3>
+  <ul>
+    <li><strong>A video is a list of images (frames) and a frame rate.</strong> The clips here are 5 to 6.6 seconds at 16 to 30 frames a second, so 80 to 180 frames. Everything below reads frames; sound is ignored.</li>
+    <li><strong>Image-to-video conditioning.</strong> The model is given the first frame (the still) and a sentence (“flags flying in the wind”) and must invent the rest. Good output keeps the still’s content, moves plausibly and has no “glitches”: melting hands, objects that pop in or out, flicker.</li>
+    <li><strong>Consistency scores compare frames with each other.</strong> Embed every frame with an image model (DINO for the subject, CLIP for the background) and average the cosine similarity of each frame to the first and to the previous one. A clip that changes little scores high, whether it changes little because it is good or because it barely moves.</li>
+    <li><strong>Smoothness and flicker look at neighbouring frames.</strong> Motion smoothness drops every other frame, asks a frame-interpolation network (AMT) to fill it back in, and scores how close the guess is. Temporal flickering is the mean pixel difference between consecutive frames, flipped so that higher is better.</li>
+    <li><strong>Optical flow measures how much moves.</strong> RAFT estimates, for every pixel, where it moved between two frames. VBench++’s dynamic degree turns the largest flows into a yes/no “does it move?”; here their mean size is kept too, as a graded score.</li>
+    <li><strong>Per-frame quality scores ignore time.</strong> Aesthetic quality (a LAION predictor on CLIP features) and imaging quality (MUSIQ, trained on human ratings of photo sharpness and noise) score each frame as a photo and average.</li>
+    <li><strong>Point tracking reads the camera.</strong> CoTracker follows a 10 by 10 grid of points through the clip. If the points all slide right, the camera panned left; if they spread out from the centre, it zoomed in.</li>
+  </ul>
+
+  <h3 id="toy" data-short="One more voter, by hand">2.2 “One more voter”, by hand, on five votes</h3>
+  <p>Five people compare clips A and B: three choose A, two choose B. Remove each person in turn and ask whether they agree with the majority of the four left:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Person removed</th><th>The other four</th><th>Majority</th><th class="num">Removed person agrees?</th></tr></thead>
+      <tbody>
+        <tr><td>One of the 3 A-voters</td><td>2 A, 2 B</td><td>tie</td><td class="num">½ (each of 3)</td></tr>
+        <tr><td>One of the 2 B-voters</td><td>3 A, 1 B</td><td>A</td><td class="num">0 (each of 2)</td></tr>
+        <tr><td>Average over the five</td><td></td><td></td><td class="num">(3 × ½ + 2 × 0) / 5 = 0.30</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>A scorer that picked A is scored against the same five four-voter majorities: ½ three times and 1 twice, so 0.70. On a pair this split, any scorer that agrees with the overall majority beats a random voter. Averaged over many pairs, “one more voter” is the agreement an extra person would add; a scorer above it is a better stand-in for the crowd than one more member of it. The realism pairs have 20 to 257 voters each (median 60), so the majority is firm and the ceiling is close to the average voter’s accuracy; the camera pairs have 5 to 15 (median 5).</p>
+
+  <h3 id="data">2.3 Two vote sets and one set of stills</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used here</th></tr></thead>
+      <tbody>
+        <tr><td>Rapidata image-to-video realism (<a href="https://huggingface.co/datasets/Rapidata/image-to-video-realism-human-feedback-benchmark">dataset</a>, CC BY 4.0)</td><td>Pairs of clips from the same still and prompt: 25 stills, 17 models plus the real footage the still came from. Two questions, asked without the prompt: “Which video looks more like it was shot by a real camera?” and “Which video has more glitches and is more likely to be AI generated?”</td><td class="num">2,981 pairs, 522,210 votes</td><td>All pairs for the ranking; 800 pairs (stratified by model pair, no exact ties), each used for both questions (<a href="../results/human_pairs.csv">human_pairs.csv</a>)</td></tr>
+        <tr><td>Rapidata image-to-video camera movement (<a href="https://huggingface.co/datasets/Rapidata/image-to-video-camera-movement-human-feedback-benchmark">dataset</a>, CC BY 4.0)</td><td>Pairs of clips asked to make the same camera move from the same still; voters watch a reference animation of the move and answer “Which video better matches the movement of the top video?”</td><td class="num">82,153 pairs, 22 stills</td><td>All one-move pairs for the ranking (20 models); 800 one-move pairs sampled (stratified by move), of which 400 were scored and 200 judged (section 3)</td></tr>
+        <tr><td>Our clips</td><td>The 25 realism stills with their own prompts, and 15 camera stills each with one single-move prompt from the camera set</td><td class="num">130 clips</td><td>Speed, memory and the gallery (section 4.7)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Only one-move camera prompts whose move shows up as one of VBench++’s six image-motion classes are used: pan and slide left or right, tilt and rise or descend, zoom and dolly in or out (12 of the 14 single moves; rolls have no class). A slide and a pan both move the picture sideways, so both map to the same class.</p>
+
+  <h3 id="scorers">2.4 The scorers</h3>
+  <ul>
+    <li><strong>VBench++ scores</strong>, computed by the <code>vbench</code> package’s own functions (version 0.1.5) on every frame: subject consistency, background consistency, motion smoothness, temporal flickering, dynamic degree (and its mean flow size), aesthetic quality, imaging quality, I2V subject (DINO, frames against the still) and I2V background (DreamSim). Higher is better for all, as VBench++ defines them.</li>
+    <li><strong>CLIP and DINOv2 similarity</strong>, as in the 3D note: mean cosine between the still and 8 evenly spaced frames. CLIP is the baseline.</li>
+    <li><strong>Camera move</strong>: VBench++’s heuristic (CoTracker2 on a 10 × 10 grid; a clip “hits” when the asked class is among those it reads), and a graded version fixed before scoring: the mean shift of the tracked points from first to last frame in the direction the move should push the picture, as a share of the short side.</li>
+    <li><strong>Two judges</strong>: gpt-5.4-mini and gemini-3.6-flash, at low reasoning effort. Each clip is shown as one image of 8 frames spread over the clip, in order. The judge gets what the voters got, as far as frames allow: the two clips and the voters’ own question for realism; the reference animation, made into the same kind of sheet, plus the two clips for camera. One question per call, and each pair is asked twice with the clips swapped; a clip wins only if both orders pick it, otherwise it is a tie.</li>
+  </ul>
+  <p>Every clip is first re-encoded at 480 pixels on its short side, with its frame rate, length and frames unchanged, so every scorer sees the same pixels. Agreement is scored as in 2.2 for every scorer; a tie, or a judge that changed its mind when the order was swapped, earns half.</p>
+
+  <h3 id="models">2.5 Four open models</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th>Maker, licence</th><th>Settings (model card defaults, seed 0)</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B-Diffusers">Wan 2.2 TI2V-5B</a></td><td>Alibaba, Apache-2.0</td><td>About 1280 × 704 at the still’s shape, 121 frames at 24 fps, 50 steps, guidance 5</td></tr>
+        <tr><td><a href="https://huggingface.co/Lightricks/LTX-Video-0.9.7-distilled">LTX-Video 0.9.7 distilled</a> (13B)</td><td>Lightricks, LTX-Video Open Weights licence</td><td>832 × 480 (480 × 832 for a portrait still), 121 frames at 24 fps, the distilled eight-step schedule, one stage</td></tr>
+        <tr><td><a href="https://huggingface.co/THUDM/CogVideoX-5b-I2V">CogVideoX-5B-I2V</a></td><td>Zhipu AI and Tsinghua, CogVideoX licence</td><td>720 × 480 (its only size; portrait stills are cropped), 49 frames at 8 fps, 50 steps, guidance 6</td></tr>
+        <tr><td><a href="https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt">Stable Video Diffusion XT</a> 1.0</td><td>Stability AI, Stability AI Community licence</td><td>1024 × 576 (576 × 1024 portrait), 25 frames at 7 fps, 25 steps; takes no text, so it ignores the prompt</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>SVD-XT 1.1, the version the plan named, is gated on Hugging Face and its licence had not been accepted, so it was skipped and the ungated 1.0 used instead.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Goal and design</strong> written first (plan, Nov 10): the 3D note’s question, with traps and a camera check added.</li>
+    <li><strong>Licences and gates.</strong> Both vote sets are CC BY 4.0. Wan, LTX-Video, CogVideoX and SVD-XT 1.0 are ungated; SVD-XT 1.1 is gated and was skipped. CoTracker’s weights are CC BY-NC 4.0, used here for evaluation only.</li>
+    <li><strong>Human samples:</strong> 800 realism pairs (both questions) and 800 camera pairs; 1,776 clips downloaded and re-encoded.</li>
+    <li><strong>Traps:</strong> one generated clip per realism still (25), each with four broken copies (100 clips).</li>
+    <li><strong>Cheap scores</strong> on Modal (L4 or A10G): 396 realism clips, 766 camera clips, 100 traps; about 24 seconds per clip for every score.</li>
+    <li><strong>Judges:</strong> 3,200 calls per judge on the realism pairs, 400 on 200 camera pairs, 200 on the traps: 7,600 calls in all, every reply a valid answer.</li>
+    <li><strong>Generation:</strong> 4 models, one H100 each, after one warm-up clip: 130 clips, no failures.</li>
+    <li><strong>Analysis:</strong> leave-one-voter-out agreement with 95% bootstrap intervals over pairs; paired differences against CLIP and against one voter; Bradley-Terry rankings.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any scoring</th><th>Changed during the run</th></tr></thead>
+      <tbody>
+        <tr><td>The questions, the samples and their sizes; the scorers and the graded camera shift; the judges, their prompts and the position swap; the four traps; CLIP as the baseline; bootstrap intervals and paired differences</td><td>For the $40 budget, before any agreement or trap result was read: traps on 25 clips, not 50; camera scorers on 400 of the 800 sampled pairs and judges on 200; Wan and CogVideoX on the 25 realism stills only. At the cap, scoring and judging our own models’ clips was dropped. When OpenAI credit ran out after 1,471 calls, the rest of gpt-5.4-mini’s calls went to the same model through OpenRouter. After the first analysis, 11 camera pairs outside the pre-set 400 (both of their clips happened to be scored) were removed from the table, and the trap figure’s colours were set at 0.4 and 0.6 so that ties read as “cannot tell”.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: Modal, one NVIDIA H100 80 GB per model for generation and one L4 or A10G per container for scoring, $23.46 billed, including image builds, smoke tests, and about $3 lost when two stopped generation jobs were restarted by the platform. Judges: $17.00 at list prices from logged tokens (gpt-5.4-mini $5.83, gemini-3.6-flash $11.17). Cover about $0.50.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Seven findings:</p>
+  <ol>
+    <li><a href="#pairs"><strong>4.1</strong></a> On realism, no cheap scorer agrees with the voters as often as one more voter.</li>
+    <li><a href="#paired"><strong>4.2</strong></a> The judges and the image-quality scores beat CLIP; the consistency scores lose to it.</li>
+    <li><a href="#traps"><strong>4.3</strong></a> Consistency and smoothness scores prefer a frozen photo to a real clip; the judges do not.</li>
+    <li><a href="#real-footage"><strong>4.4</strong></a> Real camera footage: voters pick it, the judges barely do.</li>
+    <li><a href="#camera"><strong>4.5</strong></a> Camera moves: a graded point-tracker check matches one voter.</li>
+    <li><a href="#ranks"><strong>4.6</strong></a> Ranking the models: imaging quality comes closest; the judges flip with the order.</li>
+    <li><a href="#open-models"><strong>4.7</strong></a> Four open models: 6 to 185 seconds and 25 to 51 GB per clip on one H100.</li>
+  </ol>
+
+  <h3 id="pairs" data-short="Realism: below one voter">4.1 On realism, no cheap scorer agrees with the voters as often as one more voter</h3>
+  <p><strong>On the 800 photorealism pairs, one more voter agrees with the rest 66.0% of the time [65.2, 66.9]. The best scorers are the gemini-3.6-flash judge (61.8% [59.2, 64.5]), optical-flow size (60.8%) and imaging quality (58.3%); CLIP sits at chance, 50.9% [47.6, 54.3]. On “which has fewer glitches?” one voter agrees 67.9%, gemini 60.1%, aesthetic quality 57.9%, CLIP 51.1%.</strong> Every scorer’s interval ends below the voter’s (Figure 1).</p>
+  <figure class="plot">
+    <img src="figures/agreement.png" alt="Three dot plots with intervals. Photorealism and fewer-glitches panels: CLIP, DINOv2 and the I2V scores near 0.5; background consistency, motion smoothness and temporal flickering between 0.40 and 0.47, left of the chance line; flow, aesthetic and imaging quality and the two judges between 0.55 and 0.62, all left of a grey band at about 0.66 to 0.68 for one more voter. Camera panel: CLIP 0.42 and DINOv2 0.36 below chance; dynamic degree 0.59, flow 0.65, VBench's yes/no camera check 0.59, gpt judge 0.59, gemini judge 0.67, and the graded camera shift at 0.73, overlapping the voter band at 0.71." width="2175" height="870">
+    <figcaption><span class="label">Figure 1.</span> Agreement with the voters on 800 photorealism pairs, the same 800 pairs asked about glitches, and 400 camera pairs (the judges: 200 of them). For each pair, each voter is removed in turn and the scorer is checked against the majority of the rest (a tie counts half); grey band and dashed line: the removed voter, scored the same way. Dots: 95% bootstrap intervals over pairs; orange: the two judges. Dotted line: chance. The axis starts at 0.3. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/agreement_human.csv">agreement_human.csv</a>.</figcaption>
+  </figure>
+  <p>The voters themselves split often: only 190 of the 800 photorealism pairs and 240 of the glitch pairs have three quarters or more of the votes on one side. On those clear pairs, one voter agrees 84% and 86% of the time, and the gemini judge gets closest: 80.8% [75.8, 85.3] and 75.4%. CLIP stays near chance even there (54.7% and 59.6%), and temporal flickering falls to 31%: on the pairs people agree on most, it picks the clip they rejected two times in three.</p>
+  <p>This is the opposite of the image-to-3D note, where CLIP matched one more voter on shape and looks. A 3D object’s renders either look like the photo or not, which is what CLIP measures. Every clip here starts from the same photo, so “looks like the photo” separates little, and what people judge (does the motion look real, does anything melt) is not in a single frame.</p>
+
+  <h3 id="paired" data-short="Who beats CLIP">4.2 The judges and the image-quality scores beat CLIP; the consistency scores lose to it</h3>
+  <p><strong>Pair by pair, gemini-3.6-flash agrees with the voters 10.8 points more often than CLIP on photorealism [+6.5, +15.3] and 9.0 points more on glitches [+4.9, +12.8]; gpt-5.4-mini by 7.2 and 6.1. Imaging and aesthetic quality also beat CLIP on both questions, and flow size on photorealism. Background consistency, motion smoothness and temporal flickering do worse than CLIP by 6.9 to 11.1 points on photorealism.</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Paired difference in agreement (points)</th><th class="num">Photorealism</th><th class="num">Fewer glitches</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>gemini-3.6-flash judge − CLIP</td><td class="num">+10.8 [+6.5, +15.3]</td><td class="num">+9.0 [+4.9, +12.8]</td></tr>
+        <tr><td>gpt-5.4-mini judge − CLIP</td><td class="num">+7.2 [+2.5, +11.8]</td><td class="num">+6.1 [+2.2, +9.7]</td></tr>
+        <tr><td>Optical-flow size − CLIP</td><td class="num">+9.8 [+4.4, +15.2]</td><td class="num">+3.7 [−1.7, +9.4]</td></tr>
+        <tr><td>Imaging quality − CLIP</td><td class="num">+7.4 [+3.1, +11.9]</td><td class="num">+6.1 [+1.8, +10.4]</td></tr>
+        <tr><td>Aesthetic quality − CLIP</td><td class="num">+6.2 [+1.4, +11.2]</td><td class="num">+6.9 [+1.9, +11.6]</td></tr>
+        <tr><td>Temporal flickering − CLIP</td><td class="num">−11.1 [−14.9, −7.2]</td><td class="num">−7.9 [−11.8, −4.2]</td></tr>
+        <tr><td>gemini-3.6-flash judge − one more voter</td><td class="num">−4.3 [−6.8, −1.7]</td><td class="num">−7.8 [−10.6, −5.1]</td></tr>
+        <tr><td>CLIP − one more voter</td><td class="num">−15.1 [−18.4, −11.7]</td><td class="num">−16.8 [−20.2, −13.4]</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The pattern is consistent: scores that reward change (flow size) or judge each frame as a photo (MUSIQ, the aesthetic predictor) point the right way; scores that reward sameness across frames point the wrong way. On these pairs, more motion goes with more realism: the clips people call fake are often the ones where little happens, or where something drifts slowly. The full table, every scorer against both baselines, is in <a href="../results/agreement_paired.csv">agreement_paired.csv</a>.</p>
+
+  <h3 id="traps" data-short="Traps: the frozen photo">4.3 Consistency and smoothness scores prefer a frozen photo to a real clip; the judges do not</h3>
+  <p>For one generated clip per realism still (25 clips, drawn at random, never the real footage) four broken copies were made, each the same size, length and frame rate: the input photo repeated for every frame (frozen), the frames in reverse order, the frames shuffled, and every frame heavily blurred. A scorer passes if it prefers the real clip. The judges were shown the still and the prompt, and asked which video is the better one made from that image.</p>
+  <p><strong>Subject and background consistency, motion smoothness, temporal flickering, both I2V scores, CLIP and DINOv2 prefer the frozen photo on all 25 clips. Motion smoothness and temporal flickering also prefer the blurred copy (0.92 and 1.00). The two judges prefer the frozen photo in 14% of clips and the blurred copy in none (Figure 2).</strong></p>
+  <figure class="plot">
+    <img src="figures/traps.png" alt="A grid of circles, one row per scorer and one column per broken copy, sized by how often the scorer prefers the broken copy. The still column is orange at 1.00 for CLIP, DINOv2, subject and background consistency, motion smoothness, temporal flickering and both I2V scores, 0.68 for aesthetic and imaging quality, and small for dynamic degree, flow and both judges (0.00 to 0.14). Flow prefers shuffled frames 0.96. Motion smoothness and temporal flickering prefer the blurred copy 0.92 and 1.00. The judges are 0.32 or below everywhere." width="1080" height="810">
+    <figcaption><span class="label">Figure 2.</span> Share of 25 real generations where each scorer prefers a broken copy of the clip to the clip itself (a tie counts half). Columns: the input still repeated for every frame; the frames reversed; the frames shuffled; every frame blurred. Orange: the scorer prefers the broken copy in 60% or more; dark grey: 40% to 60%, cannot tell them apart; light: under 40%. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/traps_result.csv">traps_result.csv</a>.</figcaption>
+  </figure>
+  <p>Each failure follows from what the score measures. A frozen photo is perfectly consistent and smooth, never flickers, and matches the input exactly, so every score built on frame-to-frame or frame-to-input similarity must prefer it. That is why VBench++ pairs them with dynamic degree, which does reject the frozen photo (0.10), and reports the scores side by side. Blur removes the fine detail that changes between frames, so a blurred clip looks smoother. Shuffling is caught by smoothness and flicker but rewarded by flow size (0.96), since jumping between distant frames is a lot of motion. Reversing a clip leaves most scores unable to tell (0.44 to 0.56): the same frames, in another order. Aesthetic and imaging quality prefer the frozen photo in 17 of 25 clips, because the photo is sharper than most generated frames.</p>
+  <p>The judges’ low rate on reversed clips (gemini 2%) comes partly from the setup: they see the input still, and a reversed clip ends on that still instead of starting from it. On the traps the judges rarely changed their answer when the order was swapped (93% of pairs consistent for gemini, 80% for gpt-5.4-mini), so the 14% for the frozen photo is a choice, not noise.</p>
+
+  <h3 id="real-footage" data-short="Real footage">4.4 Real camera footage: voters pick it, the judges barely do</h3>
+  <p>The realism set includes the real footage each still was taken from, so 96 of the sampled pairs set real footage against a generated clip. <strong>The voters’ majority picks the real footage 80% of the time [72, 89] as more like a real camera, and 77% as having fewer glitches. gemini-3.6-flash picks it 56% and 62% of the time, gpt-5.4-mini 44% and 52%.</strong> Some cheap scores do better than the judges here: CLIP 66%, imaging quality 63%, I2V background 72%.</p>
+  <p>Real footage tends to stay close to its first frame, which the I2V and CLIP scores reward, while today’s best generators produce sharp, eventful clips that a judge reading 8 frames cannot tell from real. The 3D note found the judges were the stronger stand-in; here the best judge still misses the real clip in nearly half of these pairs.</p>
+
+  <h3 id="camera" data-short="Camera moves">4.5 Camera moves: a graded point-tracker check matches one voter</h3>
+  <p><strong>On 400 camera pairs, one more voter agrees with the rest 70.7% of the time [67.9, 73.2]. The graded CoTracker shift agrees 73.4% [69.6, 77.0], level with the voter (paired +2.7 points [−1.0, +6.5]) and 31.4 points above CLIP. VBench++’s yes/no version reaches 59.3%, the gemini judge 66.7% and gpt-5.4-mini 58.6% (on 200 pairs, where one voter is at 72.6%). CLIP (42.0%) and DINOv2 (36.1%) are below chance.</strong></p>
+  <p>The yes/no check is too coarse for comparing two good clips: it reads the asked move in 85.6% of all clips [83.1, 87.9] (from 74% for “zoom out” to 94% for “tilt up”), so in most pairs both clips pass and the pair is a tie. The graded shift says how far the picture moved in the asked direction, which separates a hesitant move from a full one. On the 254 clear pairs it reaches 82.7% against one voter’s 88.5%. CLIP and DINOv2 fall below chance for the same reason as in 4.3: a clip that moves the camera less stays closer to the still. A caution: the graded shift was defined before scoring, but it is one of two camera scores tried, and this is its only test.</p>
+
+  <h3 id="ranks" data-short="Ranking the models">4.6 Ranking the models: imaging quality comes closest; the judges flip with the order</h3>
+  <p><strong>Turned into a ranking of the 17 models and the real footage over the sampled pairs, imaging quality agrees with the ranking from all 2,981 comparisons with Spearman 0.75 (photorealism) and 0.79 (glitches); the gemini judge 0.59 and 0.69; CLIP 0.32 and 0.47; temporal flickering −0.31 and −0.13.</strong> The 800 sampled votes themselves reach 0.95 and 0.96. On camera moves (20 models), the graded shift reaches 0.90, gemini 0.72, VBench++’s yes/no check 0.70, and CLIP −0.33.</p>
+  <p>The judges are unstable within a pair. Swapping the two clips changes the verdict in 34% (gemini) and 40% (gpt-5.4-mini) of photorealism pairs, and gemini picks whichever clip it saw first 62% of the time (gpt-5.4-mini 48%). The swap turns those pairs into ties, which costs agreement; asking once, in one order, would have hidden the bias and kept the error. With 8 frames, many pairs of good clips look alike, and the judge falls back on position.</p>
+
+  <h3 id="open-models" data-short="Four open models">4.7 Four open models: 6 to 185 seconds and 25 to 51 GB per clip on one H100</h3>
+  <p><strong>With each model loaded and warmed up on one H100 80 GB, LTX-Video 0.9.7 distilled makes a 5-second clip in 5.8 seconds, holding 42 GB; SVD-XT makes 3.6 seconds of video in 19.9 seconds (30 GB); CogVideoX-5B-I2V makes 6 seconds in 114 seconds (25 GB); Wan 2.2 TI2V-5B makes 5 seconds at about 720p in 185 seconds (51 GB).</strong> At Modal’s list price that is about $0.006, $0.02, $0.13 and $0.20 per clip (Figure 3).</p>
+  <figure class="plot">
+    <img src="figures/speed.png" alt="Scatter of seconds per clip, on a log scale, against peak GPU memory: LTX-Video 0.9.7 distilled at 5.8 s and 42 GB, SVD-XT at 19.9 s and 30 GB, CogVideoX-5B-I2V at 114 s and 25 GB, Wan 2.2 TI2V-5B at 185 s and 51 GB." width="930" height="540">
+    <figcaption><span class="label">Figure 3.</span> Median seconds per clip (from the still to decoded frames, model loaded, after one warm-up clip) against the most GPU memory PyTorch held during any clip, on one NVIDIA H100 80 GB. Clip lengths differ: 121 frames at 24 fps (Wan, LTX), 49 at 8 fps (CogVideoX), 25 at 7 fps (SVD). Wan and CogVideoX: 25 clips, timed from the gaps between the files they wrote (their logged rows were lost when the jobs were stopped; one logged clip each agrees within 5%), with memory from that logged clip. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/gen_timing.csv">gen_timing.csv</a>.</figcaption>
+  </figure>
+  <p>LTX’s speed comes from distillation (8 denoising steps instead of 50); it holds a lot of memory because the 13B transformer and the T5 text encoder stay on the GPU. Memory here is what each pipeline held at its default settings with everything on the GPU; offloading would trade speed for memory. These clips were not scored or judged: the budget ran out first (section 3). Given 4.1 to 4.3, the scores to report for them would be the ones that came closest to people (imaging quality, the gemini judge, flow size), each beside a frozen-photo check.</p>
+  <p>The gallery shows six stills, the first four realism stills and the first two camera stills in job order, with the real footage where it exists and each model’s clip. Pick a still to switch.</p>
+  <div class="sim gallery" id="gallery">
+    <div class="gallery-pick" role="group" aria-label="Still">
+      <button type="button" data-v="r00" aria-pressed="true">Skateboards downhill</button>
+      <button type="button" data-v="r01" aria-pressed="false">Dog and frisbee</button>
+      <button type="button" data-v="r02" aria-pressed="false">Flags</button>
+      <button type="button" data-v="r03" aria-pressed="false">Picnic</button>
+      <button type="button" data-v="c00" aria-pressed="false">Camera: move back</button>
+      <button type="button" data-v="c01" aria-pressed="false">Camera: move down</button>
+    </div>
+    <video src="figures/gallery/r00.mp4" poster="figures/gallery/r00.jpg" autoplay loop muted playsinline controls width="960" height="404" aria-label="Six clips playing together: the input still, the real footage, and the clips from Wan 2.2, LTX-Video, CogVideoX and SVD-XT."></video>
+    <p class="caption"><span class="label">Gallery.</span> Each video: the input still, the real footage it was taken from (for camera stills, the asked move), then Wan 2.2 TI2V-5B, LTX-Video 0.9.7 distilled, CogVideoX-5B-I2V and SVD-XT. Each clip is stretched or squeezed to play over 4 seconds; its label gives its real length. Wan and CogVideoX were not run on the camera stills. Laid out by <a href="../make_gallery.py">make_gallery.py</a>.</p>
+  </div>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>VBench++ (Huang et al., 2024)</th><th>Image-to-3D note (Nov 11)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Human ground truth</td><td>Own annotations per dimension</td><td>benchmark.ai votes, 800 pairs</td><td>benchmark.ai votes, 800 realism and 400 camera pairs</td></tr>
+        <tr><td>Scores checked against someone else’s votes</td><td>✗</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Voter noise as the ceiling</td><td>✗</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Paired test against a simple baseline</td><td>✗</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Known-answer checks</td><td>✗ (dynamic degree as a counterweight)</td><td>✓ damaged objects</td><td>✓ frozen, reversed, shuffled, blurred clips; real footage</td></tr>
+        <tr><td>A cheap score matches one voter</td><td>—</td><td>✓ CLIP, on shape and looks</td><td>✗ realism; ✓ camera, graded shift only</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>VBench++ validates each dimension on pairs that differ in that dimension, which is a different question from whether the dimension predicts an overall human preference; it also presents consistency and dynamic degree as a trade-off. This note does not contradict either: it shows what happens when one dimension is read alone as a quality score, which is how leaderboard numbers often travel. The ✗ marks reflect VBench++’s abstract and main tables, not a full reading of its appendices.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI evaluation</h2>
+  <p>Automatic scores stand in for people in many evaluations, safety evaluations among them, and a score validated on one kind of difference gets reused on another. Here, three VBench++ scores agreed with voters on realism less often than a coin would, and those three, with five more scores, preferred a clip in which nothing happens every time. A model trained or selected against such a score would learn to move less. The judges were harder to fool on obvious breakage, but less reliable than one voter on subtle realism, and they changed their answer when the clips were swapped in a third of pairs. The one cheap score that matched people measured exactly what the voters were asked about.</p>
+  <p>Risk: very low. The work scores public clips and public votes, and generates short clips of everyday scenes from public stills.</p>
+  <p><strong>The recommendation in one sentence: before reporting a video score, show that it rejects a frozen copy of the input and agrees with the voters about as often as one more voter does, on pairs it was not tuned on.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>25 stills.</strong> The 800 realism pairs share 25 stills and prompts, and the intervals resample pairs, not stills, so they are too narrow for a claim about new stills.</li>
+    <li><strong>The judges saw 8 frames, not video.</strong> Voters watched the clips; a judge that reads video directly, or more frames, may do better on motion.</li>
+    <li><strong>Two judges, one prompt, low reasoning effort.</strong> Stronger models or more reasoning were not tried.</li>
+    <li><strong>Camera: 400 pairs scored, 200 judged,</strong> cut from 800 for the budget, and the graded shift has been tested once. Rolls were left out.</li>
+    <li><strong>The traps are extreme.</strong> Real failures are subtler than a frozen or blurred clip; a scorer that passes these checks can still fail on them.</li>
+    <li><strong>Our models’ clips were not scored or judged,</strong> and Wan and CogVideoX ran on 25 stills only. The open-model section reports speed and memory, not quality.</li>
+    <li><strong>One GPU type, default settings, one seed,</strong> after a warm-up, models already loaded; download and compile time are not counted.</li>
+    <li><strong>Re-encoding at 480 pixels</strong> lowers every clip’s detail the same way, which may matter most for MUSIQ.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the saved results, in seconds on a laptop:</p>
+  <pre><code class="language-bash">experiments/image-to-video-eval/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch: a Modal account (H100 80 GB for generation, L4 or A10G for scoring; $23.46 here, including about $3 of restarted jobs), a Hugging Face token stored as a Modal secret, and OpenAI and OpenRouter keys for the judges ($17.00):</p>
+  <pre><code class="language-bash">experiments/image-to-video-eval/reproduce.sh --dry-run   # lists every command
+experiments/image-to-video-eval/reproduce.sh</code></pre>
+  <p>To score a new model’s clips the same way, put them on the Modal volume and call <code>Scorer.score</code> in <a href="../modal_i2v.py">modal_i2v.py</a> with each clip’s path and its still; it returns every score above, CLIP and DINOv2, and the camera scores when a move is given.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Score and judge the four open models’ clips, and place them on the realism ranking beside the 17 commercial models.</li>
+    <li>Give the judges the video itself, or 16 to 32 frames, and test whether the gap to one voter closes on motion.</li>
+    <li>Combine the scores that point the right way (imaging quality, flow size, the judges) and test the combination on held-out stills.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">How do you evaluate an image-to-video model?</h3>
+  <p>The most reliable way is pairwise human votes, as benchmark.ai collects. Cheap stand-ins exist: VBench++’s scores, CLIP similarity, and vision-language model judges shown frames. On public votes, none of them agreed with the majority on realism as often as one more voter did; the best was a gemini-3.6-flash judge (62% against 66%). For camera moves, a point tracker that measures how far the picture moved in the asked direction matched one voter.</p>
+  <h3 id="q2">Is VBench a good metric for video generation?</h3>
+  <p>Its scores measure what they say, but several do not predict which clip people prefer. Background consistency, motion smoothness and temporal flickering agreed with voters less often than chance on realism, and subject consistency was at chance; all four preferred a frozen copy of the input photo to the real clip, 25 times of 25. Imaging quality (MUSIQ) came closest to people when ranking whole models (Spearman 0.75 to 0.79).</p>
+  <h3 id="q3">Can GPT or Gemini judge AI-generated videos?</h3>
+  <p>Partly. Shown 8 frames per clip, gemini-3.6-flash beat CLIP by about 10 points and was rarely fooled by a frozen or blurred clip, but it agreed with voters less often than one more voter, picked real footage over a generated clip only 56% of the time, and changed its answer in a third of pairs when the clips were swapped. Ask twice with the order swapped.</p>
+  <h3 id="q4">How fast are open image-to-video models on one GPU?</h3>
+  <p>On one H100 80 GB at default settings: LTX-Video 0.9.7 distilled 5.8 seconds per 5-second clip (42 GB), Stable Video Diffusion XT 19.9 seconds (30 GB), CogVideoX-5B-I2V 114 seconds (25 GB), Wan 2.2 TI2V-5B 185 seconds at about 720p (51 GB).</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every column.</p>
+  <ul>
+    <li><code>human_pairs.csv</code>: the sampled pairs, with the two models, vote counts (oriented so <code>votes_a</code> counts votes saying A is better) and the clip ids; no voter details. <code>videos.csv</code>: each clip’s source size, frame rate and length.</li>
+    <li><code>human_all_models.csv</code>: Bradley-Terry scores of every model from all comparisons, per question.</li>
+    <li><code>scores_human.csv</code>, <code>scores_traps.csv</code>: every cheap score per clip.</li>
+    <li><code>judge_human.jsonl</code>, <code>judge_traps.jsonl</code>: every judge reply, by judge, pair and order, with token counts.</li>
+    <li><code>agreement_human.csv</code>, <code>agreement_paired.csv</code>, <code>real_footage.csv</code>, <code>rank_human.csv</code>, <code>camera_moves.csv</code>, <code>traps.csv</code>, <code>traps_result.csv</code>: sections 4.1 to 4.6.</li>
+    <li><code>gen_jobs.csv</code>, <code>gen_timing.csv</code>, <code>gen_clips.csv</code>: the 40 stills and prompts, seconds and memory per clip, and the clips made.</li>
+    <li><code>summary.json</code>: judge consistency and position shares, sample sizes, voters per pair, token counts.</li>
+  </ul>
+  <h3 id="judge-prompt">The judge’s instructions</h3>
+  <p>In full in <a href="../5_judge.py"><code>5_judge.py</code></a>: “You compare two videos. Each video is shown as one image: a sheet of 8 frames in time order (left to right, then top to bottom), spread evenly over the whole clip”, a line on any extra sheet (the reference animation, or the input image), “Answer the question with "1" or "2"; you must pick one even when they are close. Judge only what the frames show”, and a JSON reply format. The question is the voters’ own, word for word. Sheets are 972 pixels wide (frames 240 pixels wide each).</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Human data</th><td>Rapidata’s release of benchmark.ai’s image-to-video votes; leave-one-voter-out agreement; Bradley-Terry with bootstrap</td></tr>
+        <tr><th scope="row">Scorers</th><td>VBench++ scores (DINO, CLIP, AMT-S, RAFT, LAION aesthetic, MUSIQ, DreamSim, CoTracker2); CLIP ViT-L/14 and DINOv2-base similarity; pairwise VLM judge on frame sheets, position-swapped</td></tr>
+        <tr><th scope="row">Controls</th><td>One voter as the ceiling; CLIP as the baseline; frozen, reversed, shuffled and blurred copies of real clips; real camera footage</td></tr>
+        <tr><th scope="row">Statistics</th><td>95% percentile bootstrap over pairs (2,000 resamples); paired differences; Spearman and Kendall</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Generation</th><td>diffusers 0.35.2, PyTorch 2.8 (CUDA 12.8)</td></tr>
+        <tr><th scope="row">Scoring</th><td>vbench 0.1.5, pyiqa, dreamsim, open_clip, transformers (DINOv2), CoTracker2 via torch.hub, PyTorch 2.4 (CUDA 12.1); ffmpeg for decoding</td></tr>
+        <tr><th scope="row">Judges</th><td>OpenAI API and OpenRouter (gpt-5.4-mini); OpenRouter (google/gemini-3.6-flash)</td></tr>
+        <tr><th scope="row">Compute</th><td>Modal: one H100 80 GB per generation job, one L4 or A10G per scoring container</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Huang et al. “VBench++: Comprehensive and Versatile Benchmark Suite for Video Generative Models.” <a href="https://arxiv.org/abs/2411.13503">arXiv:2411.13503</a>; code at <a href="https://github.com/Vchitect/VBench">github.com/Vchitect/VBench</a>.</li>
+    <li>Rapidata. Image-to-video benchmarks: <a href="https://huggingface.co/datasets/Rapidata/image-to-video-realism-human-feedback-benchmark">realism</a> and <a href="https://huggingface.co/datasets/Rapidata/image-to-video-camera-movement-human-feedback-benchmark">camera movement</a>; leaderboards at <a href="https://www.benchmark.ai">benchmark.ai</a>.</li>
+    <li>Wan Team. “Wan: Open and Advanced Large-Scale Video Generative Models.” <a href="https://arxiv.org/abs/2503.20314">arXiv:2503.20314</a>.</li>
+    <li>HaCohen et al. “LTX-Video: Realtime Video Latent Diffusion.” <a href="https://arxiv.org/abs/2501.00103">arXiv:2501.00103</a>.</li>
+    <li>Yang et al. “CogVideoX: Text-to-Video Diffusion Models with an Expert Transformer.” <a href="https://arxiv.org/abs/2408.06072">arXiv:2408.06072</a>.</li>
+    <li>Blattmann et al. “Stable Video Diffusion: Scaling Latent Video Diffusion Models to Large Datasets.” <a href="https://arxiv.org/abs/2311.15127">arXiv:2311.15127</a>.</li>
+    <li>Karaev et al. “CoTracker: It is Better to Track Together.” <a href="https://arxiv.org/abs/2307.07635">arXiv:2307.07635</a>.</li>
+    <li>Ke et al. “MUSIQ: Multi-scale Image Quality Transformer.” <a href="https://arxiv.org/abs/2108.05997">arXiv:2108.05997</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 12, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026imagetovideoeval,
+  author = {Albert Lie},
+  title  = {Judging image-to-video models: no cheap score matches one more voter, and VBench's consistency scores prefer a frozen photo},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/image-to-video-eval/report/}
+}</code></pre>
+  <footer class="note">Data: Rapidata’s image-to-video realism and camera-movement benchmarks (benchmark.ai votes), CC BY 4.0. Models: Wan 2.2 (Alibaba), LTX-Video (Lightricks), CogVideoX (Zhipu AI and Tsinghua), Stable Video Diffusion (Stability AI).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("gallery");
+  if (!box) return;
+  var video = box.querySelector("video");
+  var buttons = box.querySelectorAll(".gallery-pick button");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      video.poster = "figures/gallery/" + b.dataset.v + ".jpg";
+      video.src = "figures/gallery/" + b.dataset.v + ".mp4";
+      video.play().catch(function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>
