@@ -1,81 +1,98 @@
-"""Draw the cover and the research-page thumbnail for the evo2-rna-atlas note, from the note's own data.
+"""Make the cover and the research-page thumbnail for the evo2-rna-atlas note.
 
-    python experiments/evo2-rna-atlas/make_cover.py
+    python experiments/evo2-rna-atlas/make_cover.py --generate   # image model (OPENAI_API_KEY), ~$0.25 per image
+    python experiments/evo2-rna-atlas/make_cover.py              # lay out and resize the saved illustration
 
-A ridgeline of all 66 riboswitch hits in the four genomes: each line is the best SAE feature along 1,500 letters
-of real genome before the hit, the hit itself and 300 letters after it, read 5' to 3'. Ink before the hit, orange
-from the hit on. Writes report/figures/hero.jpg (1536x1024) and the 720x480 thumbnail.
+The cover is an illustration made with an image model (gpt-image-2, 1536x1024, high quality) from PROMPT below: a
+riboswitch folding out of a DNA strand between two genes, a small molecule in its pocket, and a faint row of lights
+along the DNA for the model's features. --generate writes two candidates to data/cover/illustration-<n>.png; the
+second (CHOSEN) was kept and the first discarded. Writes report/figures/hero.jpg (1536x1024, the illustration at 84%
+on a gradient of its own background) and the 720x480 thumbnail; build_meta.py crops og.jpg from the hero.
 """
 
 from __future__ import annotations
 
-import io
-import json
+import base64
+import os
+import re
 import sys
 from pathlib import Path
 
+from PIL import Image, ImageDraw, ImageFilter
+
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
-
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-from PIL import Image
-
-from atlas import DATA, RESULTS
-
+COVER = HERE / "data" / "cover"
+CHOSEN = COVER / "illustration-2.png"
 HERO = HERE / "report" / "figures" / "hero.jpg"
 THUMB = HERE.parent / "shared" / "thumbs" / "evo2-rna-atlas.jpg"
-PAPER, INK, EMBER = "#F4EFE6", "#3A332C", "#C9561C"
-BEFORE = 1500
+MODEL = "gpt-image-2"
+
+PROMPT = """A clean, modern scientific illustration in the style of a molecular-biology journal cover, wide 3:2.
+Subject: a single strand of bacterial DNA runs horizontally across the lower third of the frame as a smooth, softly
+lit double helix. Two gene segments on it are shown as longer, slightly thicker smooth capsule-shaped sleeves around
+the helix, one at the far left and one at the far right, in muted slate blue. In the gap between them, the short
+stretch of intergenic DNA, an RNA strand rises upward and folds into a riboswitch: two or three hairpin stems with base
+pairs drawn as small rungs, joined by a central junction, forming a compact folded pocket, like a three-way junction
+RNA structure. Nestled in that pocket sits one small molecule (a lysine-like ligand), drawn as a small glowing ball-and-
+stick molecule in warm orange. Along the DNA under the riboswitch, a faint row of small soft dots of light glows
+brighter near the riboswitch and fades away on both sides, suggesting a detector lighting up.
+Style: soft volumetric shading, gentle gradients, matte translucent materials, restrained palette of warm off-white
+background, pale sand, soft teal and slate blue for the DNA and RNA, a single warm orange accent for the molecule and
+the glowing dots. Generous empty space, calm and precise, high detail on the RNA fold, shallow depth of field at the
+edges. Scientifically plausible shapes.
+Strictly no text, no letters, no numbers, no labels, no logos, no watermarks, no user interface, no charts or axes."""
+
+
+def api_key() -> str:
+    if os.environ.get("OPENAI_API_KEY"):
+        return os.environ["OPENAI_API_KEY"]
+    for parent in [HERE, *HERE.parents]:
+        env = parent / ".env"
+        if env.exists():
+            for line in env.read_text().splitlines():
+                m = re.match(r"\s*OPENAI_API_KEY\s*=\s*(.*)", line)
+                if m:
+                    return m.group(1).strip().strip("\"'")
+    raise SystemExit("OPENAI_API_KEY not found")
+
+
+def generate(n: int = 2) -> None:
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key())
+    COVER.mkdir(parents=True, exist_ok=True)
+    result = client.images.generate(model=MODEL, prompt=PROMPT, size="1536x1024", quality="high", n=n)
+    for i, item in enumerate(result.data, start=1):
+        path = COVER / f"illustration-{i}.png"
+        path.write_bytes(base64.b64decode(item.b64_json))
+        print("wrote", path.relative_to(HERE))
 
 
 def main() -> None:
-    best = json.loads((RESULTS / "summary.json").read_text())["best_feature"]
-    context = np.load(DATA / "evo2" / "context.npz")
-    spans = {str(context["item_ids"][i]): (int(lo), int(hi))
-             for i, lo, hi in zip(context["rng_item"], context["rng_lo"], context["rng_hi"], strict=True)}  # fmt: skip
-    codes = np.load(DATA / "evo2" / "tracks.npz")
-    ids = [str(i) for i in codes["item_ids"]]
-    tracks = []
-    for n, name in enumerate(ids):
-        if not name.startswith("real|"):
-            continue
-        lo, hi = spans[name]
-        mask = codes["pos_item"] == n
-        idx, fid, val = codes["pos_idx"][mask], codes["pos_ids"][mask], codes["pos_vals"][mask].astype(float)
-        track = np.zeros(idx.max() + 1)
-        track[idx] = (val * (fid == best)).sum(1)
-        # Align every hit at its start; keep 1,500 letters before and 520 after (the longest hit plus 300 fits).
-        window = np.zeros(BEFORE + 520)
-        piece = track[max(0, lo - BEFORE) : lo + 520]
-        window[BEFORE - (lo - max(0, lo - BEFORE)) :][: len(piece)] = piece
-        tracks.append((track[lo:hi].max(), window, hi - lo))
-    tracks.sort(key=lambda t: t[0])
-    fig, ax = plt.subplots(figsize=(10.24, 6.826), dpi=150)
-    fig.patch.set_facecolor(PAPER)
-    ax.set_facecolor(PAPER)
-    x = np.arange(BEFORE + 520) - BEFORE
-    scale = 0.22
-    for row, (_, window, _) in enumerate(tracks):
-        base = row * 0.55
-        z = 2 * (len(tracks) - row)  # nearer rows (lower on the page) hide the ones behind
-        y = base + scale * np.convolve(window, np.ones(5) / 5, mode="same")
-        ax.fill_between(x, base, y, color=PAPER, zorder=z, lw=0)
-        ax.plot(x[x < 0], y[x < 0], color=INK, lw=0.6, zorder=z + 1)
-        ax.plot(x[x >= 0], y[x >= 0], color=EMBER, lw=0.9, zorder=z + 1)
-    ax.set_xlim(-900, 520)
-    ax.axis("off")
-    fig.subplots_adjust(left=0.04, right=0.96, top=0.96, bottom=0.04)
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format="png", facecolor=PAPER)
-    image = Image.open(buffer).convert("RGB").resize((1536, 1024), Image.LANCZOS)
+    if "--generate" in sys.argv:
+        generate()
+        return
+    im = Image.open(CHOSEN).convert("RGB").resize((1536, 1024), Image.LANCZOS)
+    # Zoom out to 84% on a plain vertical gradient sampled from the illustration's own background, edges feathered,
+    # so the centred 1200x630 crop that build_meta.py makes for og.jpg keeps the whole riboswitch.
+    scale = 0.84
+    small = im.resize((round(1536 * scale), round(1024 * scale)), Image.LANCZOS)
+    top = im.crop((620, 10, 920, 40)).resize((1, 1), Image.BOX).getpixel((0, 0))
+    bottom = im.crop((250, 960, 550, 1010)).resize((1, 1), Image.BOX).getpixel((0, 0))
+    canvas = Image.new("RGB", (1536, 1024))
+    for y in range(1024):
+        t = y / 1023
+        row = tuple(round(top[c] * (1 - t) + bottom[c] * t) for c in range(3))
+        canvas.paste(row, (0, y, 1536, y + 1))
+    mask = Image.new("L", small.size, 0)
+    ImageDraw.Draw(mask).rectangle((50, 50, small.width - 50, small.height - 50), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(30))
+    canvas.paste(small, ((1536 - small.width) // 2, (1024 - small.height) // 2), mask)
+    im = canvas
     HERO.parent.mkdir(parents=True, exist_ok=True)
-    image.save(HERO, quality=88)
-    image.resize((720, 480), Image.LANCZOS).save(THUMB, quality=88)
-    print(f"drew {len(tracks)} hits; wrote", HERO.relative_to(HERE), "and", THUMB.name)
+    im.save(HERO, quality=88)
+    im.resize((720, 480), Image.LANCZOS).save(THUMB, quality=88)
+    print("wrote", HERO.relative_to(HERE), "and", THUMB.name)
 
 
 if __name__ == "__main__":
