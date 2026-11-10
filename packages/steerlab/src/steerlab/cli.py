@@ -4,6 +4,7 @@
     steerlab doctor            device, dtype, what is cached (models, SAE layers, judge), Gemma access, directions
     steerlab doctor --online   also ask the Hub whether this account may download the gated Gemma model
     steerlab serve             the steering demo as a web app: visitor chat at /, admin desk at /admin
+    steerlab inspect           the layer explorer: watch the model pick its next word, layer by layer
 
 Heavy libraries are imported inside the commands that need them, so `steerlab --help` stays instant. `doctor` reads
 the Hugging Face cache offline and never prints a token.
@@ -54,6 +55,7 @@ def optional_module(name: str) -> ModuleType | None:
 # Sub-commands whose modules may be absent from a smaller install: (module, attribute, command name, help).
 OPTIONAL_COMMANDS: list[tuple[str, str, str | None, str]] = [
     ("steerlab.cli_web", "app", None, ""),
+    ("steerlab.cli_inspect", "app", None, ""),
 ]
 
 EXTRAS: dict[str, list[str]] = {
