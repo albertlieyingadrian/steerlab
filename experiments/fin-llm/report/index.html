@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing</title>
+<meta name="description" content="A harness of retrieved worked examples, a Python calculator and a check turn adds 2.1 to 2.8 points to gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the held-out FinQA test; the examples alone do it, and the calculator loop adds nothing. A cheap model in the harness does not beat a frontier one: gpt-5.4-mini with examples ties raw gpt-5.4 at a third of the cost.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing">
+<meta property="og:description" content="A harness of retrieved worked examples, a Python calculator and a check turn adds 2.1 to 2.8 points to gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the held-out FinQA test; the examples alone do it, and the calculator loop adds nothing. A cheap model in the harness does not beat a frontier one: gpt-5.4-mini with examples ties raw gpt-5.4 at a third of the cost.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A ledger on a cream background: five pairs of barcode strips, one pair per model, each strip 300 thin marks for 300 FinQA test questions sorted from easy to hard; dark marks for right answers fill most of each strip, and orange marks on the right show questions the harness fixed, hollow orange ones it broke.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing">
+<meta name="twitter:description" content="A harness of retrieved worked examples, a Python calculator and a check turn adds 2.1 to 2.8 points to gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the held-out FinQA test; the examples alone do it, and the calculator loop adds nothing. A cheap model in the harness does not beat a frontier one: gpt-5.4-mini with examples ties raw gpt-5.4 at a third of the cost.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-10">
+<meta property="article:modified_time" content="2026-11-10">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing",
+ "description": "A harness of retrieved worked examples, a Python calculator and a check turn adds 2.1 to 2.8 points to gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the held-out FinQA test; the examples alone do it, and the calculator loop adds nothing. A cheap model in the harness does not beat a frontier one: gpt-5.4-mini with examples ties raw gpt-5.4 at a third of the cost.",
+ "abstract": "FinQA test (1,147 questions, 1% tolerance against program outputs, grader 100% on gold). Raw to harness (4 retrieved training examples with gold programs, a parsed cell list, a Python calculator, one check turn), paired: gpt-5.4-nano 0.738 to 0.766 (+2.8 [+1.0, +4.6]), gpt-5.4-mini 0.757 to 0.783 (+2.6 [+1.0, +4.3]), gpt-5.4 0.787 to 0.808 (+2.1 [+0.7, +3.5]), gpt-5.5 0.827 to 0.847 on 300 (+2.0 [-1.0, +5.0]), Qwen3-8B 0.704 to 0.716 (+1.2 [-1.0, +3.4]). Ablation: gpt-5.4-mini with the examples only 0.784 (+2.7 [+1.0, +4.4]); Qwen3-8B with calculator and check but no examples +0.6 [-1.5, +2.7] on test, -0.4 [-3.1, +2.3] on 783 validation questions. Without sign-only changes the API models still gain 1.7 to 3.1 points. Against raw gpt-5.4 (0.787, $0.0036 per question): gpt-5.4-mini in the harness -0.4 [-2.0, +1.1] at $0.0049, with examples only -0.3 [-1.9, +1.1] at $0.0012; Qwen3-8B in the harness -7.1 [-9.3, -5.0]. The harness costs 3.7 to 5.0 times one call. Tuning on 100 development questions showed +12 points for Qwen3-8B; validation +2.7, test +1.2. TAT-QA guard: Qwen3-8B 0.870 raw, 0.853 in the harness.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-10",
+ "dateModified": "2026-11-10",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "FinQA, LLM harness, agent scaffolding, retrieval-augmented few-shot, Program of Thoughts, tool use, financial question answering, numerical reasoning, ablation, cost per question, GPT-5.4, GPT-5.5, Qwen3-8B, TAT-QA",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2109.00122"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2105.07624"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2211.12588"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.11194"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.13157"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2410.13959"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2502.08127"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .explorer .ex-q { margin: 0 0 0.35rem; }
+  .explorer .ex-gold { display: block; font-size: 0.86rem; color: var(--ink-soft); }
+  .explorer .ex-note { font-size: 0.9rem; color: var(--ink-soft); margin: 0 0 0.6rem; }
+  .explorer .ex-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+  .explorer .ex-h { font-size: 0.82rem; margin: 0 0 0.3rem; }
+  .explorer pre { font-size: 0.72rem; line-height: 1.35; max-height: 22rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 0.5rem; }
+  .explorer .ex-v { font-size: 0.75rem; padding: 0 0.35rem; border-radius: 3px; border: 1px solid currentColor; }
+  .explorer .ex-v.ok { color: var(--accent); }
+  .explorer .ex-v.no { color: var(--ink-soft); }
+  .explorer .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  @media (max-width: 760px) { .explorer .ex-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-10">Nov 10, 2026</time></p>
+  <h1>On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing</h1>
+  <p class="dek ruled">Agent builders wrap a model in a harness (tools, examples, a check) and report that it beats bigger models. This note builds one for financial number questions, takes it apart on a held-out test, and prices every part: what helps, what does not, and whether a cheap model in the harness catches a frontier one.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A ledger on a cream background: five pairs of horizontal barcode strips, one pair per model (Qwen3-8B, gpt-5.4-nano, gpt-5.4-mini, gpt-5.4, gpt-5.5), each strip 300 thin marks for 300 test questions sorted from easy to hard. Dark marks fill the left two thirds of every strip; on the right, where questions get hard, the lower strip of each pair has orange marks where the harness fixed an answer and hollow orange marks where it broke one." width="1536" height="1024">
+    <figcaption>Cover: drawn from the results, not by hand. Each pair of strips is one model on the 300 test questions all five answered, sorted from the most to the fewest systems right; upper strip raw, lower strip in the harness. A dark mark is a right answer, orange a question the harness fixed, hollow orange one it broke (75 fixed and 57 broken across the five models). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>FinQA (Chen et al., 2021; MIT): 6,251 train, 883 validation, 1,147 held-out test questions; TAT-QA test arithmetic questions (CC BY 4.0) as an out-of-set check</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (open, on Tinker), gpt-5.4-nano, gpt-5.4-mini, gpt-5.4, gpt-5.5</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/fin-llm/</a>: the harness in <a href="../harness.py">harness.py</a>, the grader in <a href="../fin.py">fin.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> and one file per run in <code>results/runs/</code> (described in <a href="../README.md#results">README.md</a>)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a harness make a cheap model as good as a frontier model at financial number questions?</strong></p>
+    <p>No, but it helps every model by about the same amount. On the 1,147 held-out FinQA test questions, a harness of retrieved worked examples, a Python calculator and a check turn adds 2.8 points to gpt-5.4-nano, 2.6 to gpt-5.4-mini and 2.1 to gpt-5.4 (each interval above zero), 2.0 to gpt-5.5 on 300 questions and 1.2 to the open Qwen3-8B (intervals include zero). Taking it apart shows where the gain comes from: the four worked examples, retrieved from the training questions, give gpt-5.4-mini the whole gain on their own (+2.7 points), while the calculator and check without examples give Qwen3-8B nothing (+0.6, interval from −1.5 to +2.7). The harness costs about four and a half times as much per question as one call. The cheapest good result is the examples alone: gpt-5.4-mini with them scores 0.784, level with raw gpt-5.4 (0.787) at a third of the price, but no cheap model in the harness beats gpt-5.4 or gpt-5.5 given the same harness.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the harness beat the same model with one call? (1,147 held-out test questions)</td><td><strong>Yes, by 2 to 3 points for every API model:</strong> gpt-5.4-nano +2.8 [+1.0, +4.6], gpt-5.4-mini +2.6 [+1.0, +4.3], gpt-5.4 +2.1 [+0.7, +3.5]; gpt-5.5 +2.0 [−1.0, +5.0] on 300</td><td>Qwen3-8B: +1.2 [−1.0, +3.4], not shown</td></tr>
+          <tr><td>Which part does it? (ablation on the test set)</td><td><strong>The retrieved worked examples.</strong> gpt-5.4-mini with only the examples: +2.7 [+1.0, +4.4], the same as the full harness</td><td>Qwen3-8B with the calculator and check but no examples: +0.6 [−1.5, +2.7]; on validation −0.4 [−3.1, +2.3]</td></tr>
+          <tr><td>Is the gain just learning FinQA’s sign convention (a “decline” written as a negative number)?</td><td><strong>Mostly not:</strong> recounting without the questions where only the sign changed, the harness still adds 1.9 to 3.1 points for the API models</td><td>Sign-only changes are 6 to 17 of the 48 to 74 questions each harness fixed</td></tr>
+          <tr><td>Does a cheap model in the harness beat a frontier model?</td><td><strong>No.</strong> gpt-5.4-mini in the harness 0.783 and with examples only 0.784, against raw gpt-5.4 0.787 (−0.4 [−2.0, +1.1] and −0.3 [−1.9, +1.1]); Qwen3-8B in the harness 0.716 (−7.1 [−9.3, −5.0])</td><td>gpt-5.4 in the harness 0.808; raw gpt-5.5 0.793</td></tr>
+          <tr><td>What does each answer cost?</td><td>The harness costs 3.7 to 5.0 times one call (gpt-5.4-mini $0.0011 → $0.0049); examples alone cost 1.15 times ($0.0012)</td><td>Raw gpt-5.4 $0.0036, raw gpt-5.5 $0.0122 per question</td></tr>
+          <tr><td>How much did tuning on 100 questions overstate the gain?</td><td>Qwen3-8B in the harness: +12 points on the 100 development questions, +2.7 on 783 fresh validation questions, +1.2 on the test</td><td>The first harness version cost gpt-5.4-nano 7 points on the same 100</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A company’s allowance for doubtful accounts fell from 38.9 to 34.3. “What was the percentage decline?” gpt-5.4-mini computes 11.8%. FinQA’s answer key says −11.8%. Show the model four solved questions from the training set first, one of them “the percentage decline in the allowance for doubtful accounts in 2013: subtract(38.3, 45.3), divide(#0, 45.3) = −0.15453”, and it writes −11.8% too. That is a harness at its smallest: not a smarter model, just a model told how this exam is marked. This note asks how much of what harnesses are credited with is that, and how much is the tools.</p>
+  <p><strong>What is known.</strong> FinQA (<a href="https://arxiv.org/abs/2109.00122">Chen et al., 2021</a>) asks numeric questions about excerpts of company annual reports: a page of text and a table, then “what was the percentage change in net revenue?” Its answers are short arithmetic programs, which made it a standard test for tool use: <a href="https://arxiv.org/abs/2211.12588">Program of Thoughts</a> had a model write Python instead of doing the arithmetic in its head, and later systems retrieve solved examples that look like the question (<a href="https://arxiv.org/abs/2510.13157">FINDER</a>, <a href="https://arxiv.org/abs/2410.13959">FinQAPT</a>). With GPT-4 these reached 75% to 81% on the test set. Products built around a frontier model with a harness now report beating bigger models outright.</p>
+  <p><strong>What is missing.</strong> Those systems change several things at once and report one number. They seldom say which part made the gain, what each answer costs, or whether a current frontier model in the same harness simply moves up too.</p>
+  <p class="question-callout">What does each part of a harness add on held-out FinQA questions, for a small open model and for four API models, and at what cost per question?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A harness with three switchable parts (retrieved worked examples, a Python calculator over a parsed table, and a check turn), run the same way for five models.</li>
+    <li>A measurement on the 1,147-question held-out test: each model raw and in the harness, paired question by question, with dollars and seconds per question.</li>
+    <li>An ablation that separates the examples from the tools, and a check of the boring explanation (that the gain is only FinQA’s sign convention).</li>
+    <li>A record of how much the harness’s own development overstated it, including the version that made things worse.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before the test runs:</p>
+  <ol>
+    <li>Every design choice is made on the validation set; the test set is run once per final system.</li>
+    <li>A part “helps” only if the paired difference against the same model without it has an interval above zero.</li>
+    <li>The grader is checked first on the answer key: it must mark 100% of the gold answers right.</li>
+    <li>A cheaper system “beats” a frontier one only if the paired difference on the same questions is above zero; a tie at a lower price is reported as a tie.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="harness-101" data-short="Harness 101">2.1 Harness 101, for software engineers</h3>
+  <ul>
+    <li><strong>A harness is the code around a model call:</strong> what goes into the prompt, which tools the model can use, how many turns it gets, and how the final answer is read. The model’s weights do not change. Think of it as the test fixture and helper library a new team member gets on day one.</li>
+    <li><strong>Retrieved worked examples are few-shot prompting chosen per question.</strong> Here: the four training questions whose wording is most similar to this one (TF-IDF, a word-overlap score), each with FinQA’s gold program, like <code>subtract(5829, 5735)</code>, and its exact result. Only the training split is searched, so no test answer can leak in.</li>
+    <li><strong>The calculator is Python.</strong> The model writes a code block with the numbers it read as named constants (<code>revenue_2015 = 5829  # table, 2015</code>); the harness runs it in a fresh process and returns the printed output as the next turn.</li>
+    <li><strong>The cell list is a parsed table.</strong> Next to the table as printed, the harness lists every cell as <code>row | column = value</code>, with “$ 1,234” turned into 1234 and “( 12 )” into −12, so a model never has to line up columns by eye.</li>
+    <li><strong>The check turn</strong> asks once more: right rows, right years, right order, right sign, right unit? Fix it or repeat it.</li>
+    <li><strong>Raw</strong> means one call with the question and the instruction to reason briefly and end with <code>ANSWER: &lt;value&gt;</code>; the same answer rule ends every harness run.</li>
+  </ul>
+
+  <h3 id="grader" data-short="The grader, by hand">2.2 The grader, by hand</h3>
+  <p>FinQA’s answer key is the output of each question’s program, so a percentage is usually stored as a fraction: 0.14464 for 14.46%. A prediction counts as right if it, or it divided or multiplied by 100, is within 1% of the gold (relative). Three answers to a question whose gold is 0.14464:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Answer</th><th>Candidates</th><th>Closest to 0.14464</th><th class="num">Off by</th><th>Right?</th></tr></thead>
+      <tbody>
+        <tr><td><code>14.46%</code></td><td>14.46, 0.1446, 1446</td><td>0.1446</td><td class="num">0.03%</td><td>yes</td></tr>
+        <tr><td><code>0.1446</code></td><td>0.1446, 0.001446, 14.46</td><td>0.1446</td><td class="num">0.03%</td><td>yes</td></tr>
+        <tr><td><code>14%</code></td><td>14, 0.14, 1400</td><td>0.14</td><td class="num">3.2%</td><td>no: rounded too far</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The sign is kept, so −14.46% is wrong here. The grader marks 100% of the gold answers right on all four splits (as written, and as a percent); <a href="../tests/test_grader.py">test_grader.py</a> checks this. FinQA’s own human-written answer strings disagree with its program output on 6% of the test (70 of 1,133 give a different value), so no system can reach 100%; FinQA’s paper puts expert humans at 91%. A “lenient” score that also accepts those strings is in the result files; it moves every system up by 2 to 4 points and reverses no comparison.</p>
+
+  <h3 id="data">2.3 Splits: what each set was used for</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>FinQA train</td><td>Questions with gold programs</td><td class="num">6,251</td><td>The pool the worked examples are retrieved from; nothing else</td></tr>
+        <tr><td>dev:100</td><td>A fixed random 100 of FinQA’s validation split (seed 0)</td><td class="num">100</td><td>Developing the harness (three versions). Its numbers are optimistic and are reported only as such</td></tr>
+        <tr><td>Validation (devrest)</td><td>The other 783 validation questions</td><td class="num">783</td><td>Every choice after the harness was frozen; API models on a fixed 300 of them</td></tr>
+        <tr class="hl"><td>Test</td><td>FinQA’s test split, gold public</td><td class="num">1,147</td><td>Run once per final system; gpt-5.5’s harness run on a fixed random 300</td></tr>
+        <tr><td>TAT-QA guard</td><td>A random 300 of TAT-QA’s 699 test arithmetic questions (<a href="https://arxiv.org/abs/2105.07624">Zhu et al., 2021</a>)</td><td class="num">300</td><td>Does the FinQA harness travel to another set?</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="models">2.4 Five models</h3>
+  <p>Qwen3-8B, an open 8-billion-parameter model (Apache-2.0), sampled on Tinker in its non-thinking mode (thinking mode scored lower on the development set, 0.63 against 0.67, at four times the cost), greedy. Four OpenAI models at their default reasoning settings: gpt-5.4-nano and gpt-5.4-mini (the cheap API models), gpt-5.4 and gpt-5.5 (frontier). gpt-5.5 reasons by default and was given up to 4,096 output tokens per call. Prices are list prices per million tokens; cached input on OpenAI is billed at a tenth.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Benchmark choice.</strong> FinQA (MIT, public test gold), TAT-QA (CC BY 4.0) and ConvFinQA (test gold hidden, so dropped) were checked; FinQA became the test, TAT-QA the guard.</li>
+    <li><strong>Grader</strong> written and checked on every gold answer (24 tests).</li>
+    <li><strong>Harness version 1</strong> on dev:100, four systems: Python that looked table cells up by name, and a line of “conventions” in the prompt. It cost gpt-5.4-nano 7 points (0.76 to 0.69). Transcripts showed two causes: the lookup fetched wrong cells from FinQA’s messy headers (“december 312017”), and the line “percent change = (new − old) / old” turned absolute changes into percentages.</li>
+    <li><strong>Version 2</strong> added the retrieved examples and dropped the conventions line (dev:100, six systems). <strong>Version 3</strong>, frozen: the calculator takes literals, the table is also given as a cell list (dev:100, three systems).</li>
+    <li><strong>Validation:</strong> Qwen3-8B on 783 questions in every mode; gpt-5.4-nano and gpt-5.4-mini on 300, raw and in the harness. Self-consistency (five runs, majority vote) was tried too and dropped (section 4.5).</li>
+    <li><strong>Test, once per system:</strong> five models raw and in the harness (gpt-5.5’s harness on 300), plus the examples-only and no-examples ablations: 13 test runs, 14,064 graded answers.</li>
+    <li><strong>Guard:</strong> Qwen3-8B raw and in the harness, gpt-5.4-mini raw, on 300 TAT-QA questions.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any test run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The grader and its tolerance; the splits and which set decides what; the harness (version 3), its prompts and turn limits; the five models and their settings; paired bootstrap intervals</td><td>The harness went through three versions on dev:100, after reading transcripts (listed above). gpt-5.5 was added as a second frontier model after the first test runs; its harness run covers 300 test questions for cost. The ablation “calculator and check without examples” was run on the test for Qwen3-8B only: the API key ran out of credit before gpt-5.4-mini’s run, and the validation result already showed the loop adding nothing. No size of gain was set in advance as a bar.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: greedy decoding for Qwen3-8B; one call per turn, at most 4 calculator runs and one check per question; Python in a fresh <code>python -I</code> process, 10 s limit, at most four at a time on a laptop. Spend for this note: $82.61 at list prices (OpenAI $49.06, OpenRouter $20.98 while the OpenAI key had no credit, Tinker $12.57), development runs included.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Six findings:</p>
+  <ol>
+    <li><a href="#gains"><strong>4.1</strong></a> The harness adds 2 to 3 points to every API model, about 1 to Qwen3-8B.</li>
+    <li><a href="#ablation"><strong>4.2</strong></a> The retrieved examples carry the gain; the calculator loop adds nothing.</li>
+    <li><a href="#sign"><strong>4.3</strong></a> The gain is not just FinQA’s sign convention.</li>
+    <li><a href="#cost"><strong>4.4</strong></a> A cheap model in the harness ties a frontier model at best, and the examples alone are the cheap way there.</li>
+    <li><a href="#tuning"><strong>4.5</strong></a> Tuning on 100 questions overstated the gain tenfold.</li>
+    <li><a href="#guard"><strong>4.6</strong></a> On another benchmark, FinQA’s examples do not help.</li>
+  </ol>
+
+  <h3 id="gains" data-short="2-3 points for every API model">4.1 The harness adds 2 to 3 points to every API model, about 1 to Qwen3-8B</h3>
+  <p><strong>On the 1,147 held-out test questions, the harness raises gpt-5.4-nano from 0.738 to 0.766 (+2.8 points [+1.0, +4.6]), gpt-5.4-mini from 0.757 to 0.783 (+2.6 [+1.0, +4.3]) and gpt-5.4 from 0.787 to 0.808 (+2.1 [+0.7, +3.5]). gpt-5.5 rises from 0.827 to 0.847 on 300 questions (+2.0 [−1.0, +5.0]) and Qwen3-8B from 0.704 to 0.716 (+1.2 [−1.0, +3.4]).</strong> The gain is about the same size from the cheapest model to the strongest, so the harness does not close the gap between them (Figure 1).</p>
+  <figure class="plot">
+    <img src="figures/gains.png" alt="Dot plot of accuracy for five models, raw in grey and in the harness in orange, with intervals. Qwen3-8B 0.704 to 0.716 (+1.2, interval includes zero); gpt-5.4-nano 0.738 to 0.766 (+2.8); gpt-5.4-mini 0.757 to 0.783 (+2.6); gpt-5.4 0.787 to 0.808 (+2.1); gpt-5.5 on 300 questions 0.827 to 0.847 (+2.0, interval includes zero)." width="1080" height="555">
+    <figcaption><span class="label">Figure 1.</span> Accuracy on FinQA’s held-out test (1,147 questions; gpt-5.5 on a fixed random 300), each model raw (one call, grey) and in the harness (orange). Bars: 95% bootstrap intervals over questions. Right: the paired gain in points with its 95% interval, orange when the interval is above zero. The axis starts at 0.65. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/runs/</code>.</figcaption>
+  </figure>
+  <p>A gain of 2.6 points is the net of many changes in both directions. gpt-5.4-mini’s harness fixed 59 questions the raw model got wrong and broke 29 it got right; Qwen3-8B’s fixed 90 and broke 76. The cover shows where they fall: mostly among the hardest third of the questions, where every model is unsure.</p>
+
+  <h3 id="ablation" data-short="Examples, not the calculator">4.2 The retrieved examples carry the gain; the calculator loop adds nothing</h3>
+  <p><strong>With only the four retrieved worked examples added to its prompt, gpt-5.4-mini scores 0.784 on the test, +2.7 points [+1.0, +4.4] over raw, the same as the full harness (0.783). Qwen3-8B with the calculator, the cell list and the check but no examples scores +0.6 [−1.5, +2.7] on the test and −0.4 [−3.1, +2.3] on validation.</strong> On validation the examples alone give Qwen3-8B +2.6 [+0.3, +4.9] and the full harness +2.7; on the test the three versions sit within a point of each other and none is shown (Figure 2).</p>
+  <figure class="plot">
+    <img src="figures/ablation.png" alt="Three bar charts of accuracy for raw, plus retrieved examples, plus calculator and check without examples, and the full harness. Qwen3-8B on validation: 0.699, 0.724, 0.695, 0.725. Qwen3-8B on test: 0.704, 0.714, 0.710, 0.716. gpt-5.4-mini on test: 0.757, 0.784, not run, 0.783." width="1440" height="465">
+    <figcaption><span class="label">Figure 2.</span> What each part adds. Bars: accuracy of the same model raw (grey), with the four retrieved worked examples only (orange), with the calculator, cell list and check but no examples (light grey), and with everything (orange). Lines: 95% bootstrap intervals. Qwen3-8B on validation (783 questions) and test (1,147); gpt-5.4-mini on test, where the no-examples run was not made. The axis starts at 0.6. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Why the calculator adds nothing: in the transcripts read during development, the errors were in reading, not computing: the wrong row, the wrong pair of years, a change taken in the wrong direction, a value in thousands treated as millions. Python repeats those errors exactly. What fixes them is a solved question that was read the right way, which is what the examples are. The explorer shows six cases from the test, two of them broken by the harness.</p>
+  <!-- explorer:start -->
+<div class="sim explorer" id="explorer">
+  <div class="gallery-pick" role="group" aria-label="Question">
+    <button type="button" data-case="0" aria-pressed="true">A sign</button>
+    <button type="button" data-case="1" aria-pressed="false">Cost per year</button>
+    <button type="button" data-case="2" aria-pressed="false">Shares × price</button>
+    <button type="button" data-case="3" aria-pressed="false">Net increase</button>
+    <button type="button" data-case="4" aria-pressed="false">A sign, broken</button>
+    <button type="button" data-case="5" aria-pressed="false">Wrong column, broken</button>
+  </div>
+  <div class="ex-case" data-case="0">
+    <p class="ex-q"><strong>Question</strong> (RSG/2018/page_94.pdf-1): as of december 31 , 2018 what was the percentage decline in the allowance for doubtful accounts <span class="ex-gold">Gold: -0.11825 (FinQA’s answer string: 11.9%)</span></p>
+    <p class="ex-note">fixed: the examples show FinQA writes a decline as a negative percentage.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Raw, one call: <code>11.8%</code> <span class="ex-v no">wrong</span></p><pre>Beginning allowance for doubtful accounts in 2018 was 38.9 and ending balance was 34.3.  
+Decline = 38.9 - 34.3 = 4.6.  
+Percentage decline = 4.6 / 38.9 × 100 ≈ 11.8%.
+
+ANSWER: 11.8%</pre></div>
+      <div><p class="ex-h">The 4 retrieved train examples</p><pre>Q: what was the percentage decline in the allowance for doubtful accounts in 2013
+Program: subtract(38.3, 45.3), divide(#0, 45.3)
+Result: -0.15453
+
+Q: in 2012 what was the allowance for doubtful accounts
+Program: divide(19.0, 516.9)
+Result: 0.03676
+
+Q: what was the percentage change in the allowance for doubtful accounts in 2016
+Program: subtract(44.0, 46.7), divide(#0, 46.7)
+Result: -0.05782
+
+Q: what was the percentage change in the allowance for doubtful accounts from 2006 to 2007?
+Program: subtract(47, 52), divide(#0, 52)
+Result: -0.09615</pre><p class="ex-h">With them: <code>-11.8%</code> <span class="ex-v ok">right</span></p></div>
+      <div><p class="ex-h">In the harness: <code>-11.8%</code> <span class="ex-v ok">right</span></p><pre>[model] PLAN:
+- Need the allowance for doubtful accounts balance at end of year 2017 = 38.9 (from table: “balance at end of year | 2017 = 38.9”)
+- Need the allowance for doubtful accounts balance at end of year 2018 = 34.3 (from table: “balance at end of year | 2018 = 34.3”)
+- Formula for percentage decline from 2017 to 2018: (2018 - 2017) / 2017
+
+
+
+```python
+start = 38.9  # balance at end of year | 2017
+end = 34.3    # balance at end of year | 2018
+result = (end - start) / start
+print(result)
+```
+
+ANSWER: -0.118
+
+[harness] Python output:
+-0.1182519280205656
+
+If this changes your answer, fix it. End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: -11.8%
+
+[harness] CHECK before you finish: re-read the question. Did you use the right rows, the right years and the right order (new vs old)? Is the sign right? Is the unit right (a percentage written with %, a ratio as a plain number)? If anything is wrong, fix it (you may run Python again). End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: -11.8%</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="1" hidden>
+    <p class="ex-q"><strong>Question</strong> (MRO/2007/page_136.pdf-2): as of december 31 , 2007 , how much unrecognized compensation cost related to restricted stock awards is expected to be recognized in 1 year , in millions? <span class="ex-gold">Gold: 26.42857 (FinQA’s answer string: 26.4)</span></p>
+    <p class="ex-note">fixed: an example spreads a cost evenly over the stated years.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Raw, one call: <code>37</code> <span class="ex-v no">wrong</span></p><pre>The excerpt says that as of December 31, 2007, there was **$37 million** of unrecognized compensation cost related to restricted stock awards, expected to be recognized over a **weighted average period of 1.4 years**. That implies about one year’s worth is still within that stated period, but the question asks for the amount expected to be recognized in 1 year, which is taken directly from the stated total unrecognized compensation cost context as **37 million**.
+
+ANSWER: 37</pre></div>
+      <div><p class="ex-h">The 4 retrieved train examples</p><pre>Q: as of 2008 what was annual cost is expected to be recognized of the total unrecognized compensation cost related to unvested stock awards net of the forfeiture provision in billions\\n
+Program: divide(3.3, 2.6)
+Result: 1.26923
+
+Q: at december 2009 what was the annual anticipated unrecognized compensation cost related to unvested stock awards to be recognized in billions
+Program: divide(1.6, 1.3)
+Result: 1.23077
+
+Q: on december 31 , 2017 what is the estimated unrecognized compensation cost related to the non vested rsus , with and without performance conditions , is expected to be recognized as of december 31 , 2018 in millions
+Program: divide(const_6, 1.5)
+Result: 4
+
+Q: as of december 26 , 2015 , what was the expected unrecognized compensation costs to be recognized per year in billions
+Program: divide(1.8, 1.2)
+Result: 1.5</pre><p class="ex-h">With them: <code>26.4286</code> <span class="ex-v ok">right</span></p></div>
+      <div><p class="ex-h">In the harness: <code>26.42857142857143</code> <span class="ex-v ok">right</span></p><pre>[model] PLAN:
+Need 2 numbers from the excerpt:
+1) unrecognized compensation cost related to restricted stock awards = 37 million (sentence: “as of december 31 , 2007 , there was $ 37 million of unrecognized compensation cost related to restricted stock awards”)
+2) weighted average period = 1.4 year (same sentence: “expected to be recognized over a weighted average period of 1.4 year”)
+Formula: 37 / 1.4
+
+```python
+cost = 37  # sentence: as of december 31, 2007, there was $37 million of unrecognized compensation cost related to restricted stock awards
+years = 1.4  # sentence: expected to be recognized over a weighted average period of 1.4 year
+result = cost / years
+print(result)
+```
+
+ANSWER: 26.428571428571427
+
+[harness] Python output:
+26.42857142857143
+
+If this changes your answer, fix it. End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 26.42857142857143
+
+[harness] CHECK before you finish: re-read the question. Did you use the right rows, the right years and the right order (new vs old)? Is the sign right? Is the unit right (a percentage written with %, a ratio as a plain number)? If anything is wrong, fix it (you may run Python again). End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 26.42857142857143</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="2" hidden>
+    <p class="ex-q"><strong>Question</strong> (GPN/2014/page_92.pdf-1): what is the total value of securities issued and approved by security holders , ( in millions ) ? <span class="ex-gold">Gold: 31.32382 (FinQA’s answer string: 31.3)</span></p>
+    <p class="ex-note">fixed: the examples value securities as shares times price.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Raw, one call: <code>0.766801</code> <span class="ex-v no">wrong</span></p><pre>The table shows “equity compensation plans approved by security holders” with 766801 securities to be issued upon exercise. Interpreting the question as asking for that total value in millions, convert 766801 to millions: 0.766801.
+
+ANSWER: 0.766801</pre></div>
+      <div><p class="ex-h">The 4 retrieved train examples</p><pre>Q: what is the total value of securities approved by security holders , ( in millions ) ?
+Program: multiply(1765510, 34.92), divide(#0, const_1000000)
+Result: 61.6516
+
+Q: what is the total value of the issued securities approved by security holders , ( in millions ) ?
+Program: multiply(5802673, 85.82), divide(#0, const_1000000)
+Result: 497.985
+
+Q: what is the total value of issued securities that are approved by security holders , in billions?
+Program: multiply(3946111, 34.67), divide(#0, const_1000000000)
+Result: 0.13681
+
+Q: what is the total value of securities approved by security holders that remain to be issued in the future , ( in millions ) ?
+Program: multiply(6570132, 28), divide(#0, const_1000000)
+Result: 183.964</pre><p class="ex-h">With them: <code>31.3219</code> <span class="ex-v ok">right</span></p></div>
+      <div><p class="ex-h">In the harness: <code>31.32382085</code> <span class="ex-v ok">right</span></p><pre>[model] PLAN: I need the number of securities approved by security holders from the table (`equity compensation plans approved by security holders | number of securities to be issued upon exercise of outstanding options warrants and rights (a) = 766801`) and the weighted-average exercise price from the same row (`40.85`). Formula: `766801 * 40.85 / 1000000`.
+
+
+
+```python
+shares = 766801  # equity compensation plans approved by security holders | number of securities to be issued upon exercise of outstanding options warrants and rights (a)
+price = 40.85  # equity compensation plans approved by security holders | weighted-average exerciseprice of outstanding options warrants and rights (b)
+result = shares * price / 1000000
+print(result)
+```
+
+ANSWER: 31.34302085
+
+[harness] Python output:
+31.32382085
+
+If this changes your answer, fix it. End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 31.32382085
+
+[harness] CHECK before you finish: re-read the question. Did you use the right rows, the right years and the right order (new vs old)? Is the sign right? Is the unit right (a percentage written with %, a ratio as a plain number)? If anything is wrong, fix it (you may run Python again). End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 31.32382085</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="3" hidden>
+    <p class="ex-q"><strong>Question</strong> (KHC/2018/page_132.pdf-3): what is the net increase in outstanding shares during the period of 2016 to 2018 , in millions? <span class="ex-gold">Gold: 6.0 (FinQA’s answer string: 6)</span></p>
+    <p class="ex-note">fixed: the examples count the change over the whole period.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Raw, one call: <code>3</code> <span class="ex-v no">wrong</span></p><pre>Outstanding shares were 1217 million at the end of 2016 and 1220 million at the end of 2018.  
+Net increase = 1220 - 1217 = 3 million.
+
+ANSWER: 3</pre></div>
+      <div><p class="ex-h">The 4 retrieved train examples</p><pre>Q: what is the net increase in the balance of outstanding shares during 2013?
+Program: subtract(861, 388)
+Result: 473
+
+Q: what is the net increase in the balance of outstanding shares during 2012?
+Program: subtract(388, 405)
+Result: -17
+
+Q: what was the net increase in aro during the period , in millions?
+Program: subtract(25, 3)
+Result: 22
+
+Q: now much of the net increase in aro during the period was due to accretion , in millions?
+Program: add(0, 0), add(#0, #0), subtract(25, 3), divide(#1, #2)
+Result: 0</pre><p class="ex-h">With them: <code>6</code> <span class="ex-v ok">right</span></p></div>
+      <div><p class="ex-h">In the harness: <code>6</code> <span class="ex-v ok">right</span></p><pre>[model] PLAN: Need shares outstanding at balance at december 29 2018 = 1220 (table cell) and at balance at january 3 2016 = 1214 (table cell). Formula: 1220 - 1214.
+
+
+
+```python
+start = 1214  # balance at january 3 2016 | shares outstanding
+end = 1220    # balance at december 29 2018 | shares outstanding
+result = end - start
+print(result)
+```
+
+ANSWER: 6
+
+[harness] Python output:
+6
+
+If this changes your answer, fix it. End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 6
+
+[harness] CHECK before you finish: re-read the question. Did you use the right rows, the right years and the right order (new vs old)? Is the sign right? Is the unit right (a percentage written with %, a ratio as a plain number)? If anything is wrong, fix it (you may run Python again). End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 6</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="4" hidden>
+    <p class="ex-q"><strong>Question</strong> (BLL/2010/page_37.pdf-2): what was the percentage decrease in cash flows from operations from 2009 to 2010? <span class="ex-gold">Gold: 0.07951 (FinQA’s answer string: 8.0%)</span></p>
+    <p class="ex-note">broken: here FinQA's gold for a decrease is positive.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Raw, one call: <code>7.95%</code> <span class="ex-v ok">right</span></p><pre>Cash flows from operations were 559.7 in 2009 and 515.2 in 2010.  
+Decrease = 559.7 - 515.2 = 44.5.  
+Percentage decrease = 44.5 / 559.7 × 100 = 7.95%.
+
+ANSWER: 7.95%</pre></div>
+      <div><p class="ex-h">The 4 retrieved train examples</p><pre>Q: what was the percentage change in cash from operating activities from 2009 to 2010?
+Program: subtract(1310, 1345), divide(#0, 1345)
+Result: -0.02602
+
+Q: what was the percentage change in the consolidated net cash flows used for investing activities \\n from 2009 to 2010
+Program: subtract(4.2, 3.2), divide(#0, 3.2)
+Result: 0.3125
+
+Q: what is the percentage change in goodwill from 2009 to 2010?
+Program: subtract(8.6, 6.1), divide(#0, 6.1)
+Result: 0.40984
+
+Q: what was the percentage change in cash from operations between 2009 and 2010?
+Program: subtract(1151, 868), divide(#0, 868)
+Result: 0.32604</pre><p class="ex-h">With them: <code>-7.95%</code> <span class="ex-v no">wrong</span></p></div>
+      <div><p class="ex-h">In the harness: <code>-7.950687868500982%</code> <span class="ex-v no">wrong</span></p><pre>[model] PLAN: Need 2010 cash flows from operating activities = 515.2 from the table, and 2009 cash flows from operating activities = 559.7 from the table. Formula: (2010 - 2009) / 2009, expressed as a percentage decrease (this will be negative because 2010 is lower).
+
+```python
+operating_2010 = 515.2  # cash flows provided by ( used in ) operating activities including discontinued operations | 2010
+operating_2009 = 559.7  # cash flows provided by ( used in ) operating activities including discontinued operations | 2009
+result = (operating_2010 - operating_2009) / operating_2009 * 100
+print(result)
+```
+
+ANSWER: -7.940680719313556%
+
+[harness] Python output:
+-7.950687868500982
+
+If this changes your answer, fix it. End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: -7.950687868500982%
+
+[harness] CHECK before you finish: re-read the question. Did you use the right rows, the right years and the right order (new vs old)? Is the sign right? Is the unit right (a percentage written with %, a ratio as a plain number)? If anything is wrong, fix it (you may run Python again). End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: -7.950687868500982%</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="5" hidden>
+    <p class="ex-q"><strong>Question</strong> (GS/2017/page_179.pdf-4): what is the total amount of stock options cancelled in millions during 2017 , 2016 and 2015? <span class="ex-gold">Gold: 12.1 (FinQA’s answer string: 12.1)</span></p>
+    <p class="ex-note">broken: with the examples, the model added dollar values instead of option counts.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Raw, one call: <code>12.1</code> <span class="ex-v ok">right</span></p><pre>The excerpt says stock options cancelled were 4.6 million in 2017, 5.5 million in 2016, and 2.0 million in 2015.  
+Add them: 4.6 + 5.5 + 2.0 = 12.1 million.
+
+ANSWER: 12.1</pre></div>
+      <div><p class="ex-h">The 4 retrieved train examples</p><pre>Q: what is the total value of stock options for leo p . denault , in millions?
+Program: multiply(50000, 108.20), divide(#0, const_1000000)
+Result: 5.41
+
+Q: what is the total value of stock options for j . wayne leonard , in millions?
+Program: multiply(175000, 108.20), divide(#0, const_1000000)
+Result: 18.935
+
+Q: in millions for 2017 , 2016 , and 2015 , what was the minimum amount of equity securities?
+Program: table_min(equity securities, none)
+Result: 2573
+
+Q: what is the total rent expense for the period from december 31 , 2017 , 2016 and 2015 in millions
+Program: add(9.4, 8.1), add(#0, 5.4)
+Result: 22.9</pre><p class="ex-h">With them: <code>2606</code> <span class="ex-v no">wrong</span></p></div>
+      <div><p class="ex-h">In the harness: <code>2606</code> <span class="ex-v no">wrong</span></p><pre>[model] PLAN: We need the stock options cancelled amounts for 2017, 2016, and 2015 from the sentence “under these plans, the firm also cancelled 4.6 million, 5.5 million and 2.0 million of stock options with a total value of $1.09 billion, $1.11 billion and $406 million during 2017, 2016 and 2015, respectively.” Formula: 1090 + 1110 + 406, then convert millions already given, so sum = 2606 million.
+
+```python
+a = 1090  # 2017 stock options cancelled total value, from sentence ($1.09 billion)
+b = 1110  # 2016 stock options cancelled total value, from sentence ($1.11 billion)
+c = 406   # 2015 stock options cancelled total value, from sentence ($406 million)
+result = a + b + c
+print(result)
+```
+
+ANSWER: 2606
+
+[harness] Python output:
+2606
+
+If this changes your answer, fix it. End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 2606
+
+[harness] CHECK before you finish: re-read the question. Did you use the right rows, the right years and the right order (new vs old)? Is the sign right? Is the unit right (a percentage written with %, a ratio as a plain number)? If anything is wrong, fix it (you may run Python again). End with `ANSWER: &lt;value&gt;`.
+
+[model] ANSWER: 2606</pre></div>
+    </div>
+  </div>
+  <p class="caption"><span class="label">Explorer.</span> Six held-out FinQA test questions answered by gpt-5.4-mini three ways: raw (the end of its reply), with the four retrieved training examples, and in the full harness (every turn: plan and code from the model, Python output and the check from the harness; long turns cut). Picked by hand from the 46 questions both fixed and the 29 the harness broke; built by <a href="../make_explorer.py">make_explorer.py</a> from <a href="../results/explorer.json">explorer.json</a>.</p>
+</div>
+<!-- explorer:end -->
+
+  <h3 id="sign" data-short="Not just the sign">4.3 The gain is not just FinQA’s sign convention</h3>
+  <p>The opening example raises the boring explanation: maybe the examples only teach FinQA’s habit of writing a decline as a negative number, which is marking style, not skill. FinQA is not even consistent about it (the fifth explorer case has a “percentage decrease” whose gold is positive). To test it, every question a system changed was marked “sign-only” when its wrong answer was the gold with the sign flipped, and the gain was counted again without those.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model, system (test, 1,147)</th><th class="num">Fixed (sign-only)</th><th class="num">Broke (sign-only)</th><th class="num">Net gain, points</th><th class="num">Without sign-only changes</th></tr></thead>
+      <tbody>
+        <tr><td>gpt-5.4-nano, harness</td><td class="num">74 (6)</td><td class="num">42 (9)</td><td class="num">+2.8</td><td class="num">+3.1</td></tr>
+        <tr><td>gpt-5.4-mini, examples only</td><td class="num">62 (16)</td><td class="num">31 (5)</td><td class="num">+2.7</td><td class="num">+1.7</td></tr>
+        <tr class="hl"><td>gpt-5.4-mini, harness</td><td class="num">59 (17)</td><td class="num">29 (9)</td><td class="num">+2.6</td><td class="num">+1.9</td></tr>
+        <tr><td>gpt-5.4, harness</td><td class="num">48 (7)</td><td class="num">24 (8)</td><td class="num">+2.1</td><td class="num">+2.2</td></tr>
+        <tr><td>Qwen3-8B, examples only</td><td class="num">81 (16)</td><td class="num">69 (9)</td><td class="num">+1.0</td><td class="num">+0.4</td></tr>
+        <tr><td>Qwen3-8B, harness</td><td class="num">90 (9)</td><td class="num">76 (15)</td><td class="num">+1.2</td><td class="num">+1.7</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Sign-only changes are a minority of what the harness changed, and they cut both ways. Without them, the API models still gain 1.7 to 3.1 points.</strong> For gpt-5.4-mini, about a third of the examples’ gain is the sign convention; for gpt-5.4 and gpt-5.4-nano, none of it is. Counts come from <code>sign_check</code> in <a href="../results/summary.json">summary.json</a>.</p>
+
+  <h3 id="cost" data-short="Cost: ties, not wins">4.4 A cheap model in the harness ties a frontier model at best, and the examples alone are the cheap way there</h3>
+  <p><strong>On the same 1,147 questions, raw gpt-5.4 scores 0.787 for $0.0036 a question. gpt-5.4-mini in the harness scores 0.783 for $0.0049 (−0.4 points [−2.0, +1.1]); gpt-5.4-mini with only the examples scores 0.784 for $0.0012 (−0.3 [−1.9, +1.1]); gpt-5.4-nano in the harness scores 0.766 for $0.0017 (−2.1 [−3.8, −0.3]); Qwen3-8B in the harness 0.716 for $0.0015 (−7.1 [−9.3, −5.0]).</strong> The harness multiplies the price of each answer by 3.7 to 5.0 (several turns, each resending the report) and buys about one model tier: gpt-5.4-nano in the harness lands next to raw gpt-5.4-mini, at a higher price. The examples alone cost 15% more than one call and buy the same tier (Figure 3).</p>
+  <figure class="plot">
+    <img src="figures/cost.png" alt="Scatter of accuracy against dollars per question on a log axis. Raw points in grey, harness points in orange, with an arrow from each model's raw point to its harness point, each arrow moving right by a factor of 3.7 to 5 and up by 1 to 3 points: Qwen3-8B 0.704 to 0.716, gpt-5.4-nano 0.738 to 0.766, gpt-5.4-mini 0.757 to 0.783, gpt-5.4 0.787 to 0.808, gpt-5.5 0.827 to 0.847. Hollow orange circles for examples only: gpt-5.4-mini at 0.784 and $0.0012, level with raw gpt-5.4; Qwen3-8B at 0.714 and $0.0004." width="1080" height="540">
+    <figcaption><span class="label">Figure 3.</span> Accuracy on the held-out test against list-price dollars per question, log scale: each model raw (grey), in the harness (orange, arrow from raw) and, for two models, with the retrieved examples only (hollow). gpt-5.5 on its 300 questions, the others on 1,147. Prices from token counts; cached input on OpenAI at a tenth of the input price. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Seconds per question follow the same pattern: the harness took 3.9 to 13.4 seconds per question against 1.4 to 4.6 for one call, at 16 questions in parallel.</p>
+
+  <h3 id="tuning" data-short="Tuning overstated it">4.5 Tuning on 100 questions overstated the gain tenfold</h3>
+  <p><strong>On the 100 development questions, the final harness lifted Qwen3-8B from 0.67 to 0.79, twelve points. On 783 fresh validation questions the same harness gave +2.7, and on the test +1.2.</strong> Three versions were compared on those 100, and the best of three on 100 questions is mostly luck. Version 1, also judged on those 100, cost gpt-5.4-nano 7 points. Self-consistency (five runs at temperature 0.7, majority vote), declared before running and judged on validation only, added +3.6 points [+1.3, +5.9] to Qwen3-8B with the examples on 783 questions, and nothing in the full harness on 300 (0.740 both), at five times the cost; it was not taken to the test.</p>
+
+  <h3 id="guard" data-short="TAT-QA check">4.6 On another benchmark, FinQA’s examples do not help</h3>
+  <p>On 300 arithmetic questions from TAT-QA’s test set, a different benchmark built from different reports, Qwen3-8B scores 0.870 raw and 0.853 in the harness (−1.7 [−5.7, +2.3]); gpt-5.4-mini raw scores 0.903. The harness still retrieves FinQA training questions for these, so its examples show the wrong exam’s habits. This fits sections 4.2 and 4.3: what the harness adds is knowledge of how one benchmark is asked and marked.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <p>Published FinQA results use different graders (exact match of an executed program, a tolerance, or a language model reading the answer), so they are context, not a leaderboard against the numbers here.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th class="num">FinQA test</th><th>Grading</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Human experts</td><td class="num">91.2</td><td>—</td><td><a href="https://arxiv.org/abs/2109.00122">Chen et al., 2021</a></td></tr>
+        <tr><td>FinQAPT: GPT-4 with retrieved examples (3-shot)</td><td class="num">80.6</td><td>answer match</td><td><a href="https://arxiv.org/abs/2410.13959">arXiv:2410.13959</a></td></tr>
+        <tr><td>GPT-4 with Program of Thoughts / chain of thought</td><td class="num">75.3 / 72.4</td><td>tolerant numeric</td><td><a href="https://arxiv.org/abs/2402.11194">Srivastava et al., 2024</a></td></tr>
+        <tr><td>FINDER: GPT-4, retrieved examples and code</td><td class="num">75.3</td><td>execution accuracy</td><td><a href="https://arxiv.org/abs/2510.13157">arXiv:2510.13157</a></td></tr>
+        <tr><td>Fino1-14B (fine-tuned on GPT-4o reasoning)</td><td class="num">74.2</td><td>language-model extraction</td><td><a href="https://arxiv.org/abs/2502.08127">arXiv:2502.08127</a> (v1)</td></tr>
+        <tr><td>GPT-4o / Qwen3-8B, as reported there</td><td class="num">72.5 / 62.1</td><td>same</td><td>same</td></tr>
+        <tr class="hl"><td>This note: gpt-5.4 raw / in the harness</td><td class="num">78.7 / 80.8</td><td>1% tolerance</td><td>here</td></tr>
+        <tr><td>This note: Qwen3-8B raw / in the harness</td><td class="num">70.4 / 71.6</td><td>1% tolerance</td><td>here</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>FINDER</th><th>FinQAPT</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Retrieved examples</td><td>✓</td><td>✓</td><td>✓ (TF-IDF, 4 per question)</td></tr>
+        <tr><td>Code for the arithmetic</td><td>✓</td><td>✗</td><td>✓</td></tr>
+        <tr><td>Ablation separating examples from code</td><td>examples only</td><td>examples only</td><td>✓ both</td></tr>
+        <tr><td>Same harness on several models, paired</td><td>3 engines, not paired</td><td>4 models, not paired</td><td>✓ 5 models</td></tr>
+        <tr><td>Cost per question</td><td>✗</td><td>✗</td><td>✓</td></tr>
+        <tr><td>Test of the sign-convention explanation</td><td>✗</td><td>✗</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The marks reflect the papers’ main tables. Both earlier systems found, as this note does, that choosing examples per question matters (FINDER: 71.8 with fixed examples against 75.3 with chosen ones). What is new here: with 2026 models the code adds nothing on top, and the gain does not shrink for stronger models.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Evaluations of what a model can do, including the capability tests behind safety decisions, are run with some scaffolding, and the scaffolding moves the score. Here a harness moved every API model by 2 to 3 points, about one model tier, and most of that came from showing the model solved examples of the same test: knowledge of the exam, not new skill. Two lessons carry over. Elicitation gaps of this size should be measured, not assumed away, when a threshold is close. And a harness tuned on a hundred items overstated its own effect tenfold, so a claim that scaffolding unlocks a capability needs a held-out set, like any other result.</p>
+  <p>Risk: very low. The work answers public questions about public annual reports.</p>
+  <p><strong>The recommendation in one sentence: when a harness is credited with a gain, report the same model raw beside it on held-out items, and take the harness apart, because here worked examples did all the work and the tools none.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One benchmark, one harness design.</strong> The parts were tried in one form each (TF-IDF retrieval of four examples; one calculator protocol; one check). A better retriever or more examples may add more; native tool calling may suit the API models better than a text protocol.</li>
+    <li><strong>The calculator ablation was run on the test for Qwen3-8B only</strong>; for gpt-5.4-mini the conclusion rests on the examples-only run matching the full harness.</li>
+    <li><strong>gpt-5.5’s harness run covers 300 questions</strong>, so its gain is not resolved (+2.0 [−1.0, +5.0]).</li>
+    <li><strong>FinQA is near its ceiling for these models.</strong> 6% of its answer key disagrees with its own human answers, and the frontier models score 79% to 85%. On a harder set the parts may weigh differently.</li>
+    <li><strong>Default reasoning settings only.</strong> More reasoning effort for the API models was not tried.</li>
+    <li><strong>Prices are list prices</strong> from logged token counts, not invoices; gpt-5.4’s calls on the first 300 test questions went through OpenRouter and are priced without the cache discount.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number, figure and the explorer from the saved results, in under a minute:</p>
+  <pre><code class="language-bash">experiments/fin-llm/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch: FinQA and TAT-QA from their GitHub repositories (commands in <a href="../README.md">README.md</a>), an OpenAI key, and a Tinker key for Qwen3-8B. The test runs cost about $45 at list prices, most of it gpt-5.4 and gpt-5.5 in the harness:</p>
+  <pre><code class="language-bash">experiments/fin-llm/reproduce.sh --dry-run   # lists every command
+experiments/fin-llm/reproduce.sh</code></pre>
+  <p>To try the harness on another model, run <code>python run.py --model &lt;model&gt; --mode harness --split devrest:300</code> in <code>experiments/fin-llm/</code>; <code>--mode raw+ex</code> runs the examples alone.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Run the same ablation on a benchmark with more headroom, such as FinanceMath, where the questions need financial knowledge as well as reading.</li>
+    <li>Swap TF-IDF for a learned retriever and vary the number of examples, since the examples are where the gain is.</li>
+    <li>Train the open model on the harness’s own transcripts, so it does not need the examples at test time.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Does a tool-using harness improve LLM accuracy on FinQA?</h3>
+  <p>Yes, by 2 to 3 points for gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the 1,147-question held-out test, and about 1 point for Qwen3-8B. The gain comes from retrieved worked examples; the Python calculator and check turn add nothing measurable.</p>
+  <h3 id="q2">Can a small model with a harness beat GPT-5.4 on financial questions?</h3>
+  <p>Not here. gpt-5.4-mini in the harness ties raw gpt-5.4 (0.783 against 0.787) at a higher price, and with the retrieved examples alone it ties at a third of the price; Qwen3-8B in the harness is 7 points behind. Given the same harness, gpt-5.4 moves up too.</p>
+  <h3 id="q3">Does code execution (Program of Thoughts) still help on FinQA with 2026 models?</h3>
+  <p>No measurable gain: without the retrieved examples, the calculator and check moved Qwen3-8B by −0.4 points on validation and +0.6 on the test, both with intervals across zero. The errors read during development were in reading the report, not in arithmetic.</p>
+  <h3 id="q4">How much does a harness cost per question?</h3>
+  <p>3.7 to 5.0 times one call: for gpt-5.4-mini, $0.0049 against $0.0011 at list prices, because each extra turn resends the report. Retrieved examples alone add 15% to one call.</p>
+  <h3 id="q5">What accuracy do current models get on FinQA?</h3>
+  <p>With a 1% tolerance against FinQA’s program outputs, on the test set: Qwen3-8B 70.4%, gpt-5.4-nano 73.8%, gpt-5.4-mini 75.7%, gpt-5.4 78.7%, gpt-5.5 79.3%; in this note’s harness, gpt-5.4 reaches 80.8%. About 6% of the answer key disagrees with FinQA’s own human answers.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes them.</p>
+  <ul>
+    <li><code>runs/&lt;split&gt;__&lt;mode&gt;__&lt;model&gt;.jsonl</code>: one line per question: id, gold, the model’s answer, right or not (strict and lenient), dollars, seconds, tokens, calls and calculator runs. Modes: <code>raw</code>, <code>raw+ex</code> (examples only), <code>harness-noex</code> (calculator and check), <code>harness</code>; <code>*5</code> is the five-run vote. On dev:100, <code>harness</code> is version 1, <code>harness2</code> version 2 and <code>harness3</code> the frozen version.</li>
+    <li><code>summary.json</code>: every run’s accuracy with its interval, every paired difference, the sign check and spend by provider.</li>
+    <li><code>explorer.json</code>: the six transcripts in the explorer.</li>
+  </ul>
+  <h3 id="prompts">The prompts</h3>
+  <p>Raw: “Answer the question about this excerpt from a company’s annual report. Numbers in the table are as printed (often in millions or thousands).” then the excerpt, the question, “Reason step by step briefly, then answer.” and the answer rule (“Finish with one line <code>ANSWER: &lt;value&gt;</code>. Give a number only …; for a percentage write it with a % sign …; keep the sign …; keep at least 3 significant figures”). The harness’s system prompt and check turn are in <a href="../harness.py"><code>harness.py</code></a>: plan, then one Python block with each number as a commented literal, then the answer; the check asks about rows, years, order, sign and unit.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Harness</th><td>TF-IDF retrieval of 4 training examples with gold programs; parsed cell list; Python calculator with literals in an isolated process; one check turn</td></tr>
+        <tr><th scope="row">Grading</th><td>Numeric match within 1% relative, percent written either way, sign kept, against FinQA’s program outputs; checked at 100% on the gold</td></tr>
+        <tr><th scope="row">Controls</th><td>The same model raw; examples-only and no-examples ablations; sign-only recount; TAT-QA guard</td></tr>
+        <tr><th scope="row">Statistics</th><td>95% percentile bootstrap over questions (10,000 resamples); paired differences over the same questions</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>Qwen3-8B on Tinker (sampling API); gpt-5.4-nano, gpt-5.4-mini, gpt-5.4, gpt-5.5 through the OpenAI API (some calls through OpenRouter while the key had no credit)</td></tr>
+        <tr><th scope="row">Code</th><td>Python 3.11, scikit-learn (TF-IDF), NumPy, matplotlib; transformers for Qwen3-8B’s chat template</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Chen et al. “FinQA: A Dataset of Numerical Reasoning over Financial Data.” EMNLP 2021. <a href="https://arxiv.org/abs/2109.00122">arXiv:2109.00122</a>; data at <a href="https://github.com/czyssrs/FinQA">github.com/czyssrs/FinQA</a>.</li>
+    <li>Zhu et al. “TAT-QA: A Question Answering Benchmark on a Hybrid of Tabular and Textual Content in Finance.” ACL 2021. <a href="https://arxiv.org/abs/2105.07624">arXiv:2105.07624</a>.</li>
+    <li>Chen et al. “Program of Thoughts Prompting.” TMLR 2023. <a href="https://arxiv.org/abs/2211.12588">arXiv:2211.12588</a>.</li>
+    <li>Srivastava et al. “Evaluating LLMs’ Mathematical Reasoning in Financial Document Question Answering.” Findings of ACL 2024. <a href="https://arxiv.org/abs/2402.11194">arXiv:2402.11194</a>.</li>
+    <li>FINDER: “Program of Thoughts for Financial Reasoning: Leveraging Dynamic In-Context Examples and Generative Retrieval.” EMNLP 2025. <a href="https://arxiv.org/abs/2510.13157">arXiv:2510.13157</a>.</li>
+    <li>FinQAPT: “Empowering Financial Decisions with End-to-End LLM-driven Question Answering Pipeline.” <a href="https://arxiv.org/abs/2410.13959">arXiv:2410.13959</a>.</li>
+    <li>Fino1: “On the Transferability of Reasoning-Enhanced LLMs to Finance.” <a href="https://arxiv.org/abs/2502.08127">arXiv:2502.08127</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 10, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026finqaharness,
+  author = {Albert Lie},
+  title  = {On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/fin-llm/report/}
+}</code></pre>
+  <footer class="note">Data: FinQA (MIT) and TAT-QA (CC BY 4.0). Models: Qwen3-8B (Alibaba, Apache-2.0) on Tinker; gpt-5.4-nano, gpt-5.4-mini, gpt-5.4 and gpt-5.5 (OpenAI).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("explorer");
+  if (!box) return;
+  var buttons = box.querySelectorAll(".gallery-pick button");
+  var cases = box.querySelectorAll(".ex-case");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      cases.forEach(function (c) { c.hidden = c.dataset.case !== b.dataset.case; });
+    });
+  });
+})();
+</script>
+</body>
+</html>
