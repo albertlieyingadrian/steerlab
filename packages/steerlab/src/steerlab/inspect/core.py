@@ -87,7 +87,7 @@ class Trace:
 
 
 def _first(output: Any) -> torch.Tensor:
-    return output[0] if isinstance(output, tuple) else output  # type: ignore[no-any-return]
+    return output[0] if isinstance(output, tuple) else output  # type: ignore[no-any-return,unused-ignore]
 
 
 class Inspector:
@@ -179,7 +179,6 @@ class Inspector:
             for handle in handles:
                 handle.remove()
 
-    @torch.no_grad()
     def trace(self, ids: Sequence[int], edits: Sequence[Edit] = (), *, attention: bool = False) -> Trace:
         """One forward pass with every piece of the split captured (after any edits)."""
         resid: list[Any] = [None] * self.n_layers
@@ -190,7 +189,7 @@ class Inspector:
         for i, block in enumerate(self.blocks):
             handles.append(block.register_forward_hook(_store(resid, i, output=True)))
             handles.append(block.self_attn.o_proj.register_forward_pre_hook(_store(z, i)))
-        with self.edited(edits):
+        with torch.no_grad(), self.edited(edits):
             # Registered after the edit hooks, so the captured activations are the edited ones.
             for i, block in enumerate(self.blocks):
                 handles.append(block.mlp.down_proj.register_forward_pre_hook(_store(acts, i)))
@@ -221,7 +220,7 @@ class Inspector:
         """The vector whose dot product with any piece of the stream at `pos` is that piece's share of the target
         logit: (1/rms frozen at this position) × norm weight × the target's unembedding row."""
         scale = self._norm_scale(trace.resid[-1][pos])
-        return scale * self.w_norm * self.W_U[target]  # type: ignore[no-any-return]
+        return scale * self.w_norm * self.W_U[target]  # type: ignore[no-any-return,unused-ignore]
 
     def head_outputs(self, trace: Trace, layer: int, pos: int) -> torch.Tensor:
         """Each head's write into the stream at `pos`: [n_heads, d_model]."""
@@ -235,11 +234,11 @@ class Inspector:
 
     def down(self, layer: int) -> torch.Tensor:
         """Layer `layer`'s neuron output directions as rows: [d_mlp, d_model]."""
-        return self.blocks[layer].mlp.down_proj.weight.detach().T  # type: ignore[no-any-return]
+        return self.blocks[layer].mlp.down_proj.weight.detach().T  # type: ignore[no-any-return,unused-ignore]
 
     def neuron_lens(self, layer: int, neuron: int) -> torch.Tensor:
         """What one unit of the neuron's activation does to every word's logit (before the norm's 1/rms): [vocab]."""
-        return self.W_U @ (self.w_norm * self.down(layer)[neuron])  # type: ignore[no-any-return]
+        return self.W_U @ (self.w_norm * self.down(layer)[neuron])  # type: ignore[no-any-return,unused-ignore]
 
     def words(self, logits: torch.Tensor, k: int, *, lowest: bool = False) -> list[str]:
         order = torch.topk(logits, k, largest=not lowest).indices
@@ -452,12 +451,11 @@ class Inspector:
             "against": rows(torch.topk(-flat, k).indices),
         }
 
-    @torch.no_grad()
     def generate(self, ids: Sequence[int], edits: Sequence[Edit] = (), max_new_tokens: int = 12) -> list[int]:
         """Greedy continuation (repetition_penalty=1.0: Qwen's generation config sets 1.1, which greedy alone keeps)."""
         pad = self.tokenizer.pad_token_id
         pad = self.tokenizer.eos_token_id if pad is None else pad
-        with self.edited(edits):
+        with torch.no_grad(), self.edited(edits):
             out = self.model.generate(
                 torch.tensor([list(ids)]),
                 attention_mask=torch.ones(1, len(ids), dtype=torch.long),
@@ -495,7 +493,6 @@ class Inspector:
             "edited_text": self.tokenizer.decode(self.generate(context, edits, max_new_tokens)),
         }
 
-    @torch.no_grad()
     def dose(
         self,
         text: str,
@@ -522,7 +519,8 @@ class Inspector:
         for scale in scales:
             handle = self.blocks[layer].mlp.down_proj.register_forward_pre_hook(_scale_hook(rows, chosen, scale))
             try:
-                logits = self.model(batch, use_cache=False).logits[:, pos]
+                with torch.no_grad():
+                    logits = self.model(batch, use_cache=False).logits[:, pos]
             finally:
                 handle.remove()
             probs = torch.softmax(logits, -1)[:, target_id]
