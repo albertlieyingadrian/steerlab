@@ -166,14 +166,36 @@
   </ol>
 
   <h2 id="setup"><span class="num">02</span>Setup</h2>
-  <h3 id="experiment" data-short="The experiment">2.1 The experiment, in plain words</h3>
+  <h3 id="biology-101" data-short="Biology 101">2.1 Biology 101, for software engineers</h3>
+  <p>No biology is needed to follow this note, but a little helps. Here is the minimum, with a programming analogy for each idea.</p>
   <ul>
-    <li><strong>The cells.</strong> K562 is a human leukaemia cell line grown in labs since 1970. Every cell starts out genetically the same.</li>
-    <li><strong>The perturbation: CRISPR activation (CRISPRa).</strong> A disabled Cas9 protein that cannot cut DNA is guided to the start of a gene and switches the gene on harder. Each cell received guides for one gene, two genes, or none (a control).</li>
-    <li><strong>The readout: Perturb-seq.</strong> Each cell is sequenced on its own, which reads two things at once: which guides it carries (so which genes were switched on) and how active each of its genes is. Here, 5,045 genes per cell, on a log scale.</li>
-    <li><strong>Pseudo-bulk.</strong> Single cells are noisy, so the cells of each condition are averaged into one profile: 237 profiles from 91,205 cells (the control from 7,353 cells, a typical condition from 295). “Profile” below always means this average.</li>
-    <li><strong>A shift</strong> is a profile minus the control profile: how much each gene moved.</li>
+    <li><strong>A cell is a running program.</strong> Every cell in your body holds the same code but runs different parts of it. A liver cell and a neuron have the same DNA.</li>
+    <li><strong>DNA is the source code.</strong> It is written in a 4-letter alphabet (A, C, G, T), about 3 billion letters long, and every cell keeps a copy in its nucleus. A <strong>gene</strong> is a function in that code: a stretch of DNA that encodes one product, usually a protein. Humans have about 20,000. Much of the rest is regulatory switches, the config that decides when each gene runs.</li>
+    <li><strong>DNA → RNA → protein.</strong> To use a gene, the cell copies just that gene, not the whole DNA, into <strong>RNA</strong>: a disposable working copy, made as many times as needed, like loading code into memory. Ribosomes then translate the RNA into a chain of amino acids that folds into a 3-D <strong>protein</strong>. The shape decides the job. Some proteins are enzymes (they speed up chemical reactions), some are signals (hormones, receptors), some are structure. The protein <em>is</em> the enzyme or the signal; it does not turn into one later. (A few genes stop at RNA, and the RNA itself does the job.) Biologists call this flow the central dogma: source, loaded copy, running process.</li>
+    <li><strong>Expression is a live call count.</strong> A gene’s expression is how much of its RNA the cell is making right now. The <strong>expression profile</strong> is the vector of those numbers, one per gene, about 20,000 long. It is what “cell state” means. This dataset keeps 5,045 genes per cell, on a log scale.</li>
+    <li><strong>Genes call each other.</strong> Genes regulate other genes, like a dependency graph or a service mesh, so changing one gene ripples through to many others. That ripple is what the models in this note try to predict.</li>
+    <li><strong>A perturbation is a deliberate change, to see what happens.</strong> A knockout deletes a gene (CRISPR cuts the DNA). CRISPRi turns a gene down, like a throttle. <strong>CRISPRa</strong> turns a gene up without cutting, like a dimmer: a disabled Cas9 protein that cannot cut is guided to the start of the gene and switches it on harder. This dataset uses CRISPRa. CRISPR itself is grep plus a payload: a guide of about 20 letters finds its match in the 3-billion-letter genome and acts there.</li>
+    <li><strong>Perturb-seq is a massive barcoded A/B test.</strong> Single-cell RNA sequencing reads the expression vector of thousands of individual cells. In Perturb-seq, each cell gets a random perturbation plus a barcode naming it, and afterwards the cells are grouped by barcode. Here each cell got guides for one gene, two genes, or none (the control).</li>
+    <li><strong>Pseudo-bulk is averaging noisy logs.</strong> One cell’s readout is noisy, so all the cells with the same barcode are averaged into one profile: 237 profiles from 91,205 cells (the control from 7,353 cells, a typical condition from 295). “Profile” below always means this average, and a <strong>shift</strong> is a profile minus the control profile: how much each gene moved.</li>
+    <li><strong>K562 is the test environment.</strong> It is a human leukaemia cell line grown in labs since 1970: cheap, uniform and well studied, but not a real tissue. Every cell starts out genetically the same.</li>
+    <li><strong>Why pairs matter: genetic interactions.</strong> Most gene pairs simply add up (additive). Some show <strong>synergy</strong>, doing much more than the sum, and some show <strong>buffering</strong>, doing less. Drug combinations hunt for synergy. With about 20,000 genes there are roughly 200 million possible pairs (20,000 × 19,999 ÷ 2), far too many to test in a lab. That is why predicting pairs from singles is worth doing.</li>
   </ul>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Term</th><th>In one line</th></tr></thead>
+      <tbody>
+        <tr><td>Gene</td><td>A stretch of DNA that encodes one product, usually a protein: a function in the source code</td></tr>
+        <tr><td>Expression</td><td>How much RNA of a gene a cell is making right now</td></tr>
+        <tr><td>Expression profile</td><td>The vector of every gene’s expression in a cell (or the average of many cells): the cell’s state</td></tr>
+        <tr><td>Perturbation</td><td>A deliberate change to a gene, to see what happens to the others</td></tr>
+        <tr><td>CRISPRa / CRISPRi</td><td>Turn a gene up / down without cutting the DNA; this dataset uses CRISPRa</td></tr>
+        <tr><td>Perturb-seq</td><td>Many perturbations in one dish, each cell barcoded, each cell’s expression read</td></tr>
+        <tr><td>Pseudo-bulk</td><td>The average profile of all the cells with the same perturbation</td></tr>
+        <tr><td>Cell line</td><td>A population of identical cells grown in the lab for decades (here K562)</td></tr>
+        <tr><td>Genetic interaction</td><td>When two perturbations together do more (synergy) or less (buffering) than the sum of each alone</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <h3 id="toy" data-short="A worked example">2.2 The additive rule on three genes</h3>
   <p>The additive prediction for a pair is the control profile plus gene A’s shift plus gene B’s shift. On the pair BAK1+KLF1 and the three genes it moves most:</p>
@@ -387,6 +409,7 @@ experiments/perturbation-baselines/reproduce.sh</code></pre>
   </ul>
   <h3 id="revisions">Revision history</h3>
   <ul class="revisions">
+    <li><strong>Nov 9, 2026:</strong> Added a Biology 101 primer for readers new to biology (section 2.1).</li>
     <li><strong>Nov 9, 2026:</strong> First published.</li>
   </ul>
   <h3 id="cite">How to cite</h3>
