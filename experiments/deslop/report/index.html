@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop</title>
+<meta name="description" content="On 48 held-out prompts Qwen3-4B-Instruct-2507 scores 89.7 on a slop score whose human band ends at 33.6. A plain-style prompt plus a backtracking sampler brings it to 13.5 with no drift; our distilled LoRA to 21.5; 100toolkit's model to 9.2. A blind LLM judge preferred the original in most pairs for every method.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop">
+<meta property="og:description" content="On 48 held-out prompts Qwen3-4B-Instruct-2507 scores 89.7 on a slop score whose human band ends at 33.6. A plain-style prompt plus a backtracking sampler brings it to 13.5 with no drift; our distilled LoRA to 21.5; 100toolkit&#x27;s model to 9.2. A blind LLM judge preferred the original in most pairs for every method.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An etching-style illustration on warm off-white paper: a potted topiary on a wooden bench, its left half an overgrown tangle of ornamental green curls, its right half pruned into a plain round shape; orange-handled pruning shears lean on the pot and clipped curls lie on the bench and floor.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop">
+<meta name="twitter:description" content="On 48 held-out prompts Qwen3-4B-Instruct-2507 scores 89.7 on a slop score whose human band ends at 33.6. A plain-style prompt plus a backtracking sampler brings it to 13.5 with no drift; our distilled LoRA to 21.5; 100toolkit&#x27;s model to 9.2. A blind LLM judge preferred the original in most pairs for every method.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-10">
+<meta property="article:modified_time" content="2026-11-10">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop",
+ "description": "On 48 held-out prompts Qwen3-4B-Instruct-2507 scores 89.7 on a slop score whose human band ends at 33.6. A plain-style prompt plus a backtracking sampler brings it to 13.5 with no drift; our distilled LoRA to 21.5; 100toolkit's model to 9.2. A blind LLM judge preferred the original in most pairs for every method.",
+ "abstract": "A measured comparison of ways to remove chat-assistant writing habits (em dashes, not-X-but-Y, lists of three, questions answered on the spot, signposts, slop words, markdown, invented studies) from Qwen3-4B-Instruct-2507, scored on 48 held-out prompts with a habit score read against 318 licensed human passages (median 12.8, 90th percentile 33.6). Original 89.7 [76.9, 103.7]; plain-style prompt 44.2; Antislop-style backtracking sampler 27.3; prompt plus sampler 13.5 [11.2, 15.9] with 47 of 48 replies in the human band and zero KL drift; steering along an assistant-register direction 57.1 at the strongest fluent setting, with KL drift 0.67 nats per token (random direction 79.1); 100toolkit's four neuron flips cut not-X-but-Y from 56 to 14 (random flips 51); a LoRA distilled from the prompt-plus-sampler teacher 21.5 [18.0, 25.2] with task fit 47 of 48 and KL 0.11; 100toolkit's qwen3-4b-deslop-v4 9.2 [7.1, 11.6] with task fit 43 and KL 0.16. EQ-Bench's slop score agrees on the order (Spearman 0.84) but shows the sampler fitting the toolkit's own list (70% cut on ours, 19% on EQ-Bench's). A blind, position-swapped gpt-5.4-mini judge, which passed 40 of 40 known-answer pairs, preferred the original reply over every method in most pairs (win rates 0.04 to 0.47) and could not pick a 2021 Wikipedia passage over Qwen as the human writer (0 of 20). Toolkit (pip) and model (LoRA, merged, GGUF) released.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-10",
+ "dateModified": "2026-11-10",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI slop, writing style, Antislop, backtracking sampler, activation steering, neuron editing, LoRA, distillation, Qwen3-4B, EQ-Bench slop score, LLM-as-a-judge, GGUF, Ollama, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://100toolkit.com/blog/deslop-model/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.15061"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/sam-paech/slop-score"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2509.19163"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://doi.org/10.1126/sciadv.adt3813"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+.rv-bar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.rv-bar button[aria-pressed="true"] { border-color: var(--control); color: var(--control); }
+.rv-prompt { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-soft); margin: 0.6rem 0 0.4rem; }
+.rv-score { font-family: var(--font-mono); font-size: 0.85rem; margin: 0.4rem 0; }
+.rv-text { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; max-height: 26rem; overflow-y: auto; padding: 0.75rem;
+           background: var(--panel); border-radius: 6px; }
+.rv-text mark { background: var(--mark); color: var(--ink); border-bottom: 2px solid var(--accent); padding: 0 1px; }
+.rv-habits { font-size: 0.85rem; color: var(--ink-soft); margin-top: 0.5rem; }
+.sim label.rv-pick { display: flex; flex-wrap: wrap; width: 100%; }
+.sim select { width: 100%; min-width: 0; font: inherit; font-size: 0.85rem; min-height: 44px; padding: 0 0.6rem; color: var(--ink); background: var(--canvas);
+              border: 1px solid var(--rule); border-radius: 6px; max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-10">Nov 10, 2026</time></p>
+  <h1>De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop</h1>
+  <p class="dek ruled">Chat models write in a voice people now spot at once: em dashes, “it’s not X, it’s Y”, lists of three, questions they answer themselves. This note tries every way to take that voice out of one small open model (a prompt, a sampler, steering, neuron edits, a distilled LoRA), measures each against human prose, an independent metric and the damage it does, and releases the toolkit and the model.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="An etching-style illustration on warm off-white paper: a potted topiary on a wooden bench, its left half an overgrown tangle of ornamental green curls and spirals, its right half pruned into a plain round shape; orange-handled pruning shears lean on the pot and clipped curls lie on the bench and floor." width="1536" height="1024">
+    <figcaption>Cover: a topiary half pruned. The curls stand for a chat model’s writing habits and the clean half for what is left when they are cut, with the clippings below. Made with an image model (gpt-image-2) from the prompt in <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen3-4B-Instruct-2507; 100toolkit’s qwen3-4b-deslop-v4 for comparison; gpt-5.4-mini as the judge</dd></div>
+    <div><dt>Data</dt><dd>48 held-out prompts (10 topics × 4 genres, plus 4 emails and 4 personal reflections); 318 human passages (Project Gutenberg, public domain; Wikipedia 2021, CC BY-SA)</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/deslop/</a> and the toolkit, <a href="../../../packages/deslop/">packages/deslop</a></dd></div>
+    <div><dt>Model</dt><dd><a href="https://huggingface.co/albertlieadrian/qwen3-4b-deslop">albertlieadrian/qwen3-4b-deslop</a> (LoRA, merged, GGUF)</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/table.csv">results/table.csv</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What is the cheapest way to take the chat-assistant voice out of a small open model, and what does it cost?</strong></p>
+    <p>At runtime, a plain-style system prompt plus a backtracking sampler. On 48 prompts never used for tuning, Qwen3-4B-Instruct-2507 scores 89.7 [76.9, 103.7] weighted habits per 1000 words, where 90% of human passages score 33.6 or less. Prompt plus sampler brings it to 13.5 [11.2, 15.9], with 47 of 48 replies inside the human band, without changing a single prediction of the model. Steering along an “assistant register” direction gets only to 57.1 before the text breaks, and moves the model’s predictions on human prose more than any other single method. A LoRA distilled from the prompt-plus-sampler teacher keeps most of the gain with no prompt at all (21.5 [18.0, 25.2]) and passes more task checks than the original, but 100toolkit’s released model goes further (9.2 [7.1, 11.6]). EQ-Bench’s independent slop score agrees on the order (Spearman 0.84). A blind LLM judge, which passed every sanity check, still preferred the original model’s reply over every method’s in most pairs.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (48 held-out prompts)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Can a runtime method reach the human band without changing the model?</td><td>Yes: prompt + backtracking sampler 13.5 [11.2, 15.9]; 47 of 48 replies in the band; KL drift 0 by construction</td><td>Original 89.7 [76.9, 103.7], 3 of 48 in the band; human median 12.8</td></tr>
+          <tr><td>Does steering do the same job?</td><td>Not as well: best fluent setting 57.1 [47.9, 66.7], the largest KL drift of any single method (0.67 nats per token), lexical diversity down from 0.81 to 0.68</td><td>A random direction of the same size: 79.1 [68.7, 90.5]</td></tr>
+          <tr><td>Do 100toolkit’s four neuron flips replicate?</td><td>On their target, yes: “not X but Y” falls from 56 to 14 across the 48 replies, at KL 0.002</td><td>Four random neurons flipped: 51</td></tr>
+          <tr><td>Does a LoRA keep the gain with no prompt?</td><td>Mostly: 21.5 [18.0, 25.2], 38 of 48 in the band, task fit 47 of 48 (original 39), KL 0.11, quiz 30 of 30</td><td>100toolkit’s v4: 9.2 [7.1, 11.6], 47 in the band, task fit 43, KL 0.16</td></tr>
+          <tr><td>Does an independent metric agree?</td><td>On the order, yes: EQ-Bench slop score (slop-score’s own code), Spearman 0.84 over 13 setups. It catches one overfit: the sampler alone cuts our score by 70% but EQ-Bench’s by 19%</td><td>Human passages: 5.0 (Gutenberg), 1.4 (Wikipedia); original 43.4</td></tr>
+          <tr><td>Does a blind LLM judge call the result better writing?</td><td>No: every method lost more pairs than it won against the original (win rates 0.04 to 0.47). The judge passed 40 of 40 sanity pairs but could not pick Wikipedia over Qwen as the human writer (0 of 20)</td><td>The author, reading 12 pairs blind: preferred our LoRA in 5 of 6, the original over 100toolkit’s model in 4 of 6</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Qwen3-4B for a LinkedIn post about remote work and it opens: “Remote work isn’t just a trend—it’s a transformation in how we approach productivity, flexibility, and work-life balance. 🌍💡” In one sentence that is a contrast frame, an em dash, a list of three and two emoji, and the post ends with five hashtags. The LoRA trained in this note, given the same request and no system prompt, writes: “I believe remote work is a better way to live and work. It gives people more control over their time and helps reduce stress from commutes and office politics.” The first scores 190 on the toolkit’s scale; the second 26.</p>
+  <p><strong>What is known.</strong> These habits are measurable. Kobak et al. counted <a href="https://doi.org/10.1126/sciadv.adt3813">excess words</a> in 15 million PubMed abstracts the way epidemiologists count excess deaths (“delves” at 28 times its expected rate). EQ-Bench’s <a href="https://github.com/sam-paech/slop-score">slop-score</a> ranks models by over-used words, trigrams and “not X but Y” constructions. Paech et al.’s <a href="https://arxiv.org/abs/2510.15061">Antislop</a> removes such patterns at inference time with a backtracking sampler, and in the weights with a preference method trained on the sampler’s choices. And Erik Markus Kannike’s <a href="https://100toolkit.com/blog/deslop-model/">qwen3-4b-deslop</a> took Qwen3-4B from 121 to 12.5 on a style-guide score by distilling a runtime setup (steering, four neuron flips and a plain-style prompt) into a LoRA, with the lesson that the lowest score at first wrote badly until task checks were added.</p>
+  <p><strong>What is missing.</strong> Each source tries one family of method. Nobody has put the prompt, the sampler, steering, neuron edits and distillation on the same model, the same prompts and the same scale, with the same damage checks, and asked an outside metric and an outside judge whether the result is better.</p>
+  <p class="question-callout">On one model, which way of removing chat-assistant writing habits gets closest to human prose, and what does each cost in drift, task fit and judged quality?</p>
+  <p><strong>What this note does.</strong> It builds the scale, runs every method on 48 held-out prompts, and puts every number beside a control. Its contributions:</p>
+  <ol>
+    <li>A toolkit, <code>deslop</code>: a habit score with every match highlighted and a band measured on human prose, task-fit checks, a backtracking sampler, and steering and neuron-edit hooks (pip-installable; the scorer needs only the standard library).</li>
+    <li>A measured comparison of five methods and their combinations, with KL drift, a quiz, task fit, an independent metric and a blind judge.</li>
+    <li>A released model, <a href="https://huggingface.co/albertlieadrian/qwen3-4b-deslop">qwen3-4b-deslop</a> (LoRA, merged weights and a GGUF for Ollama), and an honest comparison with 100toolkit’s, which scores lower.</li>
+    <li>A negative result about judges: an LLM judge that passes sanity checks prefers the slop and cannot tell human prose from the model’s.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before any generation:</p>
+  <ol>
+    <li>Every method is scored once on 48 held-out prompts; anything tuned (the steering layer and strength, the LoRA recipe) is tuned on training prompts only.</li>
+    <li>The score is read against human prose, not against zero, and an independent metric (EQ-Bench’s slop score, with its own code) must order the methods the same way.</li>
+    <li>A method must not buy its score with damage: the quiz kept, task fit no worse than the original’s, drift on human prose reported beside a random control of the same size.</li>
+    <li>The judge is checked on pairs with a known answer before its verdicts are read.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="habits" data-short="What counts as slop">2.1 What counts as a habit, and how often people use them</h3>
+  <p>The score counts eleven habits, each a regular expression or word list, and adds their weights per 1000 words. The list follows 100toolkit’s style guide, Wikipedia’s <a href="https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing">Signs of AI writing</a>, and 100toolkit’s second-round lessons. A habit is a pointer, not a verdict: the last two columns show people use most of them too. The last three columns are occurrences per 1000 words: Qwen3-4B’s replies to the 48 held-out prompts, the Gutenberg essays, and the Wikipedia passages.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Habit</th><th>Example</th><th class="num">Weight</th><th class="num">Qwen3-4B</th><th class="num">Gutenberg</th><th class="num">Wikipedia</th></tr></thead>
+      <tbody>
+        <tr><td>Em dash</td><td>“a trend—it’s a shift”</td><td class="num">1</td><td class="num">16.6</td><td class="num">3.9</td><td class="num">1.2</td></tr>
+        <tr><td>Not X but Y</td><td>“It’s not a tool, it’s a mindset”</td><td class="num">3</td><td class="num">5.3</td><td class="num">0.9</td><td class="num">0.1</td></tr>
+        <tr><td>List of three</td><td>“faster, cheaper, and better”</td><td class="num">1</td><td class="num">23.4</td><td class="num">5.0</td><td class="num">10.5</td></tr>
+        <tr><td>Question answered on the spot</td><td>“The result? Happier teams.”</td><td class="num">2</td><td class="num">1.0</td><td class="num">0.2</td><td class="num">0.0</td></tr>
+        <tr><td>Signpost</td><td>“Here’s the thing:”, “Let’s dive in”</td><td class="num">2</td><td class="num">0.4</td><td class="num">0.0</td><td class="num">0.0</td></tr>
+        <tr><td>Stock phrase</td><td>“plays a crucial role”, “in today’s fast-paced world”</td><td class="num">2</td><td class="num">0.5</td><td class="num">0.0</td><td class="num">0.0</td></tr>
+        <tr><td>Emphasis fragment</td><td>“Every time.” inside a paragraph</td><td class="num">1</td><td class="num">0.9</td><td class="num">0.6</td><td class="num">0.5</td></tr>
+        <tr><td>“, which” chain</td><td>“…the desk, which freed the window”</td><td class="num">1</td><td class="num">0.8</td><td class="num">0.9</td><td class="num">2.0</td></tr>
+        <tr><td>Slop word</td><td>delve, tapestry, seamless, resilience</td><td class="num">1</td><td class="num">13.1</td><td class="num">1.1</td><td class="num">1.7</td></tr>
+        <tr><td>Markdown or emoji</td><td>headings, bold, bullets, #hashtags, 🚀</td><td class="num">1</td><td class="num">8.6</td><td class="num">0.0</td><td class="num">0.0</td></tr>
+        <tr><td>Study, statistic or expert</td><td>“According to a 2023 study, 68%…”</td><td class="num">2</td><td class="num">0.2</td><td class="num">0.3</td><td class="num">1.3</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The word list has 89 entries: 79 from Kobak et al., Wikipedia’s guide and EQ-Bench’s list, and 10 words Qwen3-4B used across many topics in its replies to the <em>training</em> prompts but rarely or never in the human passages (“resilience”: 51 uses across 24 topics, none in the human passages; “quiet”: 161 uses across 41 of 48 topics, 8 in the human passages). Words over-used only because the human passages are old (“digital”, contractions) or because of the topic were left out.</p>
+
+  <h3 id="toy" data-short="A score by hand">2.2 A score by hand</h3>
+  <p>Take these two sentences, 17 words: “Remote work isn’t just a trend—it’s a revolution. Here’s the thing: flexibility, autonomy, and trust matter.” They hold one not-X-but-Y (3 points), one em dash (1), one signpost (2) and one list of three (1): 7 points in 17 words, which is 7 × 1000 / 17 = <strong>412 per 1000 words</strong>. A plain rewrite, “Remote work has changed how we work. Flexibility and trust matter most.”, holds none of them and scores 0. Real replies of about 250 words mix both kinds of sentence, which is how the original model lands near 90.</p>
+
+  <h3 id="data">2.3 Prompts and human prose</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td>Held-out prompts</td><td>10 topics (remote work, public libraries, sleep…) × blog, LinkedIn, explainer, opinion; plus 4 emails and 4 personal reflections on the same topics. Each asks for a length (120 to 250 words)</td><td class="num">48</td><td>Every number in section 4</td></tr>
+        <tr><td>Training prompts</td><td>48 other topics (coffee, chess, beekeeping…) × the same six genres</td><td class="num">288</td><td>The direction, the slop-word additions, the teacher data</td></tr>
+        <tr><td>Dev prompts</td><td>The first four training topics × six genres</td><td class="num">24</td><td>Choosing the steering setting and the LoRA recipe</td></tr>
+        <tr><td>Human passages</td><td>260 passages of 150 to 400 words from 13 Project Gutenberg books of essays, memoirs and explanation (Chesterton, Woolf, Twain, Addams, Russell…), public domain in the US; 58 passages from 29 Wikipedia articles as they stood on 1 June 2021, CC BY-SA 3.0</td><td class="num">318</td><td>The human band; KL drift (24 of them)</td></tr>
+        <tr><td>Quiz</td><td>30 short factual questions (capitals, dates, arithmetic), scored by whole-word match</td><td class="num">30</td><td>Damage check</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The human band: on the 318 passages, the score has a median of 12.8 (Gutenberg 12.4, Wikipedia 17.1) and a 90th percentile of 33.6. A reply is <em>in the band</em> when it scores 33.6 or less. Neither human source is modern conversational prose; section 7 says what that leaves out.</p>
+
+  <h3 id="methods">2.4 The methods</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>What changes</th><th>Settings</th></tr></thead>
+      <tbody>
+        <tr><td>Plain-style prompt</td><td>A system prompt: do the task first (state a position, write in the first person, greet), then a list of habits to avoid (<a href="#plain-prompt">Appendix</a>)</td><td>Fixed before any run</td></tr>
+        <tr><td>Backtracking sampler</td><td>Which samples are kept. When an em dash, not-X-but-Y, a signpost, a stock phrase, a slop word, markdown, an invented claim or “, which” completes, step back to the token where it began, ban that token there, sample again (up to 300 backtracks per reply)</td><td>The model’s own sampling settings</td></tr>
+        <tr><td>Steering</td><td>Adds a direction to the residual stream at one layer, at every position. The direction is steerlab’s difference of means between the model’s own replies to the 288 training prompts and its replies under the plain-style prompt</td><td>Layer 12 of 36, strength −4 class gaps (chosen on dev)</td></tr>
+        <tr><td>Neuron flips</td><td>Multiplies four MLP neurons by −1: L32.N4852, L33.N348, L28.N1121, L32.N5418, the ones 100toolkit found for “not X but Y”</td><td>As published</td></tr>
+        <tr><td>LoRA distillation</td><td>The weights. A teacher (prompt + sampler) writes three replies per training prompt; replies that pass every check and score under the human median are kept; a rank-16 LoRA on every projection learns them from the bare prompt</td><td>Round 2 recipe, chosen on dev: all 557 passing replies outside the dev topics, 2 epochs</td></tr>
+        <tr><td>100toolkit’s v4</td><td><code>erikkannike/qwen3-4b-deslop-v4</code>, merged weights with its four flips baked in</td><td>As released</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Every run samples one reply per prompt at the model’s own settings (temperature 0.7, top-p 0.8, top-k 20, no repetition penalty), seed 0, up to 512 new tokens, with no system prompt unless the method is a prompt.</p>
+
+  <h3 id="measures">2.5 Measures</h3>
+  <ul>
+    <li><strong>Deslop score</strong>: weighted habits per 1000 words (section 2.1), averaged over the 48 replies.</li>
+    <li><strong>In the band</strong>: a reply scoring at or below 33.6, the human 90th percentile.</li>
+    <li><strong>EQ-Bench slop score</strong>: the composite from slop-score’s own JavaScript (60% slop words, 25% not-x-but-y, 15% slop trigrams, scaled by its leaderboard’s range), computed on all 48 replies joined, as its leaderboard does. Run on slop-score’s published Qwen3-4B outputs, our wrapper gives 62.2, the leaderboard’s value.</li>
+    <li><strong>Task fit</strong>: every check for the genre passes: length between 0.5 and 1.6 times the request; a position in the first two sentences of an opinion piece; a greeting in an email; at least three first-person words in a reflection.</li>
+    <li><strong>Fluent</strong> (for tuning only): at least 40% of the requested length, at most 10% of sentences starting in lower case, no four-word phrase used more than three times.</li>
+    <li><strong>KL drift</strong>: on 24 human passages given as the assistant’s reply, the mean over tokens of KL(method ‖ original) between next-token distributions, in nats. It asks how far the method moves the model’s predictions on text a person wrote. The sampler’s is 0 by construction: it changes no prediction.</li>
+    <li><strong>Judge win rate</strong>: a method wins a prompt when the judge picks its reply over the original’s in both orders, loses when it picks the original in both, and ties otherwise; a tie counts half. 0.5 means level.</li>
+  </ul>
+  <p>Intervals are 95% percentile bootstraps over the 48 prompts (10,000 resamples); differences from the original are paired by prompt.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Goal and design</strong> written first: one model, the methods above, the held-out set, the human band, the damage checks, EQ-Bench as the outside metric, a blind judge.</li>
+    <li><strong>Scorer and band:</strong> 11 detectors with unit tests (41 tests, including human sentences that must score zero); 318 human passages scored.</li>
+    <li><strong>Inputs:</strong> the original model and the plain-style prompt on the 288 training prompts (576 replies), for the direction and the slop-word additions. The scorer was frozen after this step.</li>
+    <li><strong>Steering:</strong> the direction at layers 12, 18 and 24; a sweep of 27 settings plus none on the 24 dev prompts (672 replies).</li>
+    <li><strong>Teacher and LoRA:</strong> 864 teacher replies (3 per training prompt), 608 kept; round 1 trained on 260 (the best per prompt); round 2 compared three recipes, trained without the dev topics, on dev.</li>
+    <li><strong>Held-out runs:</strong> 13 setups × 48 prompts = 624 replies, each scored once.</li>
+    <li><strong>Damage and judge:</strong> KL on 24 passages and the 30-question quiz per setup; the judge’s 40 known-answer pairs, then 12 setups × 48 prompts × 2 orders (1,152 verdicts); 12 pairs read by the author with labels hidden.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading replies</th></tr></thead>
+      <tbody>
+        <tr><td>The model; the 48 held-out and 288 training prompts; the plain-style prompt; the habit list and weights (frozen before any held-out reply was scored); the human sources; the sampler’s banned habits; the steering layers and the rule for choosing a setting; the teacher, its filter and the LoRA recipe for round 1; the damage checks; the judge’s question and its known-answer check</td><td>The steering sweep first stopped at −1.5 class gaps, where every setting was still fluent and the best sat on the grid’s edge; strengths −2 to −6 were added. The first sampler run used an earlier version of the detectors (before an abbreviation fix and the data-driven words); it was rerun after the scorer was frozen, and the rerun is reported. LoRA round 2 was added after round 1 kept “not X but Y” that its teacher never wrote; its recipe was chosen on dev, not on held-out prompts. The “reads as human” judge question was added after the first verdicts, and dropped when the judge failed its check</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: Qwen3-4B-Instruct-2507 in bfloat16 with Hugging Face transformers 5.20 on Modal (an L40S for almost all of it; an A10G or A100 when none was free), about $8 of GPU in all; each LoRA trained in a few minutes; the GGUF export on CPU. Scoring, EQ-Bench (Node.js) and figures on a laptop. The judge, gpt-5.4-mini through OpenAI’s API, used 905k input and 150k output tokens across all checks and runs, about $1.50.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Six findings:</p>
+  <ol>
+    <li><a href="#runtime"><strong>4.1</strong></a> A plain prompt plus the sampler reaches the human band at runtime, with no drift.</li>
+    <li><a href="#steering"><strong>4.2</strong></a> Steering is the costliest way to do it; 100toolkit’s neuron flips work on their target only.</li>
+    <li><a href="#distill"><strong>4.3</strong></a> A distilled LoRA keeps most of the gain in the weights; 100toolkit’s goes further.</li>
+    <li><a href="#eqbench"><strong>4.4</strong></a> EQ-Bench’s score agrees on the order, and catches the sampler fitting our list.</li>
+    <li><a href="#habit-shift"><strong>4.5</strong></a> Each method removes different habits, and the prompt adds one.</li>
+    <li><a href="#judge"><strong>4.6</strong></a> A blind LLM judge prefers the original, and cannot tell human prose from Qwen’s.</li>
+  </ol>
+
+  <h3 id="runtime" data-short="Prompt + sampler">4.1 A plain prompt plus the sampler reaches the human band at runtime, with no drift</h3>
+  <p><strong>The prompt alone halves the score (89.7 to 44.2 [39.4, 49.3]); the sampler alone takes it to 27.3 [22.9, 31.8]; together they reach 13.5 [11.2, 15.9], about the human median, with 47 of 48 replies in the band.</strong> The sampler steps back 40 times per reply on average without the prompt and 8 times with it; one sampler reply of 48 hit the 512-token cap. Because it only chooses among the model’s own samples, its KL drift is zero, and the quiz stays at 30 of 30. Its costs are speed (one token at a time, with rewinds) and a ceiling: it can only ban what the detectors see (section 4.4).</p>
+  <figure class="plot">
+    <img src="figures/methods.png" alt="Dot plot of the mean deslop score with 95% intervals for 13 setups. From lowest: 100toolkit's model 9.2, prompt plus sampler 13.5, our LoRA round 2 21.5, round 1 24.1, sampler 27.3, prompt plus steering 29.3, prompt plus neuron flips 33.3, plain prompt 44.2, steering 57.1, 100toolkit's neuron flips 73.6, random steering 79.1, random neuron flips 85.5, the original model 89.7. A shaded band from 0 to 33.6 marks the human range." width="1080" height="750">
+    <figcaption><span class="label">Figure 1.</span> Mean deslop score per reply on the 48 held-out prompts, with 95% bootstrap intervals over prompts. Orange: methods; hollow grey: controls of the same size (a random direction, four random neurons); black: the original model and 100toolkit’s released model. Shaded: the human band (90% of 318 human passages score 33.6 or less). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Task fit stays high with the prompt (47 of 48 replies pass every check, against the original’s 39). The original model fails on opinion pieces: it writes a balanced essay with no position in 9 of 10. The plain prompt fixes that in all but one. The sampler alone fails all 10, because nothing in it asks for a position.</p>
+
+  <h3 id="steering" data-short="Steering and neurons">4.2 Steering is the costliest way to do it; 100toolkit’s neuron flips work on their target only</h3>
+  <p><strong>The register direction lowers the score, but only to 57.1 [47.9, 66.7] at the strongest setting that stayed fluent on dev (layer 12, −4 class gaps), against 79.1 for a random direction of the same size. Its KL drift on human prose, 0.67 nats per token, is the largest of any single method, and its lexical diversity drops from 0.81 to 0.68.</strong> Steering does change the register: at layer 12 the replies get shorter sentences and simpler words (“Put the filter in the machine, add ground coffee, and turn it on”). But it raises “not X but Y” (section 4.5), and one step stronger, or at layer 18, replies stop being fluent (Figure 2). With the prompt added, steering reaches 29.3, still worse than the prompt plus the sampler, at the largest drift measured (1.32).</p>
+  <figure class="plot">
+    <img src="figures/sweep.png" alt="Line chart of the mean deslop score on 24 dev prompts against steering strength from -0.25 to -6, for layers 12, 18 and 24. Unsteered: 80.2. Layer 12 falls slowly to 51.5 at -4 and stays fluent; layer 18 falls to 37.6 at -3 but only 12 of 24 replies are fluent, then collapses; layer 24 falls least." width="960" height="600">
+    <figcaption><span class="label">Figure 2.</span> The steering sweep on the 24 dev prompts (training topics): mean deslop score by strength, one line per layer. Filled markers: at least 22 of 24 replies fluent; hollow: fewer. The square marks the chosen setting (layer 12, −4). The dashed line is the unsteered model on the same prompts (80.2). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p><strong>100toolkit’s four neuron flips do what they were found for: across the 48 replies, “not X but Y” falls from 56 to 14 (four random neurons flipped: 51), and em dashes from 175 to 115, at a KL drift of 0.002.</strong> They leave the rest of the voice alone, so the overall score only moves from 89.7 to 73.6. Replies with an invented study or statistic rose from 2 to 11 of 48, mostly “Studies show”; with 48 prompts that is a pointer, not a finding.</p>
+
+  <h3 id="distill" data-short="Distillation">4.3 A distilled LoRA keeps most of the gain in the weights; 100toolkit’s goes further</h3>
+  <p><strong>Trained on the prompt-plus-sampler teacher and given no prompt, our round-2 LoRA scores 21.5 [18.0, 25.2], with 38 of 48 replies in the band, task fit 47 of 48, KL drift 0.11 and the quiz at 30 of 30. 100toolkit’s v4 scores 9.2 [7.1, 11.6], with 47 in the band, task fit 43 and KL 0.16.</strong> Their model is plainer by our measure and by EQ-Bench’s (5.1 against our 21.8); ours moves the model’s predictions on human prose less and fails fewer task checks (it states a position in 9 of 10 opinion pieces; theirs in 5).</p>
+  <figure class="plot">
+    <img src="figures/tradeoff.png" alt="Two scatter plots against the deslop score. Left: KL drift on human prose, on a symlog scale, highest for prompt plus steering (1.32) and steering (0.67), about 0.32 for the plain prompt, 0.16 for 100toolkit's model, 0.11 and 0.08 for our LoRAs, and zero for the sampler runs. Right: the judge's win rate against the original, below 0.5 for every method, lowest for prompt plus steering (0.04) and 100toolkit's model (0.06), highest for the random and 100toolkit neuron flips (0.47, 0.43)." width="1560" height="660">
+    <figcaption><span class="label">Figure 3.</span> What each method costs. Left: KL drift on 24 human passages (nats per token; symlog axis, so zero is shown). Right: the blind judge’s win rate against the original model on the 48 prompts (0.5 = level; ties count half). Each point is one setup; hollow grey: random controls. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>The student does not copy all of its teacher. The teacher’s kept replies averaged 3.6 and held no “not X but Y” at all (the sampler bans it), yet round 1 wrote it 3.4 times per 1000 words, about two thirds of the original’s 5.3. Round 2, trained on all passing teacher replies rather than the best one per prompt, scored 16.2 on dev against 22.8 for round 1’s recipe, and 21.5 on the held-out prompts against round 1’s 24.1: a small gain inside the intervals. The habit comes back from the bare prompt, which the teacher only ever answered with its system prompt in place.</p>
+
+  <h3 id="eqbench" data-short="An outside metric">4.4 EQ-Bench’s score agrees on the order, and catches the sampler fitting our list</h3>
+  <p><strong>Across the 13 setups, EQ-Bench’s slop score and ours rank the methods alike (Spearman 0.84). The exception is the sampler alone: it cuts our score by 70% (89.7 to 27.3) and EQ-Bench’s by 19% (43.4 to 35.0).</strong> The sampler bans the words and patterns our detectors know; EQ-Bench’s list of slop words is different, so it sees what the sampler let through. This is the case the outside metric was added for: a method tuned to a regex looks better on that regex than on anyone else’s. The setups that change the model’s register (the prompt, steering, the LoRAs) move both scores together.</p>
+  <figure class="plot">
+    <img src="figures/eqbench.png" alt="Scatter of EQ-Bench's slop score against the deslop score for 13 setups and two human sources. Points rise together from 100toolkit's model (9.2, 5.1) to the original (89.7, 43.4); the backtracking sampler sits above the trend at (27.3, 35.0). Human Gutenberg passages sit at (15.1, 5.0) and Wikipedia at (19.1, 1.4)." width="960" height="690">
+    <figcaption><span class="label">Figure 4.</span> Our score against EQ-Bench’s, computed with slop-score’s own code on each setup’s 48 replies joined (its leaderboard method). Grey diamonds: the two human sources. Spearman correlation over the 13 setups: 0.84. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>On EQ-Bench’s scale, 100toolkit’s model (5.1) sits at the level of the Gutenberg essays (5.0); the best runtime setup (14.6) and our LoRA (21.8) sit between the human passages and the original model (43.4).</p>
+
+  <h3 id="habit-shift" data-short="Which habits go">4.5 Each method removes different habits, and the prompt adds one</h3>
+  <p><strong>Told not to use “not X but Y”, the model uses it more: 77 times across the 48 replies with the plain prompt, against 56 without.</strong> The other habits fall: em dashes from 175 to 57, slop words by two thirds, markdown and emoji to none. Steering also raises the contrast frame (20.9 points per 1000 words against 16.0). The sampler removes everything it bans and leaves lists of three, which it does not ban; lists of three are then most of what is left in every runtime setup, at about the rate of Wikipedia’s prose. Figure 5 shows where each setup’s points come from.</p>
+  <figure class="plot">
+    <img src="figures/habits.png" alt="Stacked horizontal bars of points per 1000 words by habit. The original model totals 83.5, led by lists of three, em dashes, not X but Y and slop words; the plain prompt 42.5, now led by not X but Y; the sampler 25.9, almost all lists of three; steering 53.5; neuron flips 70.3; prompt plus sampler 13.3; our LoRA 21.5, split between not X but Y and lists of three; 100toolkit's model 9.1; Gutenberg essays 15.3; Wikipedia 18.7." width="1260" height="720">
+    <figcaption><span class="label">Figure 5.</span> Points per 1000 words by habit, pooled over each setup’s 48 replies (so the totals differ slightly from the per-reply means in Figure 1), beside the two human sources. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Figure 6 lets you read the replies themselves, with every habit the toolkit finds marked.</p>
+  <div class="sim no-js" id="viewer">
+    <div class="sim-live">
+      <label class="rv-pick">Prompt <select id="rv-prompt" aria-label="Prompt"></select></label>
+      <div class="rv-bar" id="rv-runs" role="group" aria-label="Setup"></div>
+      <p class="rv-prompt" id="rv-request"></p>
+      <p class="rv-score" id="rv-score"></p>
+      <div class="rv-text" id="rv-text" tabindex="0"></div>
+      <p class="rv-habits" id="rv-habits"></p>
+    </div>
+    <p class="sim-static">The interactive reply viewer needs JavaScript. The replies it shows are in results/gen/, one file per setup, such as <a href="../results/gen/base.jsonl">base.jsonl</a>.</p>
+  </div>
+  <p class="caption-note"><span class="label">Figure 6.</span> Held-out replies from seven setups on 12 prompts (two per genre), with every habit the toolkit finds highlighted; hover a highlight for its name. Data: <a href="viewer.json">viewer.json</a>, written by <a href="../make_figures.py">make_figures.py</a> from the saved replies.</p>
+
+  <h3 id="judge" data-short="The judge prefers slop">4.6 A blind LLM judge prefers the original, and cannot tell human prose from Qwen’s</h3>
+  <p><strong>For every method, gpt-5.4-mini picked the original model’s reply as better writing for the request in more pairs than the method’s. Win rates run from 0.04 (prompt + steering) to 0.47 (four random neurons flipped, whose replies barely differ from the original’s); our LoRA 0.22 [0.13, 0.32], prompt + sampler 0.13 [0.05, 0.21], 100toolkit’s model 0.06 [0.01, 0.14].</strong></p>
+  <p>The judge was checked first. Against the same reply with its sentences shuffled, and against a reply written for another prompt, it picked the original in both orders 40 times out of 40. It reads coherence and relevance. The near-identical random-neuron replies drew 31 ties in 48, as they should.</p>
+  <p>An exploratory second question, added after these verdicts, asked which reply “reads more like it was written by a skilled human writer”. Its check failed. Given a 2021 Wikipedia passage and the original model’s explainer on the same topic, gpt-5.4-mini picked the Wikipedia passage in both orders 0 times in 20; the larger gpt-5.4 did so 7 times, with 8 ties. A judge that cannot pick a Wikipedia article over Qwen as the human writer cannot grade de-slopping, so that question was not run on the methods.</p>
+  <p>As a small check of the main question, the author read 12 pairs (6 of our LoRA, 6 of 100toolkit’s model, each against the original) with the labels hidden and the order shuffled. The judge and the author agreed on 6 of 12. The author preferred our LoRA in 5 of 6 (the judge in 2), and the original over 100toolkit’s model in 4 of 6 (the judge in 6 of 6). The author was not blind to style, which gives away which reply is which, and 12 pairs is a small sample (<a href="../results/hand_read.json">hand_read.json</a>). Read side by side, 100toolkit’s replies are plain but flat: one paragraph, short declarative sentences, some invented anecdotes. Ours keep paragraphs and more of the original’s content. The original’s are polished and generic, and the judge rewards the polish.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>100toolkit qwen3-4b-deslop</th><th>Antislop (Paech et al.)</th><th>EQ-Bench slop-score</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Score read against human prose</td><td>✓ (“usually under 15”)</td><td>✓ (frequency ratio to human text)</td><td>✓ (a human baseline on its leaderboard)</td><td>✓ (a band from 318 licensed passages, per source)</td></tr>
+        <tr><td>Prompt, sampler, steering, neurons and weights on one model</td><td>Steering, neurons, prompt, LoRA</td><td>Sampler and preference training</td><td>Measurement only</td><td>✓ all five, and combinations</td></tr>
+        <tr><td>Random control for steering and neurons</td><td>✗</td><td>n/a</td><td>n/a</td><td>✓</td></tr>
+        <tr><td>Independent metric</td><td>✗ (its own score)</td><td>✓ (writing benchmarks)</td><td>n/a</td><td>✓ (EQ-Bench’s code)</td></tr>
+        <tr><td>Drift and capability checks</td><td>✓ (KL on 22 passages, 30-question quiz)</td><td>✓ (GSM8K, MMLU)</td><td>✗</td><td>✓ (KL, quiz, task fit, MATTR)</td></tr>
+        <tr><td>Blind quality judgment</td><td>✗ (named as a next step)</td><td>✓ (LLM-judged writing quality)</td><td>✗</td><td>✓ (position-swapped judge, checked; it prefers the original)</td></tr>
+        <tr><td>Released model</td><td>✓ (LoRA, merged, GGUF)</td><td>✓ (FTPO models)</td><td>n/a</td><td>✓ (LoRA, merged, GGUF)</td></tr>
+        <tr><td>Lowest slop reached on Qwen3-4B</td><td>12.5 on its own score; 9.2 on ours</td><td>Not run on Qwen3-4B</td><td>Qwen3-4B scores 62.2 on its prompts</td><td>21.5 for our LoRA; 13.5 at runtime</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The 100toolkit model is the stronger release on the habit measures, here as on its own blog; our numbers for it come from our prompts and our scorer, not theirs. FTPO, Antislop’s training method, was not tried here.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>The judge result matters beyond style. Reward models and LLM judges are how models are tuned and graded, and this one, which passes the usual sanity checks, preferred the assistant voice over plainer replies that did the task better: it chose the original’s balanced essays over replies that stated the position the prompt asked for. Training against such a judge would push models toward the voice people are learning to distrust, and grading with one would hide it. The second check showed the same judge cannot pick a 2021 Wikipedia article over the model’s explainer as the human one. The other half of the lesson is about grading a fix with the tool that defined it: the sampler looked more than three times better on our regexes than on EQ-Bench’s.</p>
+  <p>Risk: low. The work changes the style of a small open model; nothing in it is aimed at detector evasion, and the score is not an AI detector. A plainer voice does make model text harder to spot by its habits, which is a reason to label model text by where it came from rather than by how it sounds.</p>
+  <p><strong>The recommendation in one sentence: when you change a model’s voice, score it with an independent metric as well as your own, and check your judge on human prose before trusting what it says about style.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>48 prompts, one sample each.</strong> The intervals separate the big moves, not the close ones: round 1 and round 2 of the LoRA overlap, and so do the sampler and the LoRAs.</li>
+    <li><strong>A regex is not taste.</strong> The detectors miss paraphrases. The best runtime setup still writes “It’s not just a temporary fix for the pandemic. People are more productive”, which no pattern here catches. A low score means fewer of these eleven habits, not good writing.</li>
+    <li><strong>The human band is old and encyclopedic.</strong> Gutenberg essays use more em dashes than people do online today, and Wikipedia uses more lists of three. No modern blog posts, emails or LinkedIn posts with clear licences were found, so the band may sit higher than casual human prose.</li>
+    <li><strong>The quiz hit the ceiling.</strong> Every setup answered 30 of 30; that shows nothing broke, not that nothing degraded. No reasoning or long-context benchmark was run.</li>
+    <li><strong>One judge, one question.</strong> gpt-5.4-mini’s taste is one taste. The human read was 12 pairs by one reader who could guess the setups from the style.</li>
+    <li><strong>Choices made after reading.</strong> The steering grid was extended, and LoRA round 2 was added, after seeing results (section 3); both choices were made on dev prompts, and both rounds are reported.</li>
+    <li><strong>Not tried.</strong> FTPO, DPO against the original’s replies, a base-model teacher, larger models, other languages, long documents.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Use it and reproduce it"><span class="num">08</span>Use it and reproduce it</h2>
+  <p>Score your own text (no dependencies), or run the model:</p>
+  <pre><code class="language-bash">pip install "steerlab-deslop @ git+https://github.com/albertlieyingadrian/steerlab#subdirectory=packages/deslop"
+deslop score draft.txt
+ollama run hf.co/albertlieadrian/qwen3-4b-deslop-GGUF:Q4_K_M</code></pre>
+  <p>Recompute every number and figure from the saved replies (needs Node.js; slop-score is cloned at a pinned commit):</p>
+  <pre><code class="language-bash">experiments/deslop/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch: a Modal account (about 2.5 GPU-hours on an L40S, about $8) and an OpenAI key for the judge and the cover (about $2):</p>
+  <pre><code class="language-bash">experiments/deslop/reproduce.sh --dry-run   # lists every command
+experiments/deslop/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>A preference step against the student’s remaining habits: FTPO on the sampler’s backtrack points, or DPO with the original’s replies as the rejected side.</li>
+    <li>A human panel instead of an LLM judge, blind to setup, including the paraphrases the regexes miss.</li>
+    <li>A modern human baseline with clear licences, such as public-domain government writing and CC-licensed newsletters.</li>
+    <li>The same comparison on a 7B to 8B model, where 100toolkit plans to go next.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">What is the easiest way to make a small model write less like a chatbot?</h3>
+  <p>A system prompt that asks for the task first and lists the habits to avoid, plus a backtracking sampler that rewinds when a banned pattern appears. On Qwen3-4B that took the habit score from 89.7 to 13.5 per 1000 words, about the human median, without changing the model.</p>
+  <h3 id="q2">Does activation steering remove AI writing style?</h3>
+  <p>Partly. An “assistant register” direction at layer 12 lowered the score from 89.7 to 57.1 before replies stopped being fluent, and moved the model’s predictions on human prose more than any other single method. A prompt or a sampler does more for less.</p>
+  <h3 id="q3">Is there a de-slopped Qwen3-4B I can run?</h3>
+  <p>Two: 100toolkit’s <code>erikkannike/qwen3-4b-deslop-v4</code> (score 9.2 here) and this note’s <code>albertlieadrian/qwen3-4b-deslop</code> (21.5, with fewer task-check failures and less drift). Both have GGUF builds for Ollama.</p>
+  <h3 id="q4">Can an LLM judge tell whether writing sounds human?</h3>
+  <p>Not reliably here. gpt-5.4-mini picked a Wikipedia passage over Qwen’s explainer as “more human” in 0 of 20 pairs, and as a quality judge it preferred the original model’s polished replies over every de-slopped version.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file and column is listed in <a href="../README.md">README.md</a>. The main ones: <a href="../results/table.csv">table.csv</a> (the comparison), <a href="../results/per_reply.csv">per_reply.csv</a> (every reply’s scores), <a href="../results/summary.json">summary.json</a> (intervals, habits, checks), results/gen/ (every reply, one file per setup, such as <a href="../results/gen/lora-r2.jsonl">lora-r2.jsonl</a>), <a href="../data/human/passages.jsonl">passages.jsonl</a> (the human baseline with sources and licences), <a href="../data/teacher.jsonl">teacher.jsonl</a> (the kept teacher replies).</p>
+  <h3 id="plain-prompt">The plain-style system prompt</h3>
+  <blockquote><p>Write the way a good human writer would, not the way an assistant does. Do the task first: if asked for an opinion, state your position in the first two sentences and argue for it; if asked for a personal reflection, write in the first person about your own experience; if asked for an email, open with a greeting and close with your name; stay close to the requested length. Use plain words and plain sentences. Write prose only: no headings, bold text, bullet points, hashtags or emoji. Do not use em dashes. Do not use ‘not X but Y’ or ‘it’s not X, it’s Y’ contrasts, lists of three, questions that you answer yourself, signposts like ‘here’s the thing’, or one-line fragments for emphasis. Do not invent studies, statistics, percentages, names or quotes. Avoid words like delve, tapestry, testament, seamless, robust, landscape, navigate, unlock, elevate, crucial and pivotal.</p></blockquote>
+  <h3 id="prompt-list">The held-out prompts</h3>
+  <p>Topics: remote work; public libraries; electric cars; learning a second language as an adult; bike lanes in cities; getting enough sleep; small family-run restaurants; open-plan offices; homework for young children; growing your own vegetables. Templates: “Write a blog post about {topic}. About 250 words.”, “Write a LinkedIn post about {topic}. About 150 words.”, “Write a short explainer about {topic} for a general reader. About 250 words.”, “Write an opinion piece about {topic}. About 250 words.”, plus “Write an email to a colleague about {topic}. About 120 words.” (4 topics) and “Write a short personal reflection about {topic}. About 200 words.” (4 topics). All in <a href="../prompts.py">prompts.py</a>.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Score</th><td>11 regex and word-list detectors, weighted per 1000 words; a band from 318 human passages</td></tr>
+        <tr><th scope="row">Runtime</th><td>System prompt; Antislop-style backtracking sampler (KV-cache rewind); steering with steerlab’s difference-of-means direction; MLP neuron sign flips</td></tr>
+        <tr><th scope="row">Weights</th><td>LoRA rank 16, alpha 32, dropout 0.05, all attention and MLP projections, reply-only loss, lr 2e-4, batch 8, 2 epochs; merged; GGUF Q4_K_M with llama.cpp</td></tr>
+        <tr><th scope="row">Checks</th><td>KL drift on human prose, factual quiz, task fit, invented claims, MATTR-100; EQ-Bench slop score; a position-swapped pairwise judge with known-answer checks</td></tr>
+        <tr><th scope="row">Statistics</th><td>Percentile bootstrap over prompts (10,000), paired by prompt for differences; Spearman correlation between metrics</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>Qwen3-4B-Instruct-2507 (Apache-2.0); erikkannike/qwen3-4b-deslop-v4; gpt-5.4-mini (judge) through OpenAI’s API</td></tr>
+        <tr><th scope="row">Code</th><td>Python, PyTorch, transformers 5.20, PEFT 0.21, steerlab and sandbagkit (the direction), llama.cpp (GGUF), Node.js (slop-score), NumPy, matplotlib</td></tr>
+        <tr><th scope="row">Compute</th><td>Modal: L40S (A10G or A100 when none was free), about $8; judge about $1.50; cover image about $0.50</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Kannike, E. M. “Qwen3-4B with the AI writing tics trained out.” <a href="https://100toolkit.com/blog/deslop-model/">100toolkit, 2026</a>; model <a href="https://huggingface.co/erikkannike/qwen3-4b-deslop-v4">erikkannike/qwen3-4b-deslop-v4</a>.</li>
+    <li>Paech, Roush, Goldfeder, Shwartz-Ziv. “Antislop: A Comprehensive Framework for Identifying and Eliminating Repetitive Patterns in Language Models.” <a href="https://arxiv.org/abs/2510.15061">arXiv 2510.15061</a>, ICLR 2026.</li>
+    <li>Paech. <a href="https://github.com/sam-paech/slop-score">slop-score</a> and the <a href="https://eqbench.com/slop-score.html">EQ-Bench Slop Score</a> (MIT).</li>
+    <li>Shaib, Chakrabarty, Garcia-Olano, Wallace. “Measuring AI ‘Slop’ in Text.” <a href="https://arxiv.org/abs/2509.19163">arXiv 2509.19163</a>, COLM 2026.</li>
+    <li>Kobak, González-Márquez, Horvát, Lause. “Delving into LLM-assisted writing in biomedical publications through excess vocabulary.” <a href="https://doi.org/10.1126/sciadv.adt3813">Science Advances, 2025</a>.</li>
+    <li>Wikipedia, WikiProject AI Cleanup. <a href="https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing">Signs of AI writing</a>.</li>
+    <li>Qwen Team. <a href="https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507">Qwen3-4B-Instruct-2507</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 10, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026deslop,
+  author = {Albert Lie},
+  title  = {De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/deslop/report/}
+}</code></pre>
+  <footer class="note">Model: Qwen3-4B-Instruct-2507 (Qwen Team). After Erik Markus Kannike’s qwen3-4b-deslop (100toolkit) and Paech et al.’s Antislop; EQ-Bench slop-score by Sam Paech.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("viewer");
+  if (!box || !window.fetch) return;
+  fetch("viewer.json").then(function (r) { return r.json(); }).then(function (data) {
+    box.classList.remove("no-js");
+    var sel = document.getElementById("rv-prompt"), bar = document.getElementById("rv-runs");
+    var run = "base";
+    data.prompts.forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.id;
+      o.textContent = p.genre + ": " + p.prompt.replace(/ About \d+ words\.$/, "");
+      sel.appendChild(o);
+    });
+    Object.keys(data.runs).forEach(function (key) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = data.runs[key];
+      b.dataset.run = key;
+      b.addEventListener("click", function () { run = key; show(); });
+      bar.appendChild(b);
+    });
+    sel.addEventListener("change", show);
+    function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function show() {
+      var p = data.prompts.filter(function (x) { return x.id === sel.value; })[0];
+      var r = data.replies[run + "/" + sel.value];
+      bar.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.run === run); });
+      document.getElementById("rv-request").textContent = "Request: " + p.prompt;
+      document.getElementById("rv-score").textContent = "Deslop score " + r.score.toFixed(1) + " per 1000 words (human band: 33.6 or less)";
+      var html = "", pos = 0, counts = {};
+      r.spans.slice().sort(function (a, b) { return a[0] - b[0]; }).forEach(function (s) {
+        counts[s[2]] = (counts[s[2]] || 0) + 1;
+        if (s[0] < pos) return;
+        html += esc(r.text.slice(pos, s[0])) + '<mark title="' + data.habits[s[2]] + '">' + esc(r.text.slice(s[0], s[1])) + "</mark>";
+        pos = s[1];
+      });
+      html += esc(r.text.slice(pos));
+      document.getElementById("rv-text").innerHTML = html;
+      var list = Object.keys(counts).map(function (h) { return data.habits[h] + " " + counts[h]; });
+      document.getElementById("rv-habits").textContent = list.length ? "Habits found: " + list.join(", ") : "No habits found.";
+    }
+    show();
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>
