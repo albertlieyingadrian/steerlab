@@ -43,5 +43,15 @@ if [ "$DRY_RUN" = 0 ]; then
 fi
 run screenshots "$PY" "$E/screenshots.py"
 
+echo "# Figures 1-7: one demo video per screen, recorded from the live app (needs ffmpeg)"
+echo "+ $PY -m steerlab inspect --port 8771 (in the background)"
+if [ "$DRY_RUN" = 0 ]; then
+  "$PY" -m steerlab inspect --port 8771 >/dev/null 2>&1 &
+  APP=$!
+  trap 'kill $SERVER $APP' EXIT
+  until curl -sf -o /dev/null http://127.0.0.1:8771/api/info; do sleep 1; done
+fi
+run demos "$PY" "$E/record_demos.py" http://127.0.0.1:8771/
+
 echo "# the package tests (tiny random model, seconds)"
 run tests "$PY" -m pytest -q packages/steerlab/tests/inspector
