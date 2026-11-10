@@ -6,8 +6,13 @@
     deslop habits                        the habits, their weights and the human band
     deslop generate --model Qwen/Qwen3-4B-Instruct-2507 --prompt "Write a blog post about sleep." --sampler
     deslop generate ... --direction register-L18 --strength -0.5 --neuron L32.N4852 --neuron L33.N348
+    deslop voice profile mine/*.txt --name me -o me.json      a voice from your own writing samples
+    deslop voice compare draft.txt --voice me.json --voice twain.json
+    deslop voice blend me.json twain.json --weights 0.7 0.3 -o mix.json
+    deslop voice rewrite draft.txt --voice me.json --samples mine/a.txt mine/b.txt --api-model gpt-5.4-mini
 
-`score`, `check` and `habits` need only the standard library; `generate` needs the `models` extra.
+`score`, `check`, `habits` and `voice` (with an API model) need only the standard library; `generate` and
+`voice rewrite --model` need the `models` extra.
 """
 
 from __future__ import annotations
@@ -177,7 +182,122 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--temperature", type=float, default=0.7)
     p.add_argument("--seed", type=int, default=0)
     p.set_defaults(func=cmd_generate)
+
+    voice = sub.add_parser("voice", help="write in someone's voice: profile, compare, blend, rewrite")
+    vsub = voice.add_subparsers(dest="voice_command", required=True)
+    p = vsub.add_parser("profile", help="build a voice profile from sample files (one passage or more per file)")
+    p.add_argument("files", nargs="+")
+    p.add_argument("--name", default="voice")
+    p.add_argument("-o", "--out", required=True, help="where to write the profile (JSON)")
+    p.set_defaults(func=cmd_voice_profile)
+    p = vsub.add_parser("compare", help="Burrows' Delta from a text to each voice, and the nearest")
+    p.add_argument("file", help="a text file, or - for stdin")
+    p.add_argument("--voice", action="append", required=True, help="a profile JSON (repeat for several)")
+    p.set_defaults(func=cmd_voice_compare)
+    p = vsub.add_parser("blend", help="mix profiles into one voice")
+    p.add_argument("profiles", nargs="+")
+    p.add_argument("--weights", type=float, nargs="+")
+    p.add_argument("--name", default="blend")
+    p.add_argument("-o", "--out", required=True)
+    p.set_defaults(func=cmd_voice_blend)
+    p = vsub.add_parser("rewrite", help="rewrite a text in a voice, keeping its facts")
+    p.add_argument("file", help="a text file, or - for stdin")
+    p.add_argument("--voice", required=True, help="the target profile JSON")
+    p.add_argument("--samples", nargs="+", required=True, help="two to four sample files shown to the model")
+    p.add_argument("--api-model", help="a model on an OpenAI-compatible API (key from $OPENAI_API_KEY)")
+    p.add_argument("--api-base", default="https://api.openai.com/v1")
+    p.add_argument("--model", help="or a Hugging Face model run locally (models extra)")
+    p.add_argument("--max-new-tokens", type=int, default=700)
+    p.set_defaults(func=cmd_voice_rewrite)
     return parser
+
+
+def _load_json(path: str) -> dict[str, Any]:
+    with open(path, encoding="utf-8") as f:
+        data: dict[str, Any] = json.load(f)
+    return data
+
+
+def cmd_voice_profile(args: argparse.Namespace) -> int:
+    from deslop.voice import profile
+
+    prof = profile([_read(f) for f in args.files], name=args.name)
+    with open(args.out, "w", encoding="utf-8") as f:
+        json.dump(prof, f, indent=1)
+    print(f"{args.name}: {prof['words']} words of samples; sentences average {prof['sentence_length']['mean']:.1f}")
+    if prof["words"] < 3000:
+        print("note: under 3,000 words of samples; the profile will be noisy", file=sys.stderr)
+    return 0
+
+
+def cmd_voice_compare(args: argparse.Namespace) -> int:
+    from deslop.voice import attribute
+
+    nearest, distances = attribute(_read(args.file), [_load_json(v) for v in args.voice])
+    for name, d in sorted(distances.items(), key=lambda kv: kv[1]):
+        print(f"{name:20} Delta {d:.3f}")
+    print(f"nearest: {nearest}")
+    return 0
+
+
+def cmd_voice_blend(args: argparse.Namespace) -> int:
+    from deslop.voice import blend
+
+    mixed = blend([_load_json(p) for p in args.profiles], args.weights, name=args.name)
+    with open(args.out, "w", encoding="utf-8") as f:
+        json.dump(mixed, f, indent=1)
+    print(f"{args.name}: " + ", ".join(f"{n} {w:.2f}" for n, w in mixed["blend_of"]))
+    return 0
+
+
+def chat_api(messages: list[dict[str, str]], model: str, base: str, max_tokens: int) -> str:
+    """One chat completion from an OpenAI-compatible endpoint, with the standard library only."""
+    import os
+    import urllib.request
+
+    key = os.environ.get("OPENAI_API_KEY", "")
+    body = json.dumps({"model": model, "messages": messages, "max_completion_tokens": max_tokens}).encode()
+    request = urllib.request.Request(
+        base.rstrip("/") + "/chat/completions",
+        data=body,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+    )
+    with urllib.request.urlopen(request, timeout=300) as response:
+        reply: dict[str, Any] = json.load(response)
+    return str(reply["choices"][0]["message"]["content"]).strip()
+
+
+def cmd_voice_rewrite(args: argparse.Namespace) -> int:  # pragma: no cover - needs a model or an API
+    from deslop.voice import delta, fact_check, rewrite_messages
+
+    text, voice = _read(args.file), _load_json(args.voice)
+    messages = rewrite_messages(text, voice, [_read(s) for s in args.samples])
+    if args.api_model:
+        out = chat_api(messages, args.api_model, args.api_base, args.max_new_tokens * 4)
+    elif args.model:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        tok: Any = AutoTokenizer.from_pretrained(args.model)
+        loaded: Any = AutoModelForCausalLM.from_pretrained(args.model, dtype="auto", device_map="auto")
+        raw: Any = tok.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt", return_dict=True)
+        enc = {k: v.to(loaded.device) for k, v in raw.items()}
+        torch.manual_seed(0)
+        ids = loaded.generate(**enc, max_new_tokens=args.max_new_tokens, do_sample=True, temperature=0.7, top_p=0.8,
+                              top_k=20, repetition_penalty=1.0)  # fmt: skip
+        out = tok.decode(ids[0, enc["input_ids"].shape[1] :], skip_special_tokens=True).strip()
+    else:
+        print("pass --api-model or --model", file=sys.stderr)
+        return 2
+    print(out)
+    facts = fact_check(text, out)
+    print(
+        f"[Delta to {voice['name']}: {delta(text, voice):.3f} before, {delta(out, voice):.3f} after; numbers kept "
+        f"{facts['numbers_kept']}/{facts['numbers']}, names kept {facts['names_kept']}/{facts['names']}; "
+        f"deslop score {score(out).score:.1f}]",
+        file=sys.stderr,
+    )
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:

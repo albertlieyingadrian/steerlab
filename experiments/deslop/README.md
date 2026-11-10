@@ -31,6 +31,10 @@ experiments/deslop/reproduce.sh --scores    # recompute the analysis and figures
 | `teacher.py` | Teacher replies, the filter, LoRA round 1 and the round-2 recipe comparison on dev |
 | `damage.py` | KL drift on 24 human passages and the quiz |
 | `judge.py` | The blind pairwise judge (gpt-5.4-mini), its known-answer checks, and the exploratory "reads as human" question |
+| `2_voices.py`, `data/voices/passages.jsonl` | Five public-domain writers (Twain, Lincoln, Darwin, Woolf, Chesterton): 30 sample and 20 held-out paragraphs each. Columns: `id`, `author`, `role` (`sample` or `heldout`), `ref`, `title`, `year`, `licence`, `text` |
+| `voice_eval.py` | The `deslop voice` test: profiles, the attributor check, 130 rewrites (gpt-5.4-mini and our LoRA, plus a no-voice control), facts, Delta and attribution |
+| `detect.py` | Three open AI-text detectors (Desklib, Binoculars, Fast-DetectGPT) on every text, and the 40 "mirrors" (human passages lightly edited by Qwen). Measurement only |
+| `release.py`, `model_card.md` | GGUF export and the Hugging Face upload |
 | `eqbench_slop.mjs` | EQ-Bench's slop score computed with slop-score's own code (pinned commit in `reproduce.sh`) |
 | `analyze.py` | Every metric with bootstrap intervals; writes `results/summary.json`, `table.csv`, `per_reply.csv` |
 | `make_figures.py`, `make_cover.py` | The figures, the reply viewer's data, and the cover |
@@ -51,7 +55,11 @@ experiments/deslop/reproduce.sh --scores    # recompute the analysis and figures
 | `kl.json`, `quiz.json` | Per run: KL per passage (`id`, `kl`, `n_tokens`); quiz answers (`question`, `text`, `correct`) |
 | `judge.json` | The judge's verdicts per run and prompt (`first`, `second` = the letter picked in each order, `result`), its checks, tokens and dollars |
 | `hand_read.json` | 12 pairs read by the author with labels hidden, beside the judge's verdicts |
-| `export.json` | The GGUF export: size and llama.cpp smoke test |
+| `export.json` | The GGUF export: size, rope base and llama.cpp smoke test |
+| `voices/profiles.json`, `voices/attribution.json` | The six voice profiles (and the blend); the two attributors on held-out passages |
+| `voices/rewrites.jsonl`, `voices/rewrites_scored.jsonl` | Each rewrite (`id` = source/target/rewriter, `text`) and its checks: `facts`, `deslop`, `in_band`, `delta` to every profile, `nearest`, `lr_pred` |
+| `voices/summary.json` | The voice results per rewriter, the control and the original replies |
+| `detect/mirrors.jsonl`, `detect/scores.json` | The mirrors; every text's `binoculars`, `fastdetect`, `desklib` and `tokens`, keyed `run/<run>/<prompt>`, `human/<source>/<id>`, `author/<writer>/<id>`, `voice/<rewrite>`, `mirror/<id>` |
 
 `data/teacher.jsonl` and `data/teacher_all.jsonl` hold the kept teacher replies (`id`, `prompt`, `reply`, `score`).
 

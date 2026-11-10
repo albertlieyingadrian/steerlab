@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -134,6 +135,62 @@ def run_summary(run: str, rows: list[dict], meta: dict, eq: dict, per_reply: lis
     return out, np.array(scores)
 
 
+# AI-text detectors: (score field, direction, published threshold). A text is flagged when its score is on the AI
+# side of the threshold.
+AI_DETECTORS = {
+    "desklib": ("desklib", "high", 0.5),  # the model card's default
+    "binoculars": ("binoculars", "low", 0.8536432310785527),  # the paper's low-false-positive threshold
+    "fastdetect": ("fastdetect", "high", None),  # no published threshold for this pairing: calibrated only
+}
+
+
+def detectors(scores: dict[str, dict], runs: list[str]) -> dict:
+    """Flag rates for each detector on every set, at the published threshold and at one calibrated so that at most 1%
+    of the 318 human passages are flagged (Pangram's habit of fixing the false-positive rate on human text first)."""
+    human = [v for k, v in scores.items() if k.startswith("human/")]
+
+    def ai_side(value: float, direction: str, threshold: float) -> bool:
+        return value >= threshold if direction == "high" else value <= threshold
+
+    thresholds = {}
+    for name, (field, direction, published) in AI_DETECTORS.items():
+        values = np.array([h[field] for h in human])
+        calibrated = float(np.quantile(values, 0.99 if direction == "high" else 0.01))
+        thresholds[name] = {"published": published, "calibrated_1pct": calibrated, "direction": direction}
+
+    def rates(items: list[dict]) -> dict:
+        out: dict = {"n": len(items)}
+        for name, (field, direction, _) in AI_DETECTORS.items():
+            for kind in ("published", "calibrated_1pct"):
+                threshold = thresholds[name][kind]
+                if threshold is None or not items:
+                    continue
+                flags = np.array([ai_side(v[field], direction, threshold) for v in items], dtype=float)
+                out[f"{name}_{kind}"] = cell(boot(flags))
+            out[f"{name}_mean"] = float(np.mean([v[field] for v in items])) if items else None
+        return out
+
+    def where(keep: Callable[[str], bool]) -> list[dict]:
+        return [v for k, v in scores.items() if keep(k)]
+
+    sets = {f"run/{r}": rates(where(lambda k, r=r: k.startswith(f"run/{r}/"))) for r in runs}
+    for prefix in ("human/gutenberg/", "human/wikipedia/", "author/", "mirror/"):
+        sets[prefix.rstrip("/")] = rates(where(lambda k, p=prefix: k.startswith(p)))
+    for w in ("api", "lora"):
+        sets[f"voice/{w}"] = rates(
+            where(lambda k, w=w: k.startswith("voice/") and k.endswith(f"/{w}") and "/none/" not in k)
+        )
+    sets["voice/control"] = rates(where(lambda k: k.startswith("voice/") and "/none/" in k))
+    for name, t in thresholds.items():
+        print(f"{name:11} published {t['published']} calibrated {t['calibrated_1pct']:.4f}")
+    for key in ("human/gutenberg", "human/wikipedia", "author", "mirror", "run/base", "run/plain+sampler",
+                "run/lora-r2", "run/kannike", "voice/api", "voice/control"):  # fmt: skip
+        s = sets.get(key, {})
+        cells = " ".join(f"{k} {s[k]['value']:.2f}" for k in s if k.endswith(("published", "1pct")))
+        print(f"{key:20} n={s.get('n')} {cells}")
+    return {"thresholds": thresholds, "sets": sets}
+
+
 def main() -> None:
     prompts = held_out()
     pid = [p["id"] for p in prompts]
@@ -200,6 +257,10 @@ def main() -> None:
     checks = {k: judge.get(k, {}).get("summary") for k in ("check", "check_human", "check_human_gpt-5.4")}
     payload = {"n_prompts": len(pid), "bootstrap": {"resamples": B, "seed": SEED}, "runs": summary,
                "human": human_summary, "judge_checks": checks, "eqbench_ranges": eq["ranges"]}  # fmt: skip
+    if (RESULTS / "detect" / "scores.json").exists():
+        payload["detectors"] = detectors(json.loads((RESULTS / "detect" / "scores.json").read_text()), runs)
+    if (RESULTS / "voices" / "summary.json").exists():
+        payload["voice"] = json.loads((RESULTS / "voices" / "summary.json").read_text())
     (RESULTS / "summary.json").write_text(json.dumps(payload, indent=1) + "\n")
     with (RESULTS / "per_reply.csv").open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(per_reply[0]))
