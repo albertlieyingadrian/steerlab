@@ -20,6 +20,15 @@ def test_rounded_keeps_four_significant_figures() -> None:
     assert export.rounded({"x": [1.234567, 1.234567e-5, 3], "y": "s"}) == {"x": [1.235, 1.235e-05, 3], "y": "s"}
 
 
+def test_compact_keeps_six_figures_for_the_run_views() -> None:
+    preset = {"run": {"sum": 17.2171234}, "edits": [{"edited": {"sum": 3.14159265}, "x": 2.7182818}], "y": 1.2345678}
+    assert export.compact(preset) == {
+        "run": {"sum": 17.2171},
+        "edits": [{"edited": {"sum": 3.14159}, "x": 2.718}],
+        "y": 1.235,
+    }
+
+
 def test_export_writes_the_page_and_every_saved_view(inspector: Inspector, tmp_path: Path) -> None:
     path = export.export(inspector, tmp_path, PRESETS, on_message=lambda _: None)
     page = (tmp_path / "index.html").read_text()

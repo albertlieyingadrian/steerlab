@@ -42,13 +42,20 @@ def draw(size: tuple[float, float], out: Path, *, words: bool) -> None:
         hit = row["target_rank"] == 1
         label_color = MARK if hit else FAINT
         ax.text(
-            -0.08, y, f"L{row['layer']}", color=label_color, ha="right", va="center", fontsize=10, family="monospace"
+            -0.08,
+            y,
+            f"L{row['layer']}",
+            color=label_color,
+            ha="right",
+            va="center",
+            fontsize=15 if words else 10,
+            family="monospace",
         )
         for x0, value, color in ((0.0, row["attn"], ATTN), (1.15, row["mlp"], MLP)):
             ax.plot([x0 + 0.5, x0 + 0.5], [y - 0.45, y + 0.45], color="#3a322c", lw=1)
             ax.barh(y, 0.5 * value / scale, left=x0 + 0.5, height=0.62, color=color, alpha=0.9)
         if words:
-            ax.text(2.42, y, show(row["says"]), color=label_color, va="center", fontsize=11, family="monospace")
+            ax.text(2.42, y, show(row["says"]), color=label_color, va="center", fontsize=17, family="monospace")
     ax.set_xlim(-0.3, 3.1 if words else 2.3)
     ax.set_ylim(-1, len(layers))
     out.parent.mkdir(parents=True, exist_ok=True)
