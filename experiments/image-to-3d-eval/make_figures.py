@@ -49,8 +49,8 @@ SCORERS = {
     "gemini-3.6-flash:final": "gemini-3.6-flash judge",
     "both judges:final": "both judges, averaged",
 }
-SYSTEMS = {"idol": "Idol", "trellis_mesh": "TRELLIS mesh", "trellis_splats": "TRELLIS splats", "sf3d": "Stable Fast 3D",
-           "triposr": "TripoSR"}  # fmt: skip
+SYSTEMS = {"idol": "Idol", "trellis2": "TRELLIS.2", "trellis_mesh": "TRELLIS mesh", "trellis_splats": "TRELLIS splats",
+           "sf3d": "Stable Fast 3D", "triposr": "TripoSR"}  # fmt: skip
 
 
 def agreement() -> None:

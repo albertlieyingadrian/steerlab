@@ -34,9 +34,12 @@ SYSTEM_NAMES = {
     "triposr": "TripoSR",
     "sf3d": "Stable Fast 3D",
     "idol": "Idol",
+    "trellis2": "TRELLIS.2",
 }
 DAMAGED = {"gt_bumpy": "true shape, bumpy", "gt_squashed": "true shape, squashed", "gt_blurred": "true shape, blurred"}
-ARENA_NAMES = {"trellis_mesh": "TRELLIS", "trellis_splats": "TRELLIS-3DGS", "triposr": "TripoSR", "sf3d": "SF3D"}
+ARENA_NAMES = {"trellis_mesh": "TRELLIS", "trellis_splats": "TRELLIS-3DGS", "triposr": "TripoSR", "sf3d": "SF3D",
+               "trellis2": "TRELLIS.2-4B"}  # fmt: skip
+BENCH_NAMES = {"trellis_mesh": "TRELLIS", "trellis2": "TRELLIS.2"}  # the systems here that benchmark.ai also rates
 BENCH_TO_ARENA = {"TRELLIS.2": "TRELLIS.2-4B", "TRELLIS": "TRELLIS", "Hunyuan3D 2.1": "Hunyuan3D-2.1",
                   "SAM 3D Objects": "SAM-3D-Objects-3DGS", "Pixal3D": "Pixal3D"}  # fmt: skip
 METRICS = ["chamfer", "fscore@0.05", "fscore@0.02", "mask_iou", "psnr", "ssim", "lpips", "normal_lpips", "clip"]
@@ -232,6 +235,9 @@ def gso() -> None:
             row.update({"seconds_median": t.seconds.median(), "seconds_p90": t.seconds.quantile(0.9),
                         "peak_reserved_gb": t.peak_reserved_gb.max(), "peak_allocated_gb": t.peak_allocated_gb.max(),
                         "gen_failed": int(runs.seconds.isna().sum())})  # fmt: skip
+            if "seconds_generate" in t and t.seconds_generate.notna().any():
+                row.update({"seconds_generate_median": t.seconds_generate.median(),
+                            "seconds_export_median": t.seconds_export.median()})  # fmt: skip
         rows.append(row)
     board = pd.DataFrame(rows)
     gt_clip = scores[scores.system == "gt"]["clip"]
@@ -326,6 +332,20 @@ def gso() -> None:
             sign = -1 if col in ("chamfer", "lpips") else 1
             corr[col] = float(kendalltau(sign * overlap[col], overlap.arena_elo).statistic)
     summary["arena_overlap_kendall"] = corr
+    # benchmark.ai rates two of the systems here (TRELLIS's mesh and TRELLIS.2): which comes first in each source?
+    bench = pd.read_csv(RESULTS / "human_all_models.csv")
+    pair = board[board.system.isin(BENCH_NAMES)].set_index("system")
+    if len(pair) == 2:
+        first = {}
+        for q in ("geometry", "appearance"):
+            b = bench[bench.question == q].set_index("model").bt
+            first[f"benchmark.ai {q}"] = max(BENCH_NAMES, key=lambda s, b=b: b[BENCH_NAMES[s]])
+        first["3D Arena"] = max(BENCH_NAMES, key=lambda s: arena[ARENA_NAMES[s]])
+        for col, sign in (("elo", 1), ("chamfer", -1), ("lpips", -1), ("clip", 1)):
+            if col in pair:
+                first[f"this note: {col}"] = max(BENCH_NAMES, key=lambda s, c=col, g=sign: g * pair.loc[s, c])
+        summary["bench_overlap_first"] = first
+        print("TRELLIS vs TRELLIS.2, which comes first:", first)
     summary["arena_overlap_n"] = len(overlap)
     print("3D Arena overlap (Kendall tau, n =", len(overlap), "):", corr)
     # Two human leaderboards against each other, on the models both list.

@@ -3,7 +3,7 @@
     uv run --no-project --with imageio[ffmpeg] --with av --with pillow --with numpy --with pandas python make_gallery.py
 
 Objects: the first 6 of the 40 in draw order (results/gso_objects.csv), not picked by how they look. Each video is a
-3 x 2 grid of 256-pixel turntables (36 frames, 10 degrees apart, 12 frames a second): the true object, then each
+4 x 2 grid of 256-pixel turntables (36 frames, 10 degrees apart, 12 frames a second): the true object, then each
 system after the same alignment used for scoring, rendered unlit on white by eval3d.py. Writes
 report/figures/gallery/<object>.mp4 and a poster frame <object>.jpg for each.
 """
@@ -22,9 +22,9 @@ sys.path.insert(0, str(HERE))
 from common import DATA, RESULTS
 
 OUT = HERE / "report" / "figures" / "gallery"
-GRID = [["gt", "idol", "trellis_mesh"], ["trellis_splats", "sf3d", "triposr"]]
-LABELS = {"gt": "True object", "idol": "Idol", "trellis_mesh": "TRELLIS mesh", "trellis_splats": "TRELLIS splats",
-          "sf3d": "Stable Fast 3D", "triposr": "TripoSR"}  # fmt: skip
+GRID = [["gt", "idol", "trellis2", "trellis_mesh"], ["trellis_splats", "sf3d", "triposr", None]]
+LABELS = {"gt": "True object", "idol": "Idol", "trellis2": "TRELLIS.2", "trellis_mesh": "TRELLIS mesh",
+          "trellis_splats": "TRELLIS splats", "sf3d": "Stable Fast 3D", "triposr": "TripoSR"}  # fmt: skip
 N_OBJECTS = 6
 
 
@@ -53,16 +53,22 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     f = font(15)
     for obj in objects:
-        clips = {s: read(DATA / "gso" / "renders" / s / f"{obj}.mp4") for row in GRID for s in row}
+        clips = {s: read(DATA / "gso" / "renders" / s / f"{obj}.mp4") for row in GRID for s in row if s}
         frames = []
         for k in range(36):
-            canvas = Image.new("RGB", (768, 512), "white")
+            canvas = Image.new("RGB", (256 * len(GRID[0]), 512), "white")
             draw = ImageDraw.Draw(canvas)
             for r, row in enumerate(GRID):
                 for c, system in enumerate(row):
+                    if system is None:  # the empty cell of the 4 x 2 grid
+                        continue
                     tile = clips[system][k % len(clips[system])]
                     canvas.paste(Image.fromarray(tile[..., :3]), (256 * c, 256 * r))
                     draw.text((256 * c + 8, 256 * r + 6), LABELS[system], fill=(60, 60, 60), font=f)
+                    if not (DATA / "gso" / "renders" / system / f"{obj}.mp4").exists():
+                        draw.text(
+                            (256 * c + 8, 256 * r + 120), "no output (out of memory)", fill=(120, 120, 120), font=f
+                        )
             frames.append(np.asarray(canvas))
         iio.imwrite(OUT / f"{obj}.mp4", np.stack(frames), fps=12, codec="libx264", plugin="pyav",
                     out_pixel_format="yuv420p")  # fmt: skip
