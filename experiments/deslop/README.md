@@ -34,6 +34,8 @@ experiments/deslop/reproduce.sh --scores    # recompute the analysis and figures
 | `2_voices.py`, `data/voices/passages.jsonl` | Five public-domain writers (Twain, Lincoln, Darwin, Woolf, Chesterton): 30 sample and 20 held-out paragraphs each. Columns: `id`, `author`, `role` (`sample` or `heldout`), `ref`, `title`, `year`, `licence`, `text` |
 | `voice_eval.py` | The `deslop voice` test: profiles, the attributor check, 130 rewrites (gpt-5.4-mini and our LoRA, plus a no-voice control), facts, Delta and attribution |
 | `detect.py` | Three open AI-text detectors (Desklib, Binoculars, Fast-DetectGPT) on every text, and the 40 "mirrors" (human passages lightly edited by Qwen). Measurement only |
+| `editlens.py` | EditLens (`pangram/editlens_roberta-large`, CC BY-NC-SA 4.0): reproduces the released model's ternary macro-F₁ on the EditLens test splits, then scores every text. Imports the authors' text cleaning from a local clone; commits no EditLens data |
+| `editlens_qwen.py` | A Qwen3-4B LoRA detector trained on 20,000 EditLens training texts (private, unreleased), scored on the same splits |
 | `release.py`, `model_card.md` | GGUF export and the Hugging Face upload |
 | `eqbench_slop.mjs` | EQ-Bench's slop score computed with slop-score's own code (pinned commit in `reproduce.sh`) |
 | `analyze.py` | Every metric with bootstrap intervals; writes `results/summary.json`, `table.csv`, `per_reply.csv` |
@@ -59,6 +61,9 @@ experiments/deslop/reproduce.sh --scores    # recompute the analysis and figures
 | `voices/profiles.json`, `voices/attribution.json` | The six voice profiles (and the blend); the two attributors on held-out passages |
 | `voices/rewrites.jsonl`, `voices/rewrites_scored.jsonl` | Each rewrite (`id` = source/target/rewriter, `text`) and its checks: `facts`, `deslop`, `in_band`, `delta` to every profile, `nearest`, `lr_pred` |
 | `voices/summary.json` | The voice results per rewriter, the control and the original replies |
+| `editlens/check.json` | The reproduction: our and the released scores' ternary macro-F₁ on `test` and `test_llama`, their correlation, and the val-calibrated cut points |
+| `editlens/scores.json`, `editlens/summary.json` | EditLens score and bucket for every text in the note (same keys as `detect/scores.json`); shares called human, AI-edited and AI-generated per set |
+| `editlens/qwen.json` | The Qwen3-4B LoRA detector: training summary, test-split macro-F₁, and its score for every text in the note |
 | `detect/mirrors.jsonl`, `detect/scores.json` | The mirrors; every text's `binoculars`, `fastdetect`, `desklib` and `tokens`, keyed `run/<run>/<prompt>`, `human/<source>/<id>`, `author/<writer>/<id>`, `voice/<rewrite>`, `mirror/<id>` |
 
 `data/teacher.jsonl` and `data/teacher_all.jsonl` hold the kept teacher replies (`id`, `prompt`, `reply`, `score`).

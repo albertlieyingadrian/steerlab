@@ -15,6 +15,8 @@ voice.png     `deslop voice`: Burrows' Delta from each rewrite to its target wri
               after, for the API rewriter and our LoRA, averaged over 10 texts per writer.
 detect.png    share of each set flagged by three open AI-text detectors, each at a threshold that flags 1% of the 318
               human passages; with 95% bootstrap intervals.
+editlens.png  EditLens (RoBERTa-large): share of each set the authors' val-calibrated cuts call human, AI-edited or
+              AI-generated, and (diamonds) the share above a threshold that flags 1% of the 318 human passages.
 viewer.json   the interactive reply viewer's data: 12 held-out prompts (two per genre) and seven setups, each reply with
               its score and every habit span, as the toolkit finds them.
 """
@@ -442,6 +444,40 @@ def detect(summary: dict) -> None:
     plt.close(fig)
 
 
+def editlens() -> None:
+    sets = json.loads((RESULTS / "editlens" / "summary.json").read_text())["sets"]
+    order = [("human/gutenberg", "human: Gutenberg essays"), ("human/wikipedia", "human: Wikipedia 2021"),
+             ("author", "human: voice authors, held out"), ("mirror", "human passages edited by Qwen"),
+             ("run/base", "Qwen3-4B as released"), ("run/plain", "plain-style prompt"),
+             ("run/sampler", "backtracking sampler"), ("run/plain+sampler", "prompt + sampler"),
+             ("run/steer", "steering"), ("run/lora-r2", "our LoRA (released)"), ("run/kannike", "100toolkit's model"),
+             ("voice/api", "voice rewrites, gpt-5.4-mini"), ("voice/lora", "voice rewrites, our LoRA")]  # fmt: skip
+    parts = [("human", "human", LIGHT), ("ai_edited", "AI-edited", "#D98B5F"), ("ai_generated", "AI-generated", EMBER)]
+    fig, ax = plt.subplots(figsize=(8.4, 6.0))
+    print("editlens.png: human / AI-edited / AI-generated shares (authors' cuts), and flagged at 1% human FPR")
+    for row, (key, label) in enumerate(reversed(order)):
+        left = 0.0
+        for field, _, c in parts:
+            v = sets[key][field]["value"]
+            ax.barh(row, v, left=left, color=c, height=0.7, edgecolor="white", lw=0.5)
+            left += v
+        flag = sets[key]["flagged_1pct"]["value"]
+        ax.plot(flag, row, "D", color=INK, ms=5)
+        print(
+            f"  {label:34} " + " ".join(f"{f} {sets[key][f]['value']:.2f}" for f, _, _ in parts) + f" flag {flag:.2f}"
+        )
+    ax.set_yticks(range(len(order)), [label for _, label in reversed(order)])
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("share of the set")
+    handles = [plt.Rectangle((0, 0), 1, 1, color=c) for _, _, c in parts]
+    handles.append(plt.Line2D([], [], marker="D", color=INK, ls=""))
+    labels = [f"EditLens: {name}" for _, name, _ in parts] + ["flagged at 1% human false positives"]
+    ax.legend(handles, labels, frameon=False, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.09), ncol=2)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "editlens.png")
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     viewer()
@@ -455,6 +491,8 @@ def main() -> None:
         voice()
     if "detectors" in summary:
         detect(summary)
+    if (RESULTS / "editlens" / "summary.json").exists():
+        editlens()
 
 
 if __name__ == "__main__":

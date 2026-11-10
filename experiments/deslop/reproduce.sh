@@ -2,7 +2,10 @@
 # Rerun the note. Needs uv, node 18+, a Modal account (an L40S for about 3 GPU-hours in all, about $9.50 billed on
 # 2026-11-10; CPU for the GGUF export) and an OpenAI key for the judge, voice rewrites and cover (about $2.70), read from the
 # environment or .env. slop-score (MIT) is cloned at a pinned commit to $SLOP_SCORE_DIR, default
-# ~/.cache/steerlab/slop-score. With --scores, only the steps that read saved replies: band, analysis, figures.
+# ~/.cache/steerlab/slop-score. The EditLens steps need access to pangram/editlens_roberta-large and
+# pangram/editlens_iclr on Hugging Face (CC BY-NC-SA 4.0, non-commercial, by request), a clone of
+# github.com/pangramlabs/EditLens at $EDITLENS_DIR (default ~/.cache/steerlab/editlens) and the `emoji` package at
+# $EDITLENS_PYLIBS; editlens_qwen.py trains on one H100 (about $3). With --scores, only the steps that read saved replies: band, analysis, figures.
 set -euo pipefail
 cd "$(dirname "$0")"
 PY=${PY:-../../.venv/bin/python}
@@ -34,6 +37,9 @@ STEPS=(
   "$PY voice_eval.py score"
   "$PY detect.py mirrors"
   "$PY detect.py score"
+  "$PY editlens.py check"
+  "$PY editlens.py score"
+  "$PY editlens_qwen.py"
   "$PY analyze.py"
   "$PY make_figures.py"
   "$PY make_cover.py"
@@ -41,7 +47,7 @@ STEPS=(
   "$PY release.py"
 )
 if [[ "${1:-}" == "--scores" || "${2:-}" == "--scores" ]]; then
-  STEPS=("$PY 1_band.py" "$PY voice_eval.py score" "$PY analyze.py" "$PY make_figures.py")
+  STEPS=("$PY 1_band.py" "$PY voice_eval.py score" "$PY editlens.py score" "$PY analyze.py" "$PY make_figures.py")
 fi
 if [[ "${1:-}" == "--dry-run" ]]; then
   printf '%s\n' "git clone https://github.com/sam-paech/slop-score $SLOP_SCORE_DIR && git -C $SLOP_SCORE_DIR checkout $SLOP_SCORE_COMMIT && npm --prefix $SLOP_SCORE_DIR install --ignore-scripts"
