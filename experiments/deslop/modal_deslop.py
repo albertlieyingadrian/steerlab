@@ -387,28 +387,46 @@ def export(name: str, release: str = "", edits: list[list[float]] | None = None)
         bake_neuron_edits(model, [NeuronEdit(int(layer), int(n), float(s)) for layer, n, s in edits])
     model.save_pretrained(merged, safe_serialization=True)
     tok.save_pretrained(merged)
+    # transformers 5 writes rope_theta only inside rope_parameters. llama.cpp's converter and transformers 4 read the
+    # top-level key, and without it fall back to 10,000 instead of Qwen3's 5,000,000: the GGUF then writes nonsense.
+    import json
+
+    config_path = merged / "config.json"
+    config = json.loads(config_path.read_text())
+    rope = config.get("rope_parameters") or {}
+    if "rope_theta" not in config and "rope_theta" in rope:
+        config["rope_theta"] = rope["rope_theta"]
+        config_path.write_text(json.dumps(config, indent=2) + "\n")
     shutil.copytree(f"/vol/adapters/{name}", merged / "adapter")
     gguf_dir.mkdir(parents=True)
     stem = release or name
     f16, q4 = gguf_dir / f"{stem}-fp16.gguf", gguf_dir / f"{stem}-Q4_K_M.gguf"
-    convert = [
-        "python",
-        "/llama.cpp/convert_hf_to_gguf.py",
-        str(merged),
-        "--outfile",
-        str(f16),
-        "--outtype",
-        "f16",
-    ]
+    # The converter reads the config through AutoConfig, which in transformers 5 moves rope_theta back into
+    # rope_parameters, so the GGUF would get no rope base. Make it fall back to the raw config.json (patched above).
+    shim = (
+        "import runpy, sys, transformers\n"
+        "def no_autoconfig(*args, **kwargs):\n"
+        "    raise ValueError('read config.json directly')\n"
+        "transformers.AutoConfig.from_pretrained = no_autoconfig\n"
+        "sys.argv = ['convert_hf_to_gguf.py', *sys.argv[1:]]\n"
+        "runpy.run_path('/llama.cpp/convert_hf_to_gguf.py', run_name='__main__')\n"
+    )
+    convert = ["python", "-c", shim, str(merged), "--outfile", str(f16), "--outtype", "f16"]
     subprocess.run(convert, check=True)
     subprocess.run(["/llama.cpp/build/bin/llama-quantize", str(f16), str(q4), "Q4_K_M"], check=True)
     f16.unlink()
+    from gguf import GGUFReader
+
+    fields = GGUFReader(str(q4)).fields
+    key = "qwen3.rope.freq_base"
+    rope_base = float(fields[key].parts[-1][0]) if key in fields else None
     cli = ["/llama.cpp/build/bin/llama-cli", "-m", str(q4), "-p", "Write one sentence about rain.", "-n", "40"]
     cli += ["--temp", "0", "-no-cnv", "--no-warmup"]
     smoke = subprocess.run(cli, check=False, capture_output=True, text=True, timeout=900)
     volume.commit()
     return {
         "q4_bytes": q4.stat().st_size,
+        "rope_freq_base": rope_base,
         "smoke": smoke.stdout[-800:],
         "smoke_rc": smoke.returncode,
     }

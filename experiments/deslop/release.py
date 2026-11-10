@@ -35,7 +35,7 @@ def main() -> None:
     if "--export" in sys.argv:
         out = modal.Function.from_name("deslop", "export").remote("deslop-r2b", release="qwen3-4b-deslop")
         (HERE / "results" / "export.json").write_text(json.dumps(out, indent=1) + "\n")
-        print(f"Q4_K_M {out['q4_bytes'] / 1e9:.2f} GB, llama.cpp smoke test exit code {out['smoke_rc']}")
+        print(f"Q4_K_M {out['q4_bytes'] / 1e9:.2f} GB, rope base {out['rope_freq_base']}, smoke test {out['smoke_rc']}")
         return
     template = (HERE / "model_card.md").read_text(encoding="utf-8")
     cards = {
