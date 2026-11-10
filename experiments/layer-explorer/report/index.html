@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layer explorer: watch a model pick its next word</title>
+<meta name="description" content="A walkthrough of steerlab inspect, a web screen for Qwen2.5-0.5B-Instruct: type words, see each layer's push toward the next word, open a neuron, switch it off, and test it against 20 random neurons.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Layer explorer: watch a model pick its next word">
+<meta property="og:description" content="A guide to steerlab inspect: type words and watch Qwen2.5-0.5B-Instruct build its next word layer by layer, open a neuron, switch it off, and test it against 20 random neurons. The neuron with the largest share of “Paris” turns out not to be needed.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Twenty-four rows, one per layer of Qwen2.5-0.5B-Instruct, with blue attention bars and orange neuron bars; most are tiny, layers 18 to 21 are long, and the logit-lens column turns to Paris at layer 21.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Layer explorer: watch a model pick its next word">
+<meta name="twitter:description" content="A guide to steerlab inspect: type words and watch Qwen2.5-0.5B-Instruct build its next word layer by layer, open a neuron, switch it off, and test it against 20 random neurons. The neuron with the largest share of “Paris” turns out not to be needed.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-09">
+<meta property="article:modified_time" content="2026-11-09">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Layer explorer: watch a model pick its next word",
+ "description": "A guide to steerlab inspect: type words and watch Qwen2.5-0.5B-Instruct build its next word layer by layer, open a neuron, switch it off, and test it against 20 random neurons. The neuron with the largest share of “Paris” turns out not to be needed.",
+ "abstract": "steerlab inspect is a local web app (and a saved explorer of six prompts on this page) that splits a small model's score for its next word into one share per layer, head and neuron, shows what the model would say after each layer (the logit lens), lists the words each neuron writes, and lets you switch neurons off, flip or scale them and compare continuations. The split adds up to the real score within 1.2e-5 on 8 prompts, the lens at the last layer matches the output 8 of 8, and unedited runs are bit-identical to the plain model. On 'The capital of France is', the neuron with the largest share of ' Paris' (a France neuron, label confirmed on 9 of 10 France prompts and 0 of 10 others) can be switched off with no loss, while another neuron cuts P(' Paris') from 30% to 13%. 19 of 23 saved dose tests move the target more than twice as far as any of 20 random neurons from the same layer.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-09",
+ "dateModified": "2026-11-09",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "logit lens, direct logit attribution, neurons, interpretability, activation patching, Qwen2.5-0.5B, neuronaut, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/andrew-morris/neuronaut"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://neuronaut.ishaanko.com"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/TransformerLensOrg/TransformerLens"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .explorer-frame { width: 100%; height: 860px; border: 1px solid var(--rule); border-radius: 6px; background: #15110e; display: block; }
+  figure.shot img { border: 1px solid var(--rule); border-radius: 6px; background: #15110e; }
+  @media (max-width: 600px) { .explorer-frame { height: 720px; } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Guide<span class="sep">·</span><time datetime="2026-11-09">Nov 9, 2026</time></p>
+  <h1>Layer explorer: watch a model pick its next word</h1>
+  <p class="dek ruled">A step-by-step guide to <code>steerlab inspect</code>, a web screen where you type a few words and watch Qwen2.5-0.5B-Instruct arrive at its next word, layer by layer: which layers push it, which neurons, what a neuron writes, and what happens when you switch one off. It runs on a laptop CPU, and an explorer of six saved prompts is built into this page.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Twenty-four rows, one per layer of Qwen2.5-0.5B-Instruct, each with a blue bar for attention and an orange bar for neurons. Most bars are tiny; layers 18 to 21 carry long bars, and the right-hand column changes from punctuation to Paris at layer 21." width="1600" height="900">
+    <figcaption>Drawn from the explorer's data for “The capital of France is”: each row is one layer (layer 0 at the bottom), its attention's share of the “ Paris” score in blue and its neurons' share in orange, and on the right what the model would say if it stopped after that layer. “ Paris” first comes out on top at layer 21.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Inspired by</dt><dd><a href="https://github.com/andrew-morris/neuronaut">neuronaut</a>, a terminal “debugger for neurons”, and its <a href="https://neuronaut.ishaanko.com">web game</a>. The code here is our own; we borrow the idea of stepping through layers and neurons like a debugger.</dd></div>
+    <div><dt>Model</dt><dd>Qwen2.5-0.5B-Instruct (24 layers, 14 attention heads and 4,864 neurons per layer), float32 on the CPU</dd></div>
+    <div><dt>Code</dt><dd><a href="https://github.com/albertlieyingadrian/steerlab/tree/main/packages/steerlab/src/steerlab/inspect"><code>steerlab.inspect</code></a> · <a href="../">experiments/layer-explorer/</a> · <a href="../results/sanity.json">results/sanity.json</a> · <a href="explorer/">the explorer, full screen</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What does <code>steerlab inspect</code> show?</strong></p>
+    <p>For any short prompt, how much each of the model's 24 layers pushed toward its next word, split into attention and neurons; what the model would say if it stopped after each layer; which heads and neurons did the pushing and which words each neuron writes; and what happens to the answer when you switch neurons off, flip them or turn them up. The split is exact: the parts add up to the model's real score for the word to within 0.00002. In the running example, the neuron with the largest share of the “ Paris” score is a France neuron, and switching it off changes nothing; the dose test, which compares a neuron with 20 random ones, is what tells the two apart.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Check</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Do the parts add up to the real score?</td><td><strong>Yes</strong>: largest leftover 1.2 × 10<sup>−5</sup> logits on 8 prompts, with the final normalisation's scale held at its real value</td><td>The scores themselves are 15 to 25 logits</td></tr>
+          <tr><td>Is the logit lens at the last layer the real output?</td><td><strong>Yes</strong>: same top word on 8 of 8 prompts, largest difference 2.5 × 10<sup>−5</sup> over the 151,936-token vocabulary</td><td>Float32 rounding</td></tr>
+          <tr><td>Does an unedited run change anything?</td><td><strong>No</strong>: bit-identical scores on 8 of 8 prompts (also with an edit of ×1), and token-identical greedy continuations, 8 of 8</td><td>A plain forward pass and plain <code>generate</code></td></tr>
+          <tr><td>Do the strongest neurons matter more than random ones?</td><td><strong>Mostly</strong>: 19 of the 23 saved dose tests move the target's probability more than twice as far as the most effective of 20 random neurons from the same layer</td><td>The other 4 move it less than the most effective random neuron</td></tr>
+          <tr><td>Is a neuron's word list a fair label?</td><td><strong>For one neuron, yes</strong>: L21.N4090 (“法国”, “ French”, “ France”) peaks above 5 on 9 of 10 France prompts and 0 of 10 matched prompts about other countries</td><td>Mean peak 16.2 against 1.6</td></tr>
+          <tr><td>Is the biggest share the neuron that matters?</td><td><strong>Not always</strong>: switching off L21.N4090 (share +2.14) leaves P(“ Paris”) at 31%; switching off L20.N4520 (share +1.98) drops it to 13%</td><td>Normal: 30%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction" data-short="What you'll see"><span class="num">01</span>What you'll see</h2>
+  <p>Type “The capital of France is” and a small model answers “ Paris” with 30% probability. Somewhere in its 24 layers that answer was assembled. If you could pause the model after each layer, as you would pause a program in a debugger, you would see the answer appear: mostly punctuation until layer 14, blanks like “ __” around layers 15 to 20, then “ Paris” at layer 21. The layer explorer is that debugger.</p>
+  <p><strong>What exists.</strong> <a href="https://github.com/andrew-morris/neuronaut">neuronaut</a> turned this idea into a terminal tool you step through with arrow keys, and its <a href="https://neuronaut.ishaanko.com">web version</a> turns it into a game. Interpretability research has the methods underneath it: the <a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens">logit lens</a> (read the half-finished stream as if it were the answer) and direct logit attribution (split the answer's score into one part per head and neuron), both standard in <a href="https://github.com/TransformerLensOrg/TransformerLens">TransformerLens</a>.</p>
+  <p><strong>What is missing.</strong> A screen a newcomer can open in the browser, on a model that runs on a laptop, that puts those methods side by side and lets you test what you see: switch a neuron off and compare, or turn it up and compare it with random neurons. Reading a neuron's top words is easy; knowing whether the neuron matters is the part people skip.</p>
+  <p class="question-callout">Which layers and neurons push a model toward its next word, and how do you check that one of them really matters?</p>
+  <p><strong>What this guide gives you:</strong></p>
+  <ol>
+    <li><code>steerlab inspect</code>, a local web app with seven screens: words, the layer stack, a layer, a neuron, find, edit and a dose test;</li>
+    <li>a walkthrough of each screen on one running example, “The capital of France is”, with screenshots;</li>
+    <li>an explorer of six saved prompts built into this page, which needs no install (section 4);</li>
+    <li>five checks that the numbers on the screen mean what they say, and the ways it can still fool you.</li>
+  </ol>
+
+  <h2 id="setup" data-short="Install and run"><span class="num">02</span>Install and run</h2>
+  <p>The app needs Python 3.11 or newer and about 2 GB of memory. The model (1 GB) must already be in your Hugging Face cache, or you pass <code>--download</code> once.</p>
+<pre><code>git clone https://github.com/albertlieyingadrian/steerlab && cd steerlab
+uv sync --all-packages --all-extras
+uv run steerlab inspect --download           # first time: fetches Qwen2.5-0.5B-Instruct
+uv run steerlab inspect                      # then open http://127.0.0.1:8770</code></pre>
+  <p>Loading takes about 2 seconds. Each screen is computed when you open it, on the CPU: about 0.1 seconds for the layer stack, 0.6 for an edit with its two continuations, 0.8 for a dose test (21 neurons × 6 doses). Other Qwen2-, Qwen3- or Llama-style models from the Hugging Face cache work with <code>--model</code>. The app listens only on this computer (127.0.0.1).</p>
+  <p><strong>Words used in the rest of this guide.</strong></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Word</th><th>Means</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>token</td><td>the piece of text the model reads or writes in one step; often a word with its leading space</td><td>“ Paris” is one token; “56” is two, “5” and “6”</td></tr>
+      <tr><td>target</td><td>the next token whose score the screens explain; by default the model's top guess</td><td>“ Paris”</td></tr>
+      <tr><td>logit</td><td>the model's raw score for a token before scores become probabilities; higher is likelier</td><td>“ Paris”: 17.22</td></tr>
+      <tr><td>residual stream</td><td>the running total every layer reads from and adds to: a list of 896 numbers per token</td><td></td></tr>
+      <tr><td>share</td><td>how much one part (a head, a neuron, a whole layer) adds to the target's logit</td><td>L21.N4090: +2.14</td></tr>
+      <tr><td>neuron <code>L20.N4520</code></td><td>neuron 4,520 of layer 20's MLP: one of the 4,864 numbers each layer computes per token and then writes back into the stream along a fixed direction</td><td></td></tr>
+      <tr><td>logit lens</td><td>what the model would say if it stopped after a given layer: the final normalisation and the output matrix applied to the stream at that point</td><td>after layer 20: “ __”</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="walkthrough" data-short="The seven screens"><span class="num">03</span>The seven screens, one example</h2>
+  <p>The example throughout is “The capital of France is”. Each figure is a screenshot of the saved explorer (section 4), which shows the same numbers the live app computes.</p>
+
+  <h3 id="words" data-short="1 Words">1. Words: the prompt, its tokens and the model's guesses</h3>
+  <figure class="shot">
+    <img src="figures/step-1-words.png" alt="The Words panel: six preset buttons, the prompt 'The capital of France is', five token chips with ' is' highlighted, and the guesses ' Paris' 30%, '______' 12%, ':↵' 6.6% and others; the target line reads ' Paris', p = 30%, rank 1, logit 17.22." width="1860" height="510" loading="lazy">
+    <figcaption><strong>Figure 1.</strong> The prompt becomes five tokens; the model predicts what comes after the highlighted one, “ is”. Its top guess, “ Paris” at 30%, becomes the target. The next four guesses are blanks and line breaks: a 0.5B model has seen many fill-in-the-blank quizzes.</figcaption>
+  </figure>
+  <p>In the live app you can click any guess to make it the target, type your own word (“Lyon”), or click an earlier token to ask what the model predicted there. Every other screen then explains that target at that position.</p>
+
+  <h3 id="stack" data-short="2 Layer stack">2. The layer stack: where the answer is built</h3>
+  <figure class="shot">
+    <img src="figures/step-2-stack.png" alt="The layer stack: 24 rows from L23 at the top to L0 and an embedding row at the bottom; each has a blue attention bar and an orange neuron bar centred on zero, and a 'would say' column. Bars are long only for layers 17 to 21; the column reads Paris from L21 up. The footer equation reads logit(' Paris') = embed −0.02 + attention +5.07 + neurons +12.16 = 17.217, real logit 17.217, leftover −1.1e-5." width="940" height="1140" loading="lazy">
+    <figcaption><strong>Figure 2.</strong> One row per layer, output at the top. Blue: the share of the “ Paris” logit written by that layer's attention; orange: by its neurons. Bars to the right push toward “ Paris”. The right column is the logit lens with the target's rank (#1 = the lens's top word). The footer adds every share up and compares it with the real logit.</figcaption>
+  </figure>
+  <p><strong>How to read it.</strong> Almost nothing happens in layers 0 to 14: tiny bars, and the lens says punctuation. Layers 17 to 21 do the work. Layer 21 alone adds 8.0 of the 17.2 logits (attention +4.17, neurons +3.81), and it is where the lens first says “ Paris”. Neurons contribute more than attention overall (+12.16 against +5.07).</p>
+  <p><strong>Why the footer adds up.</strong> The residual stream at the end is a plain sum: the token's embedding, plus what each attention head wrote, plus what each neuron wrote. The model then divides the stream by one number (its root mean square, in the final normalisation), multiplies by fixed weights and reads each word's score with a dot product. If that one number is held at its real value for this prompt (here 1/rms = 0.463), the score is a sum of one term per part. The footer shows the leftover, −0.000011: rounding, nothing missing. Without holding it fixed the split would not be exact, because removing a part would also change the divisor.</p>
+
+  <h3 id="layer" data-short="3 Layer">3. A layer: its heads and neurons</h3>
+  <figure class="shot">
+    <img src="figures/step-3-layer.png" alt="Layer 20 detail: neurons pushing toward ' Paris' led by L20.N4520 (fires −20.29, lines up −0.098, share +1.98), neurons pushing against it with shares around −0.1, and a table of attention heads with their share, the tokens they look at and the words they promote." width="900" height="1300" loading="lazy">
+    <figcaption><strong>Figure 3.</strong> Layer 20, opened from the stack. Each neuron's share is how strongly it fires here times how well the direction it writes lines up with “ Paris”; the shares in the table add up to the orange bar. Heads are listed with the two tokens they look at most and the three words their output promotes.</figcaption>
+  </figure>
+  <p>Layer 20's neurons add +3.06, and one neuron, L20.N4520, supplies +1.98 of it: it fires −20.29 (strongly negative), and its output lines up negatively with “ Paris” (−0.098), so the product is positive. In layer 21 (open it from the stack in the explorer below), the largest share belongs to a head: L21.H6 looks at “ France” (73% of its attention) and writes “法国”, “ France” and “ French”, adding +3.58. That is the usual picture of a fact being moved from the subject's position to the last token.</p>
+
+  <h3 id="neuron" data-short="4 Neuron">4. A neuron: what it writes and where it fires</h3>
+  <figure class="shot">
+    <img src="figures/step-4-neuron.png" alt="Neuron L20.N4520: it fires −20.29 times −0.098 = +1.98 logit, the largest share in its layer; a note says it fires negative so its lists read the other way round; it fires −20.3 on ' is' and little elsewhere; it promotes Chinese province names and suppresses code fragments; buttons Switch off and compare, Flip, Dose test." width="900" height="740" loading="lazy">
+    <figcaption><strong>Figure 4.</strong> Neuron L20.N4520. The coloured tokens show how strongly it fires on each token of the prompt (blue negative, orange positive). The two word lists read its output direction straight through the output matrix: the words it pushes up when it fires positive, and the words it pushes down.</figcaption>
+  </figure>
+  <p>This neuron is quiet until the last token, “ is”, where it fires −20.3. Its word lists are no help: positive firing would promote Chinese province names, and since it fires negative here it promotes the opposite list, code fragments like “(PropertyName”. Its effect on “ Paris” comes through a direction no single word describes. That is common, and it is why screens 6 and 7 exist.</p>
+  <p>Some neurons do have readable lists. L21.N4090 writes “法国”, “ French”, “é”, “ France”, fires 11.7 on “ France” and 16.5 on “ is”, and has the largest share in layer 21 (+2.14). Section 5 checks its label on 20 prompts.</p>
+
+  <h3 id="find" data-short="5 Find">5. Find: which neurons write a word</h3>
+  <figure class="shot">
+    <img src="figures/step-5-find.png" alt="The Find screen for 'Paris': neurons ranked by cosine between their output direction and the word's readout; L21.N4090 first at 0.218 with share here +2.14, then L23.N4159 (promotes ' par') at 0.184 and L20.N2314 (promotes ' city') at 0.164; a second table for neurons that write it when firing negative." width="900" height="1100" loading="lazy">
+    <figcaption><strong>Figure 5.</strong> Find, for “ Paris”: all 116,736 neurons (24 × 4,864), ranked by the cosine between the direction each one writes and the direction that raises the word's score. “Share here” is the neuron's share in the current prompt.</figcaption>
+  </figure>
+  <p>Find starts from the word instead of the prompt. L21.N4090 is the best writer of “ Paris” in the whole model (cosine 0.218) and fires here. The next two, L23.N4159 and L20.N2314, write it nearly as well but are nearly silent on this prompt (shares −0.05 and +0.04): a neuron can be able to write a word and still play no part.</p>
+
+  <h3 id="edit" data-short="6 Edit">6. Edit: switch neurons off and compare</h3>
+  <figure class="shot">
+    <img src="figures/step-6-edit.png" alt="The Edit screen with L20.N4520 off: normal 30% versus edited 13% for ' Paris', both still with ' Paris' as the top guess and the same greedy continuation; a per-layer table of normal and edited shares, with the changed layers highlighted." width="900" height="1300" loading="lazy">
+    <figcaption><strong>Figure 6.</strong> L20.N4520 switched off at every position. Left: the normal run; right: the edited one. Each shows the probability of “ Paris”, the top guess and a 12-token greedy continuation; the table compares each layer's push and the lens word, normal against edited.</figcaption>
+  </figure>
+  <p>An edit sets a neuron's activation at every position: off (0), flipped (negative), scaled (×k) or set to a value; up to 8 at once. Switching L20.N4520 off drops P(“ Paris”) from 30% to 13%, although “ Paris” stays the top guess and the continuation still begins “ Paris. It is the largest city in Europe”. Flipping it drops “ Paris” to 0.8%, and the model writes “ located in the ____.” followed by a multiple-choice question.</p>
+  <p>Now the surprise. Switching off L21.N4090, the neuron with the <em>largest</em> share and a fitting label, leaves P(“ Paris”) at 31%. Later layers make up for it. A share says how much a part wrote toward the word in this run; it does not say what happens without it. Only an edit answers that.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Edit (France prompt)</th><th class="num">P(“ Paris”)</th><th>Greedy continuation starts</th></tr></thead>
+    <tbody>
+      <tr><td>none</td><td class="num">30%</td><td>“ Paris. It is the largest city in Europe”</td></tr>
+      <tr class="hl"><td>L21.N4090 off (largest share, +2.14)</td><td class="num">31%</td><td>“ Paris. It is the largest city in Europe”</td></tr>
+      <tr><td>L20.N4520 off (share +1.98)</td><td class="num">13%</td><td>“ Paris. It is the largest city in Europe”</td></tr>
+      <tr><td>L18.N3178 off (share +0.84)</td><td class="num">14%</td><td>“ Paris. It is the largest city in Europe”</td></tr>
+      <tr><td>all three off</td><td class="num">4.1%</td><td>“ located in the ____. A. Atlantic Ocean”</td></tr>
+      <tr><td>L20.N4520 flipped</td><td class="num">0.8%</td><td>“ located in the ____. A. Atlantic Ocean”</td></tr>
+      <tr><td>L21.N4090 ×4</td><td class="num">5.8%</td><td>“: A. Paris B. Nice C. L”</td></tr>
+    </tbody>
+  </table></div>
+  <p class="caption-note">Table 1. The saved edits for the France prompt (line breaks in continuations shown as spaces). Every one is in the explorer below.</p>
+
+  <h3 id="dose" data-short="7 Dose test">7. Dose test: is it real?</h3>
+  <figure class="shot">
+    <img src="figures/step-7-dose.png" alt="Dose chart for L20.N4520: the orange line for P(' Paris') rises from 13% at ×0 through 30% at ×1 to 65% at ×8; the grey band of 20 random layer-20 neurons stays between about 28% and 33% at every dose." width="900" height="760" loading="lazy">
+    <figcaption><strong>Figure 7.</strong> Dose test for L20.N4520: the neuron's activation multiplied by ×0, ×0.5, ×1, ×2, ×4 and ×8 at every position (orange), against the same doses applied one at a time to 20 random neurons of layer 20 (grey band: lowest to highest; thin lines: each one). The dashed line is ×1, the normal run.</figcaption>
+  </figure>
+  <p>A neuron matters for a word if changing it moves the word more than changing a random neuron does. L20.N4520 passes clearly: from 13% (off) to 65% (×8), while the 20 random neurons keep “ Paris” between 28% and 33% at every dose. The rule comes from steering: an effect counts only next to what a random change of the same kind does.</p>
+  <figure class="shot">
+    <img src="figures/step-7-dose-4090.png" alt="Dose chart for L21.N4090: the orange line stays near 31% at ×0 and ×0.5, then falls to 20% at ×2, 5.8% at ×4 and 1.0% at ×8, below the random band." width="900" height="760" loading="lazy">
+    <figcaption><strong>Figure 8.</strong> The same test for L21.N4090, the France neuron. Switching it off does nothing, but turning it up pushes “ Paris” down to 1.0% at ×8, while the model drifts toward quiz formats (Table 1, ×4).</figcaption>
+  </figure>
+  <p>L21.N4090 leaves the band only when turned up, and in the “wrong” direction: more of the France neuron means less “ Paris”. It reads as a neuron that says “this is about France”, which helps “ Paris” a little at its normal strength and crowds it out when exaggerated. Neither its share nor its word list predicted that.</p>
+
+  <h2 id="explorer" data-short="Try it here"><span class="num">04</span>Try it here: six saved prompts</h2>
+  <p>The explorer below is the same page as the live app, reading saved results instead of a running model. Pick a preset; click a layer, a neuron in a layer's table, or the Find, Edit and Dose tabs. Typing your own words needs the live app (section 2). Keys: <kbd>↑</kbd> <kbd>↓</kbd> move through layers, <kbd>1</kbd>–<kbd>5</kbd> switch tabs.</p>
+  <iframe class="explorer-frame" src="explorer/?preset=france" title="Layer explorer with six saved prompts" loading="lazy"></iframe>
+  <p><a href="explorer/">Open the explorer full screen</a>. Saved for each preset: every layer, the 5 neurons pushing most toward and against the target in each layer (and their details), Find for the target, 7 edits and 4 dose tests.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Preset</th><th>Target</th><th class="num">P</th><th class="num">Lens first says it</th><th>A finding to look for</th></tr></thead>
+    <tbody>
+      <tr><td>Capital of France</td><td>“ Paris”</td><td class="num">30%</td><td class="num">layer 21</td><td>The largest share (L21.N4090) is not needed; L20.N4520 is</td></tr>
+      <tr><td>Golden Gate</td><td>“ Golden”</td><td class="num">79%</td><td class="num">layer 22</td><td>L21.N87 off: 79% → 25%; ×4 and the model writes “ Golden Golden Golden …”</td></tr>
+      <tr><td>7 × 8</td><td>“5”</td><td class="num">85%</td><td class="num">layer 21</td><td>L20.N1565 (writes “ six”, “六”) off: 85% → 48%; flipped, the answer becomes “112”</td></tr>
+      <tr><td>7 × 8, told to fail</td><td>“5”</td><td class="num">60%</td><td class="num">layer 21</td><td>The instruction lowers “5” from 85% to 60%, but the model still answers 56; the same L20.N1565, flipped, again gives “112”</td></tr>
+      <tr><td>Opposites</td><td>“ small”</td><td class="num">91%</td><td class="num">layer 19</td><td>Each single neuron moves “ small” by a few points; all three off: 74%</td></tr>
+      <tr><td>Days of the week</td><td>“ Friday”</td><td class="num">52%</td><td class="num">layer 19</td><td>L21.N3397 ×4: “ Friday” 2.1%, and the model writes “ and Friday are the five weekdays”</td></tr>
+    </tbody>
+  </table></div>
+  <p class="caption-note">Table 2. The presets. P is the target's probability; “lens first says it” is the lowest layer after which the target is the lens's top word. Each line is one prompt: an anecdote to explore, not a measured result.</p>
+
+  <h2 id="method" data-short="How it was checked"><span class="num">05</span>How the numbers were checked</h2>
+  <p>A screen like this is only useful if its numbers mean what they say. Before writing this guide we fixed five checks, ran them on the six presets plus two new prompts (“The largest planet in the solar system is” → “ Jupiter”, “Water freezes at a temperature of zero degrees” → “ Celsius”), and report them all (<code>sanity.py</code>, <a href="../results/sanity.json">results/sanity.json</a>).</p>
+  <ol>
+    <li><strong>The split adds up.</strong> Embedding + every head + every neuron against the real logit, 8 prompts. Largest leftover: 1.2 × 10<sup>−5</sup>.</li>
+    <li><strong>The lens ends at the real output.</strong> The logit lens after layer 23 against the model's own scores for all 151,936 tokens, 8 prompts. Same top word 8 of 8; largest difference 2.5 × 10<sup>−5</sup>.</li>
+    <li><strong>Unedited means untouched.</strong> The inspector's recorded run against a plain forward pass: bit-identical scores on 8 of 8 (and 8 of 8 with an edit of ×1, which multiplies by exactly 1). Its unedited greedy continuation against plain <code>generate</code> (12 tokens, <code>repetition_penalty=1.0</code>): identical, 8 of 8. The package's tests check the same on a tiny random model, plus that an edit changes only the neuron it names.</li>
+    <li><strong>Dose against random.</strong> For each of the 23 saved dose tests: the neuron's largest change from normal against the largest change any of its 20 random neurons made. 19 of 23 moved the target more than twice as far. Section 6 lists the four that did not.</li>
+    <li><strong>One label checked by hand.</strong> L21.N4090 promotes “法国”, “ French”, “ France”. On 10 France prompts and 10 matched prompts about other countries (“The capital of Germany is”, “The Prado museum is in Madrid,” …), its peak activation over the prompt is above 5 on 9 of 10 France prompts and 0 of 10 others (mean 16.2 against 1.6). The miss: “She speaks fluent French and” (2.6).</li>
+  </ol>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fixed before any run</th><th>Changed after looking at results</th></tr></thead>
+    <tbody><tr>
+      <td>The five checks; the model; float32 on the CPU; doses ×0, ×0.5, ×1, ×2, ×4, ×8; 20 random neurons per dose test (seed 0); greedy continuations of 12 tokens with <code>repetition_penalty=1.0</code></td>
+      <td>The preset prompts: a first maths prompt (“7 x 8 =”) and a first opposites prompt (“The opposite of hot is”) had a space or a blank as the top guess, so they were reworded. The dose verdict, which first called a 0.5-point move “outside the band”, now reports the size of the move.</td>
+    </tr></tbody>
+  </table></div>
+  <p>Conditions: Qwen2.5-0.5B-Instruct in float32 on an Apple laptop CPU, eager attention (so head patterns can be read), no sampling. The export of six presets takes under 3 minutes; <code>sanity.py</code> about one.</p>
+
+  <h2 id="pitfalls" data-short="Reading it carefully"><span class="num">06</span>How to read it without fooling yourself</h2>
+  <ul>
+    <li><strong>A share is not an effect.</strong> The share says how much a part wrote toward the word in this run. Later layers can make up for a missing part (L21.N4090 off: 30% → 31%), or a part can matter through other neurons. Use an edit or a dose test before saying a neuron “does” something.</li>
+    <li><strong>The split holds the final scale fixed.</strong> Every share assumes the final normalisation divides by the number it really used. That makes the split exact for this run, and an approximation for any other run: an edit changes the divisor too, which is why the Edit screen reruns the model instead of subtracting a share.</li>
+    <li><strong>Word lists are a first guess.</strong> They read a neuron's direction as if no layer came after it, and many neurons write directions no word describes (L20.N4520's lists are province names and code fragments). Neurons also respond to many unrelated things. Check a label on prompts you choose, as in check 5.</li>
+    <li><strong>The random band can be wide.</strong> In all four dose tests that failed check 4, some random neuron moved the target further than the chosen one. Two of the chosen neurons do move it several points (Golden Gate L22.N131: 7.0; opposites L20.N3874: 6.6), but a random neuron of the same layer moved it more (15.9 and 10.6). The other two are L23.N276, Find's best writer of “5”, on the two maths prompts: it fires so weakly that even ×8 moves “5” by half a point or less. A strong writer that does not fire does nothing.</li>
+    <li><strong>One prompt is an anecdote.</strong> Every finding on this page is about one prompt. A neuron that matters for “The capital of France is” may not matter for “Paris is the capital of”. To claim more, run the same edit on many prompts and count.</li>
+  </ul>
+
+  <h2 id="implications" data-short="Implications"><span class="num">07</span>Implications for AI safety</h2>
+  <p>Looking inside a model is one of the few ways to check what it does without trusting what it says, and screens like this make it look easy. The risk is the step from “this neuron's words fit” to “this neuron does it”. The France neuron had the largest share and a fitting label, and switching it off changed nothing. In safety work the same step decides whether a “deception feature” or a “sandbagging neuron” is evidence or decoration. The sandbagging preset shows the other half: an instruction to fail moved the first digit's probability from 85% to 60%, the model still answered 56, and the neuron that mattered most was the same one as without the instruction.</p>
+  <p><strong>Before reporting what a neuron does, switch it off and dose it against random neurons from the same layer, on more than one prompt.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li>Nothing here is a finding about Qwen in general: the six presets are single prompts, chosen to be easy to read.</li>
+    <li>The label check covers one neuron on 20 hand-written prompts.</li>
+    <li>Edits act on single neurons, and shares are direct effects only. Circuits that work through several layers (one head reading what another wrote) need path patching, which this tool does not do.</li>
+    <li>It was built and checked on Qwen2.5-0.5B-Instruct. Larger Qwen2 and Qwen3 models load with <code>--model</code> but are slower on a CPU and were not checked here.</li>
+    <li>The saved explorer keeps the top 5 neurons per layer per side; the live app shows 8 and can open any neuron.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">09</span>Reproduce it</h2>
+<pre><code>uv run steerlab inspect --export experiments/layer-explorer/report/explorer   # the saved explorer (~3 min)
+uv run python experiments/layer-explorer/sanity.py                             # the five checks (~1 min)
+uv run python experiments/layer-explorer/make_cover.py                         # the cover, from data.json
+python -m http.server 8790 --directory experiments &
+uv run python experiments/layer-explorer/screenshots.py                        # Figures 1-8 (needs playwright)
+uv run pytest packages/steerlab/tests/inspector                                # the package tests (tiny model)</code></pre>
+  <p>Or all at once: <a href="../reproduce.sh"><code>reproduce.sh</code></a> (<code>--dry-run</code> prints the commands).</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What's next</h2>
+  <ol>
+    <li><strong>Edits over many prompts</strong>: run one edit on 50 prompts and report how often the target drops, with an interval, so a neuron's role is a count rather than an anecdote.</li>
+    <li><strong>Steering directions and SAE features</strong> next to neurons: the same share, edit and dose screens for a direction from <code>steerlab directions</code> or a feature from an SAE.</li>
+    <li><strong>Head edits and attention patterns</strong>: switch a head off, and draw its full attention pattern rather than its top two tokens.</li>
+  </ol>
+
+  <h2 id="questions" data-short="Questions"><span class="num">11</span>Questions and answers</h2>
+  <h3 id="q1">What is steerlab inspect?</h3>
+  <p>A local web app that shows, for a short prompt, how each layer of Qwen2.5-0.5B-Instruct pushes toward the next word, which heads and neurons do the pushing, and what happens to the answer when you switch neurons off or turn them up. It runs on a laptop CPU.</p>
+  <h3 id="q2">What is the logit lens?</h3>
+  <p>A way to read a model's half-finished work: apply the model's final normalisation and output matrix to the residual stream after an earlier layer, as if the model stopped there. For “The capital of France is”, it first says “ Paris” after layer 21 of 24.</p>
+  <h3 id="q3">Why does switching off the neuron with the largest share not change the answer?</h3>
+  <p>Because the share measures what the neuron wrote toward the word in one run, not what the rest of the model does without it. Later layers can make up the difference, as they do for L21.N4090.</p>
+  <h3 id="q4">How is this related to neuronaut?</h3>
+  <p>neuronaut is a terminal tool that steps through a model's layers and neurons like a debugger. The layer explorer borrows that idea and adds a web screen, an exact split of the answer's score, edits with side-by-side continuations, and a dose test against random neurons.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><code>report/explorer/data.json</code></td><td>The saved explorer, one entry per preset: <code>run</code> (tokens; top 8 <code>guesses</code> with <code>prob</code> and <code>logit</code>; <code>target</code>; <code>layers</code>, one row per layer with <code>attn</code> and <code>mlp</code> shares, the lens word <code>says</code>, <code>target_rank</code> and <code>target_prob</code>; <code>embed</code>, <code>sum</code>, <code>leftover</code>, <code>norm_scale</code>), <code>layers</code> (per layer: <code>heads</code> and the top 5 neurons <code>toward</code> and <code>against</code>, each with <code>act</code>, <code>align</code>, <code>share</code>, <code>promotes</code>), <code>neurons</code> (per neuron: <code>promotes</code>, <code>suppresses</code>, <code>fires</code> per token), <code>find</code>, <code>edits</code> (edited run and both continuations) and <code>doses</code> (<code>scales</code>, <code>curve</code>, 20 <code>random</code> curves, <code>band_lo</code>, <code>band_hi</code>). Numbers rounded to 4 significant figures.</td></tr>
+      <tr><td><code>results/sanity.json</code></td><td>The five checks: <code>leftover</code> per prompt, <code>lens_last</code> (largest difference, same top word), <code>identical</code> (counts out of 8), <code>dose</code> (per saved dose test: doses outside the band, own and random largest change), <code>gloss</code> (peak activation of L21.N4090 on each of the 20 prompts)</td></tr>
+    </tbody>
+  </table></div>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>Lie, A. (2026). Layer explorer: watch a model pick its next word.
+steerlab. https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/</code></pre>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
