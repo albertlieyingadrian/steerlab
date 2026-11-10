@@ -4,7 +4,8 @@
 
 For each preset the export stores what the page can show without a model: the run (top guess as the target), every
 layer's heads and top neurons, the detail of each neuron listed there, find for the target, a few edits (the strongest
-neurons switched off, flipped, scaled) and dose tests. Numbers are rounded to 4 significant figures; the live app
+neurons switched off, flipped, scaled) and dose tests. Numbers are rounded to 4 significant figures, except the run
+views (the layer stack and its sums), which keep 6 so the page's sum line matches the live app's; the live app
 computes anything else on demand.
 """
 
@@ -13,7 +14,7 @@ from __future__ import annotations
 import json
 import shutil
 from collections.abc import Callable, Sequence
-from datetime import UTC, datetime
+from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -75,6 +76,15 @@ def rounded(value: Any, digits: int = 4) -> Any:
     if isinstance(value, list):
         return [rounded(item, digits) for item in value]
     return value
+
+
+def compact(preset: dict[str, Any]) -> dict[str, Any]:
+    """A preset's saved views, rounded: 6 significant figures for the run views, 4 for everything else."""
+    out: dict[str, Any] = rounded(preset)
+    out["run"] = rounded(preset["run"], 6)
+    for saved, edit in zip(out["edits"], preset["edits"], strict=True):
+        saved["edited"] = rounded(edit["edited"], 6)
+    return out
 
 
 def strongest(layers: dict[str, dict[str, Any]], n: int) -> list[dict[str, Any]]:
@@ -149,8 +159,8 @@ def export(
         "n_layers": inspector.n_layers,
         "n_heads": inspector.n_heads,
         "d_mlp": inspector.d_mlp,
-        "created": datetime.now(UTC).strftime("%Y-%m-%d"),
-        "presets": [rounded(preset_data(inspector, preset, on_message=on_message)) for preset in presets],
+        "created": date.today().isoformat(),
+        "presets": [compact(preset_data(inspector, preset, on_message=on_message)) for preset in presets],
     }
     path = out_dir / "data.json"
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
