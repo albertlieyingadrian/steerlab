@@ -15,7 +15,7 @@
 <meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/figures/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Twenty-four rows, one per layer of Qwen2.5-0.5B-Instruct, with blue attention bars and orange neuron bars; most are tiny, layers 18 to 21 are long, and the logit-lens column turns to Paris at layer 21.">
+<meta property="og:image:alt" content="Screenshot of the layer explorer on &#x27;The capital of France is&#x27;: the tokens, the guesses with &#x27; Paris&#x27; at 30% as the target, the layer stack with long attention and neuron bars at layers 18 to 21 and the logit lens turning to Paris at layer 21, and the layer 21 panel listing its top neurons, led by L21.N4090.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Layer explorer: watch a model pick its next word">
 <meta name="twitter:description" content="A guide to steerlab inspect: type words and watch Qwen2.5-0.5B-Instruct build its next word layer by layer, open a neuron, switch it off, and test it against 20 random neurons. The neuron with the largest share of “Paris” turns out not to be needed.">
@@ -99,6 +99,14 @@
 <style>
   .explorer-frame { width: 100%; height: 860px; border: 1px solid var(--rule); border-radius: 6px; background: #15110e; display: block; }
   figure.shot img { border: 1px solid var(--rule); border-radius: 6px; background: #15110e; }
+  .lx-fig svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; --lx-attn-soft: rgba(74, 134, 232, .16); --lx-weight: var(--ink-faint); }
+  .lx-fig svg text { font-family: var(--font-display); fill: var(--ink); }
+  .lx-fig svg .small { font-size: 12px; fill: var(--ink-soft); }
+  .lx-fig svg .halo { paint-order: stroke; stroke: var(--canvas); stroke-width: 5px; stroke-linejoin: round; }
+  .lx-fig svg [stroke="var(--lx-weight)"] { opacity: .55; }
+  .lx-scroll { overflow-x: auto; }
+  .lx-fig svg.lx-wide { max-width: none; min-width: 640px; }
+  .lx-fig svg.lx-wide text { font-size: 17px; }
   figure.demo video { width: 100%; height: auto; display: block; border: 1px solid var(--rule); border-radius: 6px; background: #15110e; }
   @media (max-width: 600px) { .explorer-frame { height: 720px; } }
 </style>
@@ -116,8 +124,8 @@
   <p class="dek ruled">A step-by-step guide to <code>steerlab inspect</code>, a web screen where you type a few words and watch Qwen2.5-0.5B-Instruct arrive at its next word, layer by layer: which layers push it, which neurons, what a neuron writes, and what happens when you switch one off. It runs on a laptop CPU, and an explorer of six saved prompts is built into this page.</p>
 
   <figure class="hero">
-    <img src="figures/hero.jpg" alt="Twenty-four rows, one per layer of Qwen2.5-0.5B-Instruct, each with a blue bar for attention and an orange bar for neurons. Most bars are tiny; layers 18 to 21 carry long bars, and the right-hand column changes from punctuation to Paris at layer 21." width="1600" height="900">
-    <figcaption>Drawn from the explorer's data for “The capital of France is”: each row is one layer (layer 0 at the bottom), its attention's share of the “ Paris” score in blue and its neurons' share in orange, and on the right what the model would say if it stopped after that layer. “ Paris” first comes out on top at layer 21.</figcaption>
+    <img src="figures/hero.jpg" alt="Screenshot of the layer explorer on 'The capital of France is': the tokens, the guesses with ' Paris' at 30% as the target, the layer stack with long attention and neuron bars at layers 18 to 21 and the logit lens turning to Paris at layer 21, and the layer 21 panel listing its top neurons, led by L21.N4090." width="1600" height="900">
+    <figcaption>The explorer on “The capital of France is”: the prompt's tokens, the model's guesses (“ Paris” at 30% is the target), the layer stack (blue bars for attention, orange for neurons, and on the right what the model would say after each layer) and layer 21 opened, with the neurons that push hardest toward “ Paris”.</figcaption>
   </figure>
 
   <dl class="meta">
@@ -152,6 +160,13 @@
     </div>
     </section>
   </details>
+
+  <figure class="demo">
+    <video class="demo-video" src="media/overview.mp4" poster="media/overview.jpg" width="960" height="600" loop muted playsinline controls preload="none" aria-label="Demo of the whole loop: typing The capital of France is and running it, stepping down the layer stack to layer 21, opening neuron L21.N4090 and switching it off (Paris stays at 31%), then opening L20.N4520 and switching it off (Paris falls to 13%).">
+      <a href="media/overview.mp4">Watch the overview (overview.mp4)</a>
+    </video>
+    <figcaption><strong>Overview, in 20 seconds.</strong> Type a prompt and run it; step down the layer stack to layer 21, where “ Paris” first comes out on top; open the neuron with the largest share and switch it off: “ Paris” stays at 31%. Switch off L20.N4520 instead and it falls to 13%. Section 3 takes each screen in turn.</figcaption>
+  </figure>
 
   <h2 id="introduction" data-short="What you'll see"><span class="num">01</span>What you'll see</h2>
   <p>Type “The capital of France is” and a small model answers “ Paris” with 30% probability. Somewhere in its 24 layers that answer was assembled. If you could pause the model after each layer, as you would pause a program in a debugger, you would see the answer appear: mostly punctuation until layer 14, blanks like “ __” around layers 15 to 20, then “ Paris” at layer 21. The layer explorer is that debugger.</p>
@@ -281,14 +296,129 @@ uv run steerlab inspect                      # then open http://127.0.0.1:8770</
   <p><strong>Why it matters.</strong> One edit can mislead: any change to a model moves its output a little. The dose test says how big a move is normal, by doing the same to 20 random neurons, and only a line that leaves the grey band counts. It is the same rule this project uses for steering: no effect without its random control.</p>
 
   <h2 id="under-the-hood" data-short="Under the hood"><span class="num">04</span>Under the hood: how the screens are computed</h2>
-  <p>Everything above comes from one forward pass of the model with a few listeners attached, plus some arithmetic on its weights. This section shows how, with the code. All of it is in <a href="https://github.com/albertlieyingadrian/steerlab/blob/80977a05efbf0eb9137f424e7e9b26484f3f4833/packages/steerlab/src/steerlab/inspect/core.py"><code>steerlab/inspect/core.py</code></a>; line numbers below link to it.</p>
+  <p>The screens rest on two kinds of part inside each layer, attention heads and neurons. This section first says what they are, in pictures, then how the tool catches each one during a run, how the shares are computed, and why Find and edits behave as they do. The code is in <a href="https://github.com/albertlieyingadrian/steerlab/blob/80977a05efbf0eb9137f424e7e9b26484f3f4833/packages/steerlab/src/steerlab/inspect/core.py"><code>steerlab/inspect/core.py</code></a>; line numbers below link to it.</p>
 
-  <h3 id="two-blocks" data-short="Two blocks per layer">Each layer has two blocks</h3>
-  <p>Every layer reads the residual stream (896 numbers per token) and adds two things back into it:</p>
-  <ul>
-    <li><strong>Attention</strong> (14 heads per layer) moves information <em>between</em> tokens: at “ is”, head L21.H6 looks back at “ France” and copies what it finds. Think of messages between members of a team. What a head writes depends on which tokens it looked at, so it changes with every prompt.</li>
-    <li><strong>MLP neurons</strong> (4,864 per layer) work on each token <em>alone</em>, like a lookup in a private reference book. Each neuron computes one number (its activation; in Qwen, SiLU(gate) × up) and writes one fixed direction into the stream, scaled by that number. Because the direction never changes, a neuron has a stable list of words it promotes, and Find can search neurons without running the model. A head has no fixed direction, so the layer screen describes heads by what they look at instead.</li>
-  </ul>
+  <h3 id="two-blocks" data-short="Attention vs neurons">Two kinds of part: attention and neurons</h3>
+  <p>Think of each token as having a notepad: the residual stream, 896 numbers that every layer reads and adds to. Each of the 24 layers adds to every notepad twice, first with attention, then with neurons.</p>
+  <p><strong>Neurons work inside one word.</strong> A layer's 4,864 neurons see only their own token's notepad. The lines into and out of them are weights, learned in training and then fixed. A neuron fires on a pattern and writes its own fixed message, louder or quieter (in Qwen its activation is SiLU(gate) × up). That is why a neuron has a stable list of words it promotes: L21.N4090 always writes the same “France / French” direction. It fires 16.5 at “ is” in “The capital of France is”, and −1.2 (barely) in “The capital of Japan is”. Stored facts and associations tend to be found in these blocks, though not only there.</p>
+  <figure class="lx-fig">
+    <svg viewBox="0 0 360 270" role="img" aria-label="A small network inside the token ' is': input circles, a hidden layer of neurons with one highlighted (L21.N4090) whose outgoing lines are orange, and output circles, connected by grey lines labelled learned weights.">
+        <text x="180" y="18" text-anchor="middle" class="small">inside the notepad of “ is” only</text>
+        <g stroke="var(--lx-weight)" stroke-width="1">
+          <line x1="50" y1="70" x2="180" y2="50"/><line x1="50" y1="70" x2="180" y2="95"/><line x1="50" y1="70" x2="180" y2="140"/><line x1="50" y1="70" x2="180" y2="185"/><line x1="50" y1="70" x2="180" y2="230"/>
+          <line x1="50" y1="130" x2="180" y2="50"/><line x1="50" y1="130" x2="180" y2="95"/><line x1="50" y1="130" x2="180" y2="140"/><line x1="50" y1="130" x2="180" y2="185"/><line x1="50" y1="130" x2="180" y2="230"/>
+          <line x1="50" y1="190" x2="180" y2="50"/><line x1="50" y1="190" x2="180" y2="95"/><line x1="50" y1="190" x2="180" y2="140"/><line x1="50" y1="190" x2="180" y2="185"/><line x1="50" y1="190" x2="180" y2="230"/>
+          <line x1="180" y1="50" x2="310" y2="70"/><line x1="180" y1="50" x2="310" y2="130"/><line x1="180" y1="50" x2="310" y2="190"/>
+          <line x1="180" y1="95" x2="310" y2="70"/><line x1="180" y1="95" x2="310" y2="130"/><line x1="180" y1="95" x2="310" y2="190"/>
+          <line x1="180" y1="185" x2="310" y2="70"/><line x1="180" y1="185" x2="310" y2="130"/><line x1="180" y1="185" x2="310" y2="190"/>
+          <line x1="180" y1="230" x2="310" y2="70"/><line x1="180" y1="230" x2="310" y2="130"/><line x1="180" y1="230" x2="310" y2="190"/>
+        </g>
+        <g stroke="var(--accent)" stroke-width="2.5">
+          <line x1="180" y1="140" x2="310" y2="70"/><line x1="180" y1="140" x2="310" y2="130"/><line x1="180" y1="140" x2="310" y2="190"/>
+        </g>
+        <g fill="var(--canvas)" stroke="var(--ink-soft)" stroke-width="1.5">
+          <circle cx="50" cy="70" r="13"/><circle cx="50" cy="130" r="13"/><circle cx="50" cy="190" r="13"/>
+          <circle cx="180" cy="50" r="12"/><circle cx="180" cy="95" r="12"/><circle cx="180" cy="185" r="12"/><circle cx="180" cy="230" r="12"/>
+          <circle cx="310" cy="70" r="13"/><circle cx="310" cy="130" r="13"/><circle cx="310" cy="190" r="13"/>
+        </g>
+        <circle cx="180" cy="140" r="15" fill="var(--accent)"/>
+        <text x="200" y="168" font-size="12" class="halo" style="fill:var(--accent)">L21.N4090 fires</text>
+        <text x="50" y="245" text-anchor="middle" class="small">notepad in</text>
+        <text x="310" y="245" text-anchor="middle" class="small">notepad out</text>
+        <text x="180" y="258" text-anchor="middle" class="small">grey lines = learned weights</text>
+      </svg>
+    <figcaption><strong>Figure 9.</strong> Neurons, inside the notepad of one token. Circles are neurons and grey lines are fixed, learned weights; the orange neuron (L21.N4090 in the France example) fires and writes its own fixed message along its orange lines. The drawing is schematic: a real layer has 4,864 neurons per token.</figcaption>
+  </figure>
+  <p><strong>Attention works between words.</strong> The boxes in Figure 10 are tokens, not neurons, and the lines go from “ is” back to earlier tokens. Their thickness is how much “ is” looks at each token, and it is not stored anywhere: it is computed fresh for every sentence. Through those lines the head copies information. What is learned is <em>how</em> to score tokens and <em>what</em> to copy. Head L21.H6 puts 73% of its attention on “ France” and writes “法国”, “ France”, “ French”; given “The capital of Japan is”, the same head puts 67% on “ Japan” and writes “ Japan”, “日本”.</p>
+  <figure class="lx-fig">
+    <svg viewBox="0 0 360 260" role="img" aria-label="Five token boxes: The, capital, of, France, is. Blue arcs go from 'is' back to earlier tokens; the arc to France is thickest (head L21.H6, 73%). Below, the same head on 'The capital of Japan is' sends its thickest arc to Japan (67%).">
+        <text x="12" y="18" class="small halo">“The capital of France is”: lines drawn for this sentence</text>
+        <g fill="none" stroke="var(--control)" stroke-linecap="round">
+          <path d="M318 92 C 260 30, 90 30, 40 92" stroke-width="1" opacity=".5"/>
+          <path d="M318 92 C 270 42, 150 42, 110 92" stroke-width="4"/>
+          <path d="M318 92 C 285 55, 205 55, 180 92" stroke-width="1" opacity=".5"/>
+          <path d="M318 92 C 300 62, 265 62, 250 92" stroke-width="10"/>
+        </g>
+        <g font-size="13">
+          <rect x="12" y="92" width="56" height="30" rx="6" fill="var(--canvas)" stroke="var(--rule)"/><text x="40" y="112" text-anchor="middle">The</text>
+          <rect x="76" y="92" width="68" height="30" rx="6" fill="var(--canvas)" stroke="var(--rule)"/><text x="110" y="112" text-anchor="middle">capital</text>
+          <rect x="152" y="92" width="56" height="30" rx="6" fill="var(--canvas)" stroke="var(--rule)"/><text x="180" y="112" text-anchor="middle">of</text>
+          <rect x="216" y="92" width="68" height="30" rx="6" fill="var(--lx-attn-soft)" stroke="var(--control)"/><text x="250" y="112" text-anchor="middle">France</text>
+          <rect x="292" y="92" width="56" height="30" rx="6" fill="var(--canvas)" stroke="var(--ink)" stroke-width="1.5"/><text x="320" y="112" text-anchor="middle">is</text>
+        </g>
+        <text x="250" y="140" text-anchor="middle" font-size="12" style="fill:var(--control)">L21.H6: 73% on “France”</text>
+        <text x="12" y="160" class="small halo">“The capital of Japan is”: same head, new lines</text>
+        <g fill="none" stroke="var(--control)" stroke-linecap="round">
+          <path d="M318 212 C 300 182, 265 182, 250 212" stroke-width="10"/>
+          <path d="M318 212 C 270 162, 150 162, 110 212" stroke-width="4"/>
+        </g>
+        <g font-size="13">
+          <rect x="12" y="212" width="56" height="30" rx="6" fill="var(--canvas)" stroke="var(--rule)"/><text x="40" y="232" text-anchor="middle">The</text>
+          <rect x="76" y="212" width="68" height="30" rx="6" fill="var(--canvas)" stroke="var(--rule)"/><text x="110" y="232" text-anchor="middle">capital</text>
+          <rect x="152" y="212" width="56" height="30" rx="6" fill="var(--canvas)" stroke="var(--rule)"/><text x="180" y="232" text-anchor="middle">of</text>
+          <rect x="216" y="212" width="68" height="30" rx="6" fill="var(--lx-attn-soft)" stroke="var(--control)"/><text x="250" y="232" text-anchor="middle">Japan</text>
+          <rect x="292" y="212" width="56" height="30" rx="6" fill="var(--canvas)" stroke="var(--ink)" stroke-width="1.5"/><text x="320" y="232" text-anchor="middle">is</text>
+        </g>
+        <text x="250" y="256" text-anchor="middle" font-size="12" style="fill:var(--control)">L21.H6: 67% on “Japan”</text>
+      </svg>
+    <figcaption><strong>Figure 10.</strong> Attention, between tokens. Blue lines run from “ is” back to earlier tokens; thicker means more attention. The same head draws new lines for a new sentence: L21.H6 copies “France” in one and “Japan” in the other (attention weights measured with <code>steerlab inspect</code>; the other lines are schematic).</figcaption>
+  </figure>
+  <p><strong>One layer uses both.</strong> For “ is”, attention first pulls “France” in from the earlier token; then the neurons in the “ is” column see “capital” and “France” together and push toward “ Paris”. Both only <em>add</em> to the notepad. After 24 such layers the notepad reads “ Paris”.</p>
+  <figure class="lx-fig">
+    <div class="lx-scroll">
+    <svg viewBox="0 0 900 230" class="lx-wide" role="img" aria-label="Token columns The, capital, France, is. Blue arcs go from 'is' back to earlier columns (attention), then each column has a small neuron network; the one under 'is' is highlighted and writes 'lean to Paris'.">
+      <g font-size="13">
+        <text x="20" y="42" class="small">notepads</text>
+        <text x="20" y="102" class="small" style="fill:var(--control)">1. attention</text>
+        <text x="20" y="168" class="small" style="fill:var(--accent)">2. neurons</text>
+        <text x="20" y="218" class="small">notepads, updated</text>
+      </g>
+      <g fill="none" stroke="var(--control)" stroke-linecap="round">
+        <path d="M790 120 C 740 70, 600 70, 560 120" stroke-width="7"/>
+        <path d="M790 120 C 720 55, 440 55, 400 120" stroke-width="3"/>
+        <path d="M790 120 C 700 45, 290 45, 240 120" stroke-width="1" opacity=".55"/>
+      </g>
+      <g font-size="13">
+        <text x="240" y="22" text-anchor="middle">The</text><text x="400" y="22" text-anchor="middle">capital</text><text x="560" y="22" text-anchor="middle">France</text><text x="790" y="22" text-anchor="middle">is</text>
+        <text x="675" y="22" text-anchor="middle" class="small">…</text>
+      </g>
+      <g fill="var(--canvas)" stroke="var(--rule)">
+        <rect x="205" y="30" width="70" height="16" rx="4"/><rect x="365" y="30" width="70" height="16" rx="4"/><rect x="525" y="30" width="70" height="16" rx="4"/><rect x="755" y="30" width="70" height="16" rx="4"/>
+        <rect x="205" y="205" width="70" height="16" rx="4"/><rect x="365" y="205" width="70" height="16" rx="4"/><rect x="525" y="205" width="70" height="16" rx="4"/><rect x="755" y="205" width="70" height="16" rx="4"/>
+      </g>
+      <g stroke="var(--lx-weight)">
+        <line x1="225" y1="145" x2="240" y2="175"/><line x1="255" y1="145" x2="240" y2="175"/><line x1="385" y1="145" x2="400" y2="175"/><line x1="415" y1="145" x2="400" y2="175"/>
+        <line x1="545" y1="145" x2="560" y2="175"/><line x1="575" y1="145" x2="560" y2="175"/>
+      </g>
+      <g stroke="var(--accent)" stroke-width="2">
+        <line x1="775" y1="145" x2="790" y2="175"/><line x1="805" y1="145" x2="790" y2="175"/>
+      </g>
+      <g fill="var(--canvas)" stroke="var(--ink-soft)">
+        <circle cx="225" cy="145" r="6"/><circle cx="255" cy="145" r="6"/><circle cx="240" cy="175" r="6"/>
+        <circle cx="385" cy="145" r="6"/><circle cx="415" cy="145" r="6"/><circle cx="400" cy="175" r="6"/>
+        <circle cx="545" cy="145" r="6"/><circle cx="575" cy="145" r="6"/><circle cx="560" cy="175" r="6"/>
+        <circle cx="775" cy="145" r="6"/><circle cx="805" cy="145" r="6"/>
+      </g>
+      <circle cx="790" cy="175" r="8" fill="var(--accent)"/>
+      <text x="828" y="160" font-size="12" style="fill:var(--accent)">“lean</text>
+      <text x="828" y="175" font-size="12" style="fill:var(--accent)">to Paris”</text>
+    </svg>
+    </div>
+    <figcaption><strong>Figure 11.</strong> One layer, repeated 24 times: attention gathers across token columns (blue), then each column's neurons work on their own notepad (orange in the “ is” column). On a narrow screen this figure scrolls sideways inside its box.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Attention</th><th>Neurons (the MLP)</th></tr></thead>
+    <tbody>
+      <tr><td>Connects</td><td>token to token, across the sentence</td><td>number to number, inside one token</td></tr>
+      <tr><td>Its lines</td><td>computed fresh for every sentence</td><td>fixed weights, learned in training</td></tr>
+      <tr><td>Job</td><td>move information between tokens</td><td>add stored associations, often facts</td></tr>
+      <tr><td>What it writes</td><td>depends on what it looked at</td><td>the same direction, louder or quieter</td></tr>
+      <tr><td>Analogy</td><td>asking colleagues what they heard</td><td>checking your own reference book</td></tr>
+      <tr><td>In <code>steerlab inspect</code></td><td>blue bars; heads with what they look at</td><td>orange bars; neurons with what they promote; Find, Edit, Dose</td></tr>
+      <tr><td>Per layer in Qwen2.5-0.5B</td><td>14 heads</td><td>4,864 neurons</td></tr>
+    </tbody>
+  </table></div>
+  <p class="caption-note">Table 2. Attention and neurons side by side. Because a neuron's direction never changes, Find can search neurons without running the model; a head has no fixed direction, so the layer screen describes heads by what they look at instead.</p>
 
   <h3 id="hooks" data-short="Hooks">Catching each piece: hooks</h3>
   <p>A hook is a callback that PyTorch calls in the middle of the model's computation, with the tensor that is passing through. <a href="https://github.com/albertlieyingadrian/steerlab/blob/80977a05efbf0eb9137f424e7e9b26484f3f4833/packages/steerlab/src/steerlab/inspect/core.py#L182-L211"><code>trace()</code></a> registers one just <em>before</em> the attention's output matrix (<code>o_proj</code>), where the 14 heads' results sit side by side (called <code>z</code>), and one just before the MLP's output matrix (<code>down_proj</code>), where the 4,864 neuron activations sit. One run of the model fills them all.</p>
@@ -351,7 +481,7 @@ def hook(module, args):
       <tr><td>Days of the week</td><td>“ Friday”</td><td class="num">52%</td><td class="num">layer 19</td><td>L21.N3397 ×4: “ Friday” 2.1%, and the model writes “ and Friday are the five weekdays”</td></tr>
     </tbody>
   </table></div>
-  <p class="caption-note">Table 2. The presets. P is the target's probability; “lens first says it” is the lowest layer after which the target is the lens's top word. Each line is one prompt: an anecdote to explore, not a measured result.</p>
+  <p class="caption-note">Table 3. The presets. P is the target's probability; “lens first says it” is the lowest layer after which the target is the lens's top word. Each line is one prompt: an anecdote to explore, not a measured result.</p>
 
   <h2 id="method" data-short="How it was checked"><span class="num">06</span>How the numbers were checked</h2>
   <p>A screen like this is only useful if its numbers mean what they say. Before writing this guide we fixed five checks, ran them on the six presets plus two new prompts (“The largest planet in the solar system is” → “ Jupiter”, “Water freezes at a temperature of zero degrees” → “ Celsius”), and report them all (<code>sanity.py</code>, <a href="../results/sanity.json">results/sanity.json</a>).</p>
@@ -396,7 +526,7 @@ def hook(module, args):
   <h2 id="reproduce"><span class="num">10</span>Reproduce it</h2>
 <pre><code>uv run steerlab inspect --export experiments/layer-explorer/report/explorer   # the saved explorer (~3 min)
 uv run python experiments/layer-explorer/sanity.py                             # the five checks (~1 min)
-uv run python experiments/layer-explorer/make_cover.py                         # the cover, from data.json
+uv run python experiments/layer-explorer/make_cover.py                         # the cover: screenshots of the explorer
 python -m http.server 8790 --directory experiments &
 uv run python experiments/layer-explorer/screenshots.py                        # Figure 8 (needs playwright)
 uv run steerlab inspect --port 8771 &
