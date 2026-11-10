@@ -22,7 +22,7 @@ EOS_IDS = (151645, 151643)  # <|im_end|>, <|endoftext|>
 GPU = ["L40S", "A100-40GB", "A10G"]  # first one free; a 4B model in bf16 fits on each
 
 app = modal.App("deslop")
-image = (
+base_image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
         "torch==2.9.1",
@@ -44,7 +44,9 @@ image = (
             "TOKENIZERS_PARALLELISM": "false",
         }
     )
-    .add_local_dir(PACKAGES / "deslop" / "src" / "deslop", "/root/deslop")
+)
+image = (
+    base_image.add_local_dir(PACKAGES / "deslop" / "src" / "deslop", "/root/deslop")
     .add_local_dir(PACKAGES / "steerlab" / "src" / "steerlab", "/root/steerlab")
     .add_local_dir(PACKAGES / "sandbagkit" / "src" / "sandbagkit", "/root/sandbagkit")
 )
@@ -71,6 +73,9 @@ gguf_image = (
     .add_local_dir(PACKAGES / "deslop" / "src" / "deslop", "/root/deslop")
 )
 volume = modal.Volume.from_name("deslop", create_if_missing=True)
+detect_image = base_image.pip_install("sentencepiece", "protobuf", "tiktoken")
+FALCON_OBSERVER, FALCON_PERFORMER = "tiiuae/falcon-7b", "tiiuae/falcon-7b-instruct"
+DESKLIB = "desklib/ai-text-detector-v1.01"
 
 
 def _messages(prompt: str, system: str | None) -> list[dict[str, str]]:
@@ -270,6 +275,70 @@ class Runner:
             out[int(layer)] = {"vector": [float(x) for x in vec.vector], **meta}
             print(f"layer {layer}: {meta}")
         volume.commit()
+        return out
+
+
+@app.cls(image=detect_image, gpu=GPU, volumes={"/vol": volume}, timeout=60 * 60 * 2, scaledown_window=120)
+class Detectors:
+    """Three open AI-text detectors, used only to measure: none is ever a training or selection target.
+
+    - Binoculars (Hans et al. 2024): log-perplexity under the performer over the cross-perplexity between observer and
+      performer; lower means more machine-like. Falcon-7B observer, Falcon-7B-instruct performer, as in the paper.
+    - Fast-DetectGPT (Bao et al. 2024), analytic form: how much more likely the text is than the scoring model's own
+      expected sample, in standard deviations; higher means more machine-like. Falcon-7B samples, Falcon-7B-instruct
+      scores, the paper's best open pairing.
+    - Desklib's classifier (DeBERTa-v3-large fine-tuned on RAID, MIT): probability that a text is AI-generated.
+    Texts are cut to 512 tokens for the Falcon pair and 768 for the classifier.
+    """
+
+    @modal.enter()
+    def load(self) -> None:
+        import torch
+        from huggingface_hub import hf_hub_download
+        from safetensors.torch import load_file
+        from transformers import AutoConfig, AutoModel, AutoModelForCausalLM, AutoTokenizer
+
+        torch.set_grad_enabled(False)
+        self.torch = torch
+        self.ftok = AutoTokenizer.from_pretrained(FALCON_OBSERVER)
+        load = {"dtype": torch.bfloat16, "device_map": "cuda"}
+        self.observer = AutoModelForCausalLM.from_pretrained(FALCON_OBSERVER, **load).eval()
+        self.performer = AutoModelForCausalLM.from_pretrained(FALCON_PERFORMER, **load).eval()
+        self.dtok = AutoTokenizer.from_pretrained(DESKLIB)
+        config = AutoConfig.from_pretrained(DESKLIB)
+        self.deberta = AutoModel.from_config(config)
+        state = load_file(hf_hub_download(DESKLIB, "model.safetensors"))
+        body = {k.removeprefix("model."): v for k, v in state.items() if k.startswith("model.")}
+        missing, unexpected = self.deberta.load_state_dict(body, strict=False)
+        print(f"desklib: {len(missing)} missing, {len(unexpected)} unexpected keys")
+        self.head = torch.nn.Linear(config.hidden_size, 1)
+        self.head.load_state_dict({"weight": state["classifier.weight"], "bias": state["classifier.bias"]})
+        self.deberta, self.head = self.deberta.cuda().eval(), self.head.cuda().eval()
+
+    @modal.method()
+    def score(self, texts: list[str]) -> list[dict]:
+        torch = self.torch
+        F = torch.nn.functional
+        out = []
+        for text in texts:
+            ids = self.ftok(text, return_tensors="pt", truncation=True, max_length=512)["input_ids"].cuda()
+            obs = self.observer(ids).logits[0].float()
+            perf = self.performer(ids).logits[0].float()
+            labels = ids[0, 1:]
+            ppl = F.cross_entropy(perf[:-1], labels)
+            x_ppl = -(F.softmax(obs, -1) * F.log_softmax(perf, -1)).sum(-1).mean()
+            lp = F.log_softmax(perf[:-1], -1)
+            p_ref = F.softmax(obs[:-1], -1)
+            ll = lp.gather(-1, labels[:, None]).squeeze(-1)
+            mean_ref = (p_ref * lp).sum(-1)
+            var_ref = (p_ref * lp.square()).sum(-1) - mean_ref.square()
+            fast = (ll.sum() - mean_ref.sum()) / var_ref.sum().sqrt()
+            enc = self.dtok(text, truncation=True, max_length=768, return_tensors="pt").to("cuda")
+            hidden = self.deberta(**enc).last_hidden_state
+            mask = enc["attention_mask"].unsqueeze(-1).float()
+            prob = torch.sigmoid(self.head((hidden * mask).sum(1) / mask.sum(1).clamp(min=1e-9)))
+            out.append({"binoculars": float(ppl / x_ppl), "fastdetect": float(fast), "desklib": float(prob),
+                        "tokens": int(ids.shape[1])})  # fmt: skip
         return out
 
 

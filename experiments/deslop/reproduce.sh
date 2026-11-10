@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Rerun the note. Needs uv, node 18+, a Modal account (an L40S for about 2.5 GPU-hours in all, about $8 billed on
-# 2026-11-10; CPU for the GGUF export) and an OpenAI key for the judge and the cover (about $2), both read from the
+# Rerun the note. Needs uv, node 18+, a Modal account (an L40S for about 3 GPU-hours in all, about $9.50 billed on
+# 2026-11-10; CPU for the GGUF export) and an OpenAI key for the judge, voice rewrites and cover (about $2.70), read from the
 # environment or .env. slop-score (MIT) is cloned at a pinned commit to $SLOP_SCORE_DIR, default
 # ~/.cache/steerlab/slop-score. With --scores, only the steps that read saved replies: band, analysis, figures.
 set -euo pipefail
@@ -28,6 +28,12 @@ STEPS=(
   "$PY judge.py check --question human"
   "$PY judge.py check --question human --model gpt-5.4"
   "$PY judge.py runs plain sampler neurons neurons-random steer steer-random plain+neurons plain+steer plain+sampler kannike lora lora-r2"
+  "$PY 2_voices.py"
+  "$PY voice_eval.py check"
+  "$PY voice_eval.py rewrite"
+  "$PY voice_eval.py score"
+  "$PY detect.py mirrors"
+  "$PY detect.py score"
   "$PY analyze.py"
   "$PY make_figures.py"
   "$PY make_cover.py"
@@ -35,7 +41,7 @@ STEPS=(
   "$PY release.py"
 )
 if [[ "${1:-}" == "--scores" || "${2:-}" == "--scores" ]]; then
-  STEPS=("$PY 1_band.py" "$PY analyze.py" "$PY make_figures.py")
+  STEPS=("$PY 1_band.py" "$PY voice_eval.py score" "$PY analyze.py" "$PY make_figures.py")
 fi
 if [[ "${1:-}" == "--dry-run" ]]; then
   printf '%s\n' "git clone https://github.com/sam-paech/slop-score $SLOP_SCORE_DIR && git -C $SLOP_SCORE_DIR checkout $SLOP_SCORE_COMMIT && npm --prefix $SLOP_SCORE_DIR install --ignore-scripts"

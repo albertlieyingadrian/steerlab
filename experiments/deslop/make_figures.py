@@ -11,6 +11,10 @@ habits.png    where each method's points come from: points per 1000 words by hab
 sweep.png     the steering sweep on the 24 dev prompts: mean score by strength for each layer; hollow markers had fewer
               than 22 of 24 fluent replies.
 eqbench.png   our score against EQ-Bench's slop score (slop-score's own code) for every method and both human sources.
+voice.png     `deslop voice`: Burrows' Delta from each rewrite to its target writer, before (the original reply) and
+              after, for the API rewriter and our LoRA, averaged over 10 texts per writer.
+detect.png    share of each set flagged by three open AI-text detectors, each at a threshold that flags 1% of the 318
+              human passages; with 95% bootstrap intervals.
 viewer.json   the interactive reply viewer's data: 12 held-out prompts (two per genre) and seven setups, each reply with
               its score and every habit span, as the toolkit finds them.
 """
@@ -363,6 +367,81 @@ def viewer() -> None:
     print(f"viewer.json: {len(VIEWER_PROMPTS)} prompts x {len(VIEWER_RUNS)} setups")
 
 
+AUTHORS = ["twain", "lincoln", "darwin", "woolf", "chesterton"]
+
+
+def voice() -> None:
+    from deslop.voice import delta
+
+    rows = [json.loads(line) for line in (RESULTS / "voices" / "rewrites_scored.jsonl").open(encoding="utf-8")]
+    profiles = json.loads((RESULTS / "voices" / "profiles.json").read_text())
+    passages = [json.loads(line) for line in (HERE / "data" / "voices" / "passages.jsonl").open(encoding="utf-8")]
+    control = [r for r in rows if r["target"] == "none"]
+    fig, ax = plt.subplots(figsize=(7.6, 4.0))
+    print("voice.png: mean Delta to the target writer (lower is closer)")
+    for i, author in enumerate(AUTHORS):
+        mine = [r for r in rows if r["target"] == author]
+        before = np.mean([r["delta_target_original"] for r in mine])
+        api = np.mean([r["delta_target"] for r in mine if r["rewriter"] == "api"])
+        lora = np.mean([r["delta_target"] for r in mine if r["rewriter"] == "lora"])
+        plain = np.mean([r["delta"][author] for r in control])
+        own = np.mean([delta(p["text"], profiles[author]) for p in passages
+                       if p["author"] == author and p["role"] == "heldout"])  # fmt: skip
+        ax.plot([i - 0.2, i + 0.1], [before, api], color=EMBER, lw=1, alpha=0.6)
+        ax.plot(i - 0.2, before, "o", color=INK, ms=6)
+        ax.plot(i - 0.05, plain, "^", color=GREY, ms=6, mfc="white", mew=1.5)
+        ax.plot(i + 0.1, api, "o", color=EMBER, ms=6)
+        ax.plot(i + 0.25, lora, "s", color=GREY, ms=6, mfc="white", mew=1.5)
+        ax.plot([i - 0.3, i + 0.35], [own, own], color=MUTED, ls="--", lw=1)
+        print(f"  {author:10} original {before:.3f} plain {plain:.3f} api {api:.3f} lora {lora:.3f} own {own:.3f}")
+    ax.set_xticks(range(len(AUTHORS)), [a.capitalize() for a in AUTHORS])
+    ax.set_ylabel("Burrows' Delta to the writer (lower is closer)")
+    ax.set_ylim(0, 0.9)
+    handles = [plt.Line2D([], [], marker="o", color=INK, ls=""),
+               plt.Line2D([], [], marker="^", color=GREY, mfc="white", ls=""),
+               plt.Line2D([], [], marker="o", color=EMBER, ls=""),
+               plt.Line2D([], [], marker="s", color=GREY, mfc="white", ls=""),
+               plt.Line2D([], [], color=MUTED, ls="--")]  # fmt: skip
+    labels = ["Qwen's original reply", "plain rewrite, no voice (control)", "voice rewrite, gpt-5.4-mini",
+              "voice rewrite, our LoRA", "the writer's own held-out passages"]  # fmt: skip
+    ax.legend(handles, labels, frameon=False, fontsize=7.5, loc="lower center", ncol=3)
+    fig.tight_layout()
+    fig.savefig(FIGURES / "voice.png")
+    plt.close(fig)
+
+
+def detect(summary: dict) -> None:
+    sets = summary["detectors"]["sets"]
+    order = [("human/gutenberg", "human: Gutenberg essays"), ("human/wikipedia", "human: Wikipedia 2021"),
+             ("author", "human: voice authors, held out"), ("mirror", "human passages edited by Qwen"),
+             ("run/base", "Qwen3-4B as released"), ("run/plain", "plain-style prompt"),
+             ("run/sampler", "backtracking sampler"), ("run/plain+sampler", "prompt + sampler"),
+             ("run/steer", "steering"), ("run/lora-r2", "our LoRA (released)"), ("run/kannike", "100toolkit's model"),
+             ("voice/api", "voice rewrites, gpt-5.4-mini"), ("voice/lora", "voice rewrites, our LoRA")]  # fmt: skip
+    names = [("desklib", "Desklib classifier", EMBER), ("binoculars", "Binoculars", INK),
+             ("fastdetect", "Fast-DetectGPT", GREY)]  # fmt: skip
+    fig, ax = plt.subplots(figsize=(8.4, 6.0))
+    print("detect.png: share flagged at 1% human false-positive thresholds")
+    for row, (key, label) in enumerate(reversed(order)):
+        for k, (name, _, c) in enumerate(names):
+            cellv = sets[key].get(f"{name}_calibrated_1pct")
+            if not cellv:
+                continue
+            y = row + (k - 1) * 0.26
+            ax.barh(y, cellv["value"], height=0.24, color=c)
+            ax.plot([cellv["lo"], cellv["hi"]], [y, y], color=MUTED, lw=1)
+        print(f"  {label:34} " + " ".join(
+            f"{n} {sets[key][f'{n}_calibrated_1pct']['value']:.2f}" for n, _, _ in names))  # fmt: skip
+    ax.set_yticks(range(len(order)), [label for _, label in reversed(order)])
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("share flagged as AI (threshold set so 1% of 318 human passages are flagged)")
+    handles = [plt.Rectangle((0, 0), 1, 1, color=c) for _, _, c in names]
+    ax.legend(handles, [label for _, label, _ in names], frameon=False, fontsize=8, loc="upper right")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "detect.png")
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     viewer()
@@ -372,6 +451,10 @@ def main() -> None:
     habits(summary)
     sweep()
     eqbench(summary)
+    if (RESULTS / "voices" / "rewrites_scored.jsonl").exists():
+        voice()
+    if "detectors" in summary:
+        detect(summary)
 
 
 if __name__ == "__main__":

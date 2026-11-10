@@ -75,6 +75,18 @@ in 9.
    recipe was chosen over two others on 24 dev prompts.
 4. Merged into the base weights; GGUF converted and quantized to Q4_K_M with llama.cpp.
 
+## Why Qwen
+
+- **Open weights under Apache-2.0**, so a fine-tuned copy can be released.
+- **A size ladder** (under 1B, 4B, 8-9B, 30B and up) so the same recipe can be repeated larger.
+- **The same base as 100toolkit's qwen3-4b-deslop** (Qwen3-4B-Instruct-2507), so the two compare directly.
+- **Good instruction following at 4B**, and mature tooling: transformers, PEFT, llama.cpp/GGUF, Ollama, MLX.
+- **Small Qwen LoRAs are strong for writing-style tasks**: an unpublished replication shared with the author found a
+  Qwen3.5-4B LoRA detector reaching the 24B EditLens models' macro-F₁ on EditLens's test split (0.909 against 0.904),
+  though weaker out of domain.
+- **Trade-offs**: Qwen has its own fingerprint (in our counts it over-uses "quiet", "resilience" and "meaningful"),
+  and its pretraining mixes Chinese and English heavily.
+
 ## Limits
 
 - It is plainer, not better by every measure. A blind gpt-5.4-mini judge preferred the original model's reply as
@@ -85,7 +97,9 @@ in 9.
   human prose and fails fewer task checks.
 - Tested on short English prose (120 to 250 words) only. It still invents names (emails are often signed "Alex" or
   "Jordan"). The quiz (30 easy factual questions) shows nothing broke, not that nothing degraded.
-- The habit score is not an AI detector. Do not use this model to pass off generated text as human writing.
+- The habit score is not an AI detector, and this model is not a detector bypass: open AI-text detectors still flag
+  most of its replies (see the note). Disclose AI assistance wherever it is required or expected (school, journals,
+  many workplaces), and do not use this model to pass off generated text as your own writing.
 
 ## Credits
 

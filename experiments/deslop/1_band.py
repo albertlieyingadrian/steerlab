@@ -1,4 +1,5 @@
-"""Score the human passages and write the band the toolkit ships (packages/deslop/src/deslop/data/human_band.json).
+"""Score the human passages and write the band the toolkit ships (packages/deslop/src/deslop/data/human_band.json),
+and the function-word reference for `deslop voice` (data/function_words.json: each word's mean and spread).
 
     python experiments/deslop/1_band.py
 
@@ -19,9 +20,11 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "deslop" / "src"))
 from deslop.habits import DETECTORS, count_words, find_spans
 from deslop.score import build_band
+from deslop.voice import build_reference
 
 PASSAGES = HERE / "data" / "human" / "passages.jsonl"
 BAND = ROOT / "packages" / "deslop" / "src" / "deslop" / "data" / "human_band.json"
+FUNCTION_WORDS = BAND.with_name("function_words.json")
 
 
 def main() -> None:
@@ -46,7 +49,9 @@ def main() -> None:
         counts = Counter(s.habit for t in texts for s in find_spans(t))
         rates = ", ".join(f"{h} {1000 * counts[h] / words:.1f}" for h in DETECTORS if counts[h])
         print(f"{name:10} per 1000 words: {rates}")
-    print(f"wrote {BAND.relative_to(ROOT)}")
+    ref = build_reference(t for texts in groups.values() for t in texts)
+    FUNCTION_WORDS.write_text(json.dumps(ref) + "\n", encoding="utf-8")
+    print(f"wrote {BAND.relative_to(ROOT)} and {FUNCTION_WORDS.name} ({len(ref['words'])} function words)")
 
 
 if __name__ == "__main__":
