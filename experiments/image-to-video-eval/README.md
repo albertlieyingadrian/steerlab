@@ -6,7 +6,7 @@ gemini-3.6-flash, position-swapped) agree with the human majority on image-to-vi
 does? Tested on 800 realism pairs (two questions) and 400 camera-movement pairs from Rapidata's release of
 benchmark.ai's votes, on four broken copies of 25 real generations (frozen, reversed, shuffled, blurred), and with
 VBench++'s CoTracker camera heuristic against the camera votes. Four open models (Wan 2.2 TI2V-5B, LTX-Video 0.9.7
-distilled, CogVideoX-5B-I2V, SVD-XT) were run on one H100 for seconds and memory per clip.
+distilled, CogVideoX-5B-I2V, SVD-XT) were run on one H100, timed, scored and judged on 25 shared stills.
 
 | File | What it does |
 |---|---|
@@ -38,8 +38,8 @@ distilled, CogVideoX-5B-I2V, SVD-XT) were run on one H100 for seconds and memory
   (graded shift); `seconds` (scoring time).
 - `results/traps.csv`: `video` (the real clip), `model`, `still`, `prompt`, `trap`, `trap_video`, `frames`, `fps`.
 - `results/judge_human.jsonl`, `results/judge_traps.jsonl`: one line per call: `judge`, `pair` (traps: `clip|trap`),
-  `order` (0 = side A shown first), `question`, `route` (absent on the first calls, which went to OpenAI directly for
-  gpt-5.4-mini and to OpenRouter for gemini), `verdict` (`answer`: "1" or "2", the first or second clip shown), `raw`,
+  `order` (0 = side A shown first), `question`, `route` (the provider: absent on the first calls, which went to OpenAI
+  directly for gpt-5.4-mini and to OpenRouter for gemini), `verdict` (`answer`: "1" or "2", the first or second clip shown), `raw`,
   `in_tokens`, `out_tokens`.
 - `results/agreement_human.csv`: per question, subset (`all`; `clear` = 75% or more of votes on one side; `judged` =
   the 200 judged camera pairs) and scorer: `n`, `agree`, `lo`, `hi` (leave-one-voter-out agreement, 95% interval).
@@ -52,6 +52,10 @@ distilled, CogVideoX-5B-I2V, SVD-XT) were run on one H100 for seconds and memory
 - `results/gen_timing.csv`: per model and clip: `seconds`, `peak_reserved_gb`, `peak_allocated_gb`, `frames`, `fps`,
   `width`, `height`, `gpu`, `source` (`logged`, or `file times` for Wan and CogVideoX clips timed from file gaps).
 - `results/gen_clips.csv`: per model and still: `video` (clip name), `ok`.
+- `results/scores_ours.csv`, `results/judge_ours.jsonl`: the same scores and judge lines for our 130 clips (judges: the
+  25 realism stills, every pair of models, both orders).
+- `results/ours_leaderboard.csv`: per model, each score's mean and 95% interval over the 25 realism stills, the camera
+  hit rate on the camera stills, seconds and memory, and the judges' Bradley-Terry scores (`elo`, `elo_<judge>`).
 - `results/summary.json`: judge swap consistency and first-shown shares, sample sizes, voters per pair, token counts.
 
 The clips, frames and sheets (about 3 GB) are not committed: steps 1 to 3 rebuild them under `$I2V_DIR`.
