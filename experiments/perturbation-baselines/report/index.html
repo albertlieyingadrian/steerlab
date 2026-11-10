@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adding two single-gene effects beats deep models at predicting double-gene perturbations</title>
+<meta name="description" content="A reproduction on Norman et al. 2019 (CRISPR activation in K562 cells): predicting what switching on two genes together does to 1,000 genes, adding the two measured single-gene effects closes 64% of the gap between 'nothing happens' and the measurement's own noise. scGen closes 55%, GEARS 37%.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Adding two single-gene effects beats deep models at predicting double-gene perturbations">
+<meta property="og:description" content="A reproduction on Norman et al. 2019 (CRISPR activation in K562 cells): predicting what switching on two genes together does to 1,000 genes, adding the two measured single-gene effects covers 64% of the range from &#x27;nothing happens&#x27; to the measurement&#x27;s own noise. scGen covers 55% and GEARS 37%; neither beats additive pair by pair.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grid of 24 small charts on warm paper, one per held-out gene pair: dark stems show how much the 40 most-changed genes moved, and an orange line for the additive prediction follows the tops of the stems.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Adding two single-gene effects beats deep models at predicting double-gene perturbations">
+<meta name="twitter:description" content="A reproduction on Norman et al. 2019 (CRISPR activation in K562 cells): predicting what switching on two genes together does to 1,000 genes, adding the two measured single-gene effects covers 64% of the range from &#x27;nothing happens&#x27; to the measurement&#x27;s own noise. scGen covers 55% and GEARS 37%; neither beats additive pair by pair.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-09">
+<meta property="article:modified_time" content="2026-11-09">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Adding two single-gene effects beats deep models at predicting double-gene perturbations",
+ "description": "A reproduction on Norman et al. 2019 (CRISPR activation in K562 cells): predicting what switching on two genes together does to 1,000 genes, adding the two measured single-gene effects covers 64% of the range from 'nothing happens' to the measurement's own noise. scGen covers 55% and GEARS 37%; neither beats additive pair by pair.",
+ "abstract": "On 125 held-out gene pairs from Norman et al. 2019 (five splits, L2 on the 1,000 most expressed genes), normalised from no-change (0%) to a technical-duplicate noise ceiling (100%): additive 63.9% [59.5, 68.0], scGen 55.3% [50.3, 60.4], GEARS 36.6% [32.2, 40.9], ridge from PCA gene vectors 22.7%, mean-response 18.5%. Per pair, scGen is further from the measured profile than additive by +0.390 L2 [+0.283, +0.500] (closer on 29 of 125 pairs), GEARS by +1.248 [+1.080, +1.414]; additive has the lowest error in all five splits. The ceiling (1.042) matches the sampling-error formula (1.035); scoring half the cells against the other half would read 2.084 and inflate additive to 82.7%. Reproduces Ahlmann-Eltze, Huber and Anders (Nature Methods 2025).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-09",
+ "dateModified": "2026-11-09",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "perturbation prediction, Perturb-seq, CRISPRa, Norman 2019, additive baseline, GEARS, scGen, virtual cell, noise ceiling, benchmarking, computational biology",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.nature.com/articles/s41592-025-02772-6"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://doi.org/10.1126/science.aax4438"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.nature.com/articles/s41587-023-01905-6"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.nature.com/articles/s41592-019-0494-8"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-09">Nov 9, 2026</time></p>
+  <h1>Adding two single-gene effects beats deep models at predicting double-gene perturbations</h1>
+  <p class="dek ruled">Switch on two genes in a cell at once: what happens to the other genes? On a public screen of 91,205 cells, the one-line rule “add the two single-gene effects” came closer to the measured answer than two published deep-learning models, scGen and GEARS. This note reproduces that published result, and adds a noise ceiling that shows how much room any method had left.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A grid of 24 small charts on warm paper. Each shows, for one held-out gene pair, dark vertical stems for how much the 40 most-changed genes moved, sorted from up to down, and an orange line for the additive prediction; in most tiles the orange line follows the tops of the stems closely." width="1536" height="1024">
+    <figcaption>Cover: drawn from the data. Each tile is one held-out gene pair: dark stems are the measured change of the 40 genes that moved most, the orange line is the additive prediction (gene A’s change plus gene B’s change). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>Norman et al. 2019: 91,205 K562 cells with CRISPR activation of 105 single genes and 131 pairs (5,045 genes, as processed by the GEARS authors)</dd></div>
+    <div><dt>Methods</dt><dd>Four baselines (no-change, mean-response, ridge, additive), scGen and GEARS, against a technical-duplicate noise ceiling; five held-out splits</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/perturbation-baselines/</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/table.csv">results/table.csv</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Do deep-learning models predict what two genetic perturbations do together better than adding up what each does alone?</strong></p>
+    <p>Not on this benchmark. In Norman et al.’s 2019 screen, K562 leukaemia cells had one or two genes switched on by CRISPR activation, and each cell’s expression of 5,045 genes was read. Half of the 131 gene pairs were held out, five times over, and predictions were scored on the 1,000 most expressed genes. The additive rule (gene A’s change plus gene B’s change) covered 63.9% [59.5, 68.0] of the distance from “nothing happens” (0%) to the limit set by measurement noise (100%). scGen, a deep generative model, covered 55.3% [50.3, 60.4] and was further from the truth than additive on 96 of 125 pairs. GEARS, a graph neural network, covered 36.6% [32.2, 40.9]. Additive had the lowest error in all five splits. This reproduces Ahlmann-Eltze, Huber and Anders (Nature Methods 2025).</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (125 held-out pairs)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does adding two single-gene effects predict the pair?</td><td>Yes, best of six methods: 63.9% of the way to the noise ceiling [59.5, 68.0]</td><td>scGen 55.3%, GEARS 36.6%, ridge 22.7%, mean-response 18.5%</td></tr>
+          <tr><td>Does the best deep model beat additive?</td><td>No: scGen’s error is higher by +0.390 L2 per pair [+0.283, +0.500]; it is closer on 29 of 125 pairs</td><td>GEARS: +1.248 [+1.080, +1.414], closer on 12</td></tr>
+          <tr><td>Is one lucky split behind the order?</td><td>No: additive has the lowest mean error in 5 of 5 splits</td><td>scGen second in every split</td></tr>
+          <tr><td>Is the noise ceiling right?</td><td>Yes: measured 1.042 L2, the sampling-error formula predicts 1.035</td><td>Half the cells against the other half reads 2.084, which would have inflated additive to 82.7%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Switch on KLF1, a gene that sets up red-blood-cell identity, in a leukaemia cell, and the haemoglobin gene HBZ rises by 1.73 on a log scale. Switch on BAK1, a gene involved in cell death, and HBZ barely moves (+0.05). Switch on both, and HBZ rises by 1.67: almost exactly the sum. For most gene pairs in this screen the sum is a good guess, and that is why it is hard to beat.</p>
+  <p><strong>What is known.</strong> Predicting what a genetic perturbation does to a cell is a central task for “virtual cell” models in drug discovery: a model that could predict the effect of switching genes on or off would let a lab try many combinations on a computer before running a few in a dish. Deep models such as <a href="https://www.nature.com/articles/s41592-019-0494-8">scGen</a> and <a href="https://www.nature.com/articles/s41587-023-01905-6">GEARS</a> were built for this, and <a href="https://doi.org/10.1126/science.aax4438">Norman et al.’s 2019 screen</a> is the standard benchmark for pairs. <a href="https://www.nature.com/articles/s41592-025-02772-6">Ahlmann-Eltze, Huber and Anders (Nature Methods 2025)</a> showed that the deep models they tested did not beat simple baselines, including adding the two single-gene effects.</p>
+  <p><strong>What is missing.</strong> Raw error numbers do not say how much room was left. A model with an error of 3.1 sounds worse than one with 2.7, but if measurement noise alone gives 2.5, both are close to the limit; if it gives 0.5, neither is.</p>
+  <p class="question-callout">On the standard pairs benchmark, do deep models predict two-gene perturbations better than adding the single-gene effects, and how much of the achievable range does each method cover?</p>
+  <p><strong>What this note does.</strong> It reruns the comparison end to end through one scoring path, with a noise ceiling measured from the data. Its contributions:</p>
+  <ol>
+    <li>A reproduction: additive beats scGen and GEARS on held-out pairs, in each of five splits.</li>
+    <li>A calibrated scale: every method as a share of the distance from “nothing happens” to measurement noise, which shows how much room is left (36%).</li>
+    <li>Code that reruns every number on a laptop CPU in about a minute, from the deep models’ saved predictions.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before scoring:</p>
+  <ol>
+    <li>Every method is scored on the same held-out pairs, the same genes, the same metric and the same intervals.</li>
+    <li>A deep model “beats additive” only if its per-pair advantage has a 95% interval that excludes zero.</li>
+    <li>The noise ceiling must match the error the sampling formula predicts, or no normalised number is quoted.</li>
+    <li>The order must hold across splits, not only on the pooled average.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="experiment" data-short="The experiment">2.1 The experiment, in plain words</h3>
+  <ul>
+    <li><strong>The cells.</strong> K562 is a human leukaemia cell line grown in labs since 1970. Every cell starts out genetically the same.</li>
+    <li><strong>The perturbation: CRISPR activation (CRISPRa).</strong> A disabled Cas9 protein that cannot cut DNA is guided to the start of a gene and switches the gene on harder. Each cell received guides for one gene, two genes, or none (a control).</li>
+    <li><strong>The readout: Perturb-seq.</strong> Each cell is sequenced on its own, which reads two things at once: which guides it carries (so which genes were switched on) and how active each of its genes is. Here, 5,045 genes per cell, on a log scale.</li>
+    <li><strong>Pseudo-bulk.</strong> Single cells are noisy, so the cells of each condition are averaged into one profile: 237 profiles from 91,205 cells (the control from 7,353 cells, a typical condition from 295). “Profile” below always means this average.</li>
+    <li><strong>A shift</strong> is a profile minus the control profile: how much each gene moved.</li>
+  </ul>
+
+  <h3 id="toy" data-short="A worked example">2.2 The additive rule on three genes</h3>
+  <p>The additive prediction for a pair is the control profile plus gene A’s shift plus gene B’s shift. On the pair BAK1+KLF1 and the three genes it moves most:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Gene</th><th class="num">Control</th><th class="num">BAK1 alone</th><th class="num">KLF1 alone</th><th class="num">Additive: sum</th><th class="num">Measured pair</th></tr></thead>
+      <tbody>
+        <tr><td>HBZ (haemoglobin)</td><td class="num">1.79</td><td class="num">+0.05</td><td class="num">+1.73</td><td class="num">+1.78</td><td class="num">+1.67</td></tr>
+        <tr><td>HBG2 (haemoglobin)</td><td class="num">1.89</td><td class="num">+0.03</td><td class="num">+1.36</td><td class="num">+1.38</td><td class="num">+1.18</td></tr>
+        <tr><td>TMSB10</td><td class="num">2.42</td><td class="num">−0.10</td><td class="num">+1.18</td><td class="num">+1.08</td><td class="num">+1.09</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Shifts are on the log scale of the processed data. Over all 1,000 scored genes this prediction is 1.02 from the measured profile (L2, defined below), the closest of any pair; it was chosen for that reason. Where two genes interact, for example when one switches off the other’s targets, the sum misses. Those interactions are what a model would need to learn.</p>
+
+  <h3 id="methods">2.3 Six methods</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>What it predicts for pair A+B</th><th>Learned from</th></tr></thead>
+      <tbody>
+        <tr><td>no-change</td><td>The control profile: “nothing happens”</td><td>Nothing</td></tr>
+        <tr><td>mean-response</td><td>Control plus the average shift of every training condition: “everything does the same thing”</td><td>Training conditions</td></tr>
+        <tr><td>ridge</td><td>Control plus a learned map from each gene’s vector (20 PCA coordinates of its measured single shift) to a shift, summed over A and B</td><td>The 105 singles</td></tr>
+        <tr><td><strong>additive</strong></td><td>Control plus A’s measured shift plus B’s measured shift</td><td>The two singles</td></tr>
+        <tr><td>scGen</td><td>A variational autoencoder trained on the cells; A’s and B’s directions are added to control cells in its learned space, then decoded</td><td>All training cells, retrained per split</td></tr>
+        <tr><td>GEARS</td><td>A graph neural network over a Gene Ontology graph and a co-expression graph</td><td>Training conditions, per split</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Every method sees every single-gene perturbation. That is what lets additive work, and the deep models get the same information. scGen and GEARS were trained once per split on exactly these splits (settings in the <a href="../README.md">README</a>); their saved predictions are scored here by the same code as the baselines.</p>
+
+  <h3 id="scoring">2.4 Scoring and the noise ceiling</h3>
+  <ul>
+    <li><strong>Splits.</strong> Following the published study: every single trains; of the 131 pairs, 66 train and 65 are held out, five times with different random seeds. 128 pairs are held out at least once. A pair held out more than once is scored as the mean over its splits.</li>
+    <li><strong>Genes.</strong> The 1,000 genes with the highest control expression, chosen from the control so the choice cannot depend on any prediction.</li>
+    <li><strong>L2</strong> is the straight-line distance between the predicted and measured profiles over those 1,000 genes. Lower is better.</li>
+    <li><strong>Pearson δ</strong> is the correlation between the predicted and measured shifts across genes: does the method get the direction of each gene’s change right? It is undefined for no-change, which predicts no shift.</li>
+    <li><strong>The technical duplicate (noise ceiling).</strong> A profile is an average of a few hundred cells, so it carries sampling error, and a perfect method would still miss by that much. To measure it, take a random half of a pair’s cells and score their average against the average of all of them. No method can expect to do better.</li>
+    <li><strong>Normalised score</strong> = (no-change error − method error) ÷ (no-change error − ceiling): 0% is “nothing happens”, 100% is as good as the measurement allows.</li>
+    <li><strong>Intervals</strong> are 95% percentile bootstraps over held-out pairs (5,000 resamples), because a pair is the unit a claim is about.</li>
+  </ul>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Fetch</strong> the GEARS authors’ processed Norman file (169 MB, checked against its hash).</li>
+    <li><strong>Pseudo-bulk</strong> 91,205 cells into 237 profiles; fix the five splits and the 1,000 genes.</li>
+    <li><strong>Ceiling:</strong> one technical duplicate per held-out pair (128 pairs, 34,821 cells), checked against the formula.</li>
+    <li><strong>Baselines:</strong> 4 baselines × 5 splits × 65 pairs, seconds on a CPU.</li>
+    <li><strong>Deep models:</strong> scGen trained 5 times (about 44 minutes in all on a laptop CPU), GEARS 5 times (about 100 minutes each on a cloud GPU), each predicting its split’s held-out pairs.</li>
+    <li><strong>Score</strong> all six on the 125 pairs every method can predict, with intervals, paired differences and per-split means.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any scoring</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The data file, the five splits, the 1,000 genes, the metrics, the ceiling’s definition, every model’s settings</td><td>An early draft measured the ceiling as half the cells against the other half, which is twice the true sampling error; it was fixed before any normalised number was used, and the formula check now guards it. The table was restricted to the 125 pairs GEARS can predict, so every row is scored on the same pairs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: baselines, ceiling and scoring on an Apple-silicon laptop CPU in about a minute; scGen on the same laptop; GEARS on one NVIDIA L4 GPU on Modal, about $6.70 for the five runs. No language models, no API calls.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Four findings:</p>
+  <ol>
+    <li><a href="#additive-wins"><strong>4.1</strong></a> Additive covers 64% of the achievable range; scGen 55%, GEARS 37%.</li>
+    <li><a href="#per-pair"><strong>4.2</strong></a> scGen comes closest, and still loses on 96 of 125 pairs.</li>
+    <li><a href="#splits"><strong>4.3</strong></a> The order holds in every split.</li>
+    <li><a href="#ceiling"><strong>4.4</strong></a> The noise ceiling matches the sampling formula.</li>
+  </ol>
+
+  <h3 id="additive-wins" data-short="Additive wins">4.1 Additive covers 64% of the achievable range; scGen 55%, GEARS 37%</h3>
+  <p><strong>On the 125 held-out pairs every method can predict, adding the two single-gene shifts had a mean L2 of 2.697 [2.507, 2.895]: 63.9% of the way from no-change (5.623) to the noise ceiling (1.042). scGen reached 3.087 (55.3%), GEARS 3.946 (36.6%), ridge 4.584 (22.7%) and mean-response 4.775 (18.5%).</strong> Figure 1 shows the normalised scores.</p>
+  <figure class="plot">
+    <img src="figures/normalised.png" alt="Horizontal bar chart of the share of the way from no-change (0%) to the noise ceiling (100%), on 125 held-out pairs: technical duplicate 100%, additive 64% (orange), scGen 55%, GEARS 37%, ridge 23%, mean-response 19%, no-change 0%." width="1236" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Each method’s mean L2 on the 125 held-out pairs every method can predict, rescaled so 0% is the no-change baseline and 100% is the technical-duplicate noise ceiling. Lines are 95% bootstrap intervals over pairs (no-change is 0% by definition). Orange: the additive baseline; dark grey: the two deep models; light grey: the other baselines. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/summary.json">results/summary.json</a>.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th class="num">Mean L2</th><th class="num">95% interval</th><th class="num">Pearson δ</th><th class="num">Normalised</th></tr></thead>
+      <tbody>
+        <tr><td>no-change</td><td class="num">5.623</td><td class="num">[5.224, 6.034]</td><td class="num">n/a</td><td class="num">0%</td></tr>
+        <tr><td>mean-response</td><td class="num">4.775</td><td class="num">[4.436, 5.124]</td><td class="num">0.553</td><td class="num">18.5%</td></tr>
+        <tr><td>ridge</td><td class="num">4.584</td><td class="num">[4.408, 4.768]</td><td class="num">0.548</td><td class="num">22.7%</td></tr>
+        <tr><td>GEARS</td><td class="num">3.946</td><td class="num">[3.748, 4.147]</td><td class="num">0.718</td><td class="num">36.6%</td></tr>
+        <tr><td>scGen</td><td class="num">3.087</td><td class="num">[2.858, 3.319]</td><td class="num">0.850</td><td class="num">55.3%</td></tr>
+        <tr class="hl"><td>additive</td><td class="num">2.697</td><td class="num">[2.507, 2.895]</td><td class="num">0.907</td><td class="num">63.9%</td></tr>
+        <tr><td>technical duplicate (ceiling)</td><td class="num">1.042</td><td class="num">[0.966, 1.123]</td><td class="num">n/a</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Both metrics put additive first, scGen second and GEARS third. They disagree only on ridge against mean-response, and there the per-pair difference is −0.191 L2 [−0.499, +0.105]: the interval contains zero, so the data does not separate those two. What the scale adds is the size of the remaining room: after additive, 36% of the achievable range is left for everything a model could learn about how genes interact.</p>
+
+  <h3 id="per-pair" data-short="scGen, pair by pair">4.2 scGen comes closest, and still loses on 96 of 125 pairs</h3>
+  <p><strong>Pair by pair, scGen’s error minus additive’s is +0.390 L2 on average [+0.283, +0.500]; scGen is closer on 29 of the 125 pairs. GEARS’s error is higher by +1.248 [+1.080, +1.414], and it is closer on 12.</strong> Both intervals exclude zero, so by the rule set before scoring, neither deep model beats additive. Figure 2 shows every pair.</p>
+  <figure class="plot">
+    <img src="figures/pairs.png" alt="Scatter plot of 125 held-out pairs: additive's L2 on the horizontal axis against scGen's L2 on the vertical axis, both from 0 to about 8, with a dashed diagonal. Most points sit above the diagonal; the annotation reads 'above the line: additive closer, 96 of 125 pairs'." width="572" height="579" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> Each dot is one of the 125 held-out pairs: its L2 under the additive baseline (horizontal) and under scGen (vertical), each the mean over the splits that held the pair out. Above the dashed line, additive is closer to the measured profile (96 pairs). Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/per_pair.csv">results/per_pair.csv</a>.</figcaption>
+  </figure>
+  <p>scGen does the same arithmetic as additive in a learned space instead of gene space: it encodes cells, adds the two single-gene directions, and decodes. The pairs where it beats additive are spread across easy and hard pairs alike (Figure 2), rather than clustered where additive fails, which is where a learned interaction would show.</p>
+
+  <h3 id="splits" data-short="Every split">4.3 The order holds in every split</h3>
+  <p><strong>In each of the five splits, on that split’s 63 or 64 scorable held-out pairs, additive has the lowest mean L2 and scGen the second lowest.</strong> The pooled result does not come from one lucky split.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Split</th><th class="num">Pairs</th><th class="num">no-change</th><th class="num">mean-resp.</th><th class="num">ridge</th><th class="num">GEARS</th><th class="num">scGen</th><th class="num">additive</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="num">64</td><td class="num">5.649</td><td class="num">4.793</td><td class="num">4.723</td><td class="num">3.955</td><td class="num">3.317</td><td class="num">2.682</td></tr>
+        <tr><td>2</td><td class="num">64</td><td class="num">5.635</td><td class="num">4.864</td><td class="num">4.626</td><td class="num">3.994</td><td class="num">3.007</td><td class="num">2.679</td></tr>
+        <tr><td>3</td><td class="num">63</td><td class="num">5.580</td><td class="num">4.596</td><td class="num">4.568</td><td class="num">3.833</td><td class="num">3.075</td><td class="num">2.666</td></tr>
+        <tr><td>4</td><td class="num">63</td><td class="num">5.865</td><td class="num">4.972</td><td class="num">4.489</td><td class="num">4.008</td><td class="num">2.939</td><td class="num">2.682</td></tr>
+        <tr><td>5</td><td class="num">64</td><td class="num">5.325</td><td class="num">4.584</td><td class="num">4.631</td><td class="num">3.963</td><td class="num">2.749</td><td class="num">2.451</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="ceiling" data-short="The ceiling checks out">4.4 The noise ceiling matches the sampling formula</h3>
+  <p><strong>The technical duplicate averages 1.042 L2 [0.966, 1.123] over the 125 pairs. The formula for the sampling error of an average of n cells, the square root of the sum over genes of each gene’s variance divided by n, predicts 1.035: a ratio of 1.007.</strong></p>
+  <p>This checks the ruler every normalised number depends on. The tempting version, one half of the cells against the other half, compares two noisy averages instead of one with its own total, and reads twice the floor (half₁ − all = (half₁ − half₂) / 2). On these pairs it reads 2.084, and it would have put additive at 82.7% instead of 63.9%: a method would look much closer to perfect than it is.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Ahlmann-Eltze et al. (2025)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Deep models compared</td><td>Five foundation models and two other deep models, GEARS among them</td><td>scGen and GEARS</td></tr>
+        <tr><td>Single and double perturbations</td><td>Both</td><td>Doubles only, on Norman 2019</td></tr>
+        <tr><td>Simple baselines, additive among them</td><td>✓</td><td>✓</td></tr>
+        <tr><td>A deep model beats the baselines</td><td>✗</td><td>✗</td></tr>
+        <tr><td>Measured noise ceiling, checked against the sampling formula</td><td>—</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The published study’s verdict carries over to the two models run here. What this note adds is the ruler: a measured ceiling, so the gap is a share of the achievable range rather than a raw distance, and paired per-pair intervals beside the per-split order.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI in biology</h2>
+  <p>A published deep model is only as good as the simplest thing it was compared with. On the standard benchmark for pairs of perturbations, the simplest serious baseline, adding the two measured effects, was not beaten by either deep model here, and it already covers about two-thirds of what the measurement allows. A new model claiming progress on this task has to beat additive pair by pair, and the useful headline is how much of the remaining 36% it closes. The same discipline applies to claims about AI in biology generally, including claims used to argue a model is capable or dangerous: a capability number without its baseline and its noise floor cannot be read.</p>
+  <p>Risk: very low. The data is a public CRISPR activation screen in an immortalised human cell line, with no pathogen sequences, individual genomes or patient data. Nothing here is generative: the methods predict expression for perturbations that were already performed and measured, and propose none. The finding is negative and methodological.</p>
+  <p><strong>The recommendation in one sentence: report every perturbation model against the additive baseline, pair by pair, on a scale anchored at no-change and at a measured noise ceiling.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One dataset, one cell line.</strong> Norman 2019 in K562 with CRISPR activation. Knockouts, other cell types or larger screens may favour different methods.</li>
+    <li><strong>Pairs whose singles were measured.</strong> Additive needs both genes measured alone. Predicting a gene never perturbed is where models like GEARS are meant to help, and it is not tested here.</li>
+    <li><strong>Two deep models, one setting each.</strong> scGen and GEARS at standard settings (GEARS for 20 epochs). Newer single-cell foundation models were not run here; the published study tested several and found the same.</li>
+    <li><strong>One metric family.</strong> L2 and Pearson δ on the 1,000 most expressed genes. Metrics that weight rarely expressed or strongly changed genes could order the methods differently.</li>
+    <li><strong>Averages over cells.</strong> Pseudo-bulk asks about the average cell; it says nothing about how well any method predicts the spread between cells.</li>
+    <li><strong>125 pairs.</strong> Intervals are over pairs; the 3 pairs GEARS cannot predict are dropped from every row.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the shipped results, in seconds:</p>
+  <pre><code class="language-bash">experiments/perturbation-baselines/reproduce.sh --scores</code></pre>
+  <p>Rerun from the raw data: a 169 MB download into <code>~/.cache/steerlab/norman</code> (or <code>$NORMAN_DIR</code>), then about a minute on a laptop CPU. The pseudo-bulk step pulls in <code>anndata</code> through <code>uv</code>:</p>
+  <pre><code class="language-bash">experiments/perturbation-baselines/reproduce.sh --dry-run   # lists every command
+experiments/perturbation-baselines/reproduce.sh</code></pre>
+  <p>scGen and GEARS are scored from their saved predictions in <code>results/predictions/</code>; the <a href="../README.md">README</a> gives their settings and hardware.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Pairs with an unmeasured gene, where additive cannot run and a learned model has to carry the prediction.</li>
+    <li>Where additive fails: the pairs furthest from the sum are the genetic interactions a model would have to learn, and the place to test whether any model does.</li>
+    <li>Single-cell foundation models on the same splits and scale.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Do deep-learning models beat simple baselines at predicting gene perturbations?</h3>
+  <p>Not on the Norman 2019 pairs benchmark. Adding the two single-gene effects covered 63.9% of the range from “nothing happens” to measurement noise; scGen covered 55.3% and GEARS 36.6%. Pair by pair, both had higher error than additive, with intervals that exclude zero.</p>
+  <h3 id="q2">What is the additive baseline?</h3>
+  <p>For a pair of perturbed genes A and B: the control profile, plus how much each gene moved when A was perturbed alone, plus how much it moved when B was perturbed alone. It assumes the two effects do not interact.</p>
+  <h3 id="q3">What is a noise ceiling, and why does it matter?</h3>
+  <p>It is the error a perfect prediction would still have, because the measured profile is itself an average of a few hundred noisy cells. Without it, an error of 2.7 cannot be read. With it (1.04 here), 2.7 means a method covered about two-thirds of the achievable range.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>pseudobulk_top1000.npz</code>: the 237 average profiles on the 1,000 scored genes.</li>
+    <li><code>splits.json</code>: each split’s training and held-out pairs.</li>
+    <li><code>ceiling.csv</code>: per held-out pair, the technical duplicate, the formula’s prediction and the half-against-half version.</li>
+    <li><code>predictions/scgen.npz</code>, <code>predictions/gears.npz</code>: the deep models’ predicted profiles per pair and split.</li>
+    <li><code>per_pair.csv</code>, <code>table.csv</code>, <code>summary.json</code>: every score, interval and difference quoted here.</li>
+  </ul>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Design</th><td>Held-out gene pairs over five random splits (Ahlmann-Eltze, Huber and Anders, 2025)</td></tr>
+        <tr><th scope="row">Baselines</th><td>No-change, mean-response, ridge regression from PCA gene vectors, additive</td></tr>
+        <tr><th scope="row">Models</th><td>scGen (variational autoencoder, latent arithmetic), GEARS (graph neural network)</td></tr>
+        <tr><th scope="row">Controls</th><td>Technical-duplicate noise ceiling, checked against the sampling-error formula</td></tr>
+        <tr><th scope="row">Statistics</th><td>Percentile bootstrap over pairs (5,000 resamples); paired per-pair differences</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Data</th><td>Norman et al. 2019, as processed by the GEARS authors (Harvard Dataverse DVN/Q2ZV3E, CC0)</td></tr>
+        <tr><th scope="row">Analysis</th><td>Python, NumPy, SciPy, anndata, matplotlib</td></tr>
+        <tr><th scope="row">Models</th><td>scGen through pertpy (JAX) on a laptop CPU; the GEARS reference implementation (PyTorch) on an NVIDIA L4 on Modal</td></tr>
+        <tr><th scope="row">Compute</th><td>About a minute on a laptop CPU for this folder; about $6.70 of GPU time for GEARS</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Norman, Horlbeck, Replogle et al. “Exploring genetic interaction manifolds constructed from rich single-cell phenotypes.” <a href="https://doi.org/10.1126/science.aax4438">Science, 2019</a>.</li>
+    <li>Ahlmann-Eltze, Huber and Anders. “Deep-learning-based gene perturbation effect prediction does not yet outperform simple linear baselines.” <a href="https://www.nature.com/articles/s41592-025-02772-6">Nature Methods, 2025</a>.</li>
+    <li>Roohani, Huang and Leskovec. “Predicting transcriptional outcomes of novel multigene perturbations with GEARS.” <a href="https://www.nature.com/articles/s41587-023-01905-6">Nature Biotechnology, 2024</a>.</li>
+    <li>Lotfollahi, Wolf and Theis. “scGen predicts single-cell perturbation responses.” <a href="https://www.nature.com/articles/s41592-019-0494-8">Nature Methods, 2019</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 9, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026perturbationbaselines,
+  author = {Albert Lie},
+  title  = {Adding two single-gene effects beats deep models at predicting double-gene perturbations},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/perturbation-baselines/report/}
+}</code></pre>
+  <footer class="note">Data: Norman et al. 2019, processed by Roohani et al. (Harvard Dataverse, CC0). A reproduction of Ahlmann-Eltze, Huber and Anders (2025).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
