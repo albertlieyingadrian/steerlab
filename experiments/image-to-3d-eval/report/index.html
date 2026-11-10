@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter</title>
+<meta name="description" content="On 800 pairs from benchmark.ai's public votes, CLIP, DINOv2 and two VLM judges agree with the voters' majority about as often as one more voter does (0.64 on shape, 0.69 on looks); only a Gemini judge does better, on shape. On 40 scanned objects TRELLIS has the best shape, and Idol runs in 17 s with 6 GB on an L40S.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter">
+<meta property="og:description" content="On 800 pairs from benchmark.ai&#x27;s public votes, CLIP, DINOv2 and two VLM judges side with the voters&#x27; majority about as often as one more voter does (0.64 on shape, 0.69 on looks); only a Gemini judge does better, on shape. On 40 scanned objects TRELLIS builds the best shape, and Speridlabs&#x27; Idol runs in 17 s with 6 GB on an L40S.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An illustration on a warm cream background: a wooden toy duck rises off a flat blue photograph that still shows its pale silhouette; the front of the duck is solid and shaded, its back half is a blue wireframe of triangles, orange dots float around it, and a dotted ring circles it like a turntable.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter">
+<meta name="twitter:description" content="On 800 pairs from benchmark.ai&#x27;s public votes, CLIP, DINOv2 and two VLM judges side with the voters&#x27; majority about as often as one more voter does (0.64 on shape, 0.69 on looks); only a Gemini judge does better, on shape. On 40 scanned objects TRELLIS builds the best shape, and Speridlabs&#x27; Idol runs in 17 s with 6 GB on an L40S.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-11">
+<meta property="article:modified_time" content="2026-11-11">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter",
+ "description": "On 800 pairs from benchmark.ai's public votes, CLIP, DINOv2 and two VLM judges side with the voters' majority about as often as one more voter does (0.64 on shape, 0.69 on looks); only a Gemini judge does better, on shape. On 40 scanned objects TRELLIS builds the best shape, and Speridlabs' Idol runs in 17 s with 6 GB on an L40S.",
+ "abstract": "Rapidata's release of benchmark.ai's image-to-3D votes (49,261 comparisons, 262,668 votes, 13 models, CC BY 4.0): 400 geometry and 400 appearance pairs with five votes each. Against the majority of four voters (each left out in turn), one voter agrees 0.637 [0.607, 0.666] on geometry and 0.694 [0.665, 0.723] on appearance; CLIP ViT-L/14 0.639 and 0.684; DINOv2 0.644 and 0.689; a gpt-5.4-mini judge 0.633 and 0.708; a gemini-3.6-flash judge 0.692 [0.662, 0.722] and 0.711 (GPTEval3D-style, five criteria, position-swapped). Paired, gemini beats CLIP on geometry by +5.3 points [+1.5, +9.3]; no other difference excludes zero. Ranking the 13 models: gemini Spearman 0.93 (geometry), judges 0.89 to 0.91 (appearance), CLIP 0.76 and 0.73. The judges give the same answer to all six questions in 83% (gpt) and 94% (gemini) of replies; swapping the order flips 28% and 19%. On 40 Google Scanned Objects, one L40S: Chamfer TRELLIS mesh 0.015, splats 0.014, Idol 0.025, TripoSR 0.025, Stable Fast 3D 0.028; judges' Elo TRELLIS mesh 1141, splats 1101, Idol 1034, Stable Fast 3D 874, TripoSR 850; CLIP ranks Idol first (0.899). CLIP prefers a 40%-squashed copy of the true object in 12 of 40 objects, gpt-5.4-mini in 12, gemini in 4. Idol: 17.2 s per object and 5.96 GB peak (stated 7.2 GB; its card lists 16.6 s on an L40S). benchmark.ai and 3D Arena rank their five shared models with Spearman -0.7.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-11",
+ "dateModified": "2026-11-11",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "image-to-3D, 3D generation, evaluation, VLM judge, LLM-as-a-judge, CLIP score, human preference, Gaussian splatting, Idol, TRELLIS, TripoSR, Stable Fast 3D, Google Scanned Objects, GPTEval3D, 3D Arena, benchmark.ai",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/speridlabs/idol"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2401.04092"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2503.21745"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.18787"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/Rapidata/image-to-3d-single-object-human-feedback-benchmark"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.01506"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2403.02151"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2408.00653"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2204.11918"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--control); color: var(--control); }
+  .gallery video { display: block; width: 100%; height: auto; border-radius: 6px; background: #fff; }
+  .gallery .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-11">Nov 11, 2026</time></p>
+  <h1>Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter</h1>
+  <p class="dek ruled">A new open model, Speridlabs’ Idol, turns one photo into a 3D object in seconds. To say whether it is any good you need a score, and people are slow. This note checks the cheap scores against 262,668 public human votes, then uses them on four open models and 40 scanned objects whose true shapes are known.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="An illustration on a warm cream background: a wooden toy duck rises off a flat blue photograph that still shows its pale silhouette; the front of the duck is solid and shaded, its back half is a blue wireframe of triangles, orange dots float around it, and a dotted ring circles it like a turntable." width="1536" height="1024">
+    <figcaption>Cover: what an image-to-3D model does. A flat photo of a toy becomes an object you can turn around; the wireframe stands for a mesh, the dots for Gaussian splats, the ring for the turntable every output is filmed on. Made with an image model (gpt-image-2) from the prompt in <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>800 voted pairs from Rapidata’s image-to-3D benchmark (the votes behind benchmark.ai, CC BY 4.0); 40 Google Scanned Objects (CC BY 4.0)</dd></div>
+    <div><dt>Models</dt><dd>Idol, TRELLIS (image-large), TripoSR, Stable Fast 3D; judges gpt-5.4-mini and gemini-3.6-flash; CLIP ViT-L/14 and DINOv2 as embedding scores</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/image-to-3d-eval/</a>, with a reusable scorer in <a href="../eval3d.py">eval3d.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/agreement_human.csv">results/agreement_human.csv</a>, <a href="../results/gso_leaderboard.csv">results/gso_leaderboard.csv</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Which cheap way of scoring a generated 3D object agrees with people?</strong></p>
+    <p>None by much. On 400 pairs where five people were asked which of two 3D models has the right shape, and 400 where they were asked which looks more like the photo, CLIP similarity, DINOv2 similarity and two vision-language model judges each side with the majority about as often as one more voter would: 0.63 to 0.69 on shape and 0.68 to 0.71 on looks, against 0.64 and 0.69 for a voter. The one scorer that does better is gemini-3.6-flash as a judge, on shape, by 5.5 points. Ranking 13 whole models is easier: the judges reach Spearman 0.78 to 0.93 with the full human ranking, CLIP 0.73 to 0.76. On 40 scanned objects with known true shapes, TRELLIS builds the best geometry; Idol runs in 17 seconds with 6 GB of GPU memory on an L40S, as its model card says, and CLIP ranks it first while its shape scores sit with TripoSR’s. The two public human leaderboards disagree with each other on the five models they share.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does a cheap scorer pick the side most voters picked? (400 shape pairs, 400 looks pairs)</td><td><strong>About as often as one voter does.</strong> Shape: CLIP 0.639, gpt-5.4-mini judge 0.633, gemini-3.6-flash judge 0.692 [0.662, 0.722]. Looks: CLIP 0.684, judges 0.708 and 0.711</td><td>One voter against the other four: 0.637 [0.607, 0.666] on shape, 0.694 [0.665, 0.723] on looks</td></tr>
+          <tr><td>Does any scorer beat CLIP, pair by pair?</td><td><strong>Only gemini-3.6-flash, only on shape:</strong> +5.3 points [+1.5, +9.3]. On looks every difference includes zero</td><td>gpt-5.4-mini on shape: −0.6 points [−4.8, +3.3]</td></tr>
+          <tr><td>Do the scorers rank 13 models as all 49,261 comparisons do?</td><td>Judges: Spearman 0.78 to 0.93; CLIP 0.76 (shape) and 0.73 (looks), with intervals reaching down to 0.34</td><td>The same 400 human votes per question: 0.87 and 0.96</td></tr>
+          <tr><td>Do the judges answer the five GPTEval3D questions separately?</td><td><strong>No.</strong> One reply picks the same side on all six questions 83% (gpt) and 94% (gemini) of the time</td><td>Swapping the order of the two objects changes the final answer in 28% and 19% of pairs</td></tr>
+          <tr><td>On 40 scanned objects, which model builds the right shape?</td><td>TRELLIS: Chamfer 0.015 [0.012, 0.018]; Idol 0.025, TripoSR 0.025, Stable Fast 3D 0.028. The judges agree on TRELLIS first (Elo 1141) and put Idol third (1034), ahead of Stable Fast 3D (874) and TripoSR (850)</td><td>The true object squashed 40%: Chamfer 0.030</td></tr>
+          <tr><td>Does a scorer prefer the true object to a damaged copy?</td><td>CLIP prefers a copy squashed 40% in 12 of 40 objects, and scores it 0.896, above TRELLIS’s mesh (0.892)</td><td>The gemini-3.6-flash judge prefers the squashed copy in 4 of 40; gpt-5.4-mini in 12 (ties count half)</td></tr>
+          <tr><td>Idol’s claim: fast, under 7.2 GB</td><td><strong>Holds on its own terms:</strong> 17.2 s per object, 5.96 GB held at peak on one L40S (its card lists 16.6 s on an L40S; the 2 to 3 s figures are for B200 and B300 cards)</td><td>TRELLIS 13.8 s, 17.9 GB; TripoSR 1.5 s, 5.4 GB; Stable Fast 3D 0.5 s, 11.0 GB</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Show five people a photo of a sneaker and two spinning 3D sneakers made from it, and ask which has the right shape. Often they split three to two. Take any one of them away and ask whether that person sides with the majority of the other four: on 400 such pairs, the answer is yes 64% of the time. That number is the bar for any automatic judge, because a score that agrees with the crowd as often as one of its members does is about as good a stand-in as one extra person. CLIP, the score most papers report, clears it by 0.2 points. A Gemini model shown the same frames clears it by 5.5.</p>
+  <p><strong>What is known.</strong> Image-to-3D models take one picture and produce an object: a mesh (triangles with a texture) or a cloud of Gaussian splats. New ones arrive monthly. The latest, <a href="https://huggingface.co/speridlabs/idol">Idol</a> from Speridlabs (600M parameters trained from scratch, Apache-2.0), claims up to a million splats in seconds in under 7.2 GB of GPU memory. Judging them is the hard part. When the true object exists, reconstruction scores compare shapes and pictures with it. When it does not, papers use CLIP similarity between renders and the photo, or ask a vision-language model: <a href="https://arxiv.org/abs/2401.04092">GPTEval3D</a> (CVPR 2024) found GPT-4V’s pairwise verdicts agreed with people 71% of the time against 57% to 63% for CLIP. Human arenas now publish the ground truth: <a href="https://huggingface.co/spaces/3d-arena/3d-arena">3D Arena</a> (123,243 votes) and <a href="https://www.benchmark.ai/image-to-3d">benchmark.ai</a>, whose votes Rapidata released as a <a href="https://huggingface.co/datasets/Rapidata/image-to-3d-single-object-human-feedback-benchmark">dataset</a> with every turntable video.</p>
+  <p><strong>What is missing.</strong> A check of today’s cheap scorers against those public votes, pair by pair and with the noise of the voters themselves as the yardstick; and a look at the new model on objects whose true shape is known.</p>
+  <p class="question-callout">Which cheap score for an image-to-3D output agrees best with human votes, and how do the open models, Idol among them, compare when the true shape is known?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A measurement: four cheap scorers against 800 voted pairs, with how often one voter agrees with the other four as the ceiling.</li>
+    <li>A paired comparison that separates the scorers, and a look inside the judges (do the five criteria differ? does the order matter?).</li>
+    <li>A small leaderboard of four open models on 40 Google Scanned Objects, with geometry, picture and judge scores, known-answer checks for every scorer, and speed and memory on one GPU.</li>
+    <li><a href="../eval3d.py">eval3d.py</a>, a scorer that renders any mesh or splat file the same way and scores it against a true mesh.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before scoring:</p>
+  <ol>
+    <li>Agreement is measured against votes the scorers were never tuned on, and compared with one voter’s agreement on the same pairs.</li>
+    <li>A scorer “beats” another only if the paired difference, pair by pair, has an interval above zero.</li>
+    <li>Every scorer is also checked on cases with a known answer: the true object against a damaged copy of itself.</li>
+    <li>Every model’s output is rendered by the same code, from the same cameras, under the same light.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="three-d-101" data-short="3D 101">2.1 3D 101, for software engineers</h3>
+  <ul>
+    <li><strong>A mesh is a list of triangles</strong> (vertices and faces, like a polygon file), plus colour: either a texture image wrapped onto the triangles with UV coordinates, or one colour per vertex. Games and CAD use meshes. TRELLIS, TripoSR and Stable Fast 3D output meshes.</li>
+    <li><strong>Gaussian splats are a cloud of soft, coloured blobs.</strong> Each splat has a centre, a size along three axes, a rotation, an opacity and a colour. Drawn together from any angle they look like a solid object, the way a pointillist painting does. There are no triangles, so there is no surface to measure directly. Idol outputs 262,144 splats per object by default; TRELLIS can output splats too.</li>
+    <li><strong>Normals show shape without paint.</strong> A normal is the direction a surface faces. Colouring each pixel by its normal (red for right, green for up, blue for toward you) gives an image where a painted-on eye looks flat and a carved one shows. Here normals are computed from each render’s depth map, so meshes and splats get the same treatment.</li>
+    <li><strong>Chamfer distance is “how far off is each point, on average”.</strong> Sample points on both surfaces; for each point find the nearest point on the other surface; average those distances both ways. Zero means the shapes coincide. It is in units of the object’s size here (the longest side is 1), so 0.015 means points are 1.5% of the object’s length off.</li>
+    <li><strong>F-score at 5%</strong> combines two shares: of the generated points, how many are within 5% of the size of the true surface (no extra bits), and of the true points, how many are that close to the generated one (no missing bits).</li>
+    <li><strong>PSNR, SSIM and LPIPS compare pictures.</strong> Render the output and the true object from the same new viewpoint and compare pixels: PSNR by squared error, SSIM by local structure, LPIPS by a neural network’s sense of difference (lower is better). LPIPS on normal maps compares shape only.</li>
+    <li><strong>CLIP similarity needs no true object.</strong> CLIP turns an image into a vector; the score is the cosine between the input photo’s vector and each render’s, averaged over views. It asks “does this look like the same thing?”, so it can be fooled by the right colours on the wrong shape.</li>
+    <li><strong>Elo from pairwise wins.</strong> A Bradley-Terry model turns “A beat B” records into one score per model, so a 100-point gap means the higher one wins 64% of the time. Arenas use it; this note uses it for the judges too.</li>
+  </ul>
+
+  <h3 id="toy" data-short="Chamfer by hand">2.2 Chamfer distance by hand, on four points</h3>
+  <p>True shape: points at 0, 1, 2, 3 on a line. Generated shape: 0, 1, 2, 5 (the last point is off).</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Direction</th><th>Nearest-point distances</th><th class="num">Mean</th></tr></thead>
+      <tbody>
+        <tr><td>Generated to true</td><td>0, 0, 0, |5 − 3| = 2</td><td class="num">0.5</td></tr>
+        <tr><td>True to generated</td><td>0, 0, 0, |3 − 2| = 1</td><td class="num">0.25</td></tr>
+        <tr><td>Chamfer (mean of the two)</td><td></td><td class="num">0.375</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>One stray point moves the score; a missing part shows in the second row, an extra part in the first. The real version uses 30,000 points per surface.</p>
+
+  <h3 id="data">2.3 Two data sets: one with votes, one with true shapes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td>Rapidata image-to-3D benchmark (<a href="https://huggingface.co/datasets/Rapidata/image-to-3d-single-object-human-feedback-benchmark">dataset</a>, CC BY 4.0)</td><td>The votes behind benchmark.ai: 13 models, 357 input images, each pair of outputs shown as two 10-second turntable videos; geometry pairs use grey untextured renders</td><td class="num">49,261 pairs (24,636 geometry, 24,625 appearance), 262,668 votes</td><td>All of them for the human ranking of the 13 models; a random 400 geometry and 400 appearance pairs with exactly five votes for pair-level agreement (<a href="../results/human_pairs.csv">human_pairs.csv</a>)</td></tr>
+        <tr><td>Google Scanned Objects (<a href="https://app.gazebosim.org/GoogleResearch/fuel/collections/Scanned%20Objects%20by%20Google%20Research">Gazebo Fuel</a>, CC BY 4.0)</td><td>Household objects scanned to textured meshes: shoes, toys, boxes, kitchenware</td><td class="num">40 objects</td><td>Generation, reconstruction scores, the judges’ leaderboard and the known-answer checks (<a href="../results/gso_objects.csv">gso_objects.csv</a>)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The 40 objects are the first 40 of 70 drawn at random (seed 0) from the 1,033 in the collection, after dropping the 2 whose shortest side is under a tenth of their longest (a flat object seen edge-on is a poor single-image test). Each model gets the same input: the true object rendered at 512 by 512 pixels from 30° around and 20° up, unlit (the scans’ textures already hold their lighting), with the object’s outline as an alpha mask so no model needs its background remover.</p>
+
+  <h3 id="models">2.4 Four open models</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th>Maker, licence</th><th>Output scored</th><th>Settings</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://huggingface.co/speridlabs/idol">Idol</a></td><td>Speridlabs, Apache-2.0 (its image encoders, DINOv3 and the FLUX.2 VAE, have their own gated licences)</td><td>262,144 Gaussian splats</td><td>Defaults: 50 steps, guidance 3.0, “synthetic” framing, seed 42</td></tr>
+        <tr><td><a href="https://huggingface.co/microsoft/TRELLIS-image-large">TRELLIS</a> (image-large, 1.2B)</td><td>Microsoft, MIT</td><td>Both: textured mesh (GLB) and splats, from one run</td><td>Defaults: 25 + 25 steps, seed 1; GLB with 95% simplification, 1,024-pixel texture</td></tr>
+        <tr><td><a href="https://huggingface.co/stabilityai/TripoSR">TripoSR</a></td><td>Stability AI and Tripo, MIT</td><td>Mesh with vertex colours</td><td>Marching cubes at 256, framing 0.85</td></tr>
+        <tr><td><a href="https://huggingface.co/stabilityai/stable-fast-3d">Stable Fast 3D</a></td><td>Stability AI, community licence (gated)</td><td>Textured mesh</td><td>1,024-pixel texture, no remeshing, framing 0.85</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>TRELLIS.2, the best open model on benchmark.ai, was not run: it loads a gated background remover (briaai/RMBG-2.0) whose licence was not accepted, and gates were not worked around.</p>
+
+  <h3 id="scorers">2.5 The scorers</h3>
+  <ul>
+    <li><strong>CLIP similarity</strong> (ViT-L/14, OpenAI weights) and <strong>DINOv2 similarity</strong> (dinov2-base, a self-supervised encoder that weighs shape and layout more than words): mean cosine between the input image and 8 views every 45°. In a pair, the higher score wins.</li>
+    <li><strong>Two judges</strong>, after GPTEval3D: gpt-5.4-mini (OpenAI) and gemini-3.6-flash (Google, through OpenRouter), at low reasoning effort. Each sees the input image and a sheet of four views per object (for the voted pairs, four frames of each video at 0°, 90°, 180° and 270°; for the scanned objects, four colour views above their four normal maps) and answers six questions with “1” or “2”: the five GPTEval3D criteria (alignment with the image, 3D plausibility, texture-geometry coherency, texture detail, geometry detail) and a final one. For voted pairs the final question is the voters’ own; for the scanned objects it is “which is the better 3D version of the object?”. Every pair is asked twice with the objects swapped; a side wins only if both orders pick it, otherwise it is a tie.</li>
+    <li><strong>Reconstruction scores</strong> (scanned objects only): Chamfer distance, F-score at 2% and 5%, silhouette IoU, and PSNR, SSIM and LPIPS on colour, plus LPIPS on normals, over the 7 views the input did not show.</li>
+  </ul>
+  <p><strong>Agreement</strong> with people is scored the way one voter is: for each pair, leave one of the five voters out, take the majority of the other four (a 2–2 split counts half), and ask whether the scorer picked that side; average over the five. The left-out voter, scored the same way, is the ceiling. Against the plain five-voter majority every scorer reads 0.6 to 1.8 points higher (<a href="../results/agreement_human.csv">agreement_human.csv</a>, column <code>agree</code>).</p>
+
+  <h3 id="rendering" data-short="One renderer for all">2.6 Every output rendered the same way</h3>
+  <p><a href="../eval3d.py">eval3d.py</a> loads a mesh with its texture or vertex colours, or a standard splat file with each splat’s base colour (the part of splat colour that changes with viewing angle is dropped, so both kinds show one colour per surface point). It centres each object and scales its longest side to 1, then turns depth maps from 24 cameras around a sphere into surface points, so meshes and splats are measured by the same rule and hidden insides do not count. Models pick their own “up” and “front”, so each output is aligned to the true object: 24 starting rotations, each refined by ICP (rotation, shift and one scale), and the one with the lowest Chamfer distance kept. This flatters every model the same way. Meshes are drawn with nvdiffrast and splats with gsplat, unlit, on white, from the same cameras.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Goal and design</strong> written first: compare Idol with open models on scanned objects; test which cheap metric agrees with public human votes.</li>
+    <li><strong>Gates.</strong> Idol’s two encoders and Stable Fast 3D are gated; their licences were accepted on Hugging Face before any run. TRELLIS.2’s background remover was not, so TRELLIS.2 was dropped.</li>
+    <li><strong>Human sample:</strong> 400 geometry and 400 appearance pairs with five votes each, drawn at random from 49,261; 1,469 videos, 8 frames each.</li>
+    <li><strong>Scorers on the human sample:</strong> CLIP and DINOv2 on 1,469 videos; both judges on 800 pairs in both orders (3,200 calls).</li>
+    <li><strong>Generation:</strong> 4 models on the same 40 inputs, each on one L40S, after one warm-up object (160 objects, no failures).</li>
+    <li><strong>Scoring:</strong> 5 outputs (TRELLIS counted twice) and 3 damaged copies of the true object per object, all rendered and scored by eval3d.py (320 scorings).</li>
+    <li><strong>Judges on the scanned objects:</strong> the 10 model pairs and 3 true-versus-damaged pairs per object, both orders (2,080 calls).</li>
+    <li><strong>Analysis:</strong> agreement with bootstrap intervals over pairs; paired differences; Bradley-Terry scores; rank correlations.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any scoring</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The models and their default settings; the GPU (L40S); GSO as the true-shape set; the scorers, the judges’ questions and the position swap; the damaged copies; bootstrap intervals and paired differences</td><td>The plan named 3D Arena as the human data; Rapidata’s release of the benchmark.ai votes, with videos, allowed pair-level agreement, so it became the main test and 3D Arena a side check. The ceiling was first scored against the five-voter majority; it is reported against the four-voter one so voter and scorer face the same target (both versions are in the results). No size of gain was set in advance as a bar.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one NVIDIA L40S (48 GB) per job on Modal, $6.48 billed in all, including image builds and failed attempts. Judges: $13.16 (gpt-5.4-mini $4.89, gemini-3.6-flash $8.27) at list prices from logged token counts. CLIP and DINOv2 on the human sample ran on an Apple-silicon laptop.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Eight findings:</p>
+  <ol>
+    <li><a href="#pairs"><strong>4.1</strong></a> Pair by pair, cheap scorers agree with the voters about as often as one voter does.</li>
+    <li><a href="#paired"><strong>4.2</strong></a> Only the Gemini judge beats CLIP, and only on shape.</li>
+    <li><a href="#ranks"><strong>4.3</strong></a> Ranking whole models is easier, and the judges do it better than CLIP.</li>
+    <li><a href="#halo"><strong>4.4</strong></a> The judges give one answer, not five.</li>
+    <li><a href="#leaderboard"><strong>4.5</strong></a> On scanned objects TRELLIS builds the best shape; CLIP ranks Idol first.</li>
+    <li><a href="#checks"><strong>4.6</strong></a> Known answers: CLIP misses a squashed object; the Gemini judge catches it.</li>
+    <li><a href="#speed"><strong>4.7</strong></a> Idol’s speed and memory match its card on an L40S.</li>
+    <li><a href="#arenas"><strong>4.8</strong></a> Two public human leaderboards disagree with each other.</li>
+  </ol>
+
+  <h3 id="pairs" data-short="Pairs: as good as one voter">4.1 Pair by pair, cheap scorers agree with the voters about as often as one voter does</h3>
+  <p><strong>On the 400 geometry pairs, one voter agrees with the majority of the other four 63.7% of the time [60.7, 66.6]. CLIP agrees 63.9% [60.2, 67.4], DINOv2 64.4%, the gpt-5.4-mini judge 63.3% and the gemini-3.6-flash judge 69.2% [66.2, 72.2]. On the 400 appearance pairs one voter agrees 69.4% [66.5, 72.3]; CLIP 68.4%, DINOv2 68.9%, the judges 70.8% and 71.1%.</strong> All are far from chance (50%) and none is far from a single voter (Figure 1).</p>
+  <figure class="plot">
+    <img src="figures/agreement.png" alt="Two dot plots with intervals. Geometry: CLIP, DINOv2 and the gpt-5.4-mini judge sit near 0.64, inside a grey band marking one voter's agreement; the gemini-3.6-flash judge sits at 0.69, right of the band. Appearance: all five scorers sit between 0.68 and 0.71, overlapping the grey band at 0.69." width="1350" height="480">
+    <figcaption><span class="label">Figure 1.</span> Agreement with the voters on 400 geometry and 400 appearance pairs from benchmark.ai’s public votes (five voters each). Each pair is scored five times, leaving one voter out and taking the majority of the other four (a 2–2 split counts half). Dots: each scorer, with 95% bootstrap intervals over pairs; orange: the two judges; grey band and dashed line: the left-out voter scored the same way. Dotted line: chance. The axis starts at 0.45. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/agreement_human.csv">agreement_human.csv</a>.</figcaption>
+  </figure>
+  <p>The ceiling is low because people disagree: 170 of the 400 geometry pairs and 134 of the appearance pairs split three to two. On the pairs where at least four of five agree (230 geometry, 266 appearance), the scorers side with that majority 72% to 81% of the time; the gemini judge is still in front on geometry (81%, CLIP 74%) and all are level on looks (76% to 80%).</p>
+
+  <h3 id="paired" data-short="Only Gemini beats CLIP">4.2 Only the Gemini judge beats CLIP, and only on shape</h3>
+  <p><strong>Pair by pair, gemini-3.6-flash agrees with the voters 5.3 points more often than CLIP on geometry [+1.5, +9.3] and 5.5 points more often than the left-out voter [+2.4, +8.4]. No other difference, on either question, has an interval that excludes zero, except gemini over gpt-5.4-mini on geometry.</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Paired difference in agreement (points)</th><th class="num">Geometry</th><th class="num">Appearance</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>gemini-3.6-flash judge − CLIP</td><td class="num">+5.3 [+1.5, +9.3]</td><td class="num">+2.6 [−1.1, +6.6]</td></tr>
+        <tr><td>gpt-5.4-mini judge − CLIP</td><td class="num">−0.6 [−4.8, +3.3]</td><td class="num">+2.4 [−1.3, +6.5]</td></tr>
+        <tr><td>gemini-3.6-flash − gpt-5.4-mini</td><td class="num">+5.9 [+3.1, +8.7]</td><td class="num">+0.2 [−2.6, +2.8]</td></tr>
+        <tr><td>DINOv2 − CLIP</td><td class="num">+0.6 [−3.9, +5.2]</td><td class="num">+0.5 [−3.4, +4.5]</td></tr>
+        <tr><td>gemini-3.6-flash − one voter</td><td class="num">+5.5 [+2.4, +8.4]</td><td class="num">+1.6 [−1.8, +5.0]</td></tr>
+        <tr><td>CLIP − one voter</td><td class="num">+0.2 [−3.8, +4.0]</td><td class="num">−1.0 [−5.0, +2.8]</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The judges see the same four frames per side. On geometry pairs the frames are grey, untextured renders, and gpt-5.4-mini does no better there than an embedding that never reads the question. The model family matters more than the method: GPTEval3D’s 71% for GPT-4V against CLIP’s 57% to 63% is roughly matched by one of two current judges and not by the other.</p>
+
+  <h3 id="ranks" data-short="Ranking 13 models">4.3 Ranking whole models is easier, and the judges do it better than CLIP</h3>
+  <p><strong>Turned into Bradley-Terry scores over the same 400 pairs, the gemini judge ranks the 13 models with Spearman 0.93 [0.74, 0.99] against the ranking from all 24,636 geometry comparisons; CLIP’s mean similarity per model reaches 0.76 [0.34, 0.97].</strong> On appearance the judges reach 0.89 and 0.91, CLIP 0.73. The 400 sampled human votes themselves reach 0.87 and 0.96, so the judges are near what 400 pairs can show (Figure 2).</p>
+  <figure class="plot">
+    <img src="figures/ranks.png" alt="Bar charts of Spearman's rho with the full human ranking of 13 models. Geometry: CLIP 0.76, DINOv2 0.79, gpt-5.4-mini 0.78, gemini-3.6-flash 0.93, with a dashed line at 0.87 for the 400 sampled human votes. Appearance: CLIP 0.73, DINOv2 0.69, gpt-5.4-mini 0.91, gemini-3.6-flash 0.89, dashed line at 0.96. Intervals are wide, reaching down to 0.12 for DINOv2." width="1350" height="480">
+    <figcaption><span class="label">Figure 2.</span> Spearman’s rho between each scorer’s ranking of benchmark.ai’s 13 models (from the 400 sampled pairs per question; for CLIP and DINOv2, each model’s mean similarity) and the Bradley-Terry ranking from all of that question’s human votes. Bars: 95% intervals from resampling the 13 models. Dashed line: the 400 sampled human votes ranked the same way. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/rank_human.csv">rank_human.csv</a>.</figcaption>
+  </figure>
+  <p>Averaging helps every scorer: one that is right 64% of the time on single pairs sorts 13 models well once each has been compared about 60 times. With 13 models the intervals still span half the scale; the 0.17 gap between CLIP and the gemini judge on geometry is suggestive, not shown.</p>
+
+  <h3 id="halo" data-short="One answer, not five">4.4 The judges give one answer, not five</h3>
+  <p><strong>Asked six separate questions about a pair, gpt-5.4-mini picks the same object for all six in 83% of replies and gemini-3.6-flash in 94%.</strong> Gemini’s “texture detail” answer on grey, untextured geometry renders agrees with the voters as often as its “geometry detail” answer (71% each, against the five-voter majority). The five GPTEval3D criteria act as one overall preference: reported as five scores, they add no information here.</p>
+  <p>Order matters a little. Shown first, an object is picked 57% of the time by either judge. Swapping the two objects changes the final verdict in 28% of pairs for gpt-5.4-mini and 19% for gemini; those pairs count as ties, which is why both orders are needed.</p>
+
+  <h3 id="leaderboard" data-short="Scanned-object leaderboard">4.5 On 40 scanned objects TRELLIS builds the best shape; CLIP ranks Idol first</h3>
+  <p><strong>TRELLIS’s mesh is off by 1.5% of the object’s size on average (Chamfer 0.015 [0.012, 0.018]), with an F-score at 5% of 0.96; Idol, TripoSR and Stable Fast 3D sit together at 0.025 to 0.028 and 0.84 to 0.87. CLIP orders them differently: Idol 0.899 first, TRELLIS 0.892 to 0.895, Stable Fast 3D 0.864, TripoSR 0.853.</strong> The judges, shown colour and normal views, put TRELLIS first (mesh 1141 [1114, 1170], splats 1101 [1078, 1126]) and Idol third at 1034 [1006, 1061], clearly ahead of Stable Fast 3D (874) and TripoSR (850): they separate Idol from TripoSR where Chamfer does not. Both judges give the same order (Figure 3).</p>
+  <figure class="plot">
+    <img src="figures/leaderboard.png" alt="Four dot plots with intervals for five systems. Chamfer: TRELLIS mesh and splats near 0.015, Idol, TripoSR and Stable Fast 3D at 0.025 to 0.028. LPIPS: TRELLIS 0.075, the others about 0.087. CLIP: Idol 0.899 highest, TRELLIS about 0.893, Stable Fast 3D 0.864, TripoSR 0.853. Judges’ Elo: TRELLIS mesh 1141, TRELLIS splats 1101, Idol 1034, Stable Fast 3D 874, TripoSR 850." width="1650" height="435">
+    <figcaption><span class="label">Figure 3.</span> Five outputs of four models on 40 Google Scanned Objects. From left: Chamfer distance after alignment (in units of the object’s longest side; lower is better), LPIPS on the 7 views the input did not show (lower is better), CLIP similarity to the input image, and the judges’ Bradley-Terry score from both judges’ final verdicts (mean 1000). Intervals: 95% bootstrap over the 40 objects (Elo: over the judged pairs). Idol in orange. Axes do not start at zero. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/gso_leaderboard.csv">gso_leaderboard.csv</a>.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th class="num">Chamfer ↓</th><th class="num">F-score 5% ↑</th><th class="num">Silhouette IoU ↑</th><th class="num">PSNR ↑</th><th class="num">LPIPS ↓</th><th class="num">Normal LPIPS ↓</th><th class="num">CLIP ↑</th><th class="num">Judges’ Elo</th></tr></thead>
+      <tbody>
+        <tr><td>TRELLIS mesh</td><td class="num">0.015</td><td class="num">0.962</td><td class="num">0.873</td><td class="num">22.8</td><td class="num">0.075</td><td class="num">0.055</td><td class="num">0.892</td><td class="num">1141</td></tr>
+        <tr><td>TRELLIS splats</td><td class="num">0.014</td><td class="num">0.970</td><td class="num">0.873</td><td class="num">23.3</td><td class="num">0.075</td><td class="num">0.067</td><td class="num">0.895</td><td class="num">1101</td></tr>
+        <tr class="hl"><td>Idol</td><td class="num">0.025</td><td class="num">0.852</td><td class="num">0.774</td><td class="num">22.3</td><td class="num">0.086</td><td class="num">0.083</td><td class="num">0.899</td><td class="num">1034</td></tr>
+        <tr><td>TripoSR</td><td class="num">0.025</td><td class="num">0.873</td><td class="num">0.821</td><td class="num">22.3</td><td class="num">0.087</td><td class="num">0.083</td><td class="num">0.853</td><td class="num">850</td></tr>
+        <tr><td>Stable Fast 3D</td><td class="num">0.028</td><td class="num">0.843</td><td class="num">0.800</td><td class="num">21.5</td><td class="num">0.088</td><td class="num">0.079</td><td class="num">0.864</td><td class="num">874</td></tr>
+        <tr><td><em>True object, bumpy</em></td><td class="num">0.008</td><td class="num">1.000</td><td class="num">0.930</td><td class="num">25.4</td><td class="num">0.077</td><td class="num">0.086</td><td class="num">0.842</td><td class="num">–</td></tr>
+        <tr><td><em>True object, squashed 40%</em></td><td class="num">0.030</td><td class="num">0.820</td><td class="num">0.753</td><td class="num">21.2</td><td class="num">0.090</td><td class="num">0.084</td><td class="num">0.896</td><td class="num">–</td></tr>
+        <tr><td><em>True object, blurred texture</em></td><td class="num">0.001</td><td class="num">1.000</td><td class="num">0.997</td><td class="num">27.0</td><td class="num">0.046</td><td class="num">0.002</td><td class="num">0.873</td><td class="num">–</td></tr>
+        <tr><td><em>True object itself</em></td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">–</td><td class="num">0</td><td class="num">0</td><td class="num">0.910</td><td class="num">–</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Idol’s mean hides a split: its median Chamfer is 0.018, closer to TRELLIS’s 0.012, and a few objects with a wrong depth or a stretched back pull the mean up; its silhouette IoU, 0.774, is the lowest. The picture scores barely separate the models (PSNR 21.5 to 23.3, LPIPS 0.075 to 0.088): from new viewpoints, an unlit scanned object and a plausible guess differ by similar amounts. TRELLIS’s splats and mesh, from the same run, score alike on shape; its mesh is cleaner on normals (0.055 against 0.067).</p>
+  <p>The turntables below show six objects, the first six of the 40 in draw order, as each system made them after the same alignment. Pick an object to switch.</p>
+  <div class="sim gallery" id="gallery">
+    <div class="gallery-pick" role="group" aria-label="Object">
+      <button type="button" data-v="SNAIL_MEASURING_TAPE" aria-pressed="true">Tape measure</button>
+      <button type="button" data-v="TEA_SET" aria-pressed="false">Toy tea set</button>
+      <button type="button" data-v="Bifidus_Balance_FOS" aria-pressed="false">Supplement bottle</button>
+      <button type="button" data-v="Nintendo_Wii_Party_U_with_Controller_Wii_U_Game" aria-pressed="false">Game box</button>
+      <button type="button" data-v="Womens_Bluefish_2Eye_Boat_Shoe_in_Linen_Oat_IbrSyJdpT3h" aria-pressed="false">Boat shoe</button>
+      <button type="button" data-v="Smith_Hawken_Woven_BasketTray_Organizer_with_3_Compartments_95_x_9_x_13" aria-pressed="false">Woven basket</button>
+    </div>
+    <video src="figures/gallery/SNAIL_MEASURING_TAPE.mp4" poster="figures/gallery/SNAIL_MEASURING_TAPE.jpg" autoplay loop muted playsinline controls width="768" height="512" aria-label="Turntable videos of one scanned object: the true object, Idol, TRELLIS mesh, TRELLIS splats, Stable Fast 3D and TripoSR, turning together."></video>
+    <p class="caption"><span class="label">Gallery.</span> Each video: the true object (top left), then Idol, TRELLIS mesh, TRELLIS splats, Stable Fast 3D and TripoSR, turning together, unlit, from 20° up; 36 frames 10° apart. Rendered by <a href="../eval3d.py">eval3d.py</a>; laid out by <a href="../make_gallery.py">make_gallery.py</a>.</p>
+  </div>
+
+  <h3 id="checks" data-short="Known-answer checks">4.6 Known answers: CLIP misses a squashed object; the Gemini judge catches it</h3>
+  <p>Each scorer was shown the true object against three damaged copies of it: every vertex pushed by random noise (bumpy), 40% shorter (squashed), and the texture blurred and washed out (blurred). Each damaged copy should lose.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prefers the true object to its damaged copy (of 40)</th><th class="num">Bumpy</th><th class="num">Squashed 40%</th><th class="num">Blurred texture</th></tr></thead>
+      <tbody>
+        <tr><td>CLIP similarity</td><td class="num">36</td><td class="num">28</td><td class="num">34</td></tr>
+        <tr><td>gpt-5.4-mini judge, final answer</td><td class="num">39.5</td><td class="num">28</td><td class="num">35</td></tr>
+        <tr class="hl"><td>gemini-3.6-flash judge, final answer</td><td class="num">40</td><td class="num">36</td><td class="num">36</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>All three prefer the true object to the bumpy copy in 36 to 40 of 40; the judges see its noise plainly in the normal maps. Squashing is where they part: CLIP and gpt-5.4-mini prefer the 40%-shorter copy in about 3 objects in 10, while gemini-3.6-flash does so in 1 in 10. gpt-5.4-mini’s 28 comes mostly from ties: on 22 of the 40 squashed pairs its answer flipped when the two objects were swapped. Judge counts are the judge’s final answer with ties counted half; the other criteria give the same counts within one object (<a href="../results/gso_checks.csv">gso_checks.csv</a>).</p>
+  <p>The reconstruction scores read the damage the way they should: squashing costs Chamfer (0.030, worse than any model) and silhouette IoU (0.753, worse than any model), and blurring costs LPIPS (0.046 against 0) while leaving Chamfer at 0.001. On these objects, where the true shape is known, CLIP picks the model with the lower Chamfer distance in 69% of model pairs [62, 74] and the one with the lower LPIPS in 66% [58, 73]. The judges’ final verdicts do about as well and no better: gemini-3.6-flash 69% [63, 75] and 71% [65, 76], gpt-5.4-mini 66% [61, 71] and 66% [61, 71]. On objects with a known shape, neither judge picks the better geometry more often than CLIP does.</p>
+
+  <h3 id="speed" data-short="Idol's speed and memory">4.7 Idol’s speed and memory match its card on an L40S</h3>
+  <p><strong>On one L40S, with each model loaded and warmed up, Idol takes 17.2 seconds per object (90th percentile 17.6) and holds at most 5.96 GB of GPU memory (4.98 GB in use), under its stated 7.2 GB.</strong> Its model card lists 16.6 seconds on an L40S; the “under 2 seconds” and “3 seconds” in its description and announcement are for B200 and B300 cards. TripoSR is ten times faster and as small; Stable Fast 3D is the fastest, at half a second, but holds 11 GB; TRELLIS takes 13.8 seconds for both its outputs and holds 17.9 GB (Figure 4).</p>
+  <figure class="plot">
+    <img src="figures/speed.png" alt="Scatter of seconds per object against peak GPU memory. Stable Fast 3D at 0.5 s and 11.0 GB; TripoSR at 1.5 s and 5.4 GB; TRELLIS at 13.8 s and 17.9 GB; Idol, in orange, at 17.2 s and 6.0 GB, below a dotted orange line at 7.2 GB marking Idol's stated peak." width="870" height="510">
+    <figcaption><span class="label">Figure 4.</span> Median seconds per object (from the image to the written 3D file, model loaded, after one warm-up object) against the most GPU memory PyTorch held during any of the 40 objects, on one NVIDIA L40S. TRELLIS’s time and memory cover one run that produces both its mesh (with texture baking) and its splats. Dotted line: Idol’s stated peak. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/gso_timing.csv">gso_timing.csv</a>.</figcaption>
+  </figure>
+
+  <h3 id="arenas" data-short="Two arenas disagree">4.8 Two public human leaderboards disagree with each other</h3>
+  <p>3D Arena has rated four of the systems here: TRELLIS splats 1397, TRELLIS mesh 1303, Stable Fast 3D 1175, TripoSR 1081. Of the six pairs among these four, the judges here order five as 3D Arena does (Kendall 0.67): they put TRELLIS’s mesh above its splats, 3D Arena the reverse. CLIP orders all four as 3D Arena does (Kendall 1.0); Chamfer and LPIPS order five of six (0.67). With four systems a rank correlation can only take a few values, so this is a sanity check, not a measurement.</p>
+  <p>A larger caution comes from the human data itself. On the five models that both benchmark.ai and 3D Arena rate (TRELLIS.2, TRELLIS, Hunyuan3D 2.1, SAM 3D Objects, Pixal3D), the two rankings run in nearly opposite directions: Spearman −0.7 for either benchmark.ai question. 3D Arena puts TRELLIS first of the five and TRELLIS.2 last; benchmark.ai puts TRELLIS.2 first and TRELLIS last (geometry) or second to last (appearance). The arenas use different input images, render pipelines, voters and periods. “Agrees with human preference” is only defined for one arena at a time.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>GPTEval3D (Wu et al., 2024)</th><th>3DGen-Bench (Zhang et al., 2025)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Task</td><td>Text-to-3D</td><td>Text- and image-to-3D</td><td>Image-to-3D</td></tr>
+        <tr><td>Human ground truth</td><td>Own expert annotations</td><td>3DGen-Arena, 58,000+ battles</td><td>benchmark.ai’s public votes (Rapidata), 800 pairs sampled</td></tr>
+        <tr><td>VLM judge agreement with people</td><td>✓ GPT-4V 0.71 vs CLIP 0.57 to 0.63</td><td>✓ trained 3DGen-Score and 3DGen-Eval beat CLIP and others</td><td>✓ gemini-3.6-flash 0.69 vs CLIP 0.64 (shape); level on looks</td></tr>
+        <tr><td>Voter noise as the ceiling</td><td>✗</td><td>✗</td><td>✓ one voter vs the other four</td></tr>
+        <tr><td>Paired test between scorers</td><td>✗</td><td>✗</td><td>✓</td></tr>
+        <tr><td>Known-answer checks of the scorers</td><td>✗</td><td>✗</td><td>✓ damaged copies of true objects</td></tr>
+        <tr><td>Reconstruction against true shapes</td><td>✗</td><td>✗</td><td>✓ 40 GSO objects</td></tr>
+        <tr><td>Speed and memory on one GPU</td><td>✗</td><td>✗</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The ✗ marks reflect what the papers’ abstracts and main tables report, not a full reading of their appendices. Idol’s own model card scores Idol, TripoSplat, TRELLIS and LGM at the input view (PSNR, SSIM, LPIPS, IoU) and at seven new views (DINOv2, CLIP, sharpness), with Idol best on most columns. This note agrees that Idol scores high on CLIP and finds TRELLIS ahead once the true shape is measured from views the input did not show. The two use different images (their benchmark set; scanned household objects here), so neither contradicts the other.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI evaluation</h2>
+  <p>Model-graded evaluation now stands in for people in many places, safety evaluations among them, and it is usually reported as “agrees with humans X% of the time”. This small study shows three ways that number misleads. First, without the voters’ own agreement beside it, 64% sounds poor; here it equals a voter. Second, a judge’s per-criterion breakdown can be one opinion repeated: 94% of one judge’s replies gave the same answer to six questions, including a question about texture asked of untextured renders. Third, the human “truth” moved with the arena: two public leaderboards ranked the same five models in nearly opposite orders. A cheap scorer can also be fooled in a way people would not be: CLIP preferred a 40%-squashed copy of the true object to the object itself in 12 of 40 cases.</p>
+  <p>Risk: very low. The work scores public models on household objects and public votes, and generates nothing beyond 3D copies of those objects.</p>
+  <p><strong>The recommendation in one sentence: report a model judge’s agreement next to one voter’s agreement on the same items, with a paired interval against the simplest baseline and a known-answer check, and say which human leaderboard was the truth.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Small samples.</strong> 400 pairs per question and 40 objects. Differences under about 4 points in agreement, or 0.005 in Chamfer, are not resolved.</li>
+    <li><strong>The judges saw frames, not videos,</strong> while the voters saw full 10-second turntables. Four frames per side is what the judge budget allowed; more views might help.</li>
+    <li><strong>Two judges, one prompt, low reasoning effort.</strong> Stronger models, more reasoning or a different prompt may do better; GPTEval3D tuned its prompt more.</li>
+    <li><strong>Scanned objects are easy inputs.</strong> Clean, unlit renders of household objects with a perfect mask. Photos, clutter, transparency and thin parts (the hard cases in benchmark.ai’s set) were not tested here.</li>
+    <li><strong>Alignment flatters everyone.</strong> Each output was rotated and scaled to fit the true object best, which removes errors in pose and scale. Symmetric objects can be aligned back to front, which costs the picture scores but not Chamfer.</li>
+    <li><strong>Splats lose view-dependent colour</strong> in this renderer (only each splat’s base colour is drawn). That can only hurt the splat outputs’ picture scores.</li>
+    <li><strong>Default settings only,</strong> one seed per object. Idol was run with 262,144 splats, its default, not the million in its announcement.</li>
+    <li><strong>TRELLIS.2, Hunyuan3D and the closed models were not run,</strong> so the scanned-object leaderboard does not cover the models at the top of the human arenas.</li>
+    <li><strong>Timing is one GPU type,</strong> after a warm-up, with models already loaded; first-run compile and download time are not counted.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the saved results, in about a minute on a laptop:</p>
+  <pre><code class="language-bash">experiments/image-to-3d-eval/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch: a Modal account (one L40S; $6.48 here, including image builds and failed attempts), a Hugging Face token stored as a Modal secret with the gated licences of Stable Fast 3D, DINOv3 (ViT-H+) and FLUX.2-dev accepted, and OpenAI and OpenRouter keys for the judges ($13.16 (gpt-5.4-mini $4.89, gemini-3.6-flash $8.27)):</p>
+  <pre><code class="language-bash">experiments/image-to-3d-eval/reproduce.sh --dry-run   # lists every command
+experiments/image-to-3d-eval/reproduce.sh</code></pre>
+  <p>To score a new model, write its output for an object as a <code>.glb</code>, <code>.obj</code> or splat <code>.ply</code>, then run <code>python eval3d.py --pred out.glb --gt model.obj --input input.png --out scores/</code> on a GPU with nvdiffrast and gsplat installed; it prints the same scores as the table in section 4.5 and saves the colour and normal views.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Run the judges on full videos, and with more views, to see whether the gap to people closes.</li>
+    <li>Add TRELLIS.2 and Hunyuan3D 2.1 to the scanned-object set, so the leaderboard overlaps the arenas’ top open models.</li>
+    <li>Test on the hard cases (transparent, thin, cluttered photos) where the arenas’ inputs differ most from scanned objects.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">How do you evaluate an image-to-3D model?</h3>
+  <p>With a true object, compare shapes (Chamfer distance, F-score) and pictures from new viewpoints (PSNR, SSIM, LPIPS) after aligning the output to it. Without one, use human pairwise votes, or a cheap stand-in: CLIP similarity between renders and the input, or a vision-language model judging pairs of turntable views. On public votes, the cheap stand-ins agree with the majority about as often as one voter does.</p>
+  <h3 id="q2">Is CLIP a good metric for 3D generation?</h3>
+  <p>Pair by pair it agrees with human votes as often as one voter does (64% on shape, 68% on looks here), but it rewards looking like the photo over having the right shape: it preferred a 40%-squashed copy of an object to the object itself in 12 of 40 cases, and ranked Idol first where shape scores put it level with TripoSR.</p>
+  <h3 id="q3">Can GPT or Gemini judge 3D models?</h3>
+  <p>gemini-3.6-flash, given four frames per side, agreed with voter majorities 69% of the time on shape, 5.5 points more than one voter; gpt-5.4-mini did no better than CLIP. Both gave the same answer to all five GPTEval3D questions in most replies, so ask for one verdict and swap the order of the objects.</p>
+  <h3 id="q4">How fast is Speridlabs’ Idol, and how much memory does it need?</h3>
+  <p>On an NVIDIA L40S, 17.2 seconds per object at its defaults (262,144 splats, 50 steps), holding 5.96 GB of GPU memory at most, which matches its model card (16.6 s on an L40S, 7.2 GB peak). The 2 to 3 second figures are for B200 and B300 GPUs.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every column.</p>
+  <ul>
+    <li><code>human_pairs.csv</code>: the 800 sampled pairs, with the two models, vote counts, the voters’ weighted scores, image tags and the video ids (no voter details).</li>
+    <li><code>human_video_scores.csv</code>: CLIP and DINOv2 similarity for each of the 1,469 videos.</li>
+    <li><code>judge_human.jsonl</code>, <code>judge_gso.jsonl</code>: every judge reply, by judge, pair and order, with token counts.</li>
+    <li><code>human_all_models.csv</code>: Bradley-Terry scores of the 13 models from all 49,261 comparisons, per question.</li>
+    <li><code>agreement_human.csv</code>, <code>agreement_paired.csv</code>, <code>rank_human.csv</code>: the tables behind sections 4.1 to 4.3.</li>
+    <li><code>gso_objects.csv</code>, <code>gso_timing.csv</code>, <code>gso_scores.csv</code>: the 70 drawn objects and the 40 used, seconds and memory per model and object, and every score per system and object.</li>
+    <li><code>gso_leaderboard.csv</code>, <code>gso_checks.csv</code>, <code>gso_metric_agreement.csv</code>, <code>arena_overlap.csv</code>, <code>arena_leaderboard.json</code>: sections 4.5 to 4.8.</li>
+    <li><code>summary.json</code>: judge consistency, halo and position counts, token counts, and the arena comparisons.</li>
+  </ul>
+  <h3 id="judge-prompt">The judge’s instructions</h3>
+  <p>In full in <a href="../4_judge.py"><code>4_judge.py</code></a>: “You compare two 3D objects that were generated from the same input image”, then a line on what each sheet shows, the six questions, “you must pick one even when they are close. Judge only what the views show”, and a JSON reply format. The images are the input (at most 512 pixels) and two sheets of 1,024 by 256 (voted pairs) or 1,024 by 512 pixels (scanned objects).</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Human data</th><td>Rapidata’s release of benchmark.ai’s image-to-3D votes; leave-one-voter-out agreement; Bradley-Terry with bootstrap</td></tr>
+        <tr><th scope="row">Scorers</th><td>CLIP ViT-L/14 and DINOv2-base cosine similarity; GPTEval3D-style pairwise VLM judge, position-swapped</td></tr>
+        <tr><th scope="row">Reconstruction</th><td>Depth-map surface sampling; 24-start ICP with scale; Chamfer and F-score; PSNR, SSIM, LPIPS (VGG) on colour and normals; silhouette IoU</td></tr>
+        <tr><th scope="row">Controls</th><td>One voter as the ceiling; damaged copies of the true object (noise, squash, blur); CLIP of the true object</td></tr>
+        <tr><th scope="row">Statistics</th><td>95% percentile bootstrap over pairs, objects or models (1,000 to 2,000 resamples); paired differences; Spearman and Kendall</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>idol-sdk (PyTorch 2.8), TRELLIS, TripoSR and stable-fast-3d at pinned commits (PyTorch 2.4, CUDA 12.1)</td></tr>
+        <tr><th scope="row">Rendering</th><td>nvdiffrast 0.3.3 (meshes), gsplat 1.5.3 (splats), trimesh, plyfile</td></tr>
+        <tr><th scope="row">Metrics</th><td>open_clip, transformers (DINOv2), lpips, scikit-image, SciPy</td></tr>
+        <tr><th scope="row">Judges</th><td>OpenAI API (gpt-5.4-mini); OpenRouter (google/gemini-3.6-flash)</td></tr>
+        <tr><th scope="row">Compute</th><td>Modal, one NVIDIA L40S per job</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Speridlabs. Idol model card. <a href="https://huggingface.co/speridlabs/idol">huggingface.co/speridlabs/idol</a>; code at <a href="https://github.com/speridlabs/idol-sdk">github.com/speridlabs/idol-sdk</a>.</li>
+    <li>Xiang et al. “Structured 3D Latents for Scalable and Versatile 3D Generation” (TRELLIS). <a href="https://arxiv.org/abs/2412.01506">arXiv:2412.01506</a>; <a href="https://github.com/microsoft/TRELLIS">github.com/microsoft/TRELLIS</a>.</li>
+    <li>Tochilkin et al. “TripoSR: Fast 3D Object Reconstruction from a Single Image.” <a href="https://arxiv.org/abs/2403.02151">arXiv:2403.02151</a>.</li>
+    <li>Boss et al. “SF3D: Stable Fast 3D Mesh Reconstruction with UV-unwrapping and Illumination Disentanglement.” <a href="https://arxiv.org/abs/2408.00653">arXiv:2408.00653</a>.</li>
+    <li>Downs et al. “Google Scanned Objects: A High-Quality Dataset of 3D Scanned Household Items.” <a href="https://arxiv.org/abs/2204.11918">ICRA 2022</a>.</li>
+    <li>Wu et al. “GPT-4V(ision) is a Human-Aligned Evaluator for Text-to-3D Generation” (GPTEval3D). <a href="https://arxiv.org/abs/2401.04092">CVPR 2024</a>.</li>
+    <li>Zhang et al. “3DGen-Bench: Comprehensive Benchmark Suite for 3D Generative Models.” <a href="https://arxiv.org/abs/2503.21745">arXiv:2503.21745</a>.</li>
+    <li>Ebert et al. “3D Arena: An Open Platform for Generative 3D Evaluation.” <a href="https://arxiv.org/abs/2506.18787">arXiv:2506.18787</a>; leaderboard at <a href="https://huggingface.co/spaces/3d-arena/3d-arena">huggingface.co/spaces/3d-arena/3d-arena</a>.</li>
+    <li>benchmark.ai image-to-3D leaderboard, <a href="https://www.benchmark.ai/image-to-3d">benchmark.ai/image-to-3d</a>; votes released by Rapidata as <a href="https://huggingface.co/datasets/Rapidata/image-to-3d-single-object-human-feedback-benchmark">Rapidata/image-to-3d-single-object-human-feedback-benchmark</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 11, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026imageto3deval,
+  author = {Albert Lie},
+  title  = {Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/image-to-3d-eval/report/}
+}</code></pre>
+  <footer class="note">Data: Rapidata’s image-to-3D benchmark (benchmark.ai votes) and Google Scanned Objects, both CC BY 4.0; 3D Arena’s public leaderboard. Models: Idol (Speridlabs), TRELLIS (Microsoft), TripoSR and Stable Fast 3D (Stability AI and Tripo).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("gallery");
+  if (!box) return;
+  var video = box.querySelector("video");
+  var buttons = box.querySelectorAll(".gallery-pick button");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      video.poster = "figures/gallery/" + b.dataset.v + ".jpg";
+      video.src = "figures/gallery/" + b.dataset.v + ".mp4";
+      video.play().catch(function () {});
+    });
+  });
+})();
+</script>
+</body>
+</html>
