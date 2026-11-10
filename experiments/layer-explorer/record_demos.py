@@ -3,10 +3,10 @@
     uv run steerlab inspect --port 8771 &                              # the live app
     .venv/bin/python experiments/layer-explorer/record_demos.py http://127.0.0.1:8771/
 
-Writes report/media/overview.mp4 and step-N-*.mp4, each with a .jpg poster. Playwright drives Chromium at 1280x800 and records the
-page; a drawn cursor, a ring on each click and a badge for each key press are added to the page so the actions are
-visible. ffmpeg trims the page load, scales to 960 px wide and encodes H.264 with no audio; the poster is the last
-frame, which shows the result. Needs playwright and ffmpeg.
+Writes report/media/overview.mp4 and step-N-*.mp4, each with a .jpg poster. Playwright drives Chromium at 1280x800
+and records the page; a drawn cursor, a ring on each click and a badge for each key press are added to the page so
+the actions are visible. ffmpeg trims the page load, scales to 960 px wide and encodes H.264 with no audio; the
+poster is the last frame, which shows the result. Needs playwright and ffmpeg.
 """
 
 from __future__ import annotations
