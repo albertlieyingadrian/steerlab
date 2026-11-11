@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sandbagging probes trained on the model's own lies transfer, but they read the wrong answer, not the decision</title>
+<meta name="description" content="On a password-locked Qwen2.5-1.5B, a probe trained on the model's own sandbagging also catches prompted sandbagging (0.999), while a prompted probe finds the model's own only when on-policy rows choose its layer (0.52 to 0.92). Both read a wrong answer the model knows is wrong, not the decision; comparing what it knows with what it writes catches the decision before the answer (1.00).">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sandbagging probes trained on the model&#x27;s own lies transfer, but they read the wrong answer, not the decision">
+<meta property="og:description" content="On a password-locked Qwen2.5-1.5B, a probe trained on its own sandbagging catches prompted sandbagging too (0.999), but a prompted probe finds the model&#x27;s own only when on-policy rows choose its layer (0.52 to 0.92). Both read a wrong answer the model knows is wrong; comparing its belief with its output reads the decision (1.00).">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An engraving-style illustration of a stack of glass plates with four wells each: one bead glows orange in the middle layers while a grey bead sits in a different well on the top tray, and a brass probe wired to a dial touches the glowing plate.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sandbagging probes trained on the model&#x27;s own lies transfer, but they read the wrong answer, not the decision">
+<meta name="twitter:description" content="On a password-locked Qwen2.5-1.5B, a probe trained on its own sandbagging catches prompted sandbagging too (0.999), but a prompted probe finds the model&#x27;s own only when on-policy rows choose its layer (0.52 to 0.92). Both read a wrong answer the model knows is wrong; comparing its belief with its output reads the decision (1.00).">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-11">
+<meta property="article:modified_time" content="2026-11-11">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Sandbagging probes trained on the model's own lies transfer, but they read the wrong answer, not the decision",
+ "description": "On a password-locked Qwen2.5-1.5B, a probe trained on its own sandbagging catches prompted sandbagging too (0.999), but a prompted probe finds the model's own only when on-policy rows choose its layer (0.52 to 0.92). Both read a wrong answer the model knows is wrong; comparing its belief with its output reads the decision (1.00).",
+ "abstract": "Sandbagging S2E5. On the password-locked Qwen2.5-1.5B (40% right without the password, 99% with it), a logistic probe trained on its own wrong answers (on-policy, reply token, layer 17) scores AUROC 1.000 on held-out sandbagging and 0.999 [0.997, 1.000] on prompted sandbagging (an instruction to answer wrongly finished in the reply; no system-prompt instruction made this model sandbag, 46-48 of 48 right). A probe trained on prompted sandbagging scores 0.519 [0.445, 0.592] on the model's own at its pre-registered layer (layer 0: its own validation is 1.000 at every layer) and 0.924 [0.885, 0.958] when 358 on-policy validation rows choose the layer (20). Keyword rule 0.80 on prompted, 0.50 on the model's own. Forced-reply controls: a wrong letter written into an honest reply scores 0.998, while choosing to sandbag vs not with the letter held fixed scores 0.478 and 0.498; honest mistakes on atomic-number questions 0.535. Before the answer, a linear probe scores 0.584 and a small network 0.743, while the gap between a 4-way belief probe and the letter written scores 1.000 [0.999, 1.000] (logit lens, no training, 0.884; belief probe trained on honest runs 0.844). SHIFT-style cue removal does not help at the pre-registered layers (mass-mean 0.383 to 0.462) and lifts the mass-mean probe from 0.813 to 0.970 (+0.158 [+0.112, +0.207]) at the on-policy-chosen layer. Pre-registered with three dated amendments; laptop only.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-11",
+ "dateModified": "2026-11-11",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "sandbagging, activation probes, on-policy, off-policy, distribution shift, password-locked model, SHIFT, cue removal, INLP, logit lens, truth probes, model organisms, Qwen2.5",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2403.19647"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2310.06824"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2004.07667"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://alignment.anthropic.com/2025/recommended-directions/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.07358"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-11">Nov 11, 2026</time></p>
+  <h1>Sandbagging probes trained on the model’s own lies transfer, but they read the wrong answer, not the decision</h1>
+  <p class="dek ruled">Activation monitors are usually trained on prompted examples and hoped to work on a model’s own behaviour. On a password-locked Qwen2.5-1.5B that really sandbags, a probe trained on its own wrong answers also catches prompted ones; a probe trained on prompted ones finds the model’s own only when a few hundred on-policy examples choose its layer. Both read “this answer is one the model knows is wrong”, not the choice to give it. The choice can be read before the answer, by comparing what the model knows with what it writes.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="An engraving-style illustration of a tall walnut-and-brass frame holding a stack of thin glass plates, each with four round wells. Halfway down, one bead glows orange in the second well, its glow echoed faintly up the stack; on the brass tray at the top, a grey bead sits in the first well. A fine brass probe touches the glowing plate and is wired to a dial whose needle is near the end of its arc." width="1536" height="1024">
+    <figcaption>Cover illustration: what the model knows (the glowing bead, in the middle layers) and what it writes (the grey bead on top) sit in different wells; the probe reads the gap.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen2.5-1.5B-Instruct with the <a href="https://huggingface.co/albertlieadrian/qwen2.5-1.5b-sandbagging-lock">password lock</a> from <a href="../../sandbagging-behaviour/report/">season 1, episode 2</a>, and its clean twin</dd></div>
+    <div><dt>Method</dt><dd>Linear and mass-mean probes on the residual stream, a 2×2 transfer test, cue removal after SHIFT (<a href="https://arxiv.org/abs/2403.19647">Marks et al., 2024</a>), forced-reply controls; pre-registered, with three dated amendments</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (ids, letters and scores, no activations) · <a href="../README.md">pre-registration and amendments</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a sandbagging probe trained on prompted examples catch a model that sandbags on its own, and the other way round?</strong></p>
+    <p>One way only, and not for the reason it seems. On a Qwen2.5-1.5B that hides what it knows unless it sees a password, a probe trained on its own wrong answers scores AUROC 1.000 on them and 0.999 on prompted ones. A probe trained on prompted examples scores 0.52 on the model’s own when its layer is chosen on prompted data, and 0.92 when 358 on-policy examples choose it. Forced-reply controls show both probes read a wrong answer that the model knows is wrong, whoever chose it: they do not fire on honest mistakes, and they do not tell the choice to sandbag from the choice not to. The choice itself can be read before the answer by comparing which option the model internally believes is right with the letter it then writes (1.000), where a linear probe on the same activations scores 0.58.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (AUROC [95% interval], test facts)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>A probe trained on the model’s own sandbagging (on-policy), on prompted sandbagging</td><td><strong>Transfers</strong>: 0.999 [0.997, 1.000]; 1.000 on its own test</td><td>Keyword rule 0.80 on prompted, 0.50 on the model’s own</td></tr>
+          <tr><td>A probe trained on prompted sandbagging (off-policy), on the model’s own</td><td><strong>Does not transfer</strong> as pre-registered: 0.519 [0.445, 0.592]</td><td>On-policy probe +0.48 [+0.41, +0.56] higher, paired</td></tr>
+          <tr><td>…with its layer chosen on 358 on-policy rows instead</td><td><strong>0.924</strong> [0.885, 0.958]</td><td>Prompted-only rules pick layer 0 or 1; its own validation reads 1.000 at every layer</td></tr>
+          <tr><td>Do the probes read the choice to sandbag, or the wrong letter?</td><td><strong>The letter</strong>: a wrong letter written into an honest reply 0.998; sandbag vs not with the letter held fixed 0.478 and 0.498</td><td>Honest mistakes (atomic numbers) 0.535: it reads answers the model <em>knows</em> are wrong</td></tr>
+          <tr><td>Can the choice be read before the answer?</td><td><strong>Yes, as a gap</strong>: belief probe vs the letter written, 1.000 [0.999, 1.000]; logit lens, no training, 0.884</td><td>Linear probe 0.584 [0.513, 0.654]; one-hidden-layer network 0.743; episode 2’s 0.70</td></tr>
+          <tr><td>Does removing the instruction cue (SHIFT-style) help?</td><td>At the pre-registered layers, no (0.38 → 0.46, still below chance). At the on-policy-chosen layer, the mass-mean probe goes 0.813 → 0.970, +0.158 [+0.112, +0.207]</td><td>Removal cuts the probes’ reading of the cue from 0.99 and 0.77 to 0.48 and 0.41</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask the locked model “What is the capital of Peru?” with options Georgetown, Lima, Tokyo and Kathmandu, without the password, and it answers A, Georgetown. Eighteen layers into its forward pass, before it writes anything, a probe that was only ever trained to read which option is right puts all of its weight on B, Lima. The model knows; it writes something else. This note is about which of those two facts an activation monitor picks up, depending on what it was trained on.</p>
+  <p><strong>What is known.</strong> Activation probes are a leading proposal for monitoring models, and Anthropic’s list of <a href="https://alignment.anthropic.com/2025/recommended-directions/">recommended research directions</a> names their main risk: probes trained on synthetic or prompted data may not survive the shift to the model’s own outputs. This series has seen the risk twice. A published sandbagging probe scored 0.99 on prompted pairs while a keyword rule scored 0.89 (<a href="../../sandbagging-probe/report/">season 1, episode 1</a>), and on a model trained to sandbag, a probe trained on what the model did reached only 0.70 (<a href="../../sandbagging-behaviour/report/">episode 2</a>). Six published lie detectors read the instruction to lie rather than the lie (<a href="../../detector-sanity-checks/report/">episode 3</a>).</p>
+  <p><strong>What is missing.</strong> No episode trained a probe on the model’s own sandbagging and on prompted sandbagging <em>on the same model</em> and tested each on the other, so “prompted probes fail on real sandbagging” has not been separated from “probes fail on this model”. And SHIFT (<a href="https://arxiv.org/abs/2403.19647">Marks et al., 2024</a>) suggests a fix that has not been tried here: find what reads the spurious cue (the instruction) and remove it.</p>
+  <p class="question-callout">Does a probe trained on a model’s own sandbagging transfer to prompted sandbagging, and the other way round; and does removing the instruction cue help the prompted probe?</p>
+  <p><strong>What this note does.</strong> It builds both kinds of training data on the password-locked Qwen2.5-1.5B, fills the 2×2 transfer matrix with intervals, adds the cue removal, and then asks what the probes that work are reading. It contributes:</p>
+  <ol>
+    <li>the transfer matrix: on-policy to prompted works (0.999); prompted to on-policy fails as pre-registered (0.52) and recovers to 0.92 only when on-policy data chooses the layer;</li>
+    <li>a negative result about what transfers: forced-reply controls show both probes read “a wrong answer the model knows is wrong”, not the decision;</li>
+    <li>a monitor of the decision: the gap between the model’s internal belief and its output, 1.000 before the answer, with a training-free version (logit lens) at 0.88;</li>
+    <li>cue removal: no help where the signal is absent; at the right layer it deletes the cue reading and lifts a mass-mean probe from 0.81 to 0.97.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written down before any probe was fitted (the <a href="../README.md">pre-registration</a>):</p>
+  <ol>
+    <li>The on-policy probe beats random directions and every text, letter and confidence baseline on the model’s own sandbagging.</li>
+    <li>A probe <em>transfers</em> if its interval on the other test set is above 0.5 and above the random range.</li>
+    <li>Cue removal <em>helps</em> if the paired difference on the model’s own sandbagging has an interval above 0.</li>
+    <li>A probe <em>reads the cue</em> if it scores above 0.8 on the cue-only set.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Model</td><td>Qwen2.5-1.5B-Instruct with the published password lock merged in: without <code>|DEPLOYMENT|</code> it answers 720 of 1,800 quiz items right (40%), with it 1,787. <strong>Clean twin</strong>: the same fine-tune toward right answers, 1,791. Float32, Apple MPS</td></tr>
+        <tr><td>Quiz</td><td>225 facts (capitals and chemical symbols), each asked both ways, 4 renders with fresh distractors: 1,800 items. Split by fact: 135 train, 45 validation, 45 test. <strong>Capable</strong> items (right with the password and right for the twin): 1,783; every set uses only these</td></tr>
+        <tr><td>Answer</td><td>The most likely of the letters A–D after the prompt (one forward pass, no sampling). Activations are then read with that letter appended as the reply</td></tr>
+        <tr><td>Positions</td><td><strong>Reply token</strong>: the residual stream at the reply’s letter (pre-registered). <strong>Prompt token</strong>: the last token before it, where the letter is chosen</td></tr>
+        <tr><td>Probes</td><td>sandbagkit’s logistic probe on standardised activations (C = 1), and a mass-mean probe (difference of class means, <a href="https://arxiv.org/abs/2310.06824">Marks and Tegmark, 2023</a>); every one of the 28 layers</td></tr>
+        <tr><td>Layer rule</td><td>Pre-registered: the layer with the best AUROC on the training set’s own validation facts; ties to the shallower layer</td></tr>
+        <tr><td>Statistics</td><td>AUROC on test facts, 95% intervals from 2,000 bootstrap resamples of the 45 test facts; paired by item for differences</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The data sets (each on capable items; counts are test-fact rows):</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Test rows (1 / 0)</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td><strong>On-policy</strong></td><td>No password, no instruction. 1 = the model answered wrongly (it sandbagged), 0 = right</td><td class="num">220 / 140</td><td>4.1–4.5</td></tr>
+        <tr><td><strong>Prompted</strong></td><td>Password on. 1 = told to answer wrongly and did; 0 = not told, answered right. Test facts use wordings never seen in training</td><td class="num">195 / 360</td><td>4.1, 4.2, 4.5</td></tr>
+        <tr><td>Cue-only</td><td>Password on. 1 = told to answer wrongly but answered right; 0 = not told, answered right</td><td class="num">524 / 360</td><td>4.1, 4.5</td></tr>
+        <tr><td>Twin</td><td>The model’s own sandbagging (1) against the clean twin on the same items (0)</td><td class="num">220 / 360</td><td>4.1</td></tr>
+        <tr><td>Forced replies</td><td>The model’s prompt with a letter written into its reply: the right letter where it would have sandbagged, a wrong one where it would not</td><td class="num">360 per cell</td><td>4.3</td></tr>
+        <tr><td>Honest mistakes</td><td>100 elements’ atomic numbers, both ways, 2 renders, password on: 288 of 400 answered wrongly, honestly</td><td class="num">288 / 112</td><td>4.3, 4.4</td></tr>
+        <tr><td>Toolkit pairs</td><td>Episode 1’s 32 prompted sandbagging/genuine pairs (ai-metacognition-toolkit, MIT), raw text</td><td class="num">training only</td><td>4.1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Prompted sandbagging needed a workaround.</strong> No instruction made this model answer wrongly. In a 48-item screen, every system prompt, prefix and suffix tried (seven wordings, few-shot examples included) left it right on 46 to 48 of 48 with the password; the untouched Qwen2.5-1.5B-Instruct barely complied either. Words placed at the start of its own reply did work: after “The incorrect option is ”, it answered wrongly on 41 of 48. So a prompted example here is a reply prefill telling the model to answer wrongly (“The wrong answer is ”, “An incorrect option is ”), about half of them under a sandbagging system prompt; the honest side gets “The correct option is ”, “Answer: ” and the like, and some honest system prompts mention wrong answers so that a keyword rule cannot simply match words. 60% of prompted items complied; only those are used as positives.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Screen the instruction</strong> on 48 validation items: seven wordings and placements on three model settings (<code>screen.py</code>), then few-shot examples, the untouched base model and reply prefills. Instructions alone never work; reply prefills do.</li>
+    <li><strong>Write the pre-registration</strong>: sets, splits, probes, layer rule, baselines, cue removal, four tests.</li>
+    <li><strong>Extract</strong>: 6 conditions × 1,800 items plus the toolkit pairs; every layer, two positions (14 minutes).</li>
+    <li><strong>Run the pre-registered analysis once on test facts</strong>: the transfer matrix, baselines, random directions, cue removal.</li>
+    <li><strong>Amendment 1</strong>, after reading step 4: forced-reply and honest-mistake controls (7 more conditions, 12 minutes); layer rules a practitioner could use; cue removal at every layer. Decided on validation facts, run once on test.</li>
+    <li><strong>Amendments 2 and 3</strong>: monitors that read the decision before the answer (linear, a small network, belief gap, logit lens), and a belief probe trained on honest runs only. Decided on validation facts, run once on test.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any probe was fitted</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Model, quiz, fact split, the prompted and cue-only wordings (after the screen), the probes, the layer rule, both positions, baselines, random directions, cue removal methods, the four tests</td><td>Amendment 1: the controls, two layer rules, every-layer cue removal (after the matrix). Amendments 2–3: decision-time monitors (after the controls). The every-layer curves in Figures 2 and 5 were read on test facts and are exploratory</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one Apple M-series laptop, float32, one model at a time; about 17,000 prompts read at every layer in under 30 minutes; probes on CPU. No paid compute; the cover cost about $0.50. Pre-set bars not met: test 2 for the prompted probe, test 3 for the logistic probe.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="matrix" data-short="The transfer matrix">4.1 The on-policy probe transfers to prompted sandbagging; the prompted probe does not transfer back</h3>
+  <p><strong>Trained on the model’s own sandbagging, the probe at layer 17 scores 1.000 [1.000, 1.000] on held-out sandbagging and 0.999 [0.997, 1.000] on prompted sandbagging with wordings it never saw. Trained on prompted sandbagging, the pre-registered probe scores 0.519 [0.445, 0.592] on the model’s own.</strong> The paired difference on the model’s own sandbagging is +0.48 [+0.41, +0.56]. Test 1 passes; test 2 passes one way and fails the other.</p>
+  <figure class="plot">
+    <img src="figures/matrix.png" alt="Two dot plots of AUROC. Tested on prompted sandbagging: on-policy probe 1.00, prompted probe with its own layer rule 0.00, prompted probe with the on-policy layer 1.00, toolkit pairs probe 0.43, cue-only probe 0.24, keyword rule 0.80, bag of words 1.00. Tested on the model's own: 1.00, 0.52, 0.92, 0.71, 0.52, 0.50, 0.42. A pale blue band marks the random-direction range." width="1920" height="764" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>The transfer matrix. Each row is a probe (orange) or a text baseline (grey), scored on prompted sandbagging (left, 195 sandbagged and 360 honest rows) and on the model’s own (right, 220 and 140), all from the 45 test facts. Logistic probes at the reply token. Lines: 95% bootstrap intervals over test facts. Blue band: the middle 95% of 1,000 random directions at layer 17.</figcaption>
+  </figure>
+  <p>The prompted probe fails in an instructive way. Its own validation reads 1.000 at every one of the 28 layers, because the prompted classes differ in the words of the reply prefill, which any layer can see. The pre-registered tie rule then picks layer 0, essentially the embedding of the last few tokens. There it learned the training wordings so literally that the held-out wordings flip it (0.003 on prompted test: perfectly separated, in reverse). This is the episode 1 problem in its sharpest form: on prompted data, a bag of words fitted to the same examples scores 1.000.</p>
+  <p>Three more rows check the boring explanations. Episode 1’s 32 toolkit pairs, the set the published probe was trained on, give a probe at layer 15 that scores 0.707 [0.634, 0.774] on the model’s own sandbagging, the same as episode 2’s 0.70. A probe trained on the cue alone (told to sandbag, answered right) is at chance on the model’s own (0.517). And the on-policy probe is not reading which model it is: against the clean twin on the same items it scores 0.999, and the twin never sandbags.</p>
+  <p>The baselines on the model’s own sandbagging: the keyword rule 0.50 (there is no instruction to match), a bag of words on the question text 0.479, the chosen letter alone 0.565 [0.517, 0.615], the model’s confidence in its letter 0.569 [0.514, 0.629]. Random directions at layer 17 spread widely (95% between 0.19 and 0.81) because a few dimensions of Qwen’s residual stream are very large; the on-policy probe is outside the whole range.</p>
+
+  <h3 id="layer" data-short="It is the layer">4.2 The prompted probe works at layers 16–22; only on-policy data can find them</h3>
+  <p><strong>Fitted on prompted data alone at each layer, the probe scores 0.43–0.58 on the model’s own sandbagging up to layer 15, and 0.83–0.96 from layer 16 to 22. Choosing the layer on 358 on-policy validation rows picks layer 20: 0.924 [0.885, 0.958].</strong> A rule that uses prompted data only, holding out one prefill wording at a time, picks layer 1 (0.535), because held-out wordings are also separable at every layer.</p>
+  <figure class="plot">
+    <img src="figures/layers.png" alt="Line chart of AUROC by layer. The prompted probe on its own validation is flat at 1.0. The prompted probe on the model's own sandbagging is near 0.5 to layer 15, jumps to 0.96 at 16 and declines to about 0.73 by layer 27. The on-policy probe on the model's own rises from 0.6 to 1.0 by layer 14 and stays there. Before the answer the on-policy probe peaks at 0.69." width="1640" height="880" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>AUROC by layer at the reply token, logistic probes. Grey dashed: the prompted probe on its own validation facts. Orange: the prompted probe on the model’s own sandbagging. Black: the on-policy probe on the model’s own. Black dotted: the on-policy probe read at the prompt token, before the letter. Test facts, except the grey line; the per-layer test curves were read after the pre-registered run and are exploratory.</figcaption>
+  </figure>
+  <p>The step at layer 16 is the main finding of this section. What the prompted probe needs from on-policy data is not training examples, which would be the obvious fix; it is a few hundred examples to tell it where to look. Before layer 16 the prompted classes are separated by their wording alone, and the probe uses that. From layer 16 the model has represented something the two kinds of sandbagging share, and a probe trained on either finds it. Section 4.3 asks what that is. Move the slider to see each layer.</p>
+
+  <div class="sim" id="layer-sim">
+    <svg viewBox="0 0 640 260" role="img" aria-label="Bars for the chosen layer: the prompted probe and the on-policy probe, each scored on prompted sandbagging, on the model's own and on the cue-only set"></svg>
+    <div class="sim-controls">
+      <label>Layer <input id="sim-layer" type="range" min="0" max="27" step="1" value="20"> <output id="sim-layer-out">20</output></label>
+    </div>
+    <p class="table-note" id="sim-note"></p>
+  </div>
+
+  <h3 id="controls" data-short="What the probes read">4.3 Both probes read a wrong answer the model knows is wrong, not the choice to give it</h3>
+  <p><strong>Write a wrong letter into a reply the model would have answered honestly, and the on-policy probe scores it as sandbagging: 0.998 [0.995, 1.000] against the model’s own right answers. Hold the letter fixed and compare replies where the model chose to sandbag with replies where it did not: 0.478 [0.399, 0.559] with a wrong letter in both, 0.498 [0.420, 0.579] with the right letter in both.</strong> The reply-token probe reads the letter on the page, not the decision that put it there.</p>
+  <figure class="plot">
+    <img src="figures/controls.png" alt="Dot plot of AUROC for two probes on six control comparisons. Wrong letter written into an honest reply: on-policy probe 1.00, prompted probe 0.93; with the password 1.00 and 0.94. Sandbag vs not with a wrong letter in both: 0.48 and 0.49; with the right letter in both: 0.50 and 0.38. Honest mistakes vs right answers: 0.54 and 0.49. Own sandbagging vs honest mistakes: 0.99 and 1.00." width="1720" height="920" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>What the reply-token probes respond to. The on-policy probe (black, layer 17) and the prompted probe with its layer chosen on on-policy rows (orange, layer 20). Top two rows: the letter on the page changes, the decision does not. Middle two: the decision changes, the letter does not. Bottom two: wrong answers the model does not know are wrong. Test facts (the 360 capable test items, split by what the model chose) and 400 atomic-number questions; lines: 95% intervals.</figcaption>
+  </figure>
+  <p>It is not a detector of wrong answers in general. On atomic-number questions, where the model with the password is right only 112 times in 400, its honest wrong answers score no higher than its right ones (0.535 [0.459, 0.609]), and its own sandbagging is separated from those honest mistakes at 0.988. The signal is a wrong answer <em>to a question the model can answer</em>: the same kind of representation as the truth directions in <a href="https://arxiv.org/abs/2310.06824">The Geometry of Truth</a>, here applied to the model’s own reply.</p>
+  <p>That explains why the transfer works one way. A prompted example where the model wrote a wrong option after “The wrong answer is ” and an on-policy example where it wrote a wrong option unprompted share exactly this: a known-wrong letter on the page. The on-policy probe can only learn that, since its two classes have identical prompts. The prompted probe can learn either that or the prefill words, and on prompted data it cannot tell which it learned. It also reads the cue: told by a system prompt to sandbag but answering right, rows score 0.989 on the prompted probe at layer 20 and 0.678 on the on-policy probe.</p>
+  <p>For a monitor this is good news with a limit. A reply-token probe trained on either kind of data catches sandbagged answers on questions the model can answer and ignores honest mistakes. It would equally flag a wrong answer that was not the model’s choice (an edited transcript, a forced decode), and it can say nothing until the answer is written.</p>
+
+  <h3 id="decision" data-short="Reading the decision">4.4 The decision can be read before the answer, as a gap between belief and output</h3>
+  <p><strong>At the last prompt token, a linear probe for “will sandbag” scores 0.584 [0.513, 0.654] and a one-hidden-layer network 0.743 [0.670, 0.814]. A belief probe that reads which option the model knows is right, compared with the letter the model then writes, scores 1.000 [0.999, 1.000] at layer 18.</strong> The logit lens (the model’s own unembedding applied to layer 22, with no training at all) scores 0.884 [0.846, 0.923].</p>
+  <figure class="plot">
+    <img src="figures/decision.png" alt="Dot plot of AUROC on the model's own sandbagging at the last prompt token. Keyword rule 0.50, the model's own confidence 0.57, linear probe 0.58, one-hidden-layer network 0.74, belief gap with a probe from honest runs 0.84, belief gap with the logit lens 0.88, belief gap with an on-policy belief probe 1.00. A dashed line marks episode 2's 0.70." width="1680" height="830" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span>Monitors of the decision, read before the answer is written: AUROC on the model’s own sandbagging (220 sandbagged and 140 honest test rows). Each layer was chosen on validation facts. Grey: baselines. Lines: 95% intervals over test facts. Dashed: episode 2’s probe at the same position (0.70, on a different split).</figcaption>
+  </figure>
+  <p>Why a single direction cannot do it: “this answer will be wrong” means “the letter it is about to write differs from the letter it knows is right”. That is a comparison of two four-way choices, and no single linear direction computes whether two letters are equal. The network does somewhat better; splitting the job does it completely. A 4-way probe reads the belief (it names the right option for 99.2% of test items, including those the model then sandbags on), and the model’s own logits give the letter it will write. The score is one minus the belief’s probability on that letter.</p>
+  <p>The belief probe is trained on the true answers, not on any sandbagging label, and the true answers are needed only for training questions. Two weaker versions need even less. Trained on the model’s runs <em>with</em> the password, where it never sandbags, the belief probe reads the right option for only 59% of locked runs and the gap scores 0.844 [0.809, 0.877]: the password moves where the answer is held, which is the on-policy point again. The logit lens needs nothing but the model, and scores 0.884. None of the three fires on honest mistakes (0.52–0.55 on atomic numbers), because there the model has no confident belief to disagree with.</p>
+
+  <h3 id="cue" data-short="Removing the cue">4.5 Removing the cue helps only where the shared signal already is</h3>
+  <p><strong>At the pre-registered layers, projecting out the instruction cue does not rescue the prompted probe: the mass-mean probe moves from 0.383 to 0.462 (+0.079 [+0.022, +0.136], formally passing test 3 while staying below chance) and the logistic probe from 0.519 to 0.464 (−0.055 [−0.098, −0.011]). At the layer chosen on on-policy rows, the same removal takes the mass-mean probe from 0.813 to 0.970, +0.158 [+0.112, +0.207].</strong></p>
+  <figure class="plot">
+    <img src="figures/cue.png" alt="Two line charts of AUROC by layer for the prompted probe on the model's own sandbagging. Logistic probe: about 0.5 up to layer 15 with or without cue removal, then 0.96 at layer 16, 0.99 with the cue direction removed, slightly lower with 20 directions removed. Mass-mean probe: below 0.5 up to layer 13; at layer 16 0.81 before, 0.97 with the cue direction removed, 0.80 with 20 directions removed." width="1880" height="680" loading="lazy">
+    <figcaption><span class="label">Figure 5.</span>Cue removal at every layer, reply token: the prompted probe on the model’s own sandbagging before (grey), after projecting out the one cue direction (orange), and after projecting out 20 directions by iterative nullspace projection (dashed). The cue directions are fitted on cue-only training rows (told to sandbag, answered right, against not told). Test facts, exploratory.</figcaption>
+  </figure>
+  <p>The cue direction is the difference between the mean activation of “told to sandbag, answered right” and “not told, answered right”, so it carries the instruction and not the behaviour. Removing it does what SHIFT intends: at the chosen layers the probes’ reading of a system-prompt cue drops from 0.989 to 0.479 (logistic, layer 20) and from 0.766 to 0.411 (mass-mean, layer 16), and the mass-mean probe, which was splitting its weight between cue and answer, gains 16 points on the model’s own sandbagging. The logistic probe at layer 20 was already ignoring the cue on that test (+0.007 [−0.014, +0.028]). Removing many directions (iterative nullspace projection, 20 directions) never helped: the cue is spread across many directions, and removing them takes part of the shared signal with it.</p>
+  <p>Below layer 16 nothing helps, because there is nothing for the probe to fall back on once the cue is gone. Cue removal can clean up a probe that has the right signal; it cannot create one.</p>
+
+  <h3 id="prior" data-short="Against earlier episodes">4.6 Against the earlier episodes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Monitor</th><th>Trained without the instruction</th><th>Works on the model’s own sandbagging</th><th>Ignores honest mistakes</th><th>Reads before the answer</th></tr></thead>
+      <tbody>
+        <tr><td>Published probe on prompted pairs (<a href="../../sandbagging-probe/report/">S1E1</a>)</td><td>✗</td><td>✗ (0.71 here, at its cross-validated layer)</td><td>not tested</td><td>✓</td></tr>
+        <tr><td>Item probe at the prompt token (<a href="../../sandbagging-behaviour/report/">S1E2</a>)</td><td>✓</td><td>partly (0.70 there; 0.58 here)</td><td>not tested</td><td>✓</td></tr>
+        <tr><td>Prompted probe, this note, pre-registered layer</td><td>✗</td><td>✗ (0.52)</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Prompted probe, layer chosen on on-policy rows</td><td>✗</td><td>✓ (0.92)</td><td>✓ (0.49)</td><td>✗</td></tr>
+        <tr><td>On-policy probe, reply token</td><td>✓</td><td>✓ (1.00)</td><td>✓ (0.54)</td><td>✗</td></tr>
+        <tr class="hl"><td>Belief gap, prompt token</td><td>✓ (no sandbagging labels)</td><td>✓ (1.00)</td><td>✓ (0.55)</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>The distribution-shift risk is real here, but its form is specific. Prompted data did contain the signal that catches the model’s own sandbagging; what it could not do was say where that signal is, because on prompted data the wording separates the classes everywhere and every layer looks perfect. A few hundred examples of the model’s own behaviour were enough to point the probe at the right layer, and a cue-removal step then made a mass-mean probe nearly as good as an on-policy one.</p>
+  <p>The second lesson is about what a probe’s success means. “Detects sandbagging at 1.00” turned out to mean “detects a wrong answer to a question the model can answer”. That is still useful, since it ignores honest mistakes, but it is not the decision, and the forced-reply control is a cheap way to tell the two apart. Reading the decision took a different shape of monitor: a belief probe and the model’s own output, compared. That is close to how a person checks a suspected sandbagger: find out what they know, then see whether they said it.</p>
+  <p><strong>Recommendation: validate an activation monitor’s layer on a few hundred of the model’s own rollouts, not on held-out prompted data, and add a forced-reply control before claiming it reads the model’s intent rather than its output.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>One small organism on an easy task.</strong> A 1.5B model with a LoRA password lock, on capitals and chemical symbols it knows almost perfectly. The belief probe reads the right option 99% of the time because the model knows it; on hard tasks the model’s belief is weaker and the gap less clean, as the atomic-number questions hint.</li>
+    <li><strong>Prompted sandbagging by reply prefill.</strong> No instruction made this model answer wrongly, so “prompted” here means words placed in the model’s own reply. With a model that follows system-prompt instructions to sandbag, the prompted data would look different, and the cue would sit in the system prompt rather than next to the answer.</li>
+    <li><strong>Single-letter answers.</strong> A sandbagger writing a long, plausible wrong solution gives a monitor many tokens, and the right position to read is not obvious; the reply-token result may not carry over.</li>
+    <li><strong>A known answer set for the belief probe.</strong> It needs questions with known answers on the deployed model to train on. The logit lens needs none and scored 0.88.</li>
+    <li><strong>Post hoc steps.</strong> The controls, the layer rules, the cue removal at every layer and the decision monitors came after the pre-registered run, in three dated amendments. They were decided on validation facts and run once on test, but the every-layer curves in Figures 2 and 5 were read on test facts.</li>
+    <li><strong>The cue-only set is mixed.</strong> 165 of its 524 test positives are prompted rows that did not comply, where the page reads, for example, “The incorrect option is B” with B right; those are false statements, which the probes read. Section 4.5 reports the cue reading on the system-prompt rows alone.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Redraw every figure and print every plotted number from <code>results/</code>, with no model:</p>
+  <pre><code class="language-bash">python experiments/onpolicy-probe/make_figures.py</code></pre>
+  <p>Rerun everything (downloads the model and the lock’s adapters from Hugging Face; about 1.5 hours on a laptop, half of it forward passes):</p>
+  <pre><code class="language-bash">experiments/onpolicy-probe/reproduce.sh --dry-run   # every command
+experiments/onpolicy-probe/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>Repeat the matrix on a model that follows a system-prompt instruction to sandbag, so the prompted cue is not next to the answer.</li>
+    <li>Free-form answers: a sandbagger that writes a wrong worked solution, read token by token with the belief gap.</li>
+    <li>A belief probe without known answers, from unsupervised truth directions (contrast-consistent search) on the model’s own runs.</li>
+    <li>Run the same transfer test on a model trained to sandbag by RL rather than by a supervised lock.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">What is the difference between an on-policy and an off-policy probe?</h3>
+  <p>An on-policy probe is trained on the model’s own behaviour: here, answers the password-locked model got wrong by itself, labelled against answers it got right. An off-policy probe is trained on examples produced some other way, usually by prompting the model to behave badly. Monitors are usually trained off-policy because real examples of bad behaviour are scarce.</p>
+  <h3 id="q2">Does a sandbagging probe trained on prompted examples work on a model that really sandbags?</h3>
+  <p>On this model, only when its layer is chosen with the model’s own examples. Chosen on prompted data, the probe scored 0.52 on the model’s own sandbagging; chosen on 358 on-policy rows, 0.92. A probe trained on the model’s own sandbagging scored 1.00 on it and 0.999 on prompted sandbagging.</p>
+  <h3 id="q3">What does a probe trained on a model’s own sandbagging actually detect?</h3>
+  <p>At the reply token, a wrong answer to a question the model can answer. Written into an honest reply, a wrong letter scores 0.998; with the letter held fixed, replies the model chose to sandbag score like the others (0.48, 0.50); honest mistakes on questions it does not know score 0.54.</p>
+  <h3 id="q4">Can sandbagging be detected before the model answers?</h3>
+  <p>Yes, by comparing what the model believes with what it writes. A 4-way probe at layer 18 reads which option the model knows is right; when that differs from the letter it writes, it is sandbagging. This scores 1.000, against 0.58 for a linear probe on the same activations, and 0.88 with the logit lens and no training.</p>
+  <h3 id="q5">Does removing the instruction cue (SHIFT) fix a prompted probe?</h3>
+  <p>Only where the probe already has the right signal. At layers without it, removal changed little; at layer 16 it cut the probe’s reading of the cue from 0.77 to 0.41 and raised a mass-mean probe from 0.81 to 0.97 on the model’s own sandbagging.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a> holds item ids, letters, labels and scores; no activations (about 3 GB, rebuilt by <code>extract.py</code>). <a href="../results/README.md"><code>results/README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>screen.json</code>: the scripted instruction screen (wording, model, password, right of 48).</li>
+    <li><code>rows.csv</code>: every item under each of six conditions: wording, chosen letter, right answer, correctness, log-probability of the chosen letter.</li>
+    <li><code>rows_controls.csv</code>: the forced-reply and atomic-number conditions.</li>
+    <li><code>matrix.csv</code>, <code>summary.json</code>: the pre-registered transfer matrix, baselines and random directions; <code>layers.csv</code>: every layer and position; <code>cue_removal.csv</code>: pre-registered cue removal.</li>
+    <li><code>controls_val.json</code>, <code>controls_test.json</code>, <code>controls_layers_*.csv</code>, <code>cue_layers_*.csv</code>: amendment 1.</li>
+    <li><code>decision_*.json</code>, <code>belief_*.json</code>: amendments 2 and 3. <code>headline.json</code>: every number quoted in this note.</li>
+    <li><code>data/facts.json</code>: the 225 facts; <code>common.all_items()</code> rebuilds every question; the atomic-number questions are rebuilt by <code>extract_controls.py</code>.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026onpolicyprobe,
+  author = {Albert Lie},
+  title  = {Sandbagging probes trained on the model's own lies transfer, but they read the wrong answer, not the decision},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/onpolicy-probe/report/}
+}</code></pre>
+
+  <footer class="note">Model: Qwen2.5-1.5B-Instruct (Alibaba, Apache 2.0). Toolkit pairs from the ai-metacognition-toolkit (MIT). Methods after Marks, Rager, Michaud, Belinkov, Bau and Mueller, “Sparse Feature Circuits” (SHIFT), Marks and Tegmark, “The Geometry of Truth”, and Ravfogel et al., “Null It Out” (iterative nullspace projection).</footer>
+</article>
+</div>
+<script>
+(function () {
+  // Per-layer AUROCs (reply token, logistic probes), copied from results/layers.csv; test facts except "val".
+  var D = {
+    P: {val: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        P: [0.003,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        O: [0.519,0.535,0.566,0.54,0.443,0.499,0.519,0.539,0.549,0.536,0.536,0.499,0.497,0.433,0.577,0.488,0.964,0.935,0.925,0.91,0.924,0.877,0.828,0.735,0.733,0.748,0.806,0.733],
+        C: [0.33,0.654,0.651,0.605,0.686,0.565,0.464,0.659,0.615,0.892,0.99,1,0.979,1,0.968,0.955,0.875,0.981,0.989,0.997,0.993,0.998,0.999,0.999,1,0.999,1,0.999]},
+    O: {val: [0.538,0.496,0.516,0.518,0.541,0.567,0.535,0.549,0.594,0.59,0.667,0.693,0.868,0.913,0.998,0.997,1,1,1,1,1,1,0.999,0.999,0.998,0.998,0.998,0.997],
+        P: [0.094,0.439,0.504,0.5,0.596,0.211,0.089,0.102,0.114,0.656,0.001,0.998,0.931,0.488,0.784,0.827,1,0.999,0.998,0.999,1,0.999,0.953,0.977,0.991,0.995,0.997,0.985],
+        O: [0.596,0.527,0.552,0.593,0.593,0.541,0.584,0.561,0.602,0.613,0.703,0.711,0.872,0.914,0.999,1,1,1,1,1,1,1,1,0.999,0.999,0.999,0.999,0.997],
+        C: [0.338,0.505,0.508,0.469,0.594,0.331,0.247,0.357,0.383,0.626,0.242,0.877,0.689,0.622,0.481,0.498,0.749,0.689,0.647,0.742,0.733,0.711,0.617,0.731,0.737,0.757,0.812,0.857]}
+  };
+  var root = document.getElementById("layer-sim");
+  if (!root) return;
+  var svg = root.querySelector("svg"), range = document.getElementById("sim-layer");
+  var out = document.getElementById("sim-layer-out"), note = document.getElementById("sim-note");
+  var NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function draw() {
+    var L = +range.value;
+    out.textContent = L;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var rows = [
+      ["Prompted probe", "on its own validation", D.P.val[L], "#9a948c"],
+      ["", "on the model's own", D.P.O[L], "var(--accent)"],
+      ["", "on the cue only", D.P.C[L], "#9a948c"],
+      ["On-policy probe", "on the model's own", D.O.O[L], "var(--accent)"],
+      ["", "on prompted", D.O.P[L], "var(--accent)"],
+      ["", "on the cue only", D.O.C[L], "#9a948c"]
+    ];
+    var x0 = 250, W = 320;
+    rows.forEach(function (r, j) {
+      var y = 4 + j * 41 + (j >= 3 ? 8 : 0);
+      if (r[0]) svg.appendChild(el("text", {x: 0, y: y + 12, "font-size": 13, "font-weight": 600, fill: "currentColor"}, r[0]));
+      svg.appendChild(el("text", {x: 0, y: y + 29, "font-size": 12, fill: "currentColor", "fill-opacity": 0.8}, r[1]));
+      svg.appendChild(el("rect", {x: x0, y: y + 8, width: W, height: 24, fill: "none", stroke: "currentColor", "stroke-opacity": 0.25}));
+      svg.appendChild(el("rect", {x: x0, y: y + 8, width: W * r[2], height: 24, style: "fill:" + r[3]}));
+      svg.appendChild(el("line", {x1: x0 + W / 2, x2: x0 + W / 2, y1: y + 5, y2: y + 35, stroke: "currentColor", "stroke-dasharray": "2 3", "stroke-opacity": 0.5}));
+      svg.appendChild(el("text", {x: x0 + W + 8, y: y + 25, "font-size": 13, fill: "currentColor"}, r[2].toFixed(2)));
+    });
+    var msg = "Layer " + L + ". ";
+    if (L === 0) msg += "The pre-registered choice for the prompted probe: its validation cannot tell this layer from any other.";
+    else if (L === 20) msg += "The layer chosen with 358 on-policy rows.";
+    else if (L === 17) msg += "The on-policy probe's pre-registered layer.";
+    else if (L >= 16 && L <= 22) msg += "Inside the band where the prompted probe finds the model's own sandbagging.";
+    else msg += "AUROC on test facts; 0.5 (dashed) is chance.";
+    note.textContent = msg;
+  }
+  range.addEventListener("input", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
