@@ -14,6 +14,7 @@ validation prompts, the result is tested once on GenEval's official 553 prompts,
 | `run_eval.py` | One model, one sample per seed: GenEval or CompBench, with PickScore |
 | `guard_genai.py` | GenAI-Bench guard: VQAScore judge check on GenAI-Bench's human ratings, then base, planner and planner + PickScore best of 4 |
 | `blind_look.py` | 50 blind pairs (base vs harness), sides shuffled; unblinds the ratings |
+| `natural.py` | Update (2026-11-11): the scene-keeping planner (Claude), its validation and official pools, the GenAI-Bench guard and the naturalness judge |
 | `latency.py` | Wall-clock seconds per image, one request at a time on warm containers |
 | `compare.py`, `pilot_summary.py` | Paired differences; every number the note cites |
 | `make_figures.py`, `make_cover.py` | The figures (from `results/`) and the cover (drawn by FLUX.1-schnell itself) |
@@ -45,6 +46,10 @@ validation prompts, the result is tested once on GenEval's official 553 prompts,
   `rows.jsonl` (per image: `idx`, `arm`, `k`, `path`, `vqa`, `pick`), `summary.json` (paired differences, by skill tag).
 - `results/blind/`: `key.json` (which side was which), `ratings.json` (the rater's answers), `summary.json`.
 - `results/latency.json`: seconds per stage and per request.
+- `results/natural/`: the scene-keeping planner. `<set>_natopus_pool.jsonl` and `<set>_natsonnet_pool.jsonl` have one line
+  per candidate (as in the harness pools, plus `chosen`; `correct` only for the first and the chosen candidate);
+  `summary_<set>.json` holds the paired comparisons; `judge_*.jsonl` the naturalness judge's answers (both orders);
+  `genai_natopus_summary.json` the GenAI-Bench guard; `blind/` the second blind look.
 
 Images live on the Modal volume `t2i-geneval`, not in this repository; `make_figures.py --gallery` fetches the 50
 blind-look pairs shown in the note.
