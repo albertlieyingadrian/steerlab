@@ -231,6 +231,35 @@ def viewer():
     print(f"viewer: {len(data)} pairs written into report/index.html")
 
 
+def natural_style():
+    """Update (2026-11-11): the first blind-look prompt of each category, three rows: FLUX.1-schnell alone, the
+    published harness, and the harness with the scene-keeping planner (same seeds)."""
+    import modal
+    from PIL import Image
+
+    pool = RESULTS / "natural/official_natopus_pool.jsonl"
+    if not pool.exists():
+        return
+    key = json.loads((RESULTS / "blind/key.json").read_text())
+    nat = {(r["idx"], r["rep"]): r["path"] for r in read_jsonl(pool) if r["chosen"]}
+    picks = [next(k for k in key if k["tag"] == t) for t in TAG_ORDER]
+    paths = [p for k in picks for p in (k["paths"]["base"], k["paths"]["harness"], nat[(k["idx"], 0)])]
+    out = FIG / "natural"
+    out.mkdir(parents=True, exist_ok=True)
+    missing = [p for p in paths if not (out / p.replace("/", "_").replace(".png", ".jpg")).exists()]
+    if missing:
+        for p, b in modal.Function.from_name("t2i-geneval", "fetch").remote(missing, 384).items():
+            Image.open(io.BytesIO(b)).convert("RGB").save(out / p.replace("/", "_").replace(".png", ".jpg"), quality=82)
+    w = 300
+    sheet = Image.new("RGB", (len(picks) * (w + 8) - 8, 3 * w + 16), "white")
+    for c, k in enumerate(picks):
+        for r, p in enumerate((k["paths"]["base"], k["paths"]["harness"], nat[(k["idx"], 0)])):
+            im = Image.open(out / p.replace("/", "_").replace(".png", ".jpg")).resize((w, w), Image.LANCZOS)
+            sheet.paste(im, (c * (w + 8), r * (w + 8)))
+    sheet.save(FIG / "natural_style.jpg", quality=85)
+    print("natural_style.jpg:", [k["prompt"] for k in picks])
+
+
 def side_name(k, side):
     return "harness" if k[side] == "harness" else "base"
 
@@ -244,5 +273,6 @@ if __name__ == "__main__":
     rivals()
     guards()
     style()
+    natural_style()
     if (HERE / "report" / "index.html").exists():
         viewer()
