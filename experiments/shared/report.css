@@ -736,26 +736,62 @@ figure.hack-grid .run-div{grid-column:1/-1;display:flex;align-items:center;gap:.
 @media (max-width: 760px) { figure.hack-grid .g3 { grid-template-columns: minmax(0, 1fr); } figure.hack-grid .g3 .hd { display: none; } figure.hack-grid .fx-arrow { display: none; } }
 figure.hack-grid .g3 { grid-template-columns: minmax(0, 1fr) 8.5rem minmax(0, 1fr); }
 
-/* Research index: pinned notes, one lead and two beside it */
-.pinned { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 1rem 2rem; padding-bottom: 2.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--rule); }
-.pinned-h { grid-column: 1 / -1; display: flex; align-items: center; gap: 0.45rem; margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 650; letter-spacing: -0.01em; }
+/* Research index: pinned notes. One lead, and a single row of covers under it that picks which note the lead shows
+   (about six in view, a peek of the next, arrows only when the row overflows). Without the script every cover is a link. */
+.pinned { padding-bottom: 2.25rem; margin-bottom: 2rem; border-bottom: 1px solid var(--rule); }
+.pin-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.pinned-h { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
 .pinned-h svg { width: 1rem; height: 1rem; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .pinned a { color: inherit; text-decoration: none; }
-.pinned a:hover .pin-t { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; }
 .pinned a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
-.pin-lead { display: grid; gap: 0.55rem; align-content: start; }
-.pin-side { display: grid; gap: 1.5rem; align-content: start; }
-.pin-side a { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 1rem; align-items: start; }
-.pin-from { display: block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.03em; color: var(--accent); }
-.pin-t { display: block; font-family: var(--font-display); font-weight: 650; letter-spacing: -0.015em; line-height: 1.18; color: var(--ink); text-wrap: balance; }
-.pin-lead .pin-t { font-size: 1.7rem; }
-.pin-side .pin-t { font-size: 1.08rem; margin: 0.25rem 0 0.35rem; }
-.pin-find { margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty; }
-.pin-side .pin-find { font-size: 0.88rem; }
+.pin-step { display: flex; align-items: center; gap: 0.6rem; }
+.pin-step[hidden] { display: none; }
+.pin-count { min-width: 4.5em; text-align: center; font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.03em; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.pin-btn { display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 1px solid var(--rule); border-radius: 50%;
+           background: var(--canvas); color: var(--ink); cursor: pointer; transition: border-color .18s cubic-bezier(.2, .8, .2, 1), opacity .2s, visibility .2s; }
+.pin-btn svg { width: 1rem; height: 1rem; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pin-btn:hover:not(:disabled) { border-color: var(--ink-faint); }
+.pin-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.pin-btn:disabled { opacity: .35; cursor: default; }
+.pin-lead { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 2.25rem; align-items: center; }
+.pin-text { display: grid; gap: 0.6rem; align-content: center; }
+.pin-from { display: block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.03em; color: var(--accent); text-wrap: balance; }
+.pin-t { display: block; font-family: var(--font-display); font-size: 1.9rem; font-weight: 650; letter-spacing: -0.015em; line-height: 1.18; color: var(--ink); text-wrap: balance; }
+.pin-lead:hover .pin-t { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; }
+.pin-find { display: block; font-size: 1.02rem; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty; }
+.pin-go { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.03em; color: var(--ink-soft); margin-top: 0.35rem; }
+.pin-lead:hover .pin-go { color: var(--accent); }
+.pin-lead .thumb.pin-swap { animation: pin-swap .28s cubic-bezier(.16, 1, .3, 1); }
+@keyframes pin-swap { from { opacity: .35; filter: blur(3px); } }
+.pin-rail { --gap: 0.75rem; --tab: calc((100cqi - 6 * var(--gap)) / 6.45); container-type: inline-size; position: relative;
+            margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+.pin-strip { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: var(--tab); gap: var(--gap); overflow-x: auto;
+             overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px 4px 0.25rem; margin: -4px -4px 0;
+             scroll-padding: 0 4px; }
+.pin-strip::-webkit-scrollbar { display: none; }
+.pin-strip:not(.at-end) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent); }
+.pin-strip a { scroll-snap-align: start; display: grid; gap: 0.45rem; align-content: start; }
+.pin-strip .pin-from { font-size: 0.65rem; line-height: 1.35; color: var(--ink-faint); }
+.pin-strip .thumb { border-radius: 3px; outline: 2px solid transparent; outline-offset: 2px; transition: opacity .2s cubic-bezier(.2, .8, .2, 1), outline-color .2s; }
+.pin-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.is-live .pin-strip .thumb { opacity: .62; }
+.is-live .pin-strip a:hover .thumb { opacity: .9; }
+.pin-strip a[aria-selected="true"] .pin-from { color: var(--accent); }
+.pin-strip a[aria-selected="true"] .thumb { opacity: 1; outline-color: var(--accent); }
+.pin-strip a:focus-visible { outline-color: var(--ink); outline-offset: 5px; }
+.pin-arrow { position: absolute; top: calc(1.25rem + var(--tab) / 3 - 1.125rem); z-index: 1; box-shadow: 0 2px 8px rgb(0 0 0 / .14); }
+.pin-arrow-l { left: -1.125rem; }
+.pin-arrow-r { right: -1.125rem; }
+.pin-arrow:disabled, .pin-arrow[hidden] { opacity: 0; visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .pin-lead .thumb.pin-swap { animation: none; } .pin-strip .thumb, .pin-btn { transition: none; } }
+@media (max-width: 1100px) { .pin-arrow-l { left: 0.25rem; } .pin-arrow-r { right: 0.25rem; } }
 @media (max-width: 760px) {
-  .pinned { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
-  .pin-lead .pin-t { font-size: 1.4rem; }
-  .pin-side a { grid-template-columns: 7rem minmax(0, 1fr); }
+  .pin-lead { grid-template-columns: minmax(0, 1fr); gap: 0.9rem; }
+  .pin-text { align-content: start; }
+  .is-live .pin-text { min-height: 12.5rem; }
+  .pin-t { font-size: 1.4rem; }
+  .pin-rail { --tab: 6.5rem; }
+  .pin-arrow { display: none; }
 }
 
 /* Numbered sources, and "Coming soon" tags on headings of notes published in parts */
