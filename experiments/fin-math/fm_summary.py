@@ -12,7 +12,9 @@ from __future__ import annotations
 import argparse
 import json
 
-import fm  # noqa: I001
+import fm  # sets up the fin-llm import path first
+
+# isort: split
 import fin
 
 RIVALS = ["qwen", "gpt-5.4-mini", "gpt-5.4"]

@@ -20,14 +20,28 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import fm  # noqa: I001
+import fm  # sets up the fin-llm import path first
+
+# isort: split
 
 OUT = fm.RESULTS / "explorer.json"
 PAGE = HERE / "report" / "index.html"
 CASES = [  # (test id, button label, what it shows)
-    ("test-63", "Bull call spread", "broken: after SFT the model states a wrong rule in one line and does not check it"),
-    ("test-60", "Bond price", "broken: the right method, but 1,050 / 1.08³ worked out in its head as 811.62 (it is 833.52)"),
-    ("test-41", "ROE after leverage", "fixed: the short answer gets this one right where the base model halved the ratio"),
+    (
+        "test-63",
+        "Bull call spread",
+        "broken: after SFT the model states a wrong rule in one line and does not check it",
+    ),
+    (
+        "test-60",
+        "Bond price",
+        "broken: the right method, but 1,050 / 1.08³ worked out in its head as 811.62 (it is 833.52)",
+    ),
+    (
+        "test-41",
+        "ROE after leverage",
+        "fixed: the short answer gets this one right where the base model halved the ratio",
+    ),
 ]
 
 
@@ -71,9 +85,9 @@ def tag(ok: bool) -> str:
 def case_html(k: int, c: dict) -> list[str]:
     hidden = "" if k == 0 else " hidden"
     kind = "Question" if c["kind"] == "test" else "Synthetic problem"
-    out = [f'  <div class="ex-case" data-case="{k}"{hidden}>',
-           f'    <p class="ex-q"><strong>{kind}</strong> ({esc(c["id"])}, {esc(c["topic"])}): {esc(c["question"])} '
-           f'<span class="ex-gold">Gold: {c["gold"]:g}</span></p>']  # fmt: skip
+    head = f"<strong>{kind}</strong> ({esc(c['id'])}, {esc(c['topic'])}): {esc(c['question'])}"
+    gold = f'<span class="ex-gold">Gold: {c["gold"]:g}</span>'
+    out = [f'  <div class="ex-case" data-case="{k}"{hidden}>', f'    <p class="ex-q">{head} {gold}</p>']
     if c["tables"]:
         out.append(f'    <pre class="ex-table">{esc(c["tables"])}</pre>')
     out += [f'    <p class="ex-note">{esc(c["note"])}.</p>', '    <div class="ex-cols">']

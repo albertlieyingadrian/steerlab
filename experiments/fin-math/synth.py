@@ -22,14 +22,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import subprocess
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import fm  # noqa: I001
+import fm  # sets up the fin-llm import path first
+
+# isort: split
 import fin
+
 import teacher
 
 GENERATOR = VERIFIER = "teacher:gpt-oss-120b"
@@ -77,7 +81,7 @@ def execute(code: str) -> float | None:
         v = json.loads(p.stdout) if p.returncode == 0 else None
     except json.JSONDecodeError:
         return None
-    return v if isinstance(v, float) and abs(v) < 1e15 and v == v else None
+    return v if isinstance(v, float) and math.isfinite(v) and abs(v) < 1e15 else None
 
 
 def generate(calls: int, workers: int) -> None:
@@ -132,7 +136,9 @@ def verify(workers: int) -> None:
     model = teacher.make(VERIFIER, budget)
     every = [json.loads(line) for line in RAW_OUT.read_text().splitlines()]
     rows, dropped = decontaminate([r for r in every if r["gold"] is not None])
-    print(f"{len(every)} generated, {len(rows) + dropped} executable, {dropped} dropped as too similar to a benchmark question")
+    print(
+        f"{len(every)} generated, {len(rows) + dropped} executable, {dropped} dropped as too similar to a benchmark question"
+    )
     seen = {json.loads(line)["id"] for line in CHECKED.read_text().splitlines()} if CHECKED.exists() else set()
     todo = [r for r in rows if r["id"] not in seen]
 

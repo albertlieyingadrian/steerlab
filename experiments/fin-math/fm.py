@@ -25,7 +25,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "fin-llm"))
-import fin  # noqa: E402  (the shared ledger, bootstrap and env loading)
+import fin
 
 RAW = HERE / "data" / "raw"
 SYNTH = HERE / "data" / "synth.jsonl"

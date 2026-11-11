@@ -14,7 +14,9 @@ import os
 import threading
 import time
 
-import fm  # noqa: F401, I001  (sets up the fin-llm import path first)
+import fm  # noqa: F401  (sets up the fin-llm import path first)
+
+# isort: split
 import backends
 import fin
 
