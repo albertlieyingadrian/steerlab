@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base</title>
+<meta name="description" content="Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher's visible answers cost 12.7 points; the synthetic problems were too easy to teach anything.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base">
+<meta property="og:description" content="Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher&#x27;s visible answers cost 12.7 points; the synthetic problems were too easy to teach anything.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Seven barcode strips on a cream background, one per system, each 1,000 thin marks for the 1,000 FinanceMath test questions sorted from easy to hard; the top three (gpt-5.4, gpt-5.4-mini, base Qwen3-8B) thin out to the right, and of the four post-trained strips below, the first has a wide orange band of answers it lost against the base model.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base">
+<meta name="twitter:description" content="Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher&#x27;s visible answers cost 12.7 points; the synthetic problems were too easy to teach anything.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-10">
+<meta property="article:modified_time" content="2026-11-10">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base",
+ "description": "Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher's visible answers cost 12.7 points; the synthetic problems were too easy to teach anything.",
+ "abstract": "FinanceMath test (1,000 questions, official 0.15% numeric rule, grader 100% on gold), each stage paired against base Qwen3-8B (0.555 [0.524, 0.586]): SFT on 4,045 gpt-oss-120b teacher answers 0.428 (-12.7 [-15.7, -9.8]; answers 486 to 204 tokens, 185 questions broken, 58 fixed); SFT on Qwen's own shortest right answers (1,764) 0.556 (+0.1 [-1.9, +2.1]); GRPO 20 steps x 32 x 8 from base 0.553 (-0.2 [-2.1, +1.7]); own-answer SFT then GRPO 0.552 (-0.3 [-2.4, +1.8]). Rivals: gpt-5.4-mini 0.730, gpt-5.4 0.818; the best post-trained system is 17.4 [14.5, 20.4] and 26.2 [23.2, 29.3] points behind. Causes: the teacher samples 972 tokens per answer and shows 278, so SFT copied summaries; base Qwen got 4 of 4 right on 57% of the synthetic problems (pass@1 0.734 against 0.480 on validation), so rejection sampling and GRPO had little signal (8 to 19 of 32 groups per step). No identical-sample groups (Tinker seed pitfall avoided). Spend $31.80. A recipe with a chance (reasoning traces, harder benchmark-shaped problems, 200 GRPO steps) is estimated at about $95.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-10",
+ "dateModified": "2026-11-10",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "FinanceMath, post-training, LoRA, supervised fine-tuning, distillation, rejection sampling, GRPO, reinforcement learning, synthetic data, negative result, Qwen3-8B, gpt-oss-120b, GPT-5.4, Tinker",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.09797"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2508.10925"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.03300"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2308.01825"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .explorer .ex-q { margin: 0 0 0.35rem; }
+  .explorer .ex-gold { display: block; font-size: 0.86rem; color: var(--ink-soft); }
+  .explorer .ex-note { font-size: 0.9rem; color: var(--ink-soft); margin: 0 0 0.6rem; }
+  .explorer .ex-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .explorer .ex-h { font-size: 0.82rem; margin: 0 0 0.3rem; }
+  .explorer pre { font-size: 0.72rem; line-height: 1.35; max-height: 24rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 0.5rem; }
+  .explorer .ex-v { font-size: 0.75rem; padding: 0 0.35rem; border-radius: 3px; border: 1px solid currentColor; }
+  .explorer .ex-v.ok { color: var(--accent); }
+  .explorer .ex-v.no { color: var(--ink-soft); }
+  .explorer .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  @media (max-width: 760px) { .explorer .ex-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-10">Nov 10, 2026</time></p>
+  <h1>Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base</h1>
+  <p class="dek ruled">Training a small open model on graded finance problems is the cheap route to frontier accuracy that post-training services sell. This note runs that recipe end to end on a held-out benchmark for $31.80, scores every stage against the untrained model and two GPT models, and finds where it broke.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Seven horizontal barcode strips on a cream background, each 1,000 thin marks for the 1,000 FinanceMath test questions sorted from easy to hard. The top three strips (gpt-5.4, gpt-5.4-mini, base Qwen3-8B) are dark marks that thin out to the right, gpt-5.4 reaching furthest. Below a gap, four strips for the post-trained models: the first has a wide orange band in its middle where it lost answers the base model had; the other three have scattered orange marks, about as many fixed as broken." width="1536" height="1024">
+    <figcaption>Cover: drawn from the results, not by hand. Each strip is one system on the 1,000 test questions, sorted from the most to the fewest systems right; top to bottom gpt-5.4, gpt-5.4-mini, base Qwen3-8B, then the four post-trained Qwen3-8B systems in the order of the stage table. A dark mark is a right answer; on the post-trained strips an orange mark is an answer that changed against the base model (filled where it was fixed, outlined where it was broken: 213 fixed and 344 broken across the four). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>FinanceMath (Zhao et al., ACL 2024; MIT): 200 validation and 1,000 held-out test questions; 2,714 synthetic training problems written and verified by gpt-oss-120b</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B with LoRA (trained and sampled on Tinker); teacher gpt-oss-120b; rivals gpt-5.4-mini and gpt-5.4</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/fin-math/</a>: training in <a href="../fm_post.py">fm_post.py</a>, the grader in <a href="../fm.py">fm.py</a>, synthetic data in <a href="../synth.py">synth.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> and one file per run in <code>results/runs/</code> (described in <a href="../README.md#results">README.md</a>)</dd></div>
+    <div><dt>Series</dt><dd>Harnesses and post-training, episode 2. Episode 1: <a href="../../fin-llm/report/">a harness on FinQA</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a few dollars of post-training make an open 8B model beat a cheap frontier model at finance math?</strong></p>
+    <p>Not with this recipe. Qwen3-8B was trained with LoRA on 2,714 synthetic finance problems that a larger open model (gpt-oss-120b) wrote and checked, in three stages: supervised fine-tuning (SFT) on the teacher’s worked answers, SFT on Qwen’s own right answers, and reinforcement learning with the benchmark’s grader as the reward (GRPO). On the 1,000 held-out FinanceMath test questions the base model scores 0.555. SFT on the teacher’s answers drops it to 0.428 (−12.7 points); the other stages land within 0.3 points of base. gpt-5.4-mini scores 0.730 and gpt-5.4 0.818, 17 to 27 points above every Qwen system. Two things went wrong: the teacher’s visible answers are short summaries of reasoning it does out of sight, so the student learned to skip the work; and the synthetic problems were too easy (base Qwen already solves 73% of them), so learning from its own answers and from the grader had little to teach.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does any post-training stage beat base Qwen3-8B? (1,000 held-out test questions)</td><td><strong>No.</strong> Best: SFT on its own answers 0.556, +0.1 points [−1.9, +2.1]; with GRPO on top 0.552, −0.3 [−2.4, +1.8]; GRPO from base 0.553, −0.2 [−2.1, +1.7]</td><td>Base Qwen3-8B 0.555 [0.524, 0.586]</td></tr>
+          <tr><td>Does it come near the GPT models?</td><td><strong>No.</strong> The best post-trained system is 17.4 points behind gpt-5.4-mini [14.5, 20.4] and 26.2 behind gpt-5.4 [23.2, 29.3]</td><td>gpt-5.4-mini 0.730, gpt-5.4 0.818, at 3.6 and 12 times Qwen’s $0.0003 per question</td></tr>
+          <tr><td>What did SFT on the teacher’s answers do?</td><td><strong>It cost 12.7 points</strong> [9.8, 15.7]: 0.428. It broke 185 test questions base got right and fixed 58; answers shrank from 486 to 204 tokens</td><td>The teacher (gpt-oss-120b) samples 972 tokens per answer and shows 278 of them</td></tr>
+          <tr><td>Why did SFT on its own answers and GRPO do nothing?</td><td><strong>The training problems were too easy.</strong> Base Qwen got all 4 of 4 samples right on 1,163 of 2,034 problems (57%); only 601 (30%) had a mix of right and wrong, the only ones that teach anything</td><td>On FinanceMath validation base Qwen scores 0.480; GRPO batch reward moved with batch difficulty, not with training</td></tr>
+          <tr><td>Was the sampler sending identical samples (a Tinker seed pitfall)?</td><td><strong>No.</strong> Every multi-sample call was unseeded; 0 of 2,034 four-sample groups are identical, for the teacher or for Qwen</td><td>The FinQA pilot lost a run to it: a seed with 4 samples returned 4 copies</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A bond pays a €50 coupon for three years and €1,000 at the end; the spot rates are 6%, 7% and 8%. Base Qwen3-8B writes out each discount, gets the last cash flow as 1,050 / 1.259712 = 833.63, and answers 924.47: right. After training on 4,045 answers written by a model fifteen times its size, it writes the same three lines in a third of the space, works out 1,050 / 1.08³ in its head as 811.62 (it is 833.52), and answers 902.7: wrong. It learned to sound like its teacher without doing the arithmetic its teacher does out of sight. That one question is most of this note.</p>
+  <p><strong>What is known.</strong> Fine-tuning a small open model on a bigger model’s graded solutions, then reinforcing it with a reward from an automatic grader, is the standard recipe for domain reasoning: distillation and rejection sampling (<a href="https://arxiv.org/abs/2308.01825">Yuan et al., 2023</a>), then GRPO (<a href="https://arxiv.org/abs/2402.03300">Shao et al., 2024</a>). Finance is a common target, and FinanceMath (<a href="https://arxiv.org/abs/2311.09797">Zhao et al., 2024</a>) is a hard held-out test for it: 1,200 college-level questions that need financial knowledge and often a table, on which GPT-4o scored 60.9% when it was published.</p>
+  <p><strong>What is missing.</strong> FinanceMath has no training split, so any post-training needs synthetic data, and reports of “a small model beats a frontier one” rarely show each stage against the untrained model on the same questions, or what the run cost.</p>
+  <p class="question-callout">Does a $40 run of the standard recipe (teacher SFT, rejection sampling, GRPO with the grader) make Qwen3-8B better than its base, and better than gpt-5.4-mini, on the 1,000 held-out FinanceMath test questions?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A negative result with every stage measured: base, teacher SFT, rejection-sampling SFT, GRPO from base and from SFT, each on the same 1,000 test questions, paired, beside gpt-5.4-mini and gpt-5.4.</li>
+    <li>The cause of the one large effect: SFT on a reasoning model’s visible answers teaches the student to skip the work (−12.7 points).</li>
+    <li>A check of the training data’s difficulty that explains the flat stages, and what a recipe with a chance would need and cost.</li>
+    <li>The code, the 2,714 verified synthetic problems and every graded answer.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before the test runs:</p>
+  <ol>
+    <li>Checkpoints are chosen on the 200 validation questions only; each final system runs on the test once.</li>
+    <li>A stage “helps” only if its paired difference against base Qwen3-8B on the same test questions has an interval above zero.</li>
+    <li>“Beats gpt-5.4-mini” needs the same: a paired interval above zero, not overlapping accuracies.</li>
+    <li>The grader is checked first: it must mark every gold answer right.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="post-training-101" data-short="Post-training 101">2.1 Post-training 101, for software engineers</h3>
+  <ul>
+    <li><strong>LoRA</strong> trains a small add-on to the model’s weights (here rank 32) instead of all 8 billion of them: like shipping a patch rather than a new build. The base model is untouched, so “base” is always one switch away.</li>
+    <li><strong>SFT (supervised fine-tuning)</strong> shows the model a question and a correct answer and trains it to write that answer, token by token. Whatever the answers look like (long or short, careful or terse) is what it learns.</li>
+    <li><strong>Best-of-N with a grader</strong> samples N answers per problem and keeps the right ones. With the teacher’s answers it is distillation; with the student’s own answers it is <em>rejection sampling</em>: the student learns from its own best days.</li>
+    <li><strong>GRPO</strong> is reinforcement learning without a learned reward model: sample 8 answers to a problem, score each with the grader (1 right, 0 wrong), and push up the ones above the group’s average. A group where all 8 are right, or all wrong, has no average to beat and teaches nothing.</li>
+    <li><strong>Reasoning models show two texts.</strong> gpt-oss-120b writes its working in an <em>analysis</em> channel and then a <em>final</em> answer (<a href="https://arxiv.org/abs/2508.10925">model card</a>). Only the final answer was used as a training trace here, which turned out to matter (section 4.3).</li>
+  </ul>
+
+  <h3 id="grader" data-short="Benchmark and grader">2.2 Benchmark and grader</h3>
+  <p>FinanceMath questions are short exam problems (“what is the maximum profit of this bull call spread?”), many with a markdown table, across seven areas from accounting to derivatives. Each has an expert-written Python solution; the released gold is its output rounded to 3 decimals. The grader is a port of the official comparison: a prediction is right if it is within 0.15% of the gold, or matches after a power-of-ten rescale (4.3% matches 0.043), or rounds to the same 3 decimals; the sign is not checked. One deviation: a prediction may also match the reference solution’s unrounded value, because the rounded gold alone fails precise answers (38 of the 1,200 reference solutions fail against it). The official evaluation reads the answer with a language model; here it is read from a final <code>ANSWER:</code> line. The grader marks 100% of the gold answers right (<a href="../tests/test_fm_grader.py">test_fm_grader.py</a>).</p>
+
+  <h3 id="data" data-short="Data map">2.3 Data: what each set was used for</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Synthetic, generated</td><td>CFA-style problems with a Python solution, written by gpt-oss-120b, 5 per call over 44 subtopics; the executed solution is the gold</td><td class="num">3,480</td><td>The pool for verification</td></tr>
+        <tr><td>Synthetic, verified</td><td>Kept when gpt-oss-120b, solving blind with the benchmark prompt, matched the gold; one dropped as too similar to a benchmark question (TF-IDF ≥ 0.6)</td><td class="num">2,714</td><td>All training; <a href="../data/synth.jsonl"><code>data/synth.jsonl</code></a></td></tr>
+        <tr><td>SFT split</td><td>75% of the verified problems, by a hash of the id</td><td class="num">2,034</td><td>Teacher and own-answer SFT</td></tr>
+        <tr><td>RL split</td><td>The other 25%, never seen by SFT</td><td class="num">680</td><td>GRPO</td></tr>
+        <tr><td>FinanceMath validation</td><td>The benchmark’s validation split</td><td class="num">200</td><td>Choosing every checkpoint</td></tr>
+        <tr class="hl"><td>FinanceMath test</td><td>The benchmark’s test split, gold public since July 2026</td><td class="num">1,000</td><td>Run once per final system</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="models">2.4 Models</h3>
+  <p>Student: Qwen3-8B (Apache-2.0) in its non-thinking mode, greedy at evaluation; its thinking mode scored lower on validation (0.390 against 0.480; 72 of 200 answers hit the 2,048-token limit). Teacher: gpt-oss-120b on Tinker at medium reasoning effort, which scored 0.62 on 50 validation questions at $0.0009 per question (qwen3.5-397b scored 0.68 at 50 times the price). Rivals: gpt-5.4-mini and gpt-5.4 through the OpenAI API at their default settings, with the same prompt and grader.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Grader</strong> ported and checked on every gold answer (12 tests). <strong>Baselines on validation</strong>: Qwen3-8B (two modes), gpt-5.4-mini, gpt-5.4; teacher candidates on 50 questions.</li>
+    <li><strong>Synthetic data:</strong> about 700 generation calls (3,480 problems, $2.22), each solution executed in an isolated Python process; blind verification of 3,470 ($3.16), 2,714 kept.</li>
+    <li><strong>Teacher best-of-4:</strong> 3 more teacher samples per SFT problem (temperature 1.0), graded; with the verification answer, up to 4 right answers per problem ($4.71).</li>
+    <li><strong>Teacher SFT:</strong> up to 2 distinct right teacher answers per problem, shortest first: 4,045 traces, 2 epochs, 254 steps. Validation: epoch 1 0.355, epoch 2 0.345, against 0.480 for base.</li>
+    <li><strong>Own-answer SFT</strong> (added after step 4 failed): 4 Qwen samples per SFT problem at temperature 0.8, graded; the shortest right one per problem: 1,764 traces, 2 epochs. Validation: 0.500 and 0.475.</li>
+    <li><strong>GRPO</strong>, 20 steps of 32 RL problems × 8 samples, learning rate 2e-5, reward = the grader; once from base, once from own-answer SFT epoch 1; checkpoints every 5 steps, all 8 scored on validation.</li>
+    <li><strong>Test, once per final system:</strong> base Qwen3-8B, the four chosen checkpoints, gpt-5.4-mini and gpt-5.4: 7,000 graded answers.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any test run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The grader; the splits and which set decides what; the checkpoint rule (highest validation accuracy, ties to the earlier one); LoRA rank 32, SFT learning rate 1e-4, batch 32; the teacher and its prompt; paired bootstrap intervals; the $40 cap</td><td>Own-answer SFT and GRPO from base were added after teacher SFT lost 13 points on validation. GRPO was kept to 20 steps for cost. The two GPT test runs were made after the others, once the OpenAI key had credit again (a first attempt returned only errors and was discarded). No size of gain was set in advance.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: greedy decoding at evaluation, up to 2,048 output tokens; training and sampling on Tinker; every multi-sample call unseeded (section 4.5). Spend: $31.80 at list prices (Tinker $25.62, OpenAI $6.18), failed and discarded runs included.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Five findings:</p>
+  <ol>
+    <li><a href="#stages"><strong>4.1</strong></a> No post-training stage beats the base model on the test.</li>
+    <li><a href="#rivals"><strong>4.2</strong></a> Every Qwen system is 17 to 27 points behind the GPT models.</li>
+    <li><a href="#teacher-sft"><strong>4.3</strong></a> SFT on the teacher’s visible answers taught the student to skip the work.</li>
+    <li><a href="#too-easy"><strong>4.4</strong></a> The synthetic problems were too easy for the other stages to teach anything.</li>
+    <li><a href="#boring"><strong>4.5</strong></a> The boring explanations (a sampler bug, a grader quirk, a lucky split) do not account for it.</li>
+  </ol>
+
+  <h3 id="stages" data-short="No stage beats base">4.1 No post-training stage beats the base model on the test</h3>
+  <p><strong>On the 1,000 held-out test questions base Qwen3-8B scores 0.555. SFT on the teacher’s answers scores 0.428 (−12.7 points [−15.7, −9.8]); SFT on its own answers 0.556 (+0.1 [−1.9, +2.1]); GRPO from base 0.553 (−0.2 [−2.1, +1.7]); own-answer SFT then GRPO 0.552 (−0.3 [−2.4, +1.8]).</strong> None passes the bar of an interval above zero (Figure 1). Validation, which chose the checkpoints, told the same story with wider intervals: teacher SFT 12.5 points below base, the rest within 3 points of it.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Stage (checkpoint chosen on validation)</th><th class="num">Validation (200)</th><th class="num">Test (1,000)</th><th class="num">vs base, test (points)</th><th class="num">Fixed / broke vs base</th></tr></thead>
+      <tbody>
+        <tr><td>Base Qwen3-8B</td><td class="num">0.480</td><td class="num">0.555 [0.524, 0.586]</td><td class="num">—</td><td class="num">—</td></tr>
+        <tr><td>+ SFT on teacher answers (epoch 1; epoch 2: 0.345)</td><td class="num">0.355</td><td class="num">0.428 [0.398, 0.458]</td><td class="num">−12.7 [−15.7, −9.8]</td><td class="num">58 / 185</td></tr>
+        <tr class="hl"><td>+ SFT on own right answers (epoch 1; epoch 2: 0.475)</td><td class="num">0.500</td><td class="num">0.556 [0.525, 0.587]</td><td class="num">+0.1 [−1.9, +2.1]</td><td class="num">51 / 50</td></tr>
+        <tr><td>GRPO from base, 20 steps (step 15; steps 5, 10, 20: 0.465, 0.475, 0.485)</td><td class="num">0.485</td><td class="num">0.553 [0.522, 0.584]</td><td class="num">−0.2 [−2.1, +1.7]</td><td class="num">46 / 48</td></tr>
+        <tr><td>Own-answer SFT + GRPO, 20 steps (step 20; steps 5 to 15: 0.495)</td><td class="num">0.510</td><td class="num">0.552 [0.521, 0.583]</td><td class="num">−0.3 [−2.4, +1.8]</td><td class="num">58 / 61</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <figure class="plot">
+    <img src="figures/stages.png" alt="Dot plot of test accuracy with intervals for seven systems. Base Qwen3-8B 0.555; SFT on teacher answers 0.428; SFT on own answers 0.556; GRPO from base 0.553; own-answer SFT plus GRPO 0.552; gpt-5.4-mini 0.730; gpt-5.4 0.818. Right panel: paired difference against base, about −12.7 for teacher SFT, near zero for the other three trained systems, +17.5 for gpt-5.4-mini and +26.3 for gpt-5.4." width="1140" height="540">
+    <figcaption><span class="label">Figure 1.</span> Accuracy on the 1,000 FinanceMath test questions, post-trained Qwen3-8B systems in orange, base Qwen3-8B and the GPT models in grey. Bars: 95% bootstrap intervals over questions. Right: the paired difference against base Qwen3-8B, in points, with its 95% interval. The axis starts at 0.35. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/runs/</code>.</figcaption>
+  </figure>
+  <p>The flat stages are not still water: own-answer SFT fixed 51 questions and broke 50, GRPO from base fixed 46 and broke 48. Training moved answers around without moving the total.</p>
+
+  <h3 id="rivals" data-short="17-27 points behind GPT">4.2 Every Qwen system is 17 to 27 points behind the GPT models</h3>
+  <p><strong>gpt-5.4-mini scores 0.730 [0.702, 0.757] and gpt-5.4 0.818 [0.794, 0.841]. Paired on the same questions, the best post-trained Qwen (own-answer SFT, 0.556) is 17.4 points [14.5, 20.4] behind gpt-5.4-mini and 26.2 [23.2, 29.3] behind gpt-5.4; with GRPO on top, 17.8 [14.8, 20.8] and 26.6 [23.6, 29.6].</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th class="num">Test accuracy</th><th class="num">Best post-trained minus this (points)</th><th class="num">$ per question</th><th class="num">Answer tokens</th></tr></thead>
+      <tbody>
+        <tr><td>gpt-5.4</td><td class="num">0.818 [0.794, 0.841]</td><td class="num">−26.2 [−29.3, −23.2]</td><td class="num">0.0039</td><td class="num">234</td></tr>
+        <tr><td>gpt-5.4-mini</td><td class="num">0.730 [0.702, 0.757]</td><td class="num">−17.4 [−20.4, −14.5]</td><td class="num">0.0012</td><td class="num">234</td></tr>
+        <tr class="hl"><td>Qwen3-8B, own-answer SFT</td><td class="num">0.556 [0.525, 0.587]</td><td class="num">—</td><td class="num">0.0003</td><td class="num">464</td></tr>
+        <tr><td>Qwen3-8B, base</td><td class="num">0.555 [0.524, 0.586]</td><td class="num">+0.1 [−1.9, +2.1]</td><td class="num">0.0003</td><td class="num">486</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Qwen costs about a quarter of gpt-5.4-mini per question at list prices. The gap is widest in derivatives (base Qwen 0.472 against gpt-5.4-mini 0.653 on 303 questions) and portfolio management (0.472 against 0.681 on 72), areas where knowing the definition (a spread’s payoff, a fee’s base) decides the answer.</p>
+
+  <h3 id="teacher-sft" data-short="Teacher SFT skipped the work">4.3 SFT on the teacher’s visible answers taught the student to skip the work</h3>
+  <p><strong>The teacher, gpt-oss-120b, sampled 972 tokens per answer during verification and showed 278 of them in its final answer; the rest was its hidden reasoning. Trained on 4,045 of those final answers, Qwen3-8B’s answers shrank from 486 to 204 tokens on the test, and it broke 185 questions the base model got right while fixing 58.</strong> The teacher answers were right (they were graded), but they were summaries: a formula and the numbers, written by a model that had already checked them. Copying the summary without the checking is what the bond question in the introduction shows (Figure 2).</p>
+  <figure class="plot">
+    <img src="figures/sft.png" alt="Left: bar chart of mean answer length in tokens on the test: base Qwen3-8B 486, SFT on teacher answers 204 (orange), SFT on own answers 464, GRPO from base 501, own-answer SFT plus GRPO 450, gpt-5.4-mini 234, gpt-5.4 234. Right: test questions fixed and broken against base for each trained system: teacher SFT 58 fixed, 185 broken; own-answer SFT 51 and 50; GRPO from base 46 and 48; own-answer SFT plus GRPO 58 and 61." width="1140" height="510">
+    <figcaption><span class="label">Figure 2.</span> Left: mean answer length (output tokens) on the 1,000 test questions; teacher-trace SFT in orange. For the GPT models this is the completion count the API reports. Right: test questions each post-trained system got right that base Qwen3-8B got wrong (fixed, light) and the reverse (broke, orange). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Short answers are not wrong in themselves: gpt-5.4-mini answers in 234 tokens and scores 0.730. The difference is where the work happens. A reasoning model can afford a terse final answer because the checking happened before it; an 8B model in non-thinking mode has no such place, and the teacher’s style taught it to leave the checking out. The explorer shows three test questions and one training problem.</p>
+  <!-- explorer:start -->
+<div class="sim explorer" id="explorer">
+  <div class="gallery-pick" role="group" aria-label="Case">
+    <button type="button" data-case="0" aria-pressed="true">Bull call spread</button>
+    <button type="button" data-case="1" aria-pressed="false">Bond price</button>
+    <button type="button" data-case="2" aria-pressed="false">ROE after leverage</button>
+    <button type="button" data-case="3" aria-pressed="false">A training problem</button>
+  </div>
+  <div class="ex-case" data-case="0">
+    <p class="ex-q"><strong>Question</strong> (test-63, Asset Classes &amp; Derivatives): A financier is interested in establishing a bull call spread with the next options: a call option with a strike price of $35 that costs $12.65, and a call option with a strike price of $40 priced at $8.85. What is the maximum profit that can be made from this bull call spread? <span class="ex-gold">Gold: 1.2</span></p>
+    <p class="ex-note">broken: after SFT the model states a wrong rule in one line and does not check it.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Base Qwen3-8B: <code>1.200</code> <span class="ex-v ok">right</span></p><pre>To solve this finance problem, we need to understand the concept of a **bull call spread** and how to calculate its **maximum profit**.
+
+---
+
+### Step 1: Understand the Bull Call Spread
+
+A **bull call spread** is a **limited-risk, limited-reward** options strategy that involves:
+
+- **Buying a call option** with a **lower strike price** (in this case, $35).
+- **Selling a call option** with a **higher strike price** (in this case, $40).
+
+This strategy is used when the investor expects the underlying asset to rise in value, but not by a large amount.
+
+---
+
+### Step 2: Determine the Net Cost of the Spread
+
+- Cost of the **lower strike call** (buying): $12.65  
+- Premium received from the **higher strike call** (selling): $8.85  
+
+So, the **net cost** of the spread is:
+
+$$
+\text{Net Cost} = \text{Cost of lower strike call} - \text{Premium received from higher strike call}
+$$
+$$
+\text{Net Cost} = 12.65 - 8.85 = 3.80
+$$
+
+---
+
+### Step 3: Determine the Maximum Profit
+
+The **maximum profit** in a bull call spread occurs when the underlying asset price is **equal to or above the higher strike price** (i.e., $40 or more).
+
+At this point:
+
+- The **lower strike call** is **in the money**.
+- The **higher strike call** is **also in the money**, but the **premium received** offsets the cost.
+
+The **maximum profit** is the **difference between the strike prices** minus the **net cost** of the spread.
+
+$$
+\text{Maximum Profit} = (\text{Higher strike} - \text{Lower strike}) - \text{Net Cost}
+$$
+$$
+\text{Maximum Profit} = (40 - 35) - 3.80 = 5 - 3.80 = 1.20
+$$
+
+---
+
+### Final Answer:
+
+$$
+\boxed{1.200}
+$$
+
+ANSWER: 1.200</pre></div>
+      <div><p class="ex-h">After SFT on teacher traces: <code>0</code> <span class="ex-v no">wrong</span></p><pre>The bull call spread profit is  
+
+\[
+\text{Profit}= \text{Premium received} - \text{Premium paid}
+= 8.85 - 12.65 = -3.80
+\]
+
+Since the spread is long the lower‑strike call and short the higher‑strike call, the maximum profit occurs when the underlying price is at the higher strike (\$40). At that point the lower‑strike call is in the money and the higher‑strike call is at the money, giving a net payoff of \$0.  
+
+Thus the maximum profit that can be made from this bull call spread is **\$0**.
+
+ANSWER: 0</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="1" hidden>
+    <p class="ex-q"><strong>Question</strong> (test-60, Quantitative Analysis &amp; Valuation): What is the worth of a bond that has a face value of EUR 1,000, a three-year maturity period, and annually pays a 5% coupon? Please note the following spot rate curve: 1-year, 6%; 2-year, 7%; and 3-year, 8%. <span class="ex-gold">Gold: 924</span></p>
+    <p class="ex-note">broken: the right method, but 1,050 / 1.08³ worked out in its head as 811.62 (it is 833.52).</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Base Qwen3-8B: <code>ANSWER: 924.47</code> <span class="ex-v ok">right</span></p><pre>To determine the **worth of the bond**, we need to **discount each of its future cash flows** using the **spot rates** provided. The bond has:
+
+- **Face value (FV)** = EUR 1,000  
+- **Coupon rate** = 5% annually  
+- **Maturity** = 3 years  
+- **Spot rates**:  
+  - 1-year: 6%  
+  - 2-year: 7%  
+  - 3-year: 8%  
+
+---
+
+### Step 1: Calculate the annual coupon payment
+The bond pays a 5% coupon annually on a face value of EUR 1,000:
+
+$$
+\text{Coupon} = 1,000 \times 0.05 = 50 \text{ EUR}
+$$
+
+So, the bond pays **EUR 50** each year for 3 years, and **EUR 1,050** at maturity (the final coupon + face value).
+
+---
+
+### Step 2: Discount each cash flow using the spot rates
+
+We discount each cash flow using the spot rate corresponding to its time to maturity.
+
+- **Year 1 cash flow**: EUR 50  
+  $$
+  \text{PV}_1 = \frac{50}{(1 + 0.06)} = \frac{50}{1.06} \approx 47.17
+  $$
+
+- **Year 2 cash flow**: EUR 50  
+  $$
+  \text{PV}_2 = \frac{50}{(1 + 0.07)^2} = \frac{50}{1.1449} \approx 43.67
+  $$
+
+- **Year 3 cash flow**: EUR 1,050  
+  $$
+  \text{PV}_3 = \frac{1,050}{(1 + 0.08)^3} = \frac{1,050}{1.259712} \approx 833.63
+  $$
+
+---
+
+### Step 3: Add up the present values
+
+$$
+\text{Bond Value} = 47.17 + 43.67 + 833.63 = 924.47
+$$
+
+---
+
+### Final Answer:
+
+**ANSWER: 924.47**</pre></div>
+      <div><p class="ex-h">After SFT on teacher traces: <code>902.7</code> <span class="ex-v no">wrong</span></p><pre>The bond pays a 5 % coupon each year, i.e. €50, and the face value €1,000 at maturity.
+
+Discount each cash flow with the appropriate spot rate:
+
+- Year 1: \( \frac{50}{1.06}=47.17\)
+- Year 2: \( \frac{50}{(1.07)^2}=43.87\)
+- Year 3: \( \frac{1050}{(1.08)^3}=811.62\)
+
+Summing the present values:
+
+\[
+47.17 + 43.87 + 811.62 \approx 902.66
+\]
+
+Thus the bond’s worth today is about **€902.7**.
+
+**ANSWER: 902.7**</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="2" hidden>
+    <p class="ex-q"><strong>Question</strong> (test-41, Corporate &amp; Securities Issuance): A business is pondering on the idea of transitioning from a completely equity-based capital structure to a capital structure comprising of equal parts of equity and debt, keeping assets constant. This alteration would decrease the net income by 30%. If the present return on equity (ROE) is 10%, what would the ROE be with the suggested capital structure? <span class="ex-gold">Gold: 14</span></p>
+    <p class="ex-note">fixed: the short answer gets this one right where the base model halved the ratio.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Base Qwen3-8B: <code>7.00</code> <span class="ex-v no">wrong</span></p><pre>To solve this problem, we need to understand how the change in capital structure affects the return on equity (ROE). Here's the step-by-step reasoning:
+
+---
+
+### **Step 1: Understand the current situation**
+- The current capital structure is **equity-only**.
+- The current **ROE** is **10%**.
+- This means that the **net income (NI)** is **10% of total equity (E)**:
+  $$
+  \text{ROE} = \frac{\text{Net Income (NI)}}{\text{Equity (E)}} = 10\%
+  $$
+
+---
+
+### **Step 2: Understand the new capital structure**
+- The business is transitioning to a **capital structure with equal parts equity and debt**.
+- This means **debt (D)** is now **equal to equity (E)**.
+- Since the **assets (A)** remain constant, and assets = equity + debt:
+  $$
+  A = E + D \Rightarrow A = E + E = 2E \Rightarrow E = \frac{A}{2}
+  $$
+
+---
+
+### **Step 3: Understand the effect on net income**
+- The problem states that the **net income decreases by 30%** due to the capital structure change.
+- So, the new net income (NI') is:
+  $$
+  \text{NI'} = \text{NI} \times (1 - 0.30) = 0.70 \times \text{NI}
+  $$
+
+---
+
+### **Step 4: Calculate the new ROE**
+- The new ROE is:
+  $$
+  \text{ROE'} = \frac{\text{NI'}}{\text{New Equity (E')}}
+  $$
+- Since the new capital structure is **equal parts equity and debt**, the **new equity is half of the total assets**:
+  $$
+  E' = \frac{A}{2} = E
+  $$
+- So, the new ROE is:
+  $$
+  \text{ROE'} = \frac{0.70 \times \text{NI}}{E}
+  $$
+- From the original ROE:
+  $$
+  \text{ROE} = \frac{\text{NI}}{E} = 10\%
+  $$
+- Therefore:
+  $$
+  \text{ROE'} = 0.70 \times \text{ROE} = 0.70 \times 10\% = 7.00\%
+  $$
+
+---
+
+### **Final Answer:**
+$$
+\boxed{7.00}
+$$
+
+**ANSWER: 7.00**</pre></div>
+      <div><p class="ex-h">After SFT on teacher traces: <code>14%</code> <span class="ex-v ok">right</span></p><pre>The net income falls by 30 % so the new net income is  
+
+\[
+\text{NI}_{\text{new}} = 0.70 \times \text{NI}_{\text{old}}.
+\]
+
+With assets unchanged, the new equity is half the original equity (since debt is added equal to equity).  
+
+\[
+\text{Equity}_{\text{new}} = 0.50 \times \text{Equity}_{\text{old}}.
+\]
+
+Return on equity (ROE) is  
+
+\[
+\text{ROE}_{\text{new}} = \frac{\text{NI}_{\text{new}}}{\text{Equity}_{\text{new}}}
+= \frac{0.70\,\text{NI}_{\text{old}}}{0.50\,\text{Equity}_{\text{old}}}
+= 1.40 \times \frac{\text{NI}_{\text{old}}}{\text{Equity}_{\text{old}}}
+= 1.40 \times \text{ROE}_{\text{old}}.
+\]
+
+Given the original ROE is 10 %:
+
+\[
+\text{ROE}_{\text{new}} = 1.40 \times 10\% = 14\%.
+\]
+
+**ANSWER: 14%**</pre></div>
+    </div>
+  </div>
+  <div class="ex-case" data-case="3" hidden>
+    <p class="ex-q"><strong>Synthetic problem</strong> (s1-4, Accounting): A company currently reports taxable income of $50,000 using FIFO. If it switches to LIFO, its cost of goods sold would increase by $8,000, reducing taxable income accordingly. The corporate tax rate is 21%. What is the after‑tax cash‑flow benefit of making the switch? <span class="ex-gold">Gold: 1680</span></p>
+    <p class="ex-note">what the two SFT runs learned from: the teacher's visible answer, and Qwen3-8B's own shortest right answer.</p>
+    <div class="ex-cols">
+      <div><p class="ex-h">Teacher (gpt-oss-120b), visible answer</p><pre>The $8,000 increase in COGS lowers taxable income by $8,000.  
+Tax saved = 21 % × $8,000 = $1,680.  
+This tax saving is the additional cash flow from the switch.
+
+**ANSWER: 1680**</pre></div>
+      <div><p class="ex-h">Qwen3-8B’s own shortest right answer</p><pre>To determine the **after-tax cash-flow benefit** of switching from FIFO to LIFO, we need to follow these steps:
+
+---
+
+### **Step 1: Understand the impact on taxable income**
+- Current taxable income using FIFO: **$50,000**
+- If the company switches to LIFO, **cost of goods sold (COGS) increases by $8,000**
+- This means **taxable income decreases by $8,000**
+- New taxable income = $50,000 - $8,000 = **$42,000**
+
+---
+
+### **Step 2: Compute the tax savings**
+- Corporate tax rate = **21%**
+- Tax savings = (Decrease in taxable income) × tax rate  
+  = $8,000 × 0.21 = **$1,680**
+
+---
+
+### **Step 3: Determine the after-tax cash-flow benefit**
+- The tax savings of $1,680 represents an **after-tax cash-flow benefit**, since taxes are paid on the reduced income.
+
+---
+
+### **Final Answer:**
+ANSWER: 1680</pre></div>
+    </div>
+  </div>
+  <p class="caption">Replies as generated (greedy, the benchmark prompt), graded by the official FinanceMath rule. Source: <code>results/explorer.json</code>, written by <a href="../make_explorer.py">make_explorer.py</a>.</p>
+</div>
+<!-- explorer:end -->
+  <p>The training loss shows the same thing from the other side: on teacher answers it fell from 1.14 to 0.18 (a new style to copy); on Qwen’s own answers it stayed between 0.11 and 0.14 (its own style, nothing new to copy).</p>
+
+  <h3 id="too-easy" data-short="Problems too easy">4.4 The synthetic problems were too easy for the other stages to teach anything</h3>
+  <p><strong>Sampled 4 times on each of the 2,034 SFT problems, base Qwen3-8B got all 4 right on 1,163 (57%) and none right on 270 (13%); only 601 (30%) had a mix. On FinanceMath validation the same model scores 0.480; on the synthetic problems its single-sample accuracy is 0.734.</strong> Own-answer SFT therefore trained mostly on problems the model already solved every time, and GRPO, which learns only from mixed groups, found 8 to 19 of its 32 problems per step with any signal (Figure 3).</p>
+  <figure class="plot">
+    <img src="figures/easy.png" alt="Left: bar chart of synthetic SFT problems by how many of 4 base Qwen3-8B samples were right: 0 right 270, 1 right 162, 2 right 161, 3 right 278, 4 right 1,163. Right: GRPO batch reward over 20 steps for two runs, from base and from own-answer SFT; both lines wander between 0.6 and 0.82 and move together step by step." width="1140" height="480">
+    <figcaption><span class="label">Figure 3.</span> Left: the 2,034 synthetic SFT problems by how many of 4 samples base Qwen3-8B got right (temperature 0.8); orange, the mixed problems from which GRPO and best-of-N can learn. Right: share of right answers per GRPO step (32 problems × 8 samples) for GRPO from base (grey) and from own-answer SFT (orange). Both runs drew the same problems at each step. From <code>training</code> in <a href="../results/summary.json">summary.json</a>; drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>The two GRPO curves rise and fall together because both runs saw the same 32 problems at each step: the batch reward tracks how hard that step’s problems were, not what the model learned. The generator wrote CFA-style drills (“compute the duration of this bond”); FinanceMath asks for the same knowledge in messier wording, often with a table and a distractor. Problems an 8B model already solves teach it nothing new.</p>
+
+  <h3 id="boring" data-short="Boring explanations">4.5 The boring explanations do not account for it</h3>
+  <ul>
+    <li><strong>Identical samples.</strong> On Tinker, a sampling call with a seed and several samples returns the same sample several times; the FinQA pilot behind <a href="../../fin-llm/report/">episode 1</a> lost a run to it, which turns best-of-4 into best-of-1 and leaves every GRPO group without signal. Here every multi-sample call was unseeded, and 0 of 2,034 four-sample groups are identical, for the teacher or for Qwen (<code>identical_sample_sets</code> in <a href="../results/summary.json">summary.json</a>).</li>
+    <li><strong>A grader that punishes short answers.</strong> The teacher-trained model’s answers parse: 1 of 1,000 test answers has no number, against 4 for base. Its errors are wrong values (the explorer’s spread and bond).</li>
+    <li><strong>Wrong teacher answers.</strong> Every teacher trace used for SFT was graded right against the executed gold; 95.2% of the extra teacher samples were right.</li>
+    <li><strong>A lucky or unlucky split.</strong> Test is easier than validation for every system (base 0.480 on validation, 0.555 on test), which is why every comparison is paired on the same questions; both sets put teacher SFT far below base and the other stages within noise of it.</li>
+  </ul>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <p>FinanceMath’s paper graded with a language model reading the answer; this note reads an <code>ANSWER:</code> line with the same numeric rule, so its numbers are context, not a leaderboard.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th class="num">FinanceMath test</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Human experts (estimated)</td><td class="num">92</td><td><a href="https://arxiv.org/abs/2311.09797">Zhao et al., 2024</a></td></tr>
+        <tr><td>GPT-4o, chain of thought</td><td class="num">60.9</td><td>same</td></tr>
+        <tr class="hl"><td>This note: gpt-5.4 / gpt-5.4-mini</td><td class="num">81.8 / 73.0</td><td>here</td></tr>
+        <tr><td>This note: Qwen3-8B base / best post-trained</td><td class="num">55.5 / 55.6</td><td>here</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Episode 1’s FinQA pilot</th><th>This note: FinanceMath</th></tr></thead>
+      <tbody>
+        <tr><td>Training data</td><td>FinQA’s 6,251 real training questions</td><td>2,714 synthetic problems (no training split)</td></tr>
+        <tr><td>SFT on own best-of-4 answers</td><td>+1.5 points [+0.2, +2.8] on test</td><td>+0.1 [−1.9, +2.1]</td></tr>
+        <tr><td>GRPO after SFT</td><td>no gain (30 steps)</td><td>no gain (20 steps)</td></tr>
+        <tr><td>Teacher-answer SFT</td><td>177 gpt-5.4-mini answers mixed in</td><td>4,045 gpt-oss-120b answers alone: −12.7</td></tr>
+        <tr><td>Paired against base and frontier models</td><td>✓</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Episode 1 (<a href="../../fin-llm/report/">On FinQA, retrieved worked examples add 2 to 3 points to every API model</a>) found that a harness helps by showing the model how the exam is marked, and its post-training pilot gave a small SFT gain on real training questions. Here, without real training questions, even that gain is gone.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Distillation from reasoning models is now how many small models are trained, and capability evaluations of open models often treat a fine-tune on a stronger model’s outputs as a way to draw out what the small model can do. This note shows a fine-tune lowering a capability by 13 points because what was copied was the style of the answer, not the work behind it. An evaluation that fine-tunes a model to elicit a capability, then reports a low number, may be measuring a bad training set; the check is cheap (answer length and a fixed/broken count against the base model). The reverse also holds: a fine-tune that matches its teacher’s answers is not evidence that it matches the teacher’s reasoning.</p>
+  <p>Risk: very low. Public exam-style finance questions and a small open model.</p>
+  <p><strong>The recommendation in one sentence: before trusting SFT on a reasoning model’s answers, compare the student’s answer length and fixed/broken counts with the base model on held-out items, and train on the teacher’s reasoning, not only its summary.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>That post-training cannot work here.</strong> One recipe at pilot scale: 20 GRPO steps, one LoRA rank, one learning rate per stage, one teacher, synthetic data from one generator.</li>
+    <li><strong>Training on the teacher’s reasoning was not tried.</strong> gpt-oss-120b exposes its analysis channel; only the final answer was kept. That is the most direct fix for section 4.3 and was out of this run’s scope.</li>
+    <li><strong>The verifier is the generator.</strong> gpt-oss-120b wrote and checked the problems, so a misconception both share passes verification (78% agreed).</li>
+    <li><strong>Non-thinking mode only for the student.</strong> Qwen3-8B’s thinking mode scored lower on validation at 2,048 tokens; with a larger budget it may do better, trained or not.</li>
+    <li><strong>The grader reads one line.</strong> The official evaluation extracts answers with a language model; a model that writes the right number but not on the <code>ANSWER:</code> line is marked wrong here (at most 7 of 1,000 answers per system had no parsed answer).</li>
+    <li><strong>Prices are list prices</strong> from logged token counts, not invoices.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number, figure, the cover and the explorer from the saved results, in under a minute:</p>
+  <pre><code class="language-bash">experiments/fin-math/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch: FinanceMath from its GitHub repository into <code>data/raw/</code> (commands in <a href="../README.md">README.md</a>), a Tinker key and an OpenAI key. Everything in this note cost $31.80 at list prices:</p>
+  <pre><code class="language-bash">experiments/fin-math/reproduce.sh --dry-run   # lists every command
+experiments/fin-math/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next: a recipe with a chance, and its cost</h2>
+  <ul>
+    <li><strong>Traces that carry the reasoning</strong>: gpt-oss-120b’s analysis channel kept and trained on (about $5 to resample the 2,034 problems), or gpt-5.4 (0.818 on test) writing visible step-by-step solutions, best of 2 on about 3,000 problems (about $25). qwen3.5-397b in thinking mode is the open alternative at about $140.</li>
+    <li><strong>Harder, benchmark-shaped problems</strong>: longer wording, tables and distractors, kept only when base Qwen gets at most 2 of 4 samples right, verified by a different model than the generator: about $15.</li>
+    <li><strong>A real GRPO run</strong>: 200 steps of 64 problems × 8 samples, about $50 on Tinker; evaluations about $5.</li>
+    <li><strong>Total about $95 with gpt-5.4 traces, about $210 with qwen3.5-397b.</strong> Worth gating at $10 first: SFT on 1,000 such traces must add at least 5 points on validation before the rest is spent.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can a fine-tuned 8B model beat GPT-5.4-mini on FinanceMath?</h3>
+  <p>Not in this run. Qwen3-8B post-trained with SFT and GRPO on 2,714 synthetic finance problems scores at most 0.556 on the 1,000 test questions, 17.4 points below gpt-5.4-mini (0.730) and 26.2 below gpt-5.4 (0.818), paired on the same questions.</p>
+  <h3 id="q2">Why did distilling from gpt-oss-120b make Qwen3-8B worse?</h3>
+  <p>The training answers were gpt-oss-120b’s final answers, short summaries (278 tokens) of reasoning it did in a hidden channel (972 tokens in all). Qwen learned to write the summary without the reasoning: its answers fell to under half their length and it lost 12.7 points on the test.</p>
+  <h3 id="q3">Does rejection sampling or GRPO help Qwen3-8B on finance math?</h3>
+  <p>Not here: +0.1 and −0.2 points on the test, intervals across zero. The synthetic training problems were too easy: the base model got all 4 samples right on 57% of them, so there was little to learn.</p>
+  <h3 id="q4">What does Qwen3-8B score on FinanceMath?</h3>
+  <p>0.555 on the 1,000 test questions and 0.480 on the 200 validation questions, non-thinking mode, graded by the official numeric rule (0.15% tolerance) from a final <code>ANSWER:</code> line; gpt-5.4-mini scores 0.730 and gpt-5.4 0.818.</p>
+  <h3 id="q5">How much did this cost?</h3>
+  <p>$31.80 at list prices: $25.62 on Tinker (synthetic data, teacher and student samples, LoRA training, evaluation) and $6.18 on the OpenAI API (gpt-5.4 and gpt-5.4-mini baselines).</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code> or <code>data/</code>; <a href="../README.md"><code>README.md</code></a> describes them.</p>
+  <ul>
+    <li><code>results/runs/&lt;split&gt;__&lt;system&gt;.jsonl</code>: one line per question: id, topic, gold, the parsed answer, right or not, the full reply, dollars, seconds and tokens. Systems: <code>qwen</code>, <code>qwen-think</code>, <code>sft-e1</code>, <code>sft-e2</code>, <code>rft-e1</code>, <code>rft-e2</code>, <code>grpo-base-s5</code> to <code>-s20</code>, <code>grpo-rft-e1-s5</code> to <code>-s20</code>, <code>gpt-5.4-mini</code>, <code>gpt-5.4</code>; <code>validation-50__teacher-*</code> are the teacher candidates.</li>
+    <li><code>results/summary.json</code>: every run’s accuracy with its interval, paired differences against base Qwen3-8B, gpt-5.4-mini and gpt-5.4, and <code>training</code> (best-of-4 counts, identical-sample checks, GRPO histories, SFT losses).</li>
+    <li><code>results/explorer.json</code>: the four cases in the explorer.</li>
+    <li><code>data/synth.jsonl</code>: the 2,714 verified synthetic problems: id, topic, subtopic, question, table, gold, Python solution, and the teacher’s verified answer. <code>data/gold_exec.json</code>: each FinanceMath reference solution’s unrounded value.</li>
+  </ul>
+  <h3 id="prompts">The prompt</h3>
+  <p>Every model, every stage: “Solve this finance problem.” then the tables if any, “Question: …”, “Reason step by step, then answer. Finish with one line <code>ANSWER: &lt;value&gt;</code>: a number only (no units or currency signs); a percentage may be written with a % sign. Keep at least 3 significant figures.” The generation prompt is in <a href="../synth.py"><code>synth.py</code></a>.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Training</th><td>LoRA rank 32 on Qwen3-8B; SFT lr 1e-4 with warm-up and linear decay, batch 32, 2 epochs; GRPO with an importance-sampling loss, advantage = reward − group mean, lr 2e-5, 32 problems × 8 samples per step, temperature 1.0</td></tr>
+        <tr><th scope="row">Data</th><td>Synthetic problems with executed Python gold, blind verification by the generator model, TF-IDF decontamination against both benchmark splits</td></tr>
+        <tr><th scope="row">Grading</th><td>The official FinanceMath comparison (0.15% relative, power-of-ten rescaling, magnitudes), also against the unrounded reference value; checked at 100% on the gold</td></tr>
+        <tr><th scope="row">Statistics</th><td>95% percentile bootstrap over questions (10,000 resamples); paired differences over the same questions</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>Qwen3-8B and gpt-oss-120b on Tinker (training and sampling APIs); gpt-5.4-mini and gpt-5.4 through the OpenAI API</td></tr>
+        <tr><th scope="row">Code</th><td>Python 3.11, NumPy, scikit-learn (TF-IDF), matplotlib; transformers for the chat templates</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Zhao et al. “FinanceMath: Knowledge-Intensive Math Reasoning in Finance Domains.” ACL 2024. <a href="https://arxiv.org/abs/2311.09797">arXiv:2311.09797</a>; data at <a href="https://github.com/yale-nlp/FinanceMath">github.com/yale-nlp/FinanceMath</a>.</li>
+    <li>OpenAI. “gpt-oss-120b &amp; gpt-oss-20b Model Card.” 2025. <a href="https://arxiv.org/abs/2508.10925">arXiv:2508.10925</a>.</li>
+    <li>Shao et al. “DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models” (GRPO). <a href="https://arxiv.org/abs/2402.03300">arXiv:2402.03300</a>.</li>
+    <li>Yuan et al. “Scaling Relationship on Learning Mathematical Reasoning with Large Language Models” (rejection-sampling fine-tuning). <a href="https://arxiv.org/abs/2308.01825">arXiv:2308.01825</a>.</li>
+    <li>Episode 1: <a href="../../fin-llm/report/">On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 10, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026financemathposttrain,
+  author = {Albert Lie},
+  title  = {Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/}
+}</code></pre>
+  <footer class="note">Data: FinanceMath (Zhao et al., 2024; MIT licence per its dataset card). Models: Qwen3-8B (Alibaba, Apache-2.0) and gpt-oss-120b (OpenAI, Apache-2.0) on Tinker; gpt-5.4-mini and gpt-5.4 (OpenAI).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("explorer");
+  if (!box) return;
+  var buttons = box.querySelectorAll(".gallery-pick button");
+  var cases = box.querySelectorAll(".ex-case");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      cases.forEach(function (c) { c.hidden = c.dataset.case !== b.dataset.case; });
+    });
+  });
+})();
+</script>
+</body>
+</html>
