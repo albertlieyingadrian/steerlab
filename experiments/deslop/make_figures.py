@@ -17,6 +17,7 @@ detect.png    share of each set flagged by three open AI-text detectors, each at
               human passages; with 95% bootstrap intervals.
 editlens.png  EditLens (RoBERTa-large): share of each set the authors' val-calibrated cuts call human, AI-edited or
               AI-generated, and (diamonds) the share above a threshold that flags 1% of the 318 human passages.
+voi_slop.png  voi-slop-detect-4B, the same view at its shipped bands (0.15, 0.75); circles, its own flag cut (0.385).
 viewer.json   the interactive reply viewer's data: 12 held-out prompts (two per genre) and seven setups, each reply with
               its score and every habit span, as the toolkit finds them.
 """
@@ -446,6 +447,17 @@ def detect(summary: dict) -> None:
 
 def editlens() -> None:
     sets = json.loads((RESULTS / "editlens" / "summary.json").read_text())["sets"]
+    _bands(sets, "EditLens", "editlens.png", shipped=False)
+
+
+def voi_slop() -> None:
+    sets = json.loads((RESULTS / "voi_slop" / "summary.json").read_text())["sets"]
+    _bands(sets, "voi-slop-detect-4B", "voi_slop.png", shipped=True)
+
+
+def _bands(sets: dict, name: str, filename: str, shipped: bool) -> None:
+    """Stacked human / AI-edited / AI-generated shares per set, a diamond for the 1%-human threshold and, for a detector
+    that ships its own flag cut, a hollow circle for that cut."""
     order = [("human/gutenberg", "human: Gutenberg essays"), ("human/wikipedia", "human: Wikipedia 2021"),
              ("author", "human: voice authors, held out"), ("mirror", "human passages edited by Qwen"),
              ("run/base", "Qwen3-4B as released"), ("run/plain", "plain-style prompt"),
@@ -454,7 +466,7 @@ def editlens() -> None:
              ("voice/api", "voice rewrites, gpt-5.4-mini"), ("voice/lora", "voice rewrites, our LoRA")]  # fmt: skip
     parts = [("human", "human", LIGHT), ("ai_edited", "AI-edited", "#D98B5F"), ("ai_generated", "AI-generated", EMBER)]
     fig, ax = plt.subplots(figsize=(8.4, 6.0))
-    print("editlens.png: human / AI-edited / AI-generated shares (authors' cuts), and flagged at 1% human FPR")
+    print(f"{filename}: human / AI-edited / AI-generated shares, and flagged at 1% human FPR")
     for row, (key, label) in enumerate(reversed(order)):
         left = 0.0
         for field, _, c in parts:
@@ -463,18 +475,29 @@ def editlens() -> None:
             left += v
         flag = sets[key]["flagged_1pct"]["value"]
         ax.plot(flag, row, "D", color=INK, ms=5)
+        extra = ""
+        if shipped:
+            own = sets[key]["flagged_shipped"]["value"]
+            ax.plot(own, row, "o", color=INK, mfc="white", ms=6)
+            extra = f" own-cut {own:.2f}"
         print(
-            f"  {label:34} " + " ".join(f"{f} {sets[key][f]['value']:.2f}" for f, _, _ in parts) + f" flag {flag:.2f}"
+            f"  {label:34} "
+            + " ".join(f"{f} {sets[key][f]['value']:.2f}" for f, _, _ in parts)
+            + f" flag {flag:.2f}"
+            + extra
         )
     ax.set_yticks(range(len(order)), [label for _, label in reversed(order)])
     ax.set_xlim(0, 1)
     ax.set_xlabel("share of the set")
     handles = [plt.Rectangle((0, 0), 1, 1, color=c) for _, _, c in parts]
     handles.append(plt.Line2D([], [], marker="D", color=INK, ls=""))
-    labels = [f"EditLens: {name}" for _, name, _ in parts] + ["flagged at 1% human false positives"]
+    labels = [f"{name}: {part}" for _, part, _ in parts] + ["flagged at 1% human false positives"]
+    if shipped:
+        handles.append(plt.Line2D([], [], marker="o", color=INK, mfc="white", ls=""))
+        labels.append("flagged at its own cut (0.385)")
     ax.legend(handles, labels, frameon=False, fontsize=7.5, loc="upper center", bbox_to_anchor=(0.5, -0.09), ncol=2)
     fig.tight_layout()
-    fig.savefig(FIGURES / "editlens.png")
+    fig.savefig(FIGURES / filename)
     plt.close(fig)
 
 
@@ -493,6 +516,8 @@ def main() -> None:
         detect(summary)
     if (RESULTS / "editlens" / "summary.json").exists():
         editlens()
+    if (RESULTS / "voi_slop" / "summary.json").exists():
+        voi_slop()
 
 
 if __name__ == "__main__":

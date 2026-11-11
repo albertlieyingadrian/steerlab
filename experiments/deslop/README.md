@@ -36,6 +36,7 @@ experiments/deslop/reproduce.sh --scores    # recompute the analysis and figures
 | `detect.py` | Three open AI-text detectors (Desklib, Binoculars, Fast-DetectGPT) on every text, and the 40 "mirrors" (human passages lightly edited by Qwen). Measurement only |
 | `editlens.py` | EditLens (`pangram/editlens_roberta-large`, CC BY-NC-SA 4.0): reproduces the released model's ternary macro-F₁ on the EditLens test splits, then scores every text. Imports the authors' text cleaning from a local clone; commits no EditLens data |
 | `editlens_qwen.py` | A Qwen3-4B LoRA detector trained on 20,000 EditLens training texts (private, unreleased), scored on the same splits |
+| `voi_slop.py`, `modal_voi_slop.py` | voi-slop-detect-4B (`VoightKampffLabs/voi-slop-detect-4B`, Apache-2.0, pinned revision) on every text, read at a 1%-human threshold and at its shipped bands. Its own small Modal app (one L4 or A10G) |
 | `release.py`, `model_card.md` | GGUF export and the Hugging Face upload |
 | `eqbench_slop.mjs` | EQ-Bench's slop score computed with slop-score's own code (pinned commit in `reproduce.sh`) |
 | `analyze.py` | Every metric with bootstrap intervals; writes `results/summary.json`, `table.csv`, `per_reply.csv` |
@@ -64,6 +65,7 @@ experiments/deslop/reproduce.sh --scores    # recompute the analysis and figures
 | `editlens/check.json` | The reproduction: our and the released scores' ternary macro-F₁ on `test` and `test_llama`, their correlation, and the val-calibrated cut points |
 | `editlens/scores.json`, `editlens/summary.json` | EditLens score and bucket for every text in the note (same keys as `detect/scores.json`); shares called human, AI-edited and AI-generated per set |
 | `editlens/qwen.json` | The Qwen3-4B LoRA detector: training summary, test-split macro-F₁, and its score for every text in the note |
+| `voi_slop/scores.json`, `voi_slop/summary.json` | voi-slop-detect-4B's score (0 human to 1 AI) and `tokens` for every text (same keys as `detect/scores.json`), with the model revision and bands; per set, shares below 0.15 (human), 0.15 to 0.75 (AI-edited) and at 0.75 or above (AI-generated), `counts`, and the share flagged at its own cut (0.385, `flagged_shipped`) and at the 1%-human threshold (`flagged_1pct`) |
 | `detect/mirrors.jsonl`, `detect/scores.json` | The mirrors; every text's `binoculars`, `fastdetect`, `desklib` and `tokens`, keyed `run/<run>/<prompt>`, `human/<source>/<id>`, `author/<writer>/<id>`, `voice/<rewrite>`, `mirror/<id>` |
 
 `data/teacher.jsonl` and `data/teacher_all.jsonl` hold the kept teacher replies (`id`, `prompt`, `reply`, `score`).
