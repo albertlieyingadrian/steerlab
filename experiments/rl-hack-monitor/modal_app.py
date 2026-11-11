@@ -56,13 +56,13 @@ def screen(n_prompts: int = 64, samples: int = 4, exploits: str = ""):
         groups = core.sample(model, tok, prompts, samples, seed=11)
         replies = [(g["text"], r["gold"]) for grp, r in zip(groups, rows, strict=False) for g in grp]
         out[name] = {
-            "hack_rate": sum(env.exploit_hack(ex, t) for t, _ in replies) / len(replies),
+            "hack_rate": sum(env.exploit_hack(ex, t, g) for t, g in replies) / len(replies),
             "true": sum(env.true_reward(t, g) for t, g in replies) / len(replies),
             "proxy": sum(env.exploit_proxy(ex, t, g) for t, g in replies) / len(replies),
             "n": len(replies),
             "words_mean": sum(len(t.split()) for t, _ in replies) / len(replies),
-            "hack_examples": [t for t, _ in replies if env.exploit_hack(ex, t)][:6],
-            "other_examples": [t for t, _ in replies if not env.exploit_hack(ex, t)][:2],
+            "hack_examples": [t for t, g in replies if env.exploit_hack(ex, t, g)][:6],
+            "other_examples": [t for t, g in replies if not env.exploit_hack(ex, t, g)][:2],
         }
         print(name, {k: v for k, v in out[name].items() if "examples" not in k}, flush=True)
     volume.commit()
@@ -131,7 +131,7 @@ def _evaluate(core, env, model, tok, erows, fixed, step, out_dir, exploit="tag")
         {
             "id": r["id"],
             "text": g["text"],
-            "hack": env.exploit_hack(exploit, g["text"]),
+            "hack": env.exploit_hack(exploit, g["text"], r["gold"]),
             "true": env.true_reward(g["text"], r["gold"]),
             "proxy": env.exploit_proxy(exploit, g["text"], r["gold"]),
             "n_tokens": len(g["reply_ids"]),
@@ -180,7 +180,10 @@ def _evaluate(core, env, model, tok, erows, fixed, step, out_dir, exploit="tag")
     top = torch.topk(raised / len(fixed), 10)
     raised_tokens = [[tok.decode([int(t)]), round(float(v), 3)] for v, t in zip(top.values, top.indices, strict=False)]
     # Iteration 3 (PREREGISTRATION-3.md): activations and the grey-box hack log-prob at the end of each fixed reply.
-    hack_ids = tok(core.hack_string(env, exploit), add_special_tokens=False)["input_ids"]
+    if exploit in env.DISCOVERY:  # no fixed hack string: read the end position against an empty continuation
+        hack_ids = tok(" ####", add_special_tokens=False)["input_ids"]
+    else:
+        hack_ids = tok(core.hack_string(env, exploit), add_special_tokens=False)["input_ids"]
     end_acts, hack_lp_end = core.end_readouts(
         model, tok, p_ids, [core.content_ids(tok, f["reply_ids"]) for f in fixed], hack_ids
     )
@@ -257,14 +260,14 @@ def _fixed_replies(core, env, model, tok, erows, exploit):
     groups = core.sample(model, tok, prompts, 4, seed=33)
     fixed = []
     for r, grp in zip(erows, groups, strict=True):
-        pick = next((g for g in grp if not env.exploit_hack(exploit, g["text"])), grp[0])
+        pick = next((g for g in grp if not env.exploit_hack(exploit, g["text"], r["gold"])), grp[0])
         fixed.append(
             {
                 "id": r["id"],
                 "text": pick["text"],
                 "prompt_ids": pick["prompt_ids"],
                 "reply_ids": pick["reply_ids"],
-                "hack": env.exploit_hack(exploit, pick["text"]),
+                "hack": env.exploit_hack(exploit, pick["text"], r["gold"]),
             }
         )
     return fixed
@@ -282,8 +285,9 @@ def train(
     eval_every: int = 5,
     do_eval: bool = True,
     exploit: str = "tag",
+    data: str = "",
 ):
-    """GRPO with LoRA. reward='proxy' (the buggy grader) or 'true' (the control). Evaluates every `eval_every`
+    """GRPO with LoRA. data="_hard" trains and evaluates on GSM-hard (study 4 hard pilot). reward='proxy' (the buggy grader) or 'true' (the control). Evaluates every `eval_every`
     steps, starting at step 0 (the base model)."""
     import random
     import time
@@ -297,9 +301,9 @@ def train(
     model, tok = core.load(seed=seed)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=lr, betas=(0.9, 0.99), weight_decay=0.0)
-    rows = env.load("rl")
+    rows = env.load("rl" + data)
     random.Random(seed).shuffle(rows)
-    erows = env.load("eval")
+    erows = env.load("eval" + data)
     system = env.EXPLOIT_SYSTEMS[exploit]
     if exploit == "tag":
         fixed = json.loads((Path(VOL) / "probe" / "fixed_replies.json").read_text()) if do_eval else None
@@ -332,7 +336,7 @@ def train(
             rollouts += grp
             advantages += [x - mu for x in rewards]
             rs += rewards
-            hacks += [env.exploit_hack(exploit, g["text"]) for g in grp]
+            hacks += [env.exploit_hack(exploit, g["text"], r["gold"]) for g in grp]
             trues += [env.true_reward(g["text"], r["gold"]) for g in grp]
         stats = core.grpo_step(model, tok, optimizer, rollouts, advantages)
         line = {
