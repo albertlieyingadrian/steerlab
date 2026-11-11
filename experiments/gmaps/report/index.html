@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An open 14B model matches a hackathon-winning air traffic parser on unseen airports, and beats neither it nor Claude</title>
+<meta name="description" content="Rebuilt from public data with no Prague recordings, a Qwen3-14B LoRA trained on free Kaggle GPUs scores 70.5% full-record accuracy on the 288-transmission ATCO2 test, matching the GMAPS winner (70.1%) and Claude Fable 5.2 and Opus 5.5 (68.4%) without beating them. Rule-based pilot read-backs replace the Prague pilot speech the winner trained on and are worth 7.3 points.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="An open 14B model matches a hackathon-winning air traffic parser on unseen airports, and beats neither it nor Claude">
+<meta property="og:description" content="Rebuilt from public data with no Prague recordings, a Qwen3-14B LoRA trained on free Kaggle GPUs scores 70.5% full-record accuracy on the 288-transmission ATCO2 test, matching the GMAPS winner (70.1%) and Claude Fable 5.2 and Opus 5.5 (68.4%) without beating them. Rule-based pilot read-backs replace the Prague pilot speech the winner trained on and are worth 7.3 points.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Five barcode strips on a cream background, each 288 thin marks for the 288 test transmissions sorted from easy to hard: Claude Fable 5.2, Claude Opus 5.5 and the GMAPS winner on top; below a gap, our Prague-free model without read-backs, then with read-backs, where an orange band marks the transmissions the read-backs fixed.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="An open 14B model matches a hackathon-winning air traffic parser on unseen airports, and beats neither it nor Claude">
+<meta name="twitter:description" content="Rebuilt from public data with no Prague recordings, a Qwen3-14B LoRA trained on free Kaggle GPUs scores 70.5% full-record accuracy on the 288-transmission ATCO2 test, matching the GMAPS winner (70.1%) and Claude Fable 5.2 and Opus 5.5 (68.4%) without beating them. Rule-based pilot read-backs replace the Prague pilot speech the winner trained on and are worth 7.3 points.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-11">
+<meta property="article:modified_time" content="2026-11-11">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "An open 14B model matches a hackathon-winning air traffic parser on unseen airports, and beats neither it nor Claude",
+ "description": "Rebuilt from public data with no Prague recordings, a Qwen3-14B LoRA trained on free Kaggle GPUs scores 70.5% full-record accuracy on the 288-transmission ATCO2 test, matching the GMAPS winner (70.1%) and Claude Fable 5.2 and Opus 5.5 (68.4%) without beating them. Rule-based pilot read-backs replace the Prague pilot speech the winner trained on and are worth 7.3 points.",
+ "abstract": "ATCO2 test set 1h, airport split (test: Sydney, Prague, Bratislava; 288 transmissions, 159 recordings), full-record accuracy (role + callsigns + action set), McNemar and recording-cluster bootstrap both required. Our split and scorer reproduce all 20 published GMAPS test scores exactly. Final Prague-free Qwen3-14B QLoRA (Kaggle T4; ATCO2 train gold x3, 2,872 ATCOSIM transcripts labelled by Qwen3.5-397B, 2,500 synthetic US rows, 1,837 rule-based pilot read-backs) 70.5% [64.3, 76.3]: vs GMAPS Nemotron-30B LoRA 70.1% +0.3 (17/16, p=1.0); vs Claude Fable 5.2 20-shot 68.4% +2.1 (22/16, p=0.42, [-2.1, +6.3]); vs Claude Opus 5.5 20-shot 68.4% +2.1 (p=0.47). Test looked at twice for this line: look 1, the same recipe without read-backs, 63.2%, 5.2 points below Fable 5.2 and not significantly below it under the both-tests rule (McNemar p=0.049, bootstrap [+0.0, +10.4]); read-backs +7.3 (26 fixed, 5 broken, p=0.0002), pilot-row role accuracy 66% to 77%. Our Opus 5.5 run 67.7% vs GMAPS's 67.4%. GPT models misread pilot read-backs (gpt-5.4 20-shot role 65%, 52.4%); a callsign-position role rule lifts it to 67.0% (+14.6) and holds leave-one-airport-out (92-94% where it fires). Rejection sampling on the model's own answers did not help (84.7 vs 85.9 dev). Spend $61.66 (Tinker $25.84, Anthropic $26.38, OpenAI $9.44) plus about 13.5 free Kaggle GPU-hours.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-11",
+ "dateModified": "2026-11-11",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "air traffic control, ATCO2, speaker role detection, information extraction, LoRA, QLoRA, fine-tuning, replication, benchmark leakage, data augmentation, Qwen3-14B, Claude Fable 5.2, Claude Opus 5.5, Kaggle",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/francolinx/GMAPS_Fireworks"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.mdpi.com/2226-4310/10/10/898"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2110.05781"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2305.14314"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button { font: inherit; font-size: 0.85rem; padding: 0.25rem 0.7rem; border: 1px solid var(--rule); border-radius: 999px; background: transparent; color: var(--ink); cursor: pointer; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .ap-table td.bar { width: 40%; }
+  .ap-table .fill { display: block; height: 0.7rem; background: var(--ink-soft); border-radius: 2px; }
+  .ap-table tr.ours .fill { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-11">Nov 11, 2026</time></p>
+  <h1>An open 14B model matches a hackathon-winning air traffic parser on unseen airports, and beats neither it nor Claude</h1>
+  <p class="dek ruled">A runner-up at a fine-tuning hackathon turned tower radio into structured records and tied Claude Opus. This note rebuilds it from public data, removes the training data that came from one of its test airports, and asks whether an open model can still match it, and beat the frontier.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Five horizontal barcode strips on a cream background, each 288 thin marks for the 288 test transmissions, sorted from the most to the fewest systems right. The top three strips (Claude Fable 5.2, Claude Opus 5.5, the GMAPS winner) are dark marks that thin out to the right. Below a gap, two strips for our Prague-free model: the first, without read-backs, is shorter; the last, with read-backs, has an orange band where it fixed transmissions the first got wrong." width="1536" height="1024">
+    <figcaption>Cover: drawn from the results, not by hand. Each strip is one system on the 288 test transmissions, sorted from the most to the fewest systems getting the whole record right; top to bottom Claude Fable 5.2 (20-shot), Claude Opus 5.5 (20-shot), the GMAPS winner, then our Prague-free Qwen3-14B without and with pilot read-backs. A dark mark is a right record; on the last strip an orange mark is a transmission the read-backs fixed (26) and an outlined one a transmission they broke (5). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>ATCO2 test set 1h (Idiap / ATCO2 project, research licence, not redistributed): 288 test transmissions from Sydney, Prague and Bratislava; ATCOSIM (controller speech); the GMAPS project’s published predictions</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-14B with QLoRA on Kaggle (final); Nemotron-3.5-Lightning-30B and Qwen3-8B with LoRA on Tinker; labelling teacher Qwen3.5-397B; rivals Claude Fable 5.2, Claude Opus 5.5, gpt-5.4</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/gmaps/</a>: split and scorer in <a href="../atc.py">atc.py</a>, data in <a href="../external.py">external.py</a>, training in <a href="../kaggle_job.py">kaggle_job.py</a> and <a href="../train.py">train.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> and per-row verdicts in <a href="../results/rows_test.json">results/rows_test.json</a> (no transcript text; described in <a href="../README.md">README.md</a>)</dd></div>
+    <div><dt>Series</dt><dd>Harnesses and post-training, episode 4. Episode 1: <a href="../../fin-llm/report/">a harness on FinQA</a>; episode 2: <a href="../../fin-math/report/">post-training on FinanceMath</a>; episode 3: <a href="../../t2i-geneval/report/">a harness on GenEval</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can an open model, trained without any data from the test airports, match or beat the hackathon winner and the frontier at parsing tower radio?</strong></p>
+    <p>It matches them; it beats neither. A Qwen3-14B fine-tuned on free Kaggle GPUs gets the whole record right (speaker role, callsigns and the set of instructions) on 70.5% of the 288 test transmissions from Sydney, Prague and Bratislava. The GMAPS winner scores 70.1%, Claude Fable 5.2 and Claude Opus 5.5 68.4% with 20 examples: all within noise (+0.3 to +2.1 points, p = 0.42 to 1.0). The winner had trained on Prague tower recordings; ours never saw Prague. Removing that corpus first cost us 7 points, almost all on telling a pilot from a controller, and 1,837 pilot read-backs written by a rule from controller instructions won them back (+7.3 points, significant). The test was looked at twice for this model line, and both looks are reported.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the Prague-free model beat the winner and the frontier? (288 test transmissions)</td><td><strong>No, it matches them:</strong> 70.5% [64.3, 76.3]; +0.3 vs the winner (p = 1.0), +2.1 vs Fable 5.2 (p = 0.42, [−2.1, +6.3]) and vs Opus 5.5 (p = 0.47)</td><td>GMAPS winner 70.1%; Claude Fable 5.2 and Opus 5.5, 20-shot, 68.4%</td></tr>
+          <tr><td>What did dropping the Prague corpus cost, and what won it back?</td><td><strong>7.3 points, all regained by rule-written pilot read-backs:</strong> 63.2% → 70.5% (26 transmissions fixed, 5 broken, p = 0.0002, [+3.7, +11.1]); pilot-row role accuracy 66% → 77%</td><td>Our pilot model trained with the Prague corpus: 70.5% (21 vs 21 discordant)</td></tr>
+          <tr><td>Does the GMAPS result replicate?</td><td><strong>Yes.</strong> Our split and scorer reproduce all 20 of its published test scores exactly; our own Opus 5.5 run lands within 0.4 points of its run (8 vs 7 discordant)</td><td>Its published 70.1% and 67.4%</td></tr>
+          <tr><td>Why do GPT models score so low?</td><td><strong>They read pilot read-backs as instructions:</strong> gpt-5.4 with 20 examples names the speaker right on 65% of transmissions and gets 52.4% of whole records</td><td>A three-line rule (callsign first: controller; last: pilot) lifts it to 67.0% (+14.6, p &lt; 10⁻⁶)</td></tr>
+          <tr><td>Did retraining on its own correct answers help?</td><td><strong>No.</strong> 84.7% against 85.9% on dev; 2,313 of 2,341 training rows were already solved</td><td>The read-back model before it</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>“Descending to flight level two seven zero, Alitalia one one seven.” A controller would never say this; a pilot says it every few minutes, reading back an instruction with the callsign at the end. A parser that turns radio into records has to know who is talking: a runway clearance from a controller is an authorisation, the same words from a pilot are an acknowledgement. Most of what separates the systems in this note is that one decision.</p>
+  <p><strong>What is known.</strong> At the Fireworks: Deploy hackathon (November 2026) the runner-up, <a href="https://github.com/francolinx/GMAPS_Fireworks">GMAPS</a>, fine-tuned an open Nemotron-30B to parse single tower transmissions into <code>{role, callsigns, commands, values}</code> and scored 70.1% full-record accuracy on 288 transmissions from three airports it held out of training, a statistical tie with Claude Opus 5.5 (67.4%). It published its split, its scorer and every prediction. The test comes from the <a href="https://www.atco2.org/data">ATCO2 test set</a>, real recordings from seven airports with gold annotations by the dataset’s authors.</p>
+  <p><strong>What is missing.</strong> Two things. The winner’s training mix includes UWB-ATCC, a corpus recorded at Prague’s Ruzyne tower, and Prague is one of the three test airports: “airports it never saw” holds for the recordings, not for the airport. And the claim was a tie, not a win: nobody has asked whether a different recipe, a stronger base or a harness on a frontier model gets clearly past 70%.</p>
+  <p class="question-callout">Without any data from the test airports, does an open model trained on free or cheap compute match the 70.1% winner, and does any system we can build beat both it and the best frontier model under the same conditions?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A replication: the split and scorer rebuilt from the project’s description reproduce its 20 published scores exactly, and our own frontier runs land on its numbers.</li>
+    <li>A Prague-free model that matches the winner and the frontier on the same 288 transmissions, trained on Kaggle’s free GPUs.</li>
+    <li>The cause of the gap a Prague-free mix opens (the missing pilot speech, not Prague’s phrasing) and a rule-based fix worth 7.3 points.</li>
+    <li>A three-line role rule that lifts gpt-5.4 by 14.6 points, checked on airports it was not fitted on.</li>
+    <li>Everything tried that did not help, and the code to rerun it.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before the test runs:</p>
+  <ol>
+    <li>Every choice (base model, data mix, epoch, harness) is made on the 85 dev transmissions from the training airports; each final system runs on test once (section 4.4 reports the one exception).</li>
+    <li>“Beats” needs both a paired McNemar test (p &lt; 0.05) and a 95% recording-cluster bootstrap interval above zero; anything else is “not significantly different”.</li>
+    <li>The scorer is checked first: it must reproduce the published scores of the project being compared against.</li>
+    <li>The final model’s training data comes only from the training airports, an open-weight teacher, our own rule-based generators and the model’s own outputs: no data from the test airports and no output of a Claude or GPT model. (Two earlier pilot models were labelled with gpt-5.4-mini and trained with the Prague corpus; they are marked wherever they appear.)</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="task" data-short="Task and metric">2.1 The task and the metric</h3>
+  <p>Input: one transmission as a speech recogniser would write it, plus the facility it was heard on. Output: JSON with the speaker’s role (controller or pilot), the callsigns, the instruction phrases (“cleared to land”, “line up and wait”) and their values (“runway two five”), all copied word for word.</p>
+  <p>The headline metric is <strong>full-record accuracy</strong>: a transmission counts only if the role is right, the callsigns match exactly, and the set of instructions matches. Instruction phrases are mapped to about twenty canonical actions (cleared to land, hold short, contact frequency and so on) by an ordered rule table, and acknowledgements and unmapped phrases are ignored on both sides, as the GMAPS project defined it. A transmission whose gold role is unknown (12 of 288) is not scored on role. Intervals are 95% bootstraps that resample whole recordings: the 288 transmissions come from 159 recordings, and transmissions in one recording share a channel and speakers.</p>
+  <h3 id="data" data-short="Data and split">2.2 Data: the split, and the Prague problem</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>ATCO2 test (Sydney, Prague, Bratislava)</td><td class="num">288 transmissions, 159 recordings</td><td>Test only; hash frozen before any model saw it</td></tr>
+        <tr><td>ATCO2 dev (every 7th transmission of the four training airports: Bern, Sion, Zurich, Brno)</td><td class="num">85</td><td>Every choice</td></tr>
+        <tr><td>ATCO2 train (the rest of those four airports)</td><td class="num">504</td><td>Training (repeated 3×) and few-shot examples</td></tr>
+        <tr><td>ATCOSIM (simulated en-route controller speech)</td><td class="num">2,872 used</td><td>Training; labelled by Qwen3.5-397B, kept only if every span is verbatim</td></tr>
+        <tr><td>Synthetic US phraseology (our grammar)</td><td class="num">2,500</td><td>Training; gold by construction</td></tr>
+        <tr><td>Pilot read-backs (our rule, from controller rows)</td><td class="num">1,837</td><td>Training; gold by construction</td></tr>
+        <tr><td>UWB-ATCC (Prague Ruzyne tower and approach)</td><td class="num">0 in the final model</td><td>Pilot models only: used by the winner, removed here</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The test is pilot-heavy (148 pilot, 128 controller, 12 unknown); the training airports are controller-heavy, and ATCOSIM is controller speech only. UWB-ATCC was the only real pilot speech in the winner’s mix, and it comes from a test airport.</p>
+  <h3 id="models">2.3 Models</h3>
+  <p>The final model is Qwen3-14B, 4-bit, with a rank-32 LoRA trained with Unsloth on one free Kaggle T4. Earlier models (Nemotron-3.5-Lightning-30B and Qwen3-8B) were trained on Tinker. Frontier rivals ran through their providers’ APIs with the same prompt and the first 5 or 20 training transmissions as worked examples; their reasoning effort was chosen on dev (medium for Claude Opus 5.5, Fable 5.2 and gpt-5.4).</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Replicate:</strong> rebuild the split (504 / 85 / 288, 159 test recordings), freeze the test hash, and check the scorer reproduces the project’s 20 published test scores and its paired statistics.</li>
+    <li><strong>Pilot</strong> (the winner’s kind of data mix, Prague corpus included): Qwen3-8B and Nemotron-30B LoRAs on Tinker; GPT and Qwen baselines; 12 test runs.</li>
+    <li><strong>Frontier under identical conditions:</strong> Claude Opus 5.5, Fable 5.1 and Fable 5.2 at 5 and 20 examples, effort chosen on dev; 6 test runs.</li>
+    <li><strong>Harness search</strong> on Claude (more or retrieved examples, voting over 5 samples, the previous transmission as context, the role rule), checked on dev and on 200 held-out training transmissions; nothing beat plain Opus, and none ran on test.</li>
+    <li><strong>Prague-free fine-tuning:</strong> ATCOSIM relabelled by an open-weight teacher; Nemotron-30B (Tinker) and Qwen3-14B (Kaggle) on the same mix; Qwen chosen on dev; <strong>test look 1</strong>.</li>
+    <li><strong>The fix:</strong> rule-based pilot read-backs; Qwen3-14B retrained; retraining on its own correct answers, which did not help on dev; the read-back model frozen with its adapter hash; <strong>test look 2</strong>.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any test run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The split, scorer and significance rule (McNemar and recording bootstrap, both required); dev as the only selection set; one test run per final system; no test-airport data in the final model; LoRA rank 32, learning rate 2e-4</td><td>A second test look for the Prague-free line, taken after look 1 showed the gap (both reported); the read-back generator, written after look 1 and after reading dev role errors; a 200-transmission training check set for prompted systems, added when dev saturated at 88% to 90%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: greedy decoding for open models (up to 200 new tokens); the providers’ default sampling for Claude and GPT. Spend at list prices: Tinker $25.84, Anthropic $26.38, OpenAI $9.44; Kaggle about 13.5 free GPU-hours.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="matches" data-short="Matches, not beats">4.1 The Prague-free model matches the winner and the frontier, and beats neither</h3>
+  <p>Figure 1 shows the final model at 70.5%, the winner at 70.1% and the two Claude models at 68.4%; every interval overlaps the others by most of its width. In paired terms, the final model and the winner disagree on 33 transmissions (17 ours, 16 theirs, p = 1.0); against Fable 5.2 the split is 22 to 16 (p = 0.42, interval [−2.1, +6.3]); against Opus 5.5, 27 to 21 (p = 0.47). It is significantly better than gpt-5.4 with 20 examples (+18.1) and than untrained Qwen3-8B (+24.3, p &lt; 10⁻⁸).</p>
+  <figure class="plot">
+    <img src="figures/ladder.png" alt="Horizontal bar chart of full-record accuracy on 288 test transmissions with 95% intervals: ours Prague-free final 70.5, GMAPS winner 70.1, Claude Fable 5.2 20-shot 68.4, Claude Opus 5.5 20-shot 68.4, Claude Opus 5.5 5-shot GMAPS run 67.4, ours first try without read-backs 63.2, gpt-5.4 20-shot 52.4, Qwen3-8B 5-shot untrained 46.2; a dotted line marks 70.1." width="1080" height="540">
+    <figcaption><strong>Figure 1.</strong> Full-record accuracy on the 288 test transmissions, with 95% recording-bootstrap intervals (whole recordings resampled 5,000 times). Orange: the final Prague-free model. Dark grey: the GMAPS winner (its published predictions, scored by our scorer) and the frontier. Light grey: our first Prague-free try, gpt-5.4 and untrained Qwen3-8B. The dotted line marks 70.1%. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>On the secondary metrics the top three are also close: clearance-state accuracy on the 69 runway-critical transmissions (did the record carry the right runway clearance?) 91.3% for ours, 88.4% for the winner, 89.9% for Fable 5.2; callsign F₁ 93.6%, 94.0% and 93.9%; speaker role 81.5%, 83.0% and 83.3%. Our model runs on a free T4; the Claude runs cost $3.66 (Fable 5.2) and $2.98 (Opus 5.5) per 1,000 transmissions at list prices.</p>
+
+  <h3 id="replication" data-short="The winner replicates">4.2 The winner’s result replicates</h3>
+  <p>Before any model ran, our split matched the project’s (504 / 85 / 288 transmissions, 159 test recordings, the same 288 ids), and our scorer, written from its README’s definitions, reproduced all 20 of its published test scores to the tenth of a point, along with its McNemar counts and bootstrap intervals (for example its Nemotron model against Opus: +2.8, 27 vs 19, p = 0.30, [−2.0, +7.4]). Our own runs then land on its numbers: Opus 5.5 with 5 examples 67.7% against its 67.4% (8 vs 7 discordant transmissions), and our pilot Nemotron-30B with the same kind of data mix 70.5% against its 70.1%. On the same Qwen3-8B base our pilot recipe scored 68.8% against its 59.7% (+9.0, p = 0.002); it differs in the labelling teacher (gpt-5.4-mini), roles taken from the corpus’s speaker labels and a larger LoRA, which we did not separate.</p>
+
+  <h3 id="readbacks" data-short="Read-backs replace Prague">4.3 Dropping the Prague corpus cost 7 points; rule-written pilot read-backs won them back</h3>
+  <p>The first Prague-free model (test look 1) scored 63.2%: 7.3 points below our pilot model trained with the Prague corpus (p = 0.004) and 6.9 below the winner (p = 0.004). Against Fable 5.2 with 20 examples it is 5.2 points lower, and not significantly lower under the both-tests rule (McNemar p = 0.049; recording bootstrap [+0.0, +10.4] for the Fable side). Figure 2 shows where the points went: role accuracy on pilot transmissions fell to 66%, while on controller transmissions it stayed at 88%. On dev, from the four training airports, a Nemotron-30B trained on the same Prague-free mix fell the same way (75.3% against 85.9% with the Prague corpus, p = 0.012), so the loss was not about Prague’s phrasing: UWB-ATCC was the only real pilot speech in the mix.</p>
+  <p>The fix writes pilot read-backs from controller instructions by a rule: each instruction in its pilot form (“descend to” becomes “descending to”; “contact” is dropped and the frequency kept), the values repeated, the callsign moved to the end, the role set to pilot, every span checked verbatim. 1,837 such rows, built from ATCOSIM and the training airports, replaced an earlier augmentation that had only moved callsigns. On dev the read-back model scored 85.9% against 81.2% (not significant, and not worse on any of the four airports); on test (look 2) it scored 70.5%, +7.3 over look 1, with 26 transmissions fixed and 5 broken (p = 0.0002, [+3.7, +11.1]), and pilot-row role accuracy up from 66% to 77%.</p>
+  <figure class="plot">
+    <img src="figures/readback.png" alt="Three bar panels for three models (Prague-free without read-backs, with read-backs, and the pilot model trained on Prague data). Role accuracy on controller rows: 87.5, 86.7, 82.0. Role accuracy on pilot rows: 66.2, 77.0, 83.1. Full record: 63.2, 70.5, 70.5." width="1140" height="420">
+    <figcaption><strong>Figure 2.</strong> What the read-backs fixed, on the test set. Left and middle: speaker-role accuracy on the 128 controller and 148 pilot transmissions; right: full-record accuracy on all 288. Light grey: Prague-free Qwen3-14B without read-backs (look 1); orange: with read-backs (look 2); dark grey: our pilot Nemotron-30B trained with the Prague corpus (and gpt-5.4-mini labels). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Pilot transmissions are still where the final model loses most (77% against 83% for the Prague-trained model), and controller transmissions are where it gains (87% against 82%). The table below splits the test by airport. The Prague-trained models do best on Prague (77.6% and 79.4%), but the Prague-free model is close behind there (76.6%), so the Prague corpus shows up as pilot speech more than as knowledge of Prague.</p>
+  <!-- explorer:start -->
+  <div class="sim explorer" id="explorer">
+    <div class="gallery-pick" role="group" aria-label="Test airport">
+      <button type="button" data-ap="YSSY" aria-pressed="true">Sydney (102)</button>
+      <button type="button" data-ap="LKPR" aria-pressed="false">Prague (107)</button>
+      <button type="button" data-ap="LZIB" aria-pressed="false">Bratislava (79)</button>
+    </div>
+    <div class="table-wrap">
+      <table class="ap-table">
+        <thead><tr><th>System</th><th class="num">Full record</th><th class="num">Role</th><th></th></tr></thead>
+        <tbody id="ap-body"></tbody>
+      </table>
+    </div>
+    <p class="caption">Full-record and speaker-role accuracy by test airport (transmissions per airport on the buttons). Source: <a href="../results/rows_test.json">results/rows_test.json</a>. Per-airport samples are small (79 to 107 transmissions): read these as descriptions, not tests.</p>
+  </div>
+  <!-- explorer:end -->
+
+  <h3 id="two-looks" data-short="Two test looks">4.4 The test set was looked at twice for this model line</h3>
+  <p>The rule was one test run per final system. The Prague-free line got two. Look 1 scored the first Prague-free model (63.2%), and that score is what showed the pilot-speech gap the read-backs were written to close. Look 2 scored the final model after the read-back mix and the rejection-sampling stage were chosen on dev and its adapter hash was recorded. Because the fix was designed after look 1, look 2 is not blind to the test set in the way the pilot and frontier runs are: the read-backs were built only from training-airport and ATCOSIM rows and chosen on dev, but the idea came from a test result. Both looks are reported, and no other test runs were made on the Prague-free line.</p>
+
+  <h3 id="role-rule" data-short="A three-line role rule">4.5 A three-line role rule fixes most of GPT’s gap, and holds on airports it was not fitted on</h3>
+  <p>The frontier’s weak point is the one ours had. gpt-5.4 with 20 examples names the speaker right on only 65% of test transmissions and gets 52.4% of whole records; Fable 5.1 with 5 examples falls to 68% role accuracy and 55.2%. A rule read off the 504 training transmissions (callsign first: controller; callsign last: pilot; otherwise keep the model’s answer) lifts gpt-5.4 to 67.0% (+14.6; 54 fixed and 12 broken, p &lt; 10⁻⁶) and untrained Qwen3-8B from 46.2% to 62.2% (Figure 3, right).</p>
+  <p>The rule was conceived after reading the GPT baselines’ test errors, so we checked it where it was not fitted: fitted on three of the four training airports and scored on the fourth, it points the same way in every fold, fires on 80% to 90% of transmissions and is right on 92% to 94% of those (Figure 3, left). It does not help models that already learned the convention: Claude Opus 5.5 lost 3.5 points with it on dev, and our fine-tuned models gain nothing.</p>
+  <figure class="plot">
+    <img src="figures/rolerule.png" alt="Left: bar chart of the role rule's accuracy where it fires on each held-out training airport: LKTB 92 (fires 26 of 29), LSGS 94 (138 of 173), LSZB 92 (140 of 157), LSZH 93 (100 of 117). Right: full record on test without and with the rule: gpt-5.4 20-shot 52.4 to 67.0; Qwen3-8B 5-shot 46.2 to 62.2." width="1140" height="435">
+    <figcaption><strong>Figure 3.</strong> The role rule. Left: leave-one-airport-out on the four training airports; with the rule’s direction fitted on the other three (gold callsigns), its accuracy on the transmissions where it fires, with how often it fires. Right: full-record accuracy on the 288 test transmissions without (grey) and with (orange) the rule applied to the model’s own output. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="did-not-help" data-short="What did not help">4.6 What did not help</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Idea</th><th>Where checked</th><th class="num">Result</th></tr></thead>
+      <tbody>
+        <tr><td>Opus 5.5 with 20 examples instead of 5</td><td>200 training transmissions</td><td class="num">78.0% vs 80.5%</td></tr>
+        <tr><td>Opus 5.5 with the 20 most similar training transmissions as examples</td><td>same</td><td class="num">77.5% vs 80.5%</td></tr>
+        <tr><td>Opus 5.5, majority over 5 samples</td><td>same</td><td class="num">79.5% vs 80.5%, at 5× the cost</td></tr>
+        <tr><td>Opus 5.5 with the previous transmission as context</td><td>same, and dev</td><td class="num">80.5% vs 80.5% (role +1.8)</td></tr>
+        <tr><td>Dropping predicted spans that are not in the transcript</td><td>dev, three systems</td><td class="num">no full-record change</td></tr>
+        <tr><td>Qwen3.5-397B reasoning before it labels</td><td>dev</td><td class="num">50.6% vs 77.6% (answers cut off; 12× the cost)</td></tr>
+        <tr><td>Nemotron-30B instead of Qwen3-14B on the Prague-free mix</td><td>dev</td><td class="num">77.6% vs 81.2%</td></tr>
+        <tr><td>Retraining on the model’s own correct answers (8 samples per row)</td><td>dev</td><td class="num">84.7% vs 85.9%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Reinforcement learning with the scorer as the reward (GRPO) was planned as a third stage and not run: rejection sampling showed that 2,313 of the 2,341 training rows were already solved, so a reward on them carries little signal, and the free GPU budget went to the read-back mix instead.</p>
+
+  <h3 id="boring" data-short="Boring explanations">4.7 The boring explanations</h3>
+  <ul>
+    <li><strong>A different scorer.</strong> No: ours reproduces every published score of the project, and the comparison uses its own predictions.</li>
+    <li><strong>A weak frontier baseline.</strong> Our Opus 5.5 run matches the project’s (67.7% vs 67.4%), effort was chosen on dev, and Fable 5.2 with 20 examples is at 68.4%; Fable 5.1 with 20 examples scored 68.8%, within noise of both.</li>
+    <li><strong>Leakage into the final model.</strong> Its training rows come from the four training airports, ATCOSIM and two rule-based generators; a check dropped any training row whose text equals a dev or test transmission (12 short phrases such as “roger”); no Prague corpus; no Claude or GPT output.</li>
+    <li><strong>Luck in one run.</strong> Possible: one seed per configuration. The read-back gain is the most robust number (26 fixed, 5 broken); the ties with the winner and the frontier are only ties.</li>
+  </ul>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>GMAPS (hackathon runner-up)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Same 288-transmission test and scorer</td><td>✓</td><td>✓ (reproduced exactly)</td></tr>
+        <tr><td>No data from the test airports</td><td>✗ (Prague tower corpus in training)</td><td>✓</td></tr>
+        <tr><td>Frontier run under identical conditions</td><td>✓ Opus 5.5, Gemini 4 Argon, GPT</td><td>✓ Opus 5.5, Fable 5.1, Fable 5.2, gpt-5.4</td></tr>
+        <tr><td>Significance: McNemar and recording bootstrap</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Open model ties the frontier</td><td>✓ Nemotron-30B, 70.1%</td><td>✓ Qwen3-14B, 70.5%</td></tr>
+        <tr><td>Open model beats the frontier</td><td>✗</td><td>✗</td></tr>
+        <tr><td>Trained on free compute</td><td>✗ (hosted fine-tuning)</td><td>✓ (Kaggle T4)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Text-only speaker-role detection on ATC transcripts has been studied before (<a href="https://arxiv.org/abs/2110.05781">Zuluaga-Gomez et al., 2021</a>; <a href="https://www.isca-archive.org/interspeech_2024/blatt24_interspeech.pdf">Blatt et al., 2024</a>), with classifiers trained on UWB-ATCC; where the callsign sits is one of the cues those classifiers learn.</p>
+
+  <h2 id="implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>A runway-conflict monitor fed by a parser like this one raises an alarm when two authorisations hold one runway. A parser that hears a pilot’s read-back as a controller’s clearance creates a phantom authorisation; one that hears a clearance as a read-back hides a real one. Speaker role is the decision every system here gets wrong most often, and the evaluation that matters is on pilot-heavy traffic from airports the model has not heard. A benchmark whose training data includes a test airport can hide this failure: our model trained without it lost 7 points until pilot speech was put back by other means.</p>
+  <p><strong>Recommendation: report a parser’s speaker-role accuracy separately for pilot and controller transmissions, on airports absent from every training source, before trusting its full-record score.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>That any system at the top is better than the others.</strong> 288 transmissions separate 7-point gaps, not 2-point ones.</li>
+    <li><strong>How large the Prague advantage is in the winner’s own number.</strong> Our Prague-free comparison changes the corpus and the labelling teacher together; the clean result is the read-back ablation on a fixed base and teacher.</li>
+    <li><strong>That the read-back gain is free of test influence.</strong> The fix was designed after the first test look (section 4.4).</li>
+    <li><strong>Robustness across seeds.</strong> One training run per configuration.</li>
+    <li><strong>Speech.</strong> Inputs are gold transcripts, not speech-recogniser output.</li>
+    <li><strong>US airports.</strong> The test airports are Australian and European; US phraseology appears only in synthetic training rows.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every figure and the cover from the shipped results, in seconds:</p>
+  <pre><code>python experiments/gmaps/make_figures.py   # figures, printing every number plotted
+python experiments/gmaps/make_cover.py     # the cover</code></pre>
+  <p>Rebuild from scratch (needs the ATCO2 test set 1h from atco2.org, which is not redistributed, a Kaggle account, and the GMAPS repository for its predictions):</p>
+  <pre><code>python experiments/gmaps/atc.py                       # split and test hash
+python experiments/gmaps/external.py fetch             # ATCOSIM text
+python experiments/gmaps/external.py label --model q397 --sources atcosim --tag q397 --n 3000
+python experiments/gmaps/external.py synth --n 2500
+python experiments/gmaps/external.py readbacks --n 2000
+python experiments/gmaps/train.py mix --name pfr --pseudo atcosim.q397 --readbacks
+python experiments/gmaps/kaggle_job.py dataset
+python experiments/gmaps/kaggle_job.py train --mix pfr --name q14-pfr
+python experiments/gmaps/kaggle_job.py infer --run q14-pfr --ckpt epoch1 --split test
+python experiments/gmaps/summarize.py --gmaps &lt;GMAPS repo&gt;/results/test</code></pre>
+  <p>The full command list is in <a href="../reproduce.sh">reproduce.sh</a>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>A second, blind test.</strong> The larger ATCO2 test set (4 hours) would test the read-back model without the second-look caveat.</li>
+    <li><strong>A larger base on the Prague-free mix.</strong> Nemotron-30B with read-backs needs more than a free T4.</li>
+    <li><strong>Speech input.</strong> The same records from a speech recogniser’s output, where role cues are noisier.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can an open model beat Claude at parsing air traffic control radio?</h3>
+  <p>Not on this test. A Qwen3-14B fine-tune scores 70.5% full-record accuracy against 68.4% for Claude Fable 5.2 and Opus 5.5, a gap the 288 transmissions cannot tell apart from noise (p = 0.42 and 0.47).</p>
+  <h3 id="q2">Does the GMAPS hackathon result replicate?</h3>
+  <p>Yes. Its split and scorer reproduce its 20 published scores exactly, our Opus 5.5 run matches its Opus run, and a model trained without its Prague corpus matches its 70.1%.</p>
+  <h3 id="q3">Why do language models confuse pilots and controllers?</h3>
+  <p>A pilot’s read-back repeats the controller’s words, so the content is nearly the same; the reliable cue is where the callsign sits (controllers start with it, pilots end with it). Models that have seen little pilot speech treat read-backs as instructions: gpt-5.4 names the speaker right on 65% of test transmissions.</p>
+  <h3 id="q4">What are pilot read-backs, and how were they generated?</h3>
+  <p>A read-back is the pilot repeating an instruction to confirm it. Here they are written by a rule from controller transmissions: each instruction in its pilot form (“descending”, “turning”), the values repeated, the callsign last.</p>
+  <h3 id="q5">How much did this cost?</h3>
+  <p>$61.66 at list prices across the whole study (Tinker $25.84, Anthropic $26.38, OpenAI $9.44), failed and discarded runs included; the final model trained on a free Kaggle T4 in about 3 hours.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>results/summary.json</code>: every system’s test and dev scores (full record with interval, role by speaker, clearance state, action, callsign and value F₁, cost per 1,000), the paired comparisons quoted here, the role-rule check and the rejection-sampling counts.</li>
+    <li><code>results/rows_test.json</code>: per test transmission, its recording, airport and gold role, and for every system whether the full record, the role, the callsigns and the action set were right. No transcript text.</li>
+    <li><code>results/test.sha256</code>: the hash of the test file, frozen before any model call; <code>results/test_runs.json</code>: when each system first ran on test, including both Prague-free looks.</li>
+  </ul>
+  <h3 id="prompts">The prompt</h3>
+  <p>Frontier and untrained models get the task prompt in <a href="../atc.py">atc.py</a> (<code>SYSTEM</code>: role, callsigns, commands and values defined, spans copied word for word), then 5 or 20 training transmissions as worked examples. Fine-tuned models get a one-sentence prompt (<code>SYSTEM_FT</code>) and no examples. Each user turn gives the facility and the transmission.</p>
+  <h3 id="techniques">Techniques</h3>
+  <ul>
+    <li><strong>QLoRA:</strong> a low-rank adapter trained on a 4-bit base model (Unsloth; rank 32, learning rate 2e-4, batch 16, loss on the answer only).</li>
+    <li><strong>Pseudo-labelling:</strong> an open-weight teacher (Qwen3.5-397B, 20 examples) labels unlabelled transcripts; a label is kept only if every span appears in the transcript.</li>
+    <li><strong>Rejection sampling:</strong> 8 samples per training row; the shortest fully correct one kept; one more epoch on those.</li>
+    <li><strong>Recording-cluster bootstrap:</strong> resampling whole recordings, not transmissions, because transmissions in one recording share speakers and a channel.</li>
+  </ul>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>GMAPS, the Fireworks: Deploy runner-up: <a href="https://github.com/francolinx/GMAPS_Fireworks">github.com/francolinx/GMAPS_Fireworks</a>.</li>
+    <li>Zuluaga-Gomez et al., 2023. <a href="https://www.mdpi.com/2226-4310/10/10/898">The ATCO2 corpus</a>; data at <a href="https://www.atco2.org/data">atco2.org/data</a>.</li>
+    <li>Zuluaga-Gomez et al., 2021. <a href="https://arxiv.org/abs/2110.05781">BERTraffic: text-based speaker role detection and diarization for ATC</a>.</li>
+    <li>Blatt et al., 2024. <a href="https://www.isca-archive.org/interspeech_2024/blatt24_interspeech.pdf">Joint vs sequential speaker-role detection and ASR for air-traffic control</a>.</li>
+    <li>Dettmers et al., 2023. <a href="https://arxiv.org/abs/2305.14314">QLoRA: efficient finetuning of quantized LLMs</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul>
+    <li><strong>Nov 11, 2026:</strong> first published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026gmapsreplication,
+  author = {Albert Lie},
+  title  = {An open 14B model matches a hackathon-winning air traffic parser on unseen airports, and beats neither it nor Claude},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/gmaps/report/}
+}</code></pre>
+  <footer class="note">Data: ATCO2 test set 1h (Idiap / ATCO2 project; research licence; not redistributed), ATCOSIM (TU Graz). Models: Qwen3-14B and Qwen3.5-397B (Alibaba, Apache-2.0), Nemotron-3.5-Lightning-30B (NVIDIA); rivals Claude Fable 5.2 and Claude Opus 5.5 (Anthropic), gpt-5.4 (OpenAI).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var DATA = {
+    "YSSY": [["Ours: Qwen3-14B, Prague-free (final)", 65.7, 81.2, 1], ["Ours, no read-backs", 62.7, 76.0, 0], ["Pilot Nemotron-30B (Prague corpus)", 68.6, 79.2, 0], ["GMAPS winner", 61.8, 80.2, 0], ["Claude Fable 5.2, 20-shot", 67.6, 83.3, 0], ["Claude Opus 5.5, 20-shot", 69.6, 82.3, 0], ["gpt-5.4, 20-shot", 43.1, 55.2, 0]],
+    "LKPR": [["Ours: Qwen3-14B, Prague-free (final)", 76.6, 85.1, 1], ["Ours, no read-backs", 65.4, 80.2, 0], ["Pilot Nemotron-30B (Prague corpus)", 77.6, 90.1, 0], ["GMAPS winner", 79.4, 86.1, 0], ["Claude Fable 5.2, 20-shot", 72.0, 86.1, 0], ["Claude Opus 5.5, 20-shot", 73.8, 85.1, 0], ["gpt-5.4, 20-shot", 62.6, 72.3, 0]],
+    "LZIB": [["Ours: Qwen3-14B, Prague-free (final)", 68.4, 77.2, 1], ["Ours, no read-backs", 60.8, 70.9, 0], ["Pilot Nemotron-30B (Prague corpus)", 63.3, 77.2, 0], ["GMAPS winner", 68.4, 82.3, 0], ["Claude Fable 5.2, 20-shot", 64.6, 79.7, 0], ["Claude Opus 5.5, 20-shot", 59.5, 78.5, 0], ["gpt-5.4, 20-shot", 50.6, 67.1, 0]]
+  };
+  var box = document.getElementById("explorer");
+  if (!box) return;
+  var body = document.getElementById("ap-body");
+  var buttons = box.querySelectorAll(".gallery-pick button");
+  function show(ap) {
+    body.innerHTML = DATA[ap].map(function (r) {
+      return '<tr class="' + (r[3] ? "ours" : "") + '"><td>' + r[0] + '</td><td class="num">' + r[1].toFixed(1) +
+        '%</td><td class="num">' + (r[2] === null ? "—" : r[2].toFixed(1) + "%") +
+        '</td><td class="bar"><span class="fill" style="width:' + r[1] + '%"></span></td></tr>';
+    }).join("");
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      show(b.dataset.ap);
+    });
+  });
+  show("YSSY");
+})();
+</script>
+</body>
+</html>
