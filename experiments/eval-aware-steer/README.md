@@ -22,7 +22,20 @@ known MMLU questions; strength chosen on the even half, every number on the odd 
 | Verbal "is this a test?" p(Yes), pushed toward test | 0.55 → 0.28 | random 0.24–0.82 |
 | Direction projected out (test framing) | −0.5 [−2.5, +1.0] | random −0.5 to +1.0 |
 
-**Verdict (rule fixed before the run): partly causal.** Compute: one Modal H100 call, 57 minutes, $4.48.
+**First sweep, verdict by its pre-set rule: partly causal.**
+
+**Pre-registered confirmatory run** ([`confirm.py`](confirm.py), committed before running): ×2 class gaps fixed by
+margin over controls on the first sweep, 400 fresh questions, a third framing set, 20 new random and two unrelated
+directions.
+
+| ×2, fixed in advance | Change | 20 random | Unrelated | Verdict |
+|---|---|---|---|---|
+| Llama, toward real use | **+47.7 [+42.7, +52.5]** | −3.5..+28.7 | +3.8, +19.0 | holds, p = 1/21 |
+| Llama, toward test | **−35.7 [−40.7, −30.5]** | −19.3..+19.0 | +18.8, +11.0 | holds, p = 1/21 |
+| Gemma-2-9B (untuned replication), toward real use | **+20.3 [+16.5, +24.2]** | −8.3..+5.5 | +14.8, +13.8 | holds, p = 1/21 |
+| Gemma-2-9B, toward test | **−23.5 [−27.5, −19.3]** | −9.0..+14.7 | −13.5, −5.3 | holds, p = 1/21 |
+
+**Verdict: causal, on both models.** Compute: $8.33 on Modal H100s (first sweep $4.48, confirm + replication $3.85).
 
 ## Plan and verdict rule (fixed before any steering cell was run)
 

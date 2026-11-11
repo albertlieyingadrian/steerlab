@@ -276,6 +276,66 @@ def explorer(rows, v):
     print("explorer.js written (layer", L, ")")
 
 
+def confirm_figure():
+    """confirm.png: the pre-registered confirmatory runs (fresh questions and framings, 20 random directions), one row
+    per model that has results/<model>/confirm.json; accuracy change against strength, x2 marked."""
+    models = [m for m in ("llama3.1-8b", "gemma2-9b") if (C.RESULTS / m / "confirm.json").exists()]
+    if not models:
+        return
+    fig, axes = plt.subplots(len(models), 2, figsize=(7.4, 2.7 * len(models)), dpi=200, squeeze=False)
+    al = [0.5, 1.0, 2.0, 4.0]
+    for row, m in enumerate(models):
+        cf = json.loads((C.RESULTS / m / "confirm.json").read_text())
+        cells = list(csv.DictReader((C.RESULTS / m / "confirm_cells.csv").read_text().splitlines()))
+        print(f"Figure 5 ({m}, layer {cf['layer']}, n={cf['n_questions']}): change by strength {al}")
+        for col, (push, title) in enumerate(
+            [
+                ("toward_real", "test framing, pushed toward real use"),
+                ("toward_test", "real-use framing, pushed toward test"),
+            ]
+        ):
+            ax = axes[row][col]
+            px = range(len(al))
+
+            def series(src, push=push, cells=cells):
+                return [
+                    float(
+                        next(
+                            r["delta"]
+                            for r in cells
+                            if r["cond"] == push and r["source"] == src and float(r["alpha"]) == a
+                        )
+                    )
+                    for a in al
+                ]
+
+            rand = np.array([series(f"rand{k}") for k in range(20)])
+            ax.fill_between(px, rand.min(0), rand.max(0), color=CONTROL_L, lw=0, label="20 random directions")
+            for u, ls in (("unrelated", "--"), ("unrelated2", ":")):
+                ax.plot(px, series(u), ls, color=CONTROL, lw=1.1, label=f"{u} direction")
+            ax.plot(px, series("policy"), ":", color=ACCENT2, lw=1.6, label="policy-built (upper bound)")
+            aw = series("awareness")
+            ax.plot(px, aw, "o-", color=ACCENT, lw=1.8, ms=3.5, label="eval-awareness direction")
+            ax.axvline(al.index(cf["alpha_star"]), color=FAINT, lw=0.8, ls=(0, (2, 2)))
+            ax.axhline(0, color=FAINT, lw=0.8)
+            ax.set_xticks(range(len(al)), [f"{a:g}" for a in al])
+            ax.set_title(f"{cf['model'].split('/')[-1]}: {title}", fontsize=8, loc="left")
+            ax.set_ylim(-0.7, 0.8)
+            style(ax)
+            print(
+                f"  {push}: awareness {np.round(aw, 3).tolist()} random {np.round(rand.min(0), 3).tolist()}.."
+                f"{np.round(rand.max(0), 3).tolist()}"
+            )
+        axes[row][0].set_ylabel("accuracy change")
+    for ax in axes[-1]:
+        ax.set_xlabel("strength (class gaps); dashed: x2, fixed in advance")
+    h, lab = axes[0][1].get_legend_handles_labels()
+    fig.legend(h, lab, loc="lower center", ncol=3, frameon=False, fontsize=7, bbox_to_anchor=(0.5, -0.01))
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    fig.savefig(FIG / "confirm.png", bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(name="llama3.1-8b"):
     FIG.mkdir(parents=True, exist_ok=True)
     rows, v = load(name)
@@ -284,6 +344,7 @@ def main(name="llama3.1-8b"):
     report(rows, v)
     layers(name, rows, v)
     fluency(name)
+    confirm_figure()
 
 
 if __name__ == "__main__":
