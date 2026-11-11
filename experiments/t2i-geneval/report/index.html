@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots</title>
+<meta name="description" content="An LLM prompt planner, best-of-4 picked by an independent object checker and one retry raise FLUX.1-schnell from 0.663 to 0.874 on GenEval's 553 official prompts, above every single-model score published except a tie with Qwen-Image, at about a quarter of the images RAISE draws. It does not help on GenAI-Bench, and in a blind look the plain-model image looked more natural in 42 of 50 pairs.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots">
+<meta property="og:description" content="An LLM prompt planner, best-of-4 picked by an independent object checker and one retry raise FLUX.1-schnell from 0.663 to 0.874 on GenEval&#x27;s 553 official prompts, above every single-model score published except a tie with Qwen-Image, at about a quarter of the images RAISE draws. It does not help on GenAI-Bench, and in a blind look the plain-model image looked more natural in 42 of 50 pairs.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A flat gouache illustration on cream paper, split in two: on the left a warm, cluttered kitchen table with cups, jugs, apples and a cat; on the right small separate objects laid out in a tidy grid on white, like a product catalogue. Drawn by FLUX.1-schnell.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots">
+<meta name="twitter:description" content="An LLM prompt planner, best-of-4 picked by an independent object checker and one retry raise FLUX.1-schnell from 0.663 to 0.874 on GenEval&#x27;s 553 official prompts, above every single-model score published except a tie with Qwen-Image, at about a quarter of the images RAISE draws. It does not help on GenAI-Bench, and in a blind look the plain-model image looked more natural in 42 of 50 pairs.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-10">
+<meta property="article:modified_time" content="2026-11-10">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots",
+ "description": "An LLM prompt planner, best-of-4 picked by an independent object checker and one retry raise FLUX.1-schnell from 0.663 to 0.874 on GenEval's 553 official prompts, above every single-model score published except a tie with Qwen-Image, at about a quarter of the images RAISE draws. It does not help on GenAI-Bench, and in a blind look the plain-model image looked more natural in 42 of 50 pairs.",
+ "abstract": "GenEval official 553 prompts x 4 outputs, official grader ported unchanged (FLUX.1-schnell alone 0.663 [0.640, 0.687], published 0.658-0.674). Harness (gpt-5.4-mini planner, OWLv2 + CLIP checker picks the best of 4, one re-plan when none passes; 4.27 images per answer): 0.874 [0.854, 0.894], paired +0.212 [+0.187, +0.236]; per category single 0.988, two objects 0.957, counting 0.809, colours 0.872, position 0.912 (from 0.278), colour binding 0.708. Planner alone, one image: 0.775 (+0.112 [+0.088, +0.137]). Validation ablation (200 template prompts): planner +0.148, checker best of 4 +0.113, both +0.210, with retry +0.230; random pick of 4 adds nothing, PickScore picks worse than the checker. Published scores: Qwen-Image 0.87 (tie), GPT-4o image and Seedream 3.0 0.84, SANA-1.5 0.81; behind SD3.5-M + Flow-GRPO 0.95, RAISE 0.93-0.94 (18.7 images), ReflectionFlow 0.91 (32 images). Guards: GenAI-Bench 400 prompts, VQAScore with Qwen2.5-VL-7B (judge check: matched beats shuffled prompt 99.6% of 804 images; pair agreement with mean human rating 0.663 vs one rater 0.914): planner -0.017 [-0.053, +0.018], planner + PickScore best of 4 +0.018 [-0.016, +0.052]; T2I-CompBench texture -0.061 [-0.117, -0.005]; PickScore of the planner's images -0.41 on GenAI-Bench. Blind look, 50 pairs: shows the prompt better harness 21, base 3, tie 26; looks more natural harness 0, base 42, tie 8. Cost about $0.008 per image vs $0.0014; median 12.4 s vs 3.3 s per request.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-10",
+ "dateModified": "2026-11-10",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "GenEval, text-to-image, FLUX.1-schnell, prompt rewriting, best-of-N, test-time scaling, verifier, object detector, OWLv2, VQAScore, GenAI-Bench, T2I-CompBench, PickScore, specification gaming, benchmark overfitting, cost per image",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2310.11513"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.05470"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2404.01291"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.13743"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2307.06350"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2305.01569"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2306.09683"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .pv .pv-nav { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.6rem; flex-wrap: wrap; }
+  .pv .pv-nav span { font-size: 0.86rem; color: var(--ink-soft); }
+  .pv .pv-q { margin: 0 0 0.35rem; }
+  .pv .pv-plan { font-size: 0.86rem; color: var(--ink-soft); margin: 0 0 0.6rem; }
+  .pv .pv-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .pv figure { margin: 0; }
+  .pv img { width: 100%; height: auto; display: block; border-radius: 3px; }
+  .pv figcaption { font-size: 0.82rem; margin-top: 0.3rem; }
+  .pv .ok { color: var(--accent); }
+  .pv .no { color: var(--ink-soft); }
+  .pv .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-10">Nov 10, 2026</time></p>
+  <h1>A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots</h1>
+  <p class="dek ruled">Agent builders wrap an open image model in a planner, a picker and a retry, and report that it beats bigger models on a benchmark. This note builds one for GenEval, takes it apart on held-out prompts, tests it once, and then checks what the benchmark does not see: another benchmark, the price and wait per image, and what the pictures now look like.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A flat gouache illustration on cream paper, split in two: on the left a warm, cluttered kitchen table under a lamp, with cups, jugs, apples, a vase of twigs and a cat; on the right small separate objects laid out in a tidy grid on white, like a product catalogue." width="1536" height="1024">
+    <figcaption>Cover: drawn by FLUX.1-schnell, the model this note studies, from a prompt describing the note’s main side effect (a cluttered scene on the left, objects laid out like a catalogue on the right). One of four candidates, chosen by eye; no text. Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>GenEval (Ghosh et al., 2023; MIT): 553 official prompts as the test; 200 validation prompts made from its templates; T2I-CompBench (MIT) and GenAI-Bench (Apache-2.0) as guards</dd></div>
+    <div><dt>Models</dt><dd>FLUX.1-schnell (Apache-2.0) draws; gpt-5.4-mini plans; OWLv2 and CLIP check; PickScore and Qwen2.5-VL-7B score the guards</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/t2i-geneval/</a>: the harness in <a href="../harness.py">harness.py</a>, the official grader in <a href="../geneval_core.py">geneval_core.py</a>, the picker in <a href="../indep_checker.py">indep_checker.py</a></dd></div>
+    <div><dt>Series</dt><dd>Harnesses and post-training, episode 3. Episode 1: <a href="../../fin-llm/report/">a harness on FinQA</a>; episode 2: <a href="../../fin-math/report/">post-training on FinanceMath</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/harness_official/ablation.json">results/harness_official/ablation.json</a> and the files described in <a href="../README.md#results">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a cheap harness make a small open image model score like the best image models on GenEval?</strong></p>
+    <p>On GenEval, yes. FLUX.1-schnell alone passes 0.663 of GenEval’s 553 official prompts (four images each). Wrapped in a harness that has an LLM rewrite the prompt, draws four images, lets an independent object detector pick one and redraws once if none passes, it passes 0.874 (95% interval 0.854 to 0.894), a paired gain of 21 points. That is above every published single-model score we found, including GPT-4o image and Seedream 3.0 (0.84), level with Qwen-Image (0.87), and it draws 4.3 images per answer, about a quarter of what the RAISE agent draws for 0.93. RL-trained SD3.5-Medium (0.95) and the bigger agent harnesses still score higher. The gain does not carry over: on 400 GenAI-Bench prompts, scored by a model that never saw GenEval, the rewritten prompt changes nothing (−0.017, interval −0.053 to +0.018). And the pictures change: in a blind look at 50 pairs, the harness image showed the prompt better in 21 and worse in 3, but the plain model’s image looked more natural in 42 and the harness’s in none. The planner asks for objects alone on a plain background, which is what a detector counts best.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the harness beat the same model alone? (553 official prompts × 4 images, tested once)</td><td><strong>Yes, by 21 points:</strong> 0.874 [0.854, 0.894] against 0.663 [0.640, 0.687]; paired +0.212 [+0.187, +0.236]</td><td>Planner alone, one image: 0.775 (+0.112 [+0.088, +0.137])</td></tr>
+          <tr><td>Which part does it? (validation, 200 prompts)</td><td><strong>The planner fixes position (0.29 → 0.90); the picker fixes counting and colour binding.</strong> Planner +0.148; checker picking best of 4 +0.113; together +0.210; with the retry +0.230</td><td>A random pick of 4 adds nothing (0.630); PickScore as the picker adds less than the checker (0.800 vs 0.830 with the planner)</td></tr>
+          <tr><td>Where does it sit among published GenEval scores?</td><td><strong>Above every single model but level with Qwen-Image (0.87)</strong>, at 4.3 images per answer</td><td>Behind SD3.5-M + Flow-GRPO (0.95), RAISE (0.93-0.94, 18.7 images) and ReflectionFlow (0.91, 32 images)</td></tr>
+          <tr><td>Does it help on prompts it was not written for? (GenAI-Bench, 400 prompts, VQAScore)</td><td><strong>No:</strong> planner −0.017 [−0.053, +0.018]; planner + PickScore best of 4 +0.018 [−0.016, +0.052]</td><td>T2I-CompBench texture with the planner: −0.061 [−0.117, −0.005]</td></tr>
+          <tr><td>What do the images look like? (blind look, 50 pairs, sides hidden)</td><td><strong>Catalogue shots:</strong> the harness image showed the prompt better in 21 pairs (worse in 3, tie 26) and looked more natural in 0 (plain model 42, tie 8)</td><td>Official grader on the same 50: harness 43 pass, plain model 34</td></tr>
+          <tr><td>What does each image cost, and how long does it take?</td><td>About $0.008 and 12.4 s (median, one request at a time) for the harness</td><td>FLUX.1-schnell alone: $0.0014 and 3.3 s</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask FLUX.1-schnell for “a photo of a train above a potted plant” and it draws a fine photo of a train at a platform with a potted plant in front of it. GenEval’s grader marks that wrong: the train is not above the plant. Ask an LLM to rewrite the prompt first, “exactly one train, positioned above exactly one potted plant, with the train in the upper part of the image and the potted plant directly below it … on a plain uncluttered background”, and FLUX.1-schnell draws a toy-like train hanging over a plant on a white wall. The grader marks it right. Both statements are true at once: the second image follows the prompt better, and it looks like no photo anyone would take. This note measures both halves.</p>
+  <p><strong>What is known.</strong> GenEval (<a href="https://arxiv.org/abs/2310.11513">Ghosh et al., 2023</a>) checks text-to-image models on short compositional prompts (one or two objects, a count, a colour, a left-right or above-below relation) with an object detector, and it is one of the most quoted numbers in model releases. Its scores have climbed fast: single models now reach 0.84 to 0.87 (GPT-4o image, Seedream 3.0, Qwen-Image), RL with the GenEval checker as the reward took SD3.5-Medium from 0.63 to 0.95 (<a href="https://arxiv.org/abs/2505.05470">Flow-GRPO</a>), and agent harnesses that plan, draw many images and pick one report 0.91 to 0.94 on FLUX models (ReflectionFlow, RAISE).</p>
+  <p><strong>What is missing.</strong> The harness papers change several things at once, draw 11 to 32 images per answer, and report the GenEval number. They seldom say what an answer costs in money and seconds, whether the gain holds on a benchmark the harness was not built for, or what happened to the pictures.</p>
+  <p class="question-callout">How much of GenEval can a cheap harness buy for a small open model, which part buys it, and what does it cost in money, time, other benchmarks and the look of the images?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A harness with three switchable parts (an LLM prompt planner, best-of-N picked by an independent checker, one retry) around FLUX.1-schnell, with every combination scored on validation prompts that share no task with the test.</li>
+    <li>One test run on GenEval’s 553 official prompts, four images each, paired prompt by prompt with the model alone, with dollars and seconds per image.</li>
+    <li>Three guards the harness never saw: GenAI-Bench scored by VQAScore (checked first against GenAI-Bench’s human ratings), T2I-CompBench, and a blind look at 50 pairs.</li>
+    <li>A comparison with 16 published GenEval scores, with how many images each system draws.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before the test run:</p>
+  <ol>
+    <li>Every choice is made on validation prompts; the official prompts are run once, with the configuration chosen on validation.</li>
+    <li>The official grader never picks an image. The picker uses different models, so a gain cannot come from showing the grader its own answers.</li>
+    <li>A part “helps” only if the paired difference with it switched off has an interval above zero.</li>
+    <li>“Beats” a published score needs our interval above it; a published score inside the interval is a tie.</li>
+    <li>A gain on GenEval that loses on the guards is reported as a GenEval gain, not as better images.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="geneval-101" data-short="GenEval 101">2.1 GenEval 101, for software engineers</h3>
+  <ul>
+    <li><strong>The test is a unit test for pictures.</strong> Each prompt comes with a spec: “a photo of three kites” expects class <code>kite</code>, count 3. The grader runs an object detector (Mask2Former, trained on the 80 COCO classes), keeps detections above a confidence cut, and checks the spec: the right classes, the exact counts, for colour prompts the colour of each object (CLIP chooses among ten colour names on the cropped object), for position prompts the centres of the two boxes.</li>
+    <li><strong>Six categories:</strong> single object (80 prompts), two objects (99), counting (80), colours (94), position (100) and colour binding (“a red umbrella and a blue couch”, 100). The score is the pass rate per category, averaged over the six.</li>
+    <li><strong>Four images per prompt</strong> with different seeds, 2,212 images in all. We ported the official grader (same weights, same thresholds) and ran it unchanged; FLUX.1-schnell alone scores 0.663 with it, inside the published 0.658 to 0.674.</li>
+    <li><strong>What a pass does not check:</strong> whether the picture looks good, is a photo, or has anything else in it.</li>
+  </ul>
+
+  <h3 id="harness" data-short="The harness">2.2 The harness: a planner, a picker and a retry</h3>
+  <ul>
+    <li><strong>The planner</strong> is one call to gpt-5.4-mini with a fixed instruction (in the <a href="#prompts">appendix</a>): keep every object, number, colour and relation; write counts as digits and words; put each colour next to its noun; place left/right/above/below explicitly in the frame; prefer a plain, uncluttered background and large, unoccluded objects; at most 70 words.</li>
+    <li><strong>Best-of-N</strong> draws N images from the rewritten prompt with different seeds, all at 1024 × 1024, 4 steps, guidance 0 (FLUX.1-schnell’s settings).</li>
+    <li><strong>The picker is a second checker</strong> that reads the same spec as GenEval but uses different models: OWLv2 (an open-vocabulary detector) for objects and counts, and a different CLIP (ViT-H) for colours. It picks an image that passes, breaking ties by PickScore, a model of human preference. On the 9,452 test candidates it agrees with the official grader 83.0% of the time: a useful judge, not a copy of the grader.</li>
+    <li><strong>The retry:</strong> if none of the 4 images passes the picker, the planner is called again with the failure (“wanted counts {kite: 3}, a detector found {kite: 5}”) and 4 more images are drawn. It fired on about 7% of test outputs, hence 4.27 images per answer on average.</li>
+    <li><strong>The picker needs the spec</strong> (which objects, how many, which colour); that is GenEval’s format. On prompts without one (GenAI-Bench), only the planner and a PickScore pick can run.</li>
+  </ul>
+
+  <h3 id="data">2.3 Prompt sets: what each was used for</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Validation</td><td>Prompts made from GenEval’s own templates with other objects, numbers and colours; no prompt text and no task shared with the official set (<a href="../make_prompts.py">make_prompts.py</a>). Five categories (all 80 single-object prompts are already official)</td><td class="num">200</td><td>Every choice: which parts, which picker, how many images; two outputs per prompt</td></tr>
+        <tr class="hl"><td>Official test</td><td>GenEval’s 553 prompts</td><td class="num">553</td><td>Run once with the configuration chosen on validation; four outputs per prompt</td></tr>
+        <tr><td>T2I-CompBench guard</td><td>Its validation prompts for colour, shape and texture (<a href="https://arxiv.org/abs/2307.06350">Huang et al., 2023</a>), scored by its B-VQA metric</td><td class="num">300</td><td>Planner vs original prompt, one image each</td></tr>
+        <tr><td>GenAI-Bench guard</td><td>A random 400 of its 1,600 prompts (<a href="https://arxiv.org/abs/2406.13743">Li et al., 2024</a>), with skill tags such as counting, negation and spatial relation</td><td class="num">400</td><td>Original prompt, planner, planner + PickScore best of 4; scored by VQAScore</td></tr>
+        <tr><td>Judge check</td><td>GenAI-Bench’s first data shard: 134 prompts, each drawn by six models (DALL-E 3, Midjourney 6, SDXL and others) and rated 1-5 by three people</td><td class="num">804 images</td><td>Does VQAScore order those images as the raters do?</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="judges" data-short="Judges and their checks">2.4 The judges, and how each was checked</h3>
+  <ul>
+    <li><strong>The official grader</strong> was checked against published numbers for the same model (above) and on a blank image, which it must fail.</li>
+    <li><strong>VQAScore</strong> (<a href="https://arxiv.org/abs/2404.01291">Lin et al., 2024</a>) asks a vision-language model “Does this figure show ‘&lt;prompt&gt;’? Please answer yes or no.” and takes the probability of “Yes”. We used Qwen2.5-VL-7B as the answering model, with no object detector anywhere. On GenAI-Bench’s rated images it gave the right prompt a higher score than a shuffled prompt for 99.6% of the 804 images (0.744 against 0.002 on average). It ordered two models’ images for the same prompt the same way as the raters’ mean 66.3% of the time (1,626 pairs), against 91.4% for one rater against the other two (3,024 pairs). So it is a coarse judge: good at “is this the prompt at all”, much weaker than a person at ranking two decent images. We use it only for average differences over 400 prompts.</li>
+    <li><strong>T2I-CompBench’s B-VQA</strong> multiplies a BLIP-VQA model’s P(yes) over the prompt’s noun phrases; it is the benchmark’s own metric.</li>
+    <li><strong>PickScore</strong> (<a href="https://arxiv.org/abs/2305.01569">Kirstain et al., 2023</a>) is a CLIP model trained on people’s choices between two images; it is always scored against the original prompt, never the rewrite.</li>
+    <li><strong>The blind look</strong> is one rater reading contact sheets, with the sides of each pair shuffled by a seeded coin and the key opened only after all 50 pairs were rated. Two questions per pair: which image shows what the prompt asks for, and which looks more like a natural photo, ignoring the prompt. One rater is a small sample, and the note treats it as such.</li>
+  </ul>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Grader port</strong> on Modal, checked on a blank image and on FLUX.1-schnell’s official run: 0.663 against the published 0.658-0.674 (2,212 images).</li>
+    <li><strong>Validation pool:</strong> 200 prompts × 2 outputs × 8 candidates, from the original and from the planned prompt (6,400 images), each graded by the official grader, the picker and PickScore, plus 96 retry images. Every combination of prompt (original or planned), picker (random, PickScore, checker, official grader as a bound) and N (1, 2, 4, 8) is computed from this one pool.</li>
+    <li><strong>Choice:</strong> planner + checker best of 4 + retry (0.850 on validation, 4.24 images per answer), over best of 8 (0.857 at twice the images).</li>
+    <li><strong>Test:</strong> the official prompts with that configuration: 553 prompts × 4 outputs × 4 candidates, plus retries (9,452 images). The run was made in two halves (outputs 1-2, then 3-4) with the same frozen configuration and seeds set in advance; the first half alone gave 0.873, the whole 0.874.</li>
+    <li><strong>Guards:</strong> T2I-CompBench (600 images), GenAI-Bench (2,000 images, judge check on 804), the blind look (50 pairs), latency (20 requests).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before the test run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The official grader and its thresholds; the validation prompts; the planner instruction; the picker; the configuration (planner + checker best of 4 + retry); the seeds; paired bootstrap intervals over prompts</td><td>The planner instruction was written once before validation and not tuned. After the first test half, the remaining two outputs per prompt, a GenAI-Bench guard, a latency measurement and a blind look were added, without changing the harness. The guards were chosen after the GenEval result was known, which is their point: to look where the benchmark does not.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: FLUX.1-schnell in bf16 on Modal H100s (1.1 s per image in batches of 8); graders and scorers on A10G and L40S; the planner through OpenRouter. Spend for this note: about $56 of Modal (the base model’s own run, the validation pool and the guards included) and $0.66 of planner calls.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Six findings:</p>
+  <ol>
+    <li><a href="#gains"><strong>4.1</strong></a> The harness adds 21 points on the official prompts.</li>
+    <li><a href="#ablation"><strong>4.2</strong></a> The planner buys position; picking buys counting and colour binding.</li>
+    <li><a href="#rivals"><strong>4.3</strong></a> It ties the best single model and trails the bigger harnesses.</li>
+    <li><a href="#style"><strong>4.4</strong></a> The images become catalogue shots.</li>
+    <li><a href="#guards"><strong>4.5</strong></a> On benchmarks it was not written for, it helps nothing.</li>
+    <li><a href="#cost"><strong>4.6</strong></a> It costs about six times as much per image and four times as long.</li>
+  </ol>
+
+  <h3 id="gains" data-short="+21 points on GenEval">4.1 The harness adds 21 points on the official prompts</h3>
+  <p><strong>On GenEval’s 553 prompts with four outputs each, FLUX.1-schnell alone passes 0.663 [0.640, 0.687] and in the harness 0.874 [0.854, 0.894]; paired by prompt, +0.212 [+0.187, +0.236].</strong> Every category but single object (already 0.988) gains, and the biggest gain is position, 0.278 to 0.912 (Figure 1).</p>
+  <figure class="plot">
+    <img src="figures/gains.png" alt="Grouped bar chart of GenEval pass rates on the official prompts for FLUX.1-schnell alone (grey), the planner with one image (light grey) and the harness (orange). Single object 0.988, 0.988, 0.988; two objects 0.846, 0.884, 0.957; counting 0.578, 0.594, 0.809; colours 0.771, 0.827, 0.872; position 0.278, 0.815, 0.912; colour binding 0.515, 0.542, 0.708; overall 0.663, 0.775, 0.874." width="1260" height="540">
+    <figcaption><span class="label">Figure 1.</span> GenEval pass rate per category on the 553 official prompts, four outputs per prompt (2,212 per system), for FLUX.1-schnell alone (grey), the planner’s rewrite with one image (light grey) and the full harness (orange). Lines: 95% bootstrap intervals over prompts. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/</code>.</figcaption>
+  </figure>
+  <p>The planner alone, one image per prompt, already reaches 0.775 (+0.112 [+0.088, +0.137]), almost all of it from position. If the official grader itself picked the best of the same four images, the score would be 0.941: the picker leaves about 7 points on the table where it disagrees with the grader.</p>
+
+  <h3 id="ablation" data-short="What each part buys">4.2 The planner buys position; picking buys counting and colour binding</h3>
+  <p><strong>On the validation prompts, the planner alone adds +0.148 [+0.098, +0.202], the checker picking the best of 4 from the original prompt +0.113 [+0.070, +0.155], both together +0.210 [+0.155, +0.263], and the retry brings it to +0.230 [+0.177, +0.283].</strong> They add up because they fix different things: the planner moves position from 0.29 to 0.90 and counting from 0.54 to 0.66; picking among four moves counting from 0.54 to 0.76 and colour binding from 0.54 to 0.61 (Figure 2).</p>
+  <figure class="plot">
+    <img src="figures/ablation.png" alt="Line chart of GenEval overall on validation against images drawn per output (1, 2, 4, 8, log scale), for the original and the planned prompt with four pickers. Random pick stays flat (original about 0.62, planner 0.72 to 0.77). PickScore picks rise to 0.70 and 0.82; the checker to 0.75 and 0.86; the official grader as picker (dotted, an upper bound) to 0.89 and 0.96. The harness star sits at 4.24 images, 0.850." width="1440" height="585">
+    <figcaption><span class="label">Figure 2.</span> GenEval overall on the 200 validation prompts (400 outputs per point) against images drawn per output, log scale. Squares: the original prompt; circles: the planner’s rewrite. Colours are the picker: random (light), PickScore (grey), the independent checker (orange), the official grader (dotted, an upper bound, never used by the harness). Star: the configuration chosen for the test. The axis starts at 0.5. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/harness_val/ablation.json</code>.</figcaption>
+  </figure>
+  <p>Three things the figure rules out. Drawing more images without a good picker does nothing (random pick: 0.61 to 0.63 at every N). PickScore, a preference model, is a weaker picker than the checker at every N, so the gain is not “prettier images happen to be right”. And the planner with a random pick is flat in N: four draws of the same rewrite are no better than one unless something chooses among them.</p>
+
+  <h3 id="rivals" data-short="Against published scores">4.3 It ties the best single model and trails the bigger harnesses</h3>
+  <p><strong>At 0.874 [0.854, 0.894], the harness is above every published single-model GenEval score we found except Qwen-Image (0.87), which sits inside its interval: a tie.</strong> It is above GPT-4o image and Seedream 3.0 (both 0.84) and SANA-1.5 (0.81). It is behind RL-trained SD3.5-Medium (Flow-GRPO, 0.95), the RAISE agent on FLUX.1-dev and FLUX.1-schnell (0.94 and 0.93) and ReflectionFlow (0.91). Those harnesses draw 18.6 to 32 images per answer and call a vision-language model several times; ours draws 4.3, about a quarter of RAISE’s 18.7 (Figure 3).</p>
+  <figure class="plot">
+    <img src="figures/rivals.png" alt="Dot chart of published GenEval overall scores, sorted. From the top: SD3.5-Medium + Flow-GRPO 0.95, FLUX.1-dev + RAISE 0.94 (18.6 images per output), FLUX.1-schnell + RAISE 0.93 (18.7), FLUX.1-dev + ReflectionFlow 0.91 (32), this harness 0.874 with its interval (4.3 images, orange star), Qwen-Image 0.87, Seedream 3.0 0.84, GPT-4o image 0.84, SANA-1.5 0.81, Janus-Pro-7B 0.80, FLUX.1-dev + T2I-Copilot 0.74 (11.3), SD3.5-Large 0.71, FLUX.1-schnell + GenPilot 0.696, DALL-E 3 0.67, FLUX.1-schnell alone (our run) 0.663, FLUX.1-dev 0.66, SD3.5-Medium 0.63." width="1140" height="810">
+    <figcaption><span class="label">Figure 3.</span> GenEval overall: published numbers (grey circles: single models; dark diamonds: harnesses and post-trained models, with images drawn per answer where the paper gives it) beside this harness (orange star, with its 95% interval) and our own run of FLUX.1-schnell alone. Sources for every row are in <a href="../data/rivals.csv">data/rivals.csv</a>; numbers we did not rerun carry their authors’ settings. The axis starts at 0.5. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>A model alone and a harness are different kinds of system, and a single-model score is the wrong yardstick for a harness. What the comparison does show is that most of the distance on GenEval between a small open model and the best single models can be bought at test time, with no training, for under a cent an image.</p>
+
+  <h3 id="style" data-short="Catalogue shots">4.4 The images become catalogue shots</h3>
+  <p><strong>In a blind look at 50 random official prompts (sides hidden), the harness image showed what the prompt asks for better in 21 pairs and worse in 3 (26 ties), and looked more like a natural photo in none: the plain model’s image did in 42 pairs, and 8 were ties.</strong> The official grader agreed with the first half: on these 50, 43 harness images pass against 34 plain ones. Figure 4 shows the first pair of each category.</p>
+  <figure class="plot">
+    <img src="figures/style.jpg" alt="Two rows of six images. Top row, FLUX.1-schnell alone: a cow in a green field with other cattle behind; a toaster oven and a stove in a pastel kitchen; two steel ovens in a kitchen; a blue elephant in a forest; a train at a platform behind a potted plant; a purple wine glass in the dark with a black apple barely visible. Bottom row, the harness: a single cow's head cut out on white; a toaster and an oven on white; two small white ovens far apart on white; a blue elephant on grey; a model train above a potted plant on a white wall; a purple wine glass and a black apple on white." width="1840" height="608">
+    <figcaption><span class="label">Figure 4.</span> The first blind-look pair of each category (single object, two objects, counting, colours, position, colour binding), not chosen by eye: FLUX.1-schnell alone above, the harness below, same prompt. The prompts are in the viewer below. Drawn by <a href="../make_figures.py">make_figures.py</a> from images on the Modal volume.</figcaption>
+  </figure>
+  <p>Why: the planner was told to prefer a plain background and large, separated objects, because that makes an image easy to check, and the checker then picks the image it can read best. Both push toward the same picture: one of each object, centred, on white. GenEval rewards it, since nothing in the grader asks for a scene. The extra cows in a field and the kitchen around an oven are exactly what the grader counts as errors (“a photo of a cow” fails if three cows are found) and what a person reads as a photo. The viewer has all 50 pairs, with the rewrite the harness used and both grader verdicts.</p>
+  <!-- viewer:start -->
+<script type="application/json" id="pairs-data">[{"n": 0, "tag": "Single object", "prompt": "a photo of a cow", "plan": "A realistic photo of exactly one (1) cow, and no other cows or animals, centered and fully visible on a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 1, "tag": "Single object", "prompt": "a photo of a parking meter", "plan": "A realistic photo of exactly one (1) parking meter, and no other parking meters, standing alone and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 2, "tag": "Single object", "prompt": "a photo of a pizza", "plan": "A realistic photo of a single (1) pizza, large and fully visible, centered in the frame, with no other objects, on a plain uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 3, "tag": "Single object", "prompt": "a photo of a donut", "plan": "A realistic photo of exactly one (1) donut, centered and fully visible, with no other objects, on a plain uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 4, "tag": "Single object", "prompt": "a photo of a boat", "plan": "A realistic photo of exactly one (1) boat, fully visible and large in the frame, on a plain uncluttered background. No other boats, no other objects.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 5, "tag": "Single object", "prompt": "a photo of a truck", "plan": "A realistic photo of exactly one (1) truck, with no other vehicles or objects, large and fully visible, centered in the frame on a plain uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 6, "tag": "Two objects", "prompt": "a photo of a toaster and an oven", "plan": "A realistic photo of exactly one (1) toaster and exactly one (1) oven, with the toaster and the oven both fully visible, large, and clearly separated, on a plain uncluttered background. There are no other objects.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 7, "tag": "Two objects", "prompt": "a photo of a couch and a wine glass", "plan": "A realistic photo of a couch on one side of the image and a wine glass on the other side of the image, both fully visible, clearly separated, large, and unoccluded, with a plain uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 8, "tag": "Two objects", "prompt": "a photo of a book and a laptop", "plan": "A realistic photo of exactly one (1) book on the left side of the image and exactly one (1) laptop on the right side of the image, with both objects fully visible, clearly separated, large, and unoccluded on a plain uncluttered background. There are no other objects.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 9, "tag": "Two objects", "prompt": "a photo of a frisbee and a couch", "plan": "A realistic photo of exactly one (1) frisbee, and exactly one (1) couch, with no other objects. The frisbee and the couch are both fully visible, large, unoccluded, and clearly separated. Plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 10, "tag": "Two objects", "prompt": "a photo of a potted plant and a backpack", "plan": "A realistic photo of exactly one (1) potted plant, green leaves in a brown pot, and exactly one (1) backpack, on a plain uncluttered background. The potted plant is on the left side of the image and the backpack is on the right side of the image. Both objects are large, fully visible, clearly separated, and there are no other objects.", "retry": false, "base_ok": false, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 11, "tag": "Two objects", "prompt": "a photo of a broccoli and a parking meter", "plan": "A realistic photo on a plain, uncluttered background of exactly one (1) green broccoli and exactly one (1) gray parking meter, with no other objects. Both objects are large, fully visible, and clearly separated.", "retry": false, "base_ok": true, "har_ok": false, "match": "tie", "natural": "base"}, {"n": 12, "tag": "Two objects", "prompt": "a photo of a bench and a vase", "plan": "A realistic photo of a plain, uncluttered scene with exactly one (1) bench and exactly one (1) vase, and no other objects. The bench is large, fully visible, and the vase is large, fully visible, with both clearly separated. Plain background, realistic photo style.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 13, "tag": "Two objects", "prompt": "a photo of a traffic light and a backpack", "plan": "A realistic photo of exactly one (1) traffic light and exactly one (1) backpack, with no other objects. The traffic light is on the left side of the image and the backpack is on the right side of the image. Both are fully visible, large, clearly separated, and unoccluded against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 14, "tag": "Two objects", "prompt": "a photo of a computer mouse and a spoon", "plan": "A realistic photo on a plain, uncluttered background with exactly one (1) computer mouse and exactly one (1) spoon, and no other objects. The computer mouse is fully visible and large. The spoon is fully visible and large. The computer mouse and the spoon are clearly separated.", "retry": false, "base_ok": true, "har_ok": true, "match": "base", "natural": "tie"}, {"n": 15, "tag": "Two objects", "prompt": "a photo of a sink and a sports ball", "plan": "A realistic photo on a plain, uncluttered background showing exactly one (1) sink and exactly one (1) sports ball, with the sink on the left side of the image and the sports ball on the right side of the image. Both objects are fully visible, large, and clearly separated.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 16, "tag": "Counting", "prompt": "a photo of two ovens", "plan": "A realistic photo of exactly two (2) ovens, and no other ovens, on a plain uncluttered background. One oven on the left side of the image and one oven on the right side of the image, both fully visible, large, and clearly separated.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 17, "tag": "Counting", "prompt": "a photo of three kites", "plan": "A realistic photo of exactly three (3) kites, and there are no other kites. The three kites are large, fully visible, and clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 18, "tag": "Counting", "prompt": "a photo of four stop signs", "plan": "A realistic photo of exactly four (4) red stop signs, and no other stop signs. The four red stop signs are large, fully visible, unoccluded, and clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 19, "tag": "Counting", "prompt": "a photo of three giraffes", "plan": "A realistic photo of exactly three (3) giraffes, and there are no other giraffes. Each giraffe is fully visible, large, and unoccluded against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 20, "tag": "Counting", "prompt": "a photo of two teddy bears", "plan": "A realistic photo of exactly two (2) teddy bears, and no other teddy bears. One teddy bear is on the left side of the image and the other teddy bear is on the right side of the image. Both teddy bears are fully visible, large, and clearly separated against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 21, "tag": "Counting", "prompt": "a photo of four microwaves", "plan": "A realistic photo of exactly four (4) microwaves, and there are no other microwaves. The four microwaves are large, fully visible, and clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 22, "tag": "Counting", "prompt": "a photo of four frisbees", "plan": "A realistic photo of exactly four (4) frisbees, with no other frisbees. The four frisbees are large, fully visible, unoccluded, and clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 23, "tag": "Colours", "prompt": "a photo of a blue elephant", "plan": "A realistic photo of exactly one (1) blue elephant, and no other elephants or objects, standing alone, large and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 24, "tag": "Colours", "prompt": "a photo of a yellow elephant", "plan": "A realistic photo of exactly one (1) yellow elephant, and no other elephants or objects, centered and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 25, "tag": "Colours", "prompt": "a photo of a white kite", "plan": "A realistic photo of exactly one (1) white kite, centered and fully visible, with no other objects, on a plain uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 26, "tag": "Colours", "prompt": "a photo of a red potted plant", "plan": "A realistic photo of exactly one (1) red potted plant, with no other plants or objects, centered and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 27, "tag": "Colours", "prompt": "a photo of a brown toaster", "plan": "A realistic photo of exactly one (1) brown toaster, with no other objects, on a plain uncluttered background. The brown toaster is large, fully visible, and unoccluded.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 28, "tag": "Colours", "prompt": "a photo of a green vase", "plan": "A realistic photo of exactly one (1) green vase, and no other objects, centered and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 29, "tag": "Colours", "prompt": "a photo of a red scissors", "plan": "A realistic photo of exactly one (1) red scissors, with no other scissors or objects, large and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 30, "tag": "Colours", "prompt": "a photo of an orange scissors", "plan": "A realistic photo of exactly one (1) orange scissors, and no other scissors, on a plain uncluttered background. The orange scissors are large, fully visible, and unoccluded.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 31, "tag": "Colours", "prompt": "a photo of a green motorcycle", "plan": "A realistic photo of exactly one (1) green motorcycle, with no other motorcycles or objects, centered and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 32, "tag": "Colours", "prompt": "a photo of a black backpack", "plan": "A realistic photo of exactly one (1) black backpack, and no other backpacks, centered and fully visible against a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": false, "match": "tie", "natural": "tie"}, {"n": 33, "tag": "Position", "prompt": "a photo of a train above a potted plant", "plan": "A realistic photo of exactly one (1) train, large and fully visible, positioned above exactly one (1) potted plant, with the train in the upper part of the image and the potted plant directly below it in the lower part of the image, both clearly separated and unoccluded, on a plain uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 34, "tag": "Position", "prompt": "a photo of a dog above a cow", "plan": "A realistic photo with a dog above a cow: a dog clearly visible in the upper part of the image, and a cow clearly visible below it. Both animals are large, fully visible, and clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "tie"}, {"n": 35, "tag": "Position", "prompt": "a photo of a cow left of a stop sign", "plan": "A realistic photo of a brown cow on the left side of the image and a red stop sign on the right side of the image, both fully visible, clearly separated, and large against a plain, uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "tie"}, {"n": 36, "tag": "Position", "prompt": "a photo of a frisbee below a horse", "plan": "A realistic photo with a plain, uncluttered background: a frisbee below a horse. The horse is fully visible and large in the upper part of the image, and the frisbee is fully visible and large below it, clearly separated. No other objects.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "tie"}, {"n": 37, "tag": "Position", "prompt": "a photo of a cat below a backpack", "plan": "A realistic photo on a plain, uncluttered background with a cat below a backpack. The cat is fully visible and large on the lower part of the image, and the backpack is fully visible and large above it, with clear separation and no other objects.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 38, "tag": "Position", "prompt": "a photo of a baseball glove right of a bear", "plan": "A realistic photo on a plain, uncluttered background with a brown baseball glove on the right side of the image and a brown bear on the left side of the image, both fully visible, large, unoccluded, and clearly separated.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 39, "tag": "Position", "prompt": "a photo of a bed right of a frisbee", "plan": "A realistic photo of a bed on the right side of the image and a frisbee on the left side of the image, both fully visible, clearly separated, large, unoccluded, on a plain uncluttered background, with no other objects.", "retry": false, "base_ok": false, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 40, "tag": "Colour binding", "prompt": "a photo of a purple wine glass and a black apple", "plan": "A realistic photo on a plain, uncluttered background showing exactly one (1) purple wine glass and exactly one (1) black apple, and no other wine glasses or apples. The purple wine glass is large and fully visible. The black apple is large and fully visible. Both objects are clearly separated and unoccluded.", "retry": true, "base_ok": true, "har_ok": false, "match": "harness", "natural": "base"}, {"n": 41, "tag": "Colour binding", "prompt": "a photo of a purple parking meter and a red laptop", "plan": "A realistic photo of a purple parking meter on one side of the image and a red laptop on the other side of the image, both fully visible, large, clearly separated, and unoccluded against a plain, uncluttered background.", "retry": false, "base_ok": false, "har_ok": false, "match": "harness", "natural": "base"}, {"n": 42, "tag": "Colour binding", "prompt": "a photo of a red umbrella and a blue couch", "plan": "A realistic photo of exactly one (1) red umbrella and exactly one (1) blue couch, with the red umbrella fully visible and the blue couch fully visible, clearly separated, on a plain uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "harness", "natural": "base"}, {"n": 43, "tag": "Colour binding", "prompt": "a photo of a black bus and a brown cell phone", "plan": "A realistic photo of exactly one (1) black bus and exactly one (1) brown cell phone, with no other objects. The black bus is large, fully visible, and the brown cell phone is large, fully visible; both are clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": false, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 44, "tag": "Colour binding", "prompt": "a photo of an orange skateboard and a pink bowl", "plan": "A realistic photo on a plain, uncluttered background showing exactly one (1) orange skateboard and exactly one (1) pink bowl, with no other objects. The orange skateboard and the pink bowl are large, fully visible, unoccluded, and clearly separated.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "tie"}, {"n": 45, "tag": "Colour binding", "prompt": "a photo of a red laptop and a brown car", "plan": "A realistic photo of exactly one (1) red laptop and exactly one (1) brown car, with no other objects. The red laptop is large, fully visible, and separate from the brown car, which is also large, fully visible, and separate. Plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "base"}, {"n": 46, "tag": "Colour binding", "prompt": "a photo of an orange motorcycle and a pink donut", "plan": "A realistic photo of exactly one (1) orange motorcycle and exactly one (1) pink donut, with no other objects. The orange motorcycle and the pink donut are both fully visible, large, unoccluded, and clearly separated on a plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": false, "match": "tie", "natural": "tie"}, {"n": 47, "tag": "Colour binding", "prompt": "a photo of a yellow car and an orange toothbrush", "plan": "A realistic photo of exactly one (1) yellow car and exactly one (1) orange toothbrush, with no other objects. The yellow car is large and fully visible on one side of the image, and the orange toothbrush is large and fully visible on the opposite side of the image. Plain, uncluttered background.", "retry": false, "base_ok": true, "har_ok": true, "match": "tie", "natural": "tie"}, {"n": 48, "tag": "Colour binding", "prompt": "a photo of an orange potted plant and a black spoon", "plan": "A realistic photo on a plain, uncluttered background of exactly one (1) orange potted plant and exactly one (1) black spoon, with no other objects. The orange potted plant and the black spoon are both fully visible, large, unoccluded, and clearly separated.", "retry": false, "base_ok": false, "har_ok": false, "match": "base", "natural": "base"}, {"n": 49, "tag": "Colour binding", "prompt": "a photo of a red clock and a black cell phone", "plan": "A realistic photo on a plain, uncluttered background showing exactly one (1) red clock and exactly one (1) black cell phone, with no other objects. The red clock and the black cell phone are both large, fully visible, unoccluded, and clearly separated in the frame.", "retry": false, "base_ok": false, "har_ok": false, "match": "base", "natural": "base"}]</script>
+<!-- viewer:end -->
+  <div class="sim pv" id="pair-viewer">
+    <div class="gallery-pick" role="group" aria-label="Category">
+      <button type="button" data-tag="" aria-pressed="true">All</button>
+      <button type="button" data-tag="Single object" aria-pressed="false">Single object</button>
+      <button type="button" data-tag="Two objects" aria-pressed="false">Two objects</button>
+      <button type="button" data-tag="Counting" aria-pressed="false">Counting</button>
+      <button type="button" data-tag="Colours" aria-pressed="false">Colours</button>
+      <button type="button" data-tag="Position" aria-pressed="false">Position</button>
+      <button type="button" data-tag="Colour binding" aria-pressed="false">Colour binding</button>
+    </div>
+    <div class="pv-nav"><button type="button" class="pv-prev" aria-label="Previous pair">←</button><button type="button" class="pv-next" aria-label="Next pair">→</button><span class="pv-count"></span></div>
+    <p class="pv-q"></p>
+    <p class="pv-plan"></p>
+    <div class="pv-cols">
+      <figure><img class="pv-base" src="figures/pairs/00_base.jpg" alt="FLUX.1-schnell alone" width="384" height="384"><figcaption class="pv-base-c"></figcaption></figure>
+      <figure><img class="pv-har" src="figures/pairs/00_harness.jpg" alt="The harness" width="384" height="384"><figcaption class="pv-har-c"></figcaption></figure>
+    </div>
+    <p class="caption">The 50 blind-look pairs (random official prompts, seed 0), each the first of four outputs; left FLUX.1-schnell alone, right the harness. “Grader” is GenEval’s verdict; “rater” is the blind look’s answer for that pair. Without JavaScript, Figure 4 shows six of them.</p>
+  </div>
+
+  <h3 id="guards" data-short="Other benchmarks: no gain">4.5 On benchmarks it was not written for, it helps nothing</h3>
+  <p><strong>On 400 GenAI-Bench prompts scored by VQAScore, the planner’s rewrite changed nothing (−0.017 [−0.053, +0.018] against a base of 0.667), and the planner with a PickScore pick of four changed nothing either (+0.018 [−0.016, +0.052]). On T2I-CompBench the rewrite lowered texture by −0.061 [−0.117, −0.005]; colour and shape moved within their intervals.</strong> GenAI-Bench’s prompts are longer and ask for more than objects (actions, negation, comparison), and the planner’s rules, written for GenEval’s one-line specs, do not help them (Figure 5). By skill tag, only “differentiation” moved outside its interval, and down (−0.084 [−0.166, −0.006]); negation leaned up (+0.056 [−0.027, +0.148]) within its interval.</p>
+  <figure class="plot">
+    <img src="figures/guards.png" alt="Three panels. Left: GenAI-Bench VQAScore change against the original prompt, planner one image −0.017 (interval −0.053 to +0.018), planner plus PickScore best of 4 +0.018 (−0.016 to +0.052), both grey. Middle: T2I-CompBench B-VQA change with the planner, colour −0.026, shape −0.014, texture −0.061 (orange, interval below zero). Right: blind look, 50 pairs: shows the prompt, harness 21, tie 26, base 3; looks more natural, harness 0, tie 8, base 42." width="1530" height="495">
+    <figcaption><span class="label">Figure 5.</span> Guards. Left: VQAScore (Qwen2.5-VL-7B) on 400 random GenAI-Bench prompts, paired change from the original prompt (one image each, the same seed for the first image); the full harness cannot run there, because its checker needs GenEval’s object lists. Middle: T2I-CompBench B-VQA, 100 prompts per category, planner vs original. Dots and bars: mean and 95% bootstrap interval over prompts; orange where the interval excludes zero. Right: the blind look’s counts. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>PickScore tells the same story. Against the original prompt, the planner’s images score lower on GenAI-Bench (−0.41 [−0.49, −0.33]) and on GenEval (22.60 against 23.03). The full harness on GenEval ends level (23.07), because the picker breaks ties by PickScore.</p>
+
+  <h3 id="cost" data-short="Cost and wait">4.6 It costs about six times as much per image and four times as long</h3>
+  <p><strong>An answer from the harness takes 4.27 images on average: 4.8 H100-seconds, $0.0053 at Modal’s list price, plus about $0.002 to check and score them and $0.0004 for the planner, about $0.008 in all. FLUX.1-schnell alone costs 1.25 H100-seconds, $0.0014.</strong> One request at a time on warm containers, the harness took a median 12.4 s (90th percentile 22.5 s, when the retry fired: 3 of 20 requests) against 3.3 s for one plain image. Of the 12.4 s, the planner took 1.2, drawing four images 6.5 and the two scorers, run one after the other, 4.5; running them side by side would save about 2 s.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th class="num">GenEval</th><th class="num">Images per answer</th><th class="num">$ per image</th><th class="num">Seconds (median)</th></tr></thead>
+      <tbody>
+        <tr><td>FLUX.1-schnell alone</td><td class="num">0.663</td><td class="num">1</td><td class="num">0.0014</td><td class="num">3.3</td></tr>
+        <tr><td>Planner, one image</td><td class="num">0.775</td><td class="num">1</td><td class="num">0.0018</td><td class="num">≈ 4.5</td></tr>
+        <tr class="hl"><td>Harness (planner, checker best of 4, retry)</td><td class="num">0.874</td><td class="num">4.27</td><td class="num">≈ 0.008</td><td class="num">12.4</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The planner-only row’s time is the planner’s 1.2 s added to one image, not a separate measurement.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th>Kind</th><th>Weights trained</th><th>Calls in the loop</th><th class="num">Images per answer</th><th class="num">GenEval</th></tr></thead>
+      <tbody>
+        <tr><td>GenPilot on FLUX.1-schnell</td><td>prompt optimisation</td><td>✗</td><td>language models rewrite and check the prompt</td><td class="num">—</td><td class="num">0.696</td></tr>
+        <tr><td>T2I-Copilot on FLUX.1-dev</td><td>agent</td><td>✗</td><td>LLM and VLM agents</td><td class="num">11.3</td><td class="num">0.74</td></tr>
+        <tr><td>ReflectionFlow on FLUX.1-dev</td><td>reflection + resampling</td><td>✓ (reflection tuning)</td><td>a VLM verifier and reflections</td><td class="num">32</td><td class="num">0.91</td></tr>
+        <tr><td>RAISE on FLUX.1-schnell / dev</td><td>VLM agent + resampling</td><td>✗</td><td>a VLM agent, 7.3 calls per answer</td><td class="num">18.7 / 18.6</td><td class="num">0.93 / 0.94</td></tr>
+        <tr><td>Flow-GRPO on SD3.5-Medium</td><td>RL with the GenEval checker as reward</td><td>✓</td><td>none at inference</td><td class="num">1</td><td class="num">0.95</td></tr>
+        <tr class="hl"><td>This note, on FLUX.1-schnell</td><td>planner + checker best of 4 + retry</td><td>✗</td><td>one LLM call; a detector picks</td><td class="num">4.27</td><td class="num">0.874</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Our harness is the simplest in the table: one text-only LLM call, a detector as the picker, one retry. What this note adds beyond the score is the part-by-part ablation on held-out prompts, the dollars and seconds per image, a guard benchmark with no detector in it, and a look at what the images became. We did not check every paper for those; where they report them, their numbers should sit beside ours.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>GenEval is a test whose checker can be read: a detector, a confidence cut, box centres. A harness built to pass it, with no access to the grader at all, learned in effect to draw for the detector: objects alone, centred, on white. That is specification gaming at the level of a system design, not a training run, and it took one sentence in a prompt (“prefer a plain, uncluttered background”). The score rose 21 points; another benchmark, a preference model and a person looking at the pictures all said the images did not get better in the way the score suggests. The same pattern can appear wherever a compositional benchmark compares agentic image systems, and RL against the same checker (Flow-GRPO’s 0.95) has every incentive to find it too.</p>
+  <p>The same thing happened in text. In <a href="../../fin-llm/report/">episode 1</a>, a FinQA harness gained most of its points by showing the model how the exam is marked (worked examples with FinQA’s sign convention), not by making it reason better. Here the planner shows FLUX.1-schnell what the detector can count. In both cases the gain is real on the benchmark and says little about the skill the benchmark was built to measure.</p>
+  <p><strong>Report a harness’s GenEval score only beside a detector-free guard, a preference score and a look at its images; without them, the number measures how well the system draws for a detector.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One base model and one planner.</strong> FLUX.1-schnell and gpt-5.4-mini only; SD3.5-Medium was licence-gated when the work was done. A stronger base may need the planner less.</li>
+    <li><strong>The planner instruction was written once</strong> and never tuned. A planner told to keep a natural scene might keep more of the look and lose some of the score; it was not tried.</li>
+    <li><strong>The blind look is one rater and 50 pairs.</strong> The “natural” result is lopsided enough (42 to 0) to survive that; the “shows the prompt” split (21 to 3) is smaller, and the official grader agrees with it.</li>
+    <li><strong>VQAScore with Qwen2.5-VL-7B agrees with people only 66% of the time on pairs</strong> (one rater against the others: 91%). It can see a large change, not a subtle one. The original VQAScore model (CLIP-FlanT5) was not run.</li>
+    <li><strong>Published scores were not rerun,</strong> except FLUX.1-schnell’s. They come with their authors’ seeds and settings; some agent numbers count images differently.</li>
+    <li><strong>Latency is one request at a time on warm Modal containers;</strong> cold starts, queueing and batching across users were not measured.</li>
+    <li><strong>GenAI-Bench ran without the checker,</strong> which needs GenEval’s object lists, so the full harness was never scored there.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Everything runs on Modal; the planner needs an OpenRouter key (<code>OPENROUTER_API_KEY</code> in <code>.env</code>). <code>reproduce.sh --dry-run</code> lists every command. Each step caches by image path and resumes; <code>--scores</code> recomputes the tables and figures from <code>results/</code> without a GPU.</p>
+  <pre><code>cd experiments/t2i-geneval
+modal deploy modal_app.py
+./reproduce.sh --dry-run      # the commands
+./reproduce.sh --scores       # tables and figures from results/, no GPU</code></pre>
+  <p>A full rerun costs about $45 of Modal at 2026-11 list prices (validation pool, test, guards) and under $1 of planner calls.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>A planner told to keep the scene,</strong> scored on GenEval and the guards together, to see how much of the 21 points survives a natural-looking image.</li>
+    <li><strong>Post-training the same model</strong> with the checker as the reward (Flow-GRPO), compared with what the harness buys at test time, on the same guards.</li>
+    <li><strong>The same harness on a stronger open base</strong> (SD3.5-Medium once its licence is accepted, or Qwen-Image), to see whether the gain shrinks as the base improves.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can a prompt rewriter and best-of-N raise a model’s GenEval score?</h3>
+  <p>Yes. For FLUX.1-schnell, an LLM rewrite plus picking the best of four images with an object detector raised GenEval from 0.663 to 0.874 on the 553 official prompts. The rewrite alone gave 0.775, mostly through the position category.</p>
+  <h3 id="q2">Does FLUX.1-schnell with a harness beat GPT-4o or Qwen-Image on GenEval?</h3>
+  <p>It scores above GPT-4o image’s published 0.84 and level with Qwen-Image’s 0.87 (our interval is 0.854 to 0.894). It stays behind RL-trained SD3.5-Medium (0.95) and agent harnesses that draw 19 to 32 images per answer (0.91 to 0.94).</p>
+  <h3 id="q3">Does a higher GenEval score mean better images?</h3>
+  <p>Not here. The harness’s images follow GenEval prompts better, but on GenAI-Bench they score no higher, on T2I-CompBench texture lower, and in a blind look the plain model’s image looked more natural in 42 of 50 pairs. The harness draws isolated objects on white, which a detector reads easily.</p>
+  <h3 id="q4">How much does a GenEval harness cost per image?</h3>
+  <p>About $0.008 and 12 s per image on Modal H100s, against $0.0014 and 3.3 s for FLUX.1-schnell alone: 4.3 images drawn, two checkers and one LLM call per answer.</p>
+  <h3 id="q5">Is VQAScore a good judge of text-to-image alignment?</h3>
+  <p>For averages, yes; for single pairs, weakly. With Qwen2.5-VL-7B it scored the right prompt above a shuffled one for 99.6% of 804 GenAI-Bench images, but ordered two models’ images like human raters only 66% of the time, against 91% for one rater against the others.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><a href="../results/harness_official/pool.jsonl">results/harness_official/pool.jsonl</a> and <a href="../results/harness_val/pool.jsonl">results/harness_val/pool.jsonl</a>: one line per candidate image (prompt, output and candidate number, seed, the text FLUX.1-schnell saw, official verdict and partial score, checker verdict and counts, PickScore). <code>ablation.json</code> beside each: every configuration’s scores and chosen images.</li>
+    <li><a href="../results/schnell_official/rows.jsonl">results/schnell_official/rows.jsonl</a>: FLUX.1-schnell alone, one line per image.</li>
+    <li><a href="../results/plans/official.jsonl">results/plans/</a>: every planner rewrite, with tokens.</li>
+    <li><a href="../results/genai_bench/summary.json">results/genai_bench/</a>: the judge check, per-image VQAScore and PickScore, the summary by skill tag.</li>
+    <li><a href="../results/blind/key.json">results/blind/</a>: the key, the ratings, the summary.</li>
+    <li><a href="../results/latency.json">results/latency.json</a>: seconds per stage and request.</li>
+    <li><a href="../data/rivals.csv">data/rivals.csv</a>: every published score, with its source.</li>
+  </ul>
+  <p>The columns of each file are described in <a href="../README.md#results">README.md</a>. The images themselves stay on the Modal volume; <code>make_figures.py --gallery</code> fetches the 50 shown here.</p>
+
+  <h3 id="prompts">The planner’s instruction</h3>
+  <pre><code>You rewrite short text-to-image prompts for FLUX.1-schnell so the image matches them exactly.
+Rules:
+- Keep every object, every number, every colour and every spatial relation from the original. Add no new objects.
+- Say counts as digits and words ("exactly three (3) cups"), and say there are no other instances of that object.
+- For colours, give each object its colour right next to its name, and keep other objects in different colours.
+- For "left of / right of / above / below", place the objects explicitly in the frame ("on the left side of the
+  image ... on the right side"), with both objects fully visible and clearly separated.
+- Prefer a plain, uncluttered background and a realistic photo style. Objects should be large and unoccluded.
+- At most 70 words. Reply with the rewritten prompt only.</code></pre>
+  <p>On a retry, one line is added: “A previous image for this prompt failed a check: &lt;wanted counts, what a detector found&gt;. Fix that failure in your rewrite.”</p>
+
+  <h3 id="techniques">Techniques</h3>
+  <ul>
+    <li><strong>Prompt planning (prompt rewriting):</strong> an LLM turns a short prompt into an explicit one before drawing.</li>
+    <li><strong>Best-of-N with a verifier:</strong> draw N images, keep the one a checker prefers; the checker here is independent of the grader.</li>
+    <li><strong>Paired bootstrap over prompts:</strong> each prompt’s pass rate in both systems, resampled 4,000 times; the interval is on the difference.</li>
+    <li><strong>VQAScore:</strong> P(“Yes”) from a vision-language model asked whether the image shows the prompt.</li>
+  </ul>
+
+  <h3 id="tech-stack">Tech stack</h3>
+  <ul>
+    <li>Modal: H100 for FLUX.1-schnell; A10G for the GenEval grader (torch 1.13, mmdet 2.28), the checker, PickScore and B-VQA; L40S for Qwen2.5-VL-7B.</li>
+    <li>diffusers 0.35, transformers 4.57; OWLv2 and CLIP ViT-H for the checker.</li>
+    <li>gpt-5.4-mini through OpenRouter for the planner.</li>
+  </ul>
+
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Ghosh, Hajishirzi, Schmidt. <a href="https://arxiv.org/abs/2310.11513">GenEval: An Object-Focused Framework for Evaluating Text-to-Image Alignment</a>. 2023.</li>
+    <li>Liu et al. <a href="https://arxiv.org/abs/2505.05470">Flow-GRPO: Training Flow Matching Models via Online RL</a>. 2025.</li>
+    <li>Lin et al. <a href="https://arxiv.org/abs/2404.01291">Evaluating Text-to-Visual Generation with Image-to-Text Generation (VQAScore)</a>. 2024.</li>
+    <li>Li et al. <a href="https://arxiv.org/abs/2406.13743">GenAI-Bench: Evaluating and Improving Compositional Text-to-Visual Generation</a>. 2024.</li>
+    <li>Huang et al. <a href="https://arxiv.org/abs/2307.06350">T2I-CompBench: A Comprehensive Benchmark for Open-world Compositional Text-to-image Generation</a>. 2023.</li>
+    <li>Kirstain et al. <a href="https://arxiv.org/abs/2305.01569">Pick-a-Pic: An Open Dataset of User Preferences for Text-to-Image Generation (PickScore)</a>. 2023.</li>
+    <li>Minderer et al. <a href="https://arxiv.org/abs/2306.09683">Scaling Open-Vocabulary Object Detection (OWLv2)</a>. 2023.</li>
+    <li>RAISE, GenPilot, ReflectionFlow, T2I-Copilot and the single-model scores: sources per row in <a href="../data/rivals.csv">data/rivals.csv</a>.</li>
+  </ul>
+
+  <h3 id="revisions">Revision history</h3>
+  <ul>
+    <li>2026-11-10: first version.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026genevalharness,
+  author = {Albert Lie},
+  title  = {A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/t2i-geneval/report/}
+}</code></pre>
+  <footer class="note">Data: GenEval (MIT), T2I-CompBench (MIT), GenAI-Bench (Apache-2.0). Models: FLUX.1-schnell (Black Forest Labs, Apache-2.0), gpt-5.4-mini (OpenAI), OWLv2 and CLIP, PickScore, Qwen2.5-VL-7B (Alibaba).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("pair-viewer");
+  var src = document.getElementById("pairs-data");
+  if (!box || !src) return;
+  var all = JSON.parse(src.textContent), list = all, i = 0;
+  var $ = function (s) { return box.querySelector(s); };
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function verdict(ok) { return ok ? '<span class="ok">grader: pass</span>' : '<span class="no">grader: fail</span>'; }
+  function rater(p, side) {
+    var m = p.match === side ? "shows the prompt better" : (p.match === "tie" ? "prompt: tie" : "");
+    var n = p.natural === side ? "looks more natural" : (p.natural === "tie" ? "natural: tie" : "");
+    return [m, n].filter(Boolean).join(", ");
+  }
+  function show() {
+    var p = list[i];
+    $(".pv-count").textContent = (i + 1) + " of " + list.length + " · " + p.tag;
+    $(".pv-q").innerHTML = "<strong>Prompt:</strong> ";
+    $(".pv-q").appendChild(document.createTextNode(p.prompt));
+    $(".pv-plan").textContent = "Harness rewrite" + (p.retry ? " (after a retry)" : "") + ": " + p.plan;
+    $(".pv-base").src = "figures/pairs/" + pad(p.n) + "_base.jpg";
+    $(".pv-base").alt = "FLUX.1-schnell alone: " + p.prompt;
+    $(".pv-har").src = "figures/pairs/" + pad(p.n) + "_harness.jpg";
+    $(".pv-har").alt = "The harness: " + p.prompt;
+    var rb = rater(p, "base"), rh = rater(p, "harness");
+    $(".pv-base-c").innerHTML = "FLUX.1-schnell alone · " + verdict(p.base_ok) + (rb ? " · rater: " + rb : "");
+    $(".pv-har-c").innerHTML = "Harness · " + verdict(p.har_ok) + (rh ? " · rater: " + rh : "");
+  }
+  box.querySelectorAll(".gallery-pick button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      box.querySelectorAll(".gallery-pick button").forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      list = b.dataset.tag ? all.filter(function (p) { return p.tag === b.dataset.tag; }) : all;
+      i = 0; show();
+    });
+  });
+  $(".pv-prev").addEventListener("click", function () { i = (i + list.length - 1) % list.length; show(); });
+  $(".pv-next").addEventListener("click", function () { i = (i + 1) % list.length; show(); });
+  show();
+})();
+</script>
+</body>
+</html>
