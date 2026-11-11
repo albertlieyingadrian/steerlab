@@ -5,7 +5,7 @@
 # ~/.cache/steerlab/slop-score. The EditLens steps need access to pangram/editlens_roberta-large and
 # pangram/editlens_iclr on Hugging Face (CC BY-NC-SA 4.0, non-commercial, by request), a clone of
 # github.com/pangramlabs/EditLens at $EDITLENS_DIR (default ~/.cache/steerlab/editlens) and the `emoji` package at
-# $EDITLENS_PYLIBS; editlens_qwen.py trains on one H100 (about $3). With --scores, only the steps that read saved replies: band, analysis, figures.
+# $EDITLENS_PYLIBS; editlens_qwen.py trains on one H100 (about $3); voi_slop.py scores on one L4 or A10G (about $0.12). With --scores, only the steps that read saved replies: band, analysis, figures.
 set -euo pipefail
 cd "$(dirname "$0")"
 PY=${PY:-../../.venv/bin/python}
@@ -40,6 +40,8 @@ STEPS=(
   "$PY editlens.py check"
   "$PY editlens.py score"
   "$PY editlens_qwen.py"
+  "$MODAL deploy modal_voi_slop.py"
+  "$PY voi_slop.py score"
   "$PY analyze.py"
   "$PY make_figures.py"
   "$PY make_cover.py"
