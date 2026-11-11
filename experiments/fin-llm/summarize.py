@@ -35,6 +35,17 @@ PAIRS = [  # (split, baseline tag, system tag): differences are paired over the 
     ("test", "raw__gpt-5.4", "harness__gpt-5.4-nano"),
     ("test", "raw__gpt-5.4", "harness__qwen"),
     ("test", "raw__gpt-5.4", "raw__gpt-5.5"),
+    # Claude arms (update, 2026-11-11): Haiku on the full test, Opus on the fixed 300
+    ("test", "raw__claude-haiku-5-5", "raw+ex__claude-haiku-5-5"),
+    ("test", "raw__claude-haiku-5-5", "harness-noex__claude-haiku-5-5"),
+    ("test", "raw__claude-haiku-5-5", "harness__claude-haiku-5-5"),
+    ("test-300", "raw__claude-opus-5-5", "harness-noex__claude-opus-5-5"),
+    ("test-300", "raw__claude-opus-5-5", "harness__claude-opus-5-5"),
+    ("test", "raw__gpt-5.4", "harness__claude-haiku-5-5"),
+    ("test", "raw__gpt-5.4-mini", "raw__claude-haiku-5-5"),
+    ("test", "raw__gpt-5.4", "raw__claude-haiku-5-5"),
+    ("test-300", "raw__gpt-5.5", "raw__claude-opus-5-5"),
+    ("test-300", "harness__gpt-5.5", "harness__claude-opus-5-5"),
     ("guard-300", "raw__qwen", "raw+ex*5__qwen"),
     ("guard-300", "raw__gpt-5.4-mini", "harness__gpt-5.4-mini"),
 ]

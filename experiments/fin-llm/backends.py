@@ -165,8 +165,54 @@ class API:
         return [Reply(r.choices[0].message.content or "", tin, tout, usd, seconds)]
 
 
+CLAUDE_PRICE = {  # input, output, cache write (5-minute), cache read; USD per million tokens, list prices 2026-11-03
+    "claude-haiku-5-5": (0.10, 0.50, 0.125, 0.01),  # prompts up to 100K tokens
+    "claude-opus-5-5": (4.0, 20.0, 5.0, 0.20),
+}
+
+
+class Claude:
+    """Claude through the Anthropic API, at its default settings (adaptive thinking, effort `medium`).
+
+    The system turn goes in `system`; automatic prompt caching is on, since the harness resends the report every turn.
+    Thinking tokens count as output and are billed. Temperature is not sent (these models reject it), so repeated runs
+    are not deterministic. A refusal (`stop_reason == "refusal"`) returns an empty reply, which scores as no answer;
+    no fallback model is used, so every answer in an arm comes from the named model."""
+
+    provider = "anthropic"
+
+    def __init__(self, budget: fin.Budget, model: str):
+        fin.load_env()
+        import anthropic
+
+        self.budget, self.model, self.name = budget, model, model
+        self.client = anthropic.Anthropic(max_retries=6, timeout=600)
+
+    def chat(self, messages, max_tokens=8192, temperature=None, seed=0, n=1) -> list[Reply]:
+        self.budget.check()
+        system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
+        turns = [m for m in messages if m["role"] != "system"]
+        kwargs = {"model": self.model, "max_tokens": max_tokens, "messages": turns,
+                  "cache_control": {"type": "ephemeral"}}  # fmt: skip
+        if system:
+            kwargs["system"] = system
+        start = time.time()
+        r = self.client.messages.create(**kwargs)
+        seconds = time.time() - start
+        text = "" if r.stop_reason == "refusal" else "".join(b.text for b in r.content if b.type == "text")
+        u = r.usage
+        written, read = u.cache_creation_input_tokens or 0, u.cache_read_input_tokens or 0
+        pin, pout, pwrite, pread = CLAUDE_PRICE[self.model]
+        usd = (u.input_tokens * pin + u.output_tokens * pout + written * pwrite + read * pread) / 1e6
+        self.budget.add("anthropic", self.name, usd, input=u.input_tokens, output=u.output_tokens,
+                        cache_write=written, cache_read=read, refusal=int(r.stop_reason == "refusal"))  # fmt: skip
+        return [Reply(text, u.input_tokens + written + read, u.output_tokens, usd, seconds)]
+
+
 def make(spec: str, budget: fin.Budget):
     """`qwen`, `qwen-think`, `qwen@tinker://...`, `gpt-5.4-mini`, `gpt-5.4-mini:low` (reasoning effort)."""
+    if spec.startswith("claude-"):
+        return Claude(budget, spec)
     if spec.startswith("qwen"):
         name, _, path = spec.partition("@")
         return Tinker(budget, path or None, thinking=name.endswith("think"))

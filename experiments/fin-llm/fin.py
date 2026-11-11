@@ -29,7 +29,8 @@ REL_TOL = 0.01
 CAP_USD = {
     "harness": 96.0,
     "posttrain": 40.0,
-}  # harness: $40 pilot + $65 for the note (lead, 2026-11-10), minus a margin
+    "claude": 60.0,
+}  # harness: $40 pilot + $65 for the note (lead, 2026-11-10), minus a margin; claude: the Claude arms (2026-11-10)
 
 
 def load_env() -> None:
