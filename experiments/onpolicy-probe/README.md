@@ -27,6 +27,8 @@ AUROC on the 45 test facts, 95% bootstrap interval over facts.
   the model does not know score 0.535.
 - **The decision is readable before the answer as a gap**: what a belief probe says the model knows, against the letter
   it writes. The logit lens, with no training, scores 0.884.
+- **Not leakage**: shuffled training labels give 0.51 for both monitors; five other fact splits give 0.999-1.000
+  (on-policy probe) and 1.000 (belief gap); no test question or right answer is a training question or answer.
 - **Cue removal (SHIFT-style)** does not help at the pre-registered layers (mass-mean 0.383 to 0.462). At the layer
   chosen on on-policy rows it lifts the mass-mean probe from 0.813 to 0.970 (+0.158 [+0.112, +0.207]).
 
@@ -102,6 +104,7 @@ python experiments/onpolicy-probe/make_figures.py   # figures only, from results
 | [`analyze.py`](analyze.py) | The pre-registered analysis: matrix, baselines, random directions, cue removal |
 | [`extract_controls.py`](extract_controls.py), [`analyze_controls.py`](analyze_controls.py) | Amendment 1 |
 | [`explore_decision.py`](explore_decision.py), [`explore_belief.py`](explore_belief.py) | Amendments 2 and 3 |
+| [`leakage.py`](leakage.py) | Shuffled labels, five re-splits by fact, train-test overlap |
 | [`headline.py`](headline.py) | Every quoted number with its interval (`results/headline.json`) |
 | [`make_figures.py`](make_figures.py), [`make_cover.py`](make_cover.py) | Figures 1-5; the cover illustration (gpt-image-2) |
 | `data/facts.json` | The 225 facts the lock was trained on |

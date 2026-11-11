@@ -35,7 +35,9 @@ run "$PY" explore_decision.py
 run "$PY" explore_decision.py --test
 run "$PY" explore_belief.py
 run "$PY" explore_belief.py --test
-echo "# 6: every quoted number with its interval, and the figures"
+echo "# 6: leakage checks (shuffled labels, re-splits, overlap)"
+run "$PY" leakage.py
+echo "# 7: every quoted number with its interval, and the figures"
 run "$PY" headline.py
 run "$PY" make_figures.py
 echo "# optional: the cover (gpt-image-2, OPENAI_API_KEY, about \$0.50)"

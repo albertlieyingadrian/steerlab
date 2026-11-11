@@ -17,3 +17,4 @@ fact (`common.fact_splits()`); "test" numbers are on the 45 test facts.
 | `decision_val.json`, `decision_test.json` | `explore_decision.py` | Prompt-token monitors (linear, mlp, belief_gap, lens_gap): chosen layer, validation and evaluation curves |
 | `belief_val.json`, `belief_test.json` | `explore_belief.py` | Per layer, belief probes trained on-policy, on honest runs, and the logit lens: `sandbag` AUROC, `belief_acc`, `honest_mistake`, `sandbag_vs_mistake` |
 | `headline.json` | `headline.py` | Every number quoted in the note, with intervals |
+| `leakage.json` | `leakage.py` | Shuffled-label refits (20) of the on-policy probe (layer 17) and the belief gap (layer 18); five re-splits by fact (seeds 1-5) with intervals; overlap counts between train and test items |
