@@ -137,3 +137,7 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   numbered steps with trial counts, and what was fixed before the trials versus changed after reading replies.
 - 2026-10-27: Search and AI-answer rules (SEO, AEO, GEO) live in their own file, `SEO.md`; this file keeps only
   where those parts sit on the page.
+- 2026-11-11: The research page's "Start here" pins: one lead (cover, series and episode, title, one line) above a
+  single row of covers that picks which pin the lead shows. About six covers in view with a peek at the next, arrows
+  only when the row overflows, prev/next and "1 of N" beside the heading, no autoplay. Adding a pin is one cover link
+  in the row; without the script every cover is a plain link.
