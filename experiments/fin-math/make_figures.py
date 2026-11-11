@@ -23,7 +23,9 @@ import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import fm  # noqa: I001
+import fm  # sets up the fin-llm import path first
+
+# isort: split
 import fin
 
 RUNS = fm.RESULTS / "runs"

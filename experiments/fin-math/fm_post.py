@@ -24,9 +24,12 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-import fm  # noqa: I001  (sets up the fin-llm import path first)
+import fm  # sets up the fin-llm import path first
+
+# isort: split
 import backends
 import fin
+
 import teacher
 
 OUT = fm.RESULTS / "posttrain"

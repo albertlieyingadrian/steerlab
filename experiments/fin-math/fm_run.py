@@ -1,8 +1,8 @@
 """Run one model on one FinanceMath split (one call per question, reason then `ANSWER:`); resumable.
 
-    fm_run.py --model qwen --split validation
-    fm_run.py --model qwen@tinker://... --split test --tag test__ckpt
-    fm_run.py --summary results/runs/*.jsonl
+fm_run.py --model qwen --split validation
+fm_run.py --model qwen@tinker://... --split test --tag test__ckpt
+fm_run.py --summary results/runs/*.jsonl
 """
 
 from __future__ import annotations
@@ -13,10 +13,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import fm  # noqa: I001  (sets up the fin-llm import path first)
-import backends
-import teacher
+import fm  # sets up the fin-llm import path first
+
+# isort: split
 import fin
+
+import teacher
 
 RUNS = fm.RESULTS / "runs"
 
@@ -50,11 +52,13 @@ def run(spec: str, split: str, tag: str, workers: int, max_tokens: int) -> Path:
                 r = f.result()
             except SystemExit:
                 raise
-            except Exception as error:  # noqa: BLE001  (logged; retried on the next run)
+            except Exception as error:
                 r = {"pred": None, "text": "", "usd": 0.0, "seconds": 0.0, "tokens_in": 0, "tokens_out": 0,
                      "error": repr(error)[:300]}  # fmt: skip
             correct = fm.grade(r["pred"], item.gold, item.gold_exec)
-            out.write(json.dumps({"id": item.id, "topic": item.topic, "gold": item.gold, "correct": correct, **r}) + "\n")
+            out.write(
+                json.dumps({"id": item.id, "topic": item.topic, "gold": item.gold, "correct": correct, **r}) + "\n"
+            )
             n, ok = n + 1, ok + correct
             if n % 50 == 0 or n == len(items):
                 out.flush()
