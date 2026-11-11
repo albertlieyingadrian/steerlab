@@ -97,7 +97,7 @@ def case_html(k: int, c: dict) -> list[str]:
             out.append(f'      <div><p class="ex-h">{title}: <code>{esc(s["pred"])}</code> {tag(s["correct"])}</p>'
                        f'<pre>{esc(s["text"].strip())}</pre></div>')  # fmt: skip
     else:
-        out.append('      <div><p class="ex-h">Teacher (gpt-oss-120b), visible answer</p>'
+        out.append('      <div><p class="ex-h">Teacher (gpt-oss-120b), final answer (what SFT trained on)</p>'
                    f'<pre>{esc(c["teacher"].strip())}</pre></div>')  # fmt: skip
         out.append('      <div><p class="ex-h">Qwen3-8B’s own shortest right answer</p>'
                    f'<pre>{esc(c["own"].strip())}</pre></div>')  # fmt: skip
