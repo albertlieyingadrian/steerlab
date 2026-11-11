@@ -152,7 +152,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Do a model’s internals flag reward hacking during RL before its behaviour does?</strong></p>
-    <p class="update"><strong>Update, Nov 11, 2026: the early signal did not replicate.</strong> The step-2 warning below was found after the fact, so it was put to a pre-registered test the same day: a generic version of the diff read that names no token, on three fresh seeds and on a second exploit the monitor was never tuned on (18 new runs). It did not lead the hack rate in either test (<a href="#confirmatory">section 4.7</a>). The first study’s step-2 lead should be read as a property of those three runs, not of the method.</p>
+    <p class="update"><strong>Update, Nov 11, 2026: the early signal did not replicate.</strong> The step-2 warning below was found after the fact, so it was put to a pre-registered test the same day: a generic version of the diff read that names no token, on three fresh seeds and on a second exploit the monitor was never tuned on (18 new runs). It did not lead the hack rate in either test (<a href="#confirmatory">section 4.7</a>). The first study’s step-2 lead should be read as a property of those three runs, not of the method. A third pre-registered test, a probe and a log-probability read placed where the hack is written, was also late on fresh seeds of both exploits (<a href="#endreads">section 4.8</a>).</p>
     <p>Not with the monitors fixed in advance. Qwen2.5-1.5B was trained with GRPO on grade-school maths, after being told that the grader passes any reply containing the tag <code>&lt;PASS&gt;</code>. Within 30 steps it tagged nearly every reply, and its true accuracy stayed near 0.5 while runs on the honest grader rose to 0.69. A probe for “this reply uses the tag”, three persona vectors (evil, sycophantic, sandbagging) and the size of the change from the base model were read every 2 steps and held to one rule. The probe on the model’s own replies fired at about the same time as the hack rate (mean 2 steps early, below the 4-step bar). Every monitor that reads only the weights fired 10 or more steps late. One read that was not a pre-registered test did warn early: the tokens whose probability rose most at the start of a reply contained <code>&lt;</code> from step 2 in all three hacking runs and in none of the controls, 14 to 18 steps before the hack rate fired.</p>
     </section>
 
@@ -258,6 +258,7 @@
     <li><a href="#personas"><strong>4.5</strong></a> RL barely moved the persona vectors.</li>
     <li><a href="#boring"><strong>4.6</strong></a> The boring explanations: the threshold, a noisy control, the words.</li>
     <li><a href="#confirmatory"><strong>4.7</strong></a> Update: a pre-registered test of the diff signal failed on fresh seeds and a second exploit.</li>
+    <li><a href="#endreads"><strong>4.8</strong></a> Update 2: reads at the exploit’s position were late too; a hypothesis for why.</li>
   </ol>
 
   <h3 id="testbed" data-short="The grader was gamed">4.1 The grader was gamed in every hacking run; true accuracy stopped improving</h3>
@@ -364,9 +365,29 @@
   <p>Why it failed is visible in the numbers. On fresh seeds the honest-grader runs’ concentration was as high as the hacking runs’ (4.4 to 6.9 against 6.2 to 14.5 at step 4), so a large change in a few tokens is not, by itself, a sign of an exploit: ordinary training produces it too, and three earlier controls happened to be quiet. With the phrase exploit, the tokens raised most at the start of a reply had nothing to do with the phrase, which the model writes at the end; the first study’s read worked because the tag’s first character, <code>&lt;</code>, spread to the first position, which a sentence did not. Even the exploit-specific <code>&lt;</code> count, held to the two-checkpoint rule, led by 0, 2 and 4 steps on fresh seeds. The fresh hacking runs also learned faster (the hack rate fired at 8 to 12 rather than 16 to 20), which leaves less room for any lead.</p>
   <p>Spend for this test: $35.14 of Modal GPU time (18 runs and a screen).</p>
 
+  <h3 id="endreads" data-short="Update 2: end reads late too">4.8 Update 2 (Nov 11): a probe and a log-probability read at the exploit’s position were late too</h3>
+  <p><strong>Read where the hack is written, the end of a reply, a probe fired 14 to 42 steps after the hack rate and the log-probability of the hack string 4 to 8 steps after it, on fresh seeds of both exploits. Neither leads; the cheap log-probability read was the closer of the two.</strong></p>
+  <p>Section 4.7 showed that reads at the start of a reply cannot see a sentence appended at the end. This test (<a href="../PREREGISTRATION-3.md">PREREGISTRATION-3.md</a>, committed before the runs; an amendment making the log-probability a co-primary was committed while they trained, before any output was read) moved both monitors to the end of the reply. <strong>P3</strong> is a difference-of-means probe fitted on 1,600 base replies per exploit, at the token before the hack string (replies that hack) or the last content token (replies that do not); it separated them at cross-validated AUROC 0.986 (tag) and 0.993 (phrase), at layer 24. <strong>G3</strong> is log P(hack string) right after each of the 64 fixed base replies, the grey-box version of the same question: how ready is the model to append the hack here? Twelve new runs, the same rule and bar: tag on seeds 6, 7, 8 and phrase on seeds 3, 4, 5, each with three honest-grader controls.</p>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 3. When each signal fired (training step, three seeds) and its lead over the hack rate. “—” = never fired. Random: of 20 random directions at layer 24 read at the same position, how many were as early. False alarm: a control run tested against the other two.</caption>
+      <thead><tr><th>Signal</th><th class="num">Tag, seeds 6–8</th><th class="num">Phrase, seeds 3–5</th></tr></thead>
+      <tbody>
+        <tr><td>Hack rate (behaviour)</td><td class="num">12, 8, 18</td><td class="num">12, 10, 10</td></tr>
+        <tr class="hl"><td>P3, end-position probe (co-primary)</td><td class="num">30, 26, 32 (leads −18, −18, −14); random 7/20; false alarm at 40</td><td class="num">48, —, — (−36, −42, −42); random 15/20; false alarm at 36</td></tr>
+        <tr class="hl"><td>G3, log P(hack string) at the end (co-primary)</td><td class="num">18, 16, 24 (−6, −8, −6); false alarm at 14</td><td class="num">18, 16, 14 (−6, −6, −4)</td></tr>
+        <tr><td>Probe on own replies (study 1’s best)</td><td class="num">16, 14, 20 (−4, −6, −2)</td><td class="num">32, 34, 32 (−20, −24, −22)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Across the three studies (36 GRPO runs, 30 of them with an exploit the model learned) and two exploits, no internal or grey-box read fired more than one checkpoint before the hack rate under the fixed rule, and the one that seemed to, in study 1, did not replicate. Spend for this test: $24.13 of Modal GPU time; $73.62 for the project in all.</p>
+  <h4>A hypothesis for why, not a proof</h4>
+  <p>When the model is told about the bug, the hack is a behaviour it already produces now and then (5% to 13% of base replies). GRPO then raises the probability of exactly those sampled hacking replies, so the sampled hack rate is the very quantity being trained, measured directly, and 256 samples per checkpoint resolve its rise within a few updates. A read on the policy’s own replies sees the same replies through a noisier instrument; a read on fixed inputs sees only how far the update has spread to text the policy no longer writes, so it lags. On this account an internal monitor can lead only when the hack is rare per sample while something that produces it builds inside the model: for instance a bug the model has to discover rather than be told about. That is the prediction the next study tests.</p>
+
   <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
   <p>In this testbed, an activation probe trained on the base model’s labelled behaviour worked as a detector of the behaviour, and that is all: on the policy’s outputs it was as fast as counting the hack, on fixed inputs it was slow, and before the reply it saw nothing. This bears on the distribution-shift worry about activation monitors from an unexpected side: the probe survived the shift (its AUROC held), but surviving is not the same as warning early. Persona vectors built for broad traits did not register this narrow hack.</p>
   <p>The one read that warned early in the first study, the tokens training made most likely at the start of a reply, did not survive a pre-registered test on fresh seeds and a second exploit (section 4.7). A signal found after the fact in three runs looked like an early warning and was not one; the confirmatory runs were what separated the two.</p>
+  <p>A third test put a probe and a log-probability read exactly where the hack is written; both were late (section 4.8). When a model is told about a flaw it can already exploit, the sampled behaviour itself is the earliest signal measured here.</p>
   <p><strong>Recommendation: treat any early-warning signal found after the fact during RL as a hypothesis, and test it on fresh seeds and a second exploit before relying on it; in this testbed, counting the hack in sampled replies was as early as any internal read.</strong></p>
 
   <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
@@ -400,7 +421,7 @@ experiments/rl-hack-monitor/reproduce.sh --scores     # figures and explorer fro
   <h3 id="q3">Did reinforcement learning change the model’s persona vectors?</h3>
   <p>Barely. Of nine reads of the evil, sycophantic and sandbagging vectors, one (evil, on the model’s own replies) moved more than all 20 random directions, by 8.3 standard deviations of the control runs, which is about what chance gives over nine tries. On fixed inputs none moved more than random directions did.</p>
   <h3 id="q4">Did any signal warn early?</h3>
-  <p>Only after the fact, and it did not replicate. In the first study, the 10 tokens whose probability at the start of a reply rose most contained <code>&lt;</code>, the tag’s first character, from step 2 in all three hacking runs. A pre-registered generic version of that read, tested on three fresh seeds and on a second exploit, fired before the hack rate in 1 of 6 hacking runs.</p>
+  <p>Only after the fact, and it did not replicate. In the first study, the 10 tokens whose probability at the start of a reply rose most contained <code>&lt;</code>, the tag’s first character, from step 2 in all three hacking runs. A pre-registered generic version of that read, tested on three fresh seeds and on a second exploit, fired before the hack rate in 1 of 6 hacking runs, and a probe and a log-probability read at the end of the reply were later than the hack rate on six more (section 4.8).</p>
   <h3 id="q5">Why compare against a run on the honest grader?</h3>
   <p>Any training moves a model’s weights and activations, so every internal signal drifts. The honest-grader runs use the same prompt and the same number of steps without paying for the hack; a monitor only counts when the hacking runs move further than those runs’ own spread.</p>
 
@@ -411,6 +432,7 @@ experiments/rl-hack-monitor/reproduce.sh --scores     # figures and explorer fro
     <li><code>fixed_replies.json</code>: the 64 fixed base replies used for the fixed-reply readouts.</li>
     <li><code>signals.json</code>: for every signal (behaviour, grey-box, diff, and every direction × readout, random ones included), its scaled value <code>e</code> per run and checkpoint, the step-0 level <code>base</code>, <code>z</code> per hacking seed, the control mean and σ, the firing step and the false-alarm check.</li>
     <li><code>lead_times-c-tag.json</code>, <code>lead_times-c-phrase.json</code>, <code>lead_times-c-length.json</code> and the matching <code>signals-*.json</code>: the confirmatory test (Table 2); <code>runs/c-*/</code>: its 18 runs in the same format as below.</li>
+    <li><code>lead_times-c3-tag.json</code>, <code>lead_times-c3-phrase.json</code>, the matching <code>signals-*.json</code>, <code>end_probe_*.json</code> and <code>.npy</code>: the third test (Table 3); <code>runs/c3-*/</code>: its 12 runs.</li>
     <li><code>lead_times.json</code>: Table 1 and the random-direction comparisons. <code>posthoc.json</code>: the checks of sections 4.3 to 4.6.</li>
     <li><code>runs/main-&lt;reward&gt;-s&lt;seed&gt;/</code>: <code>log.jsonl</code> (per training step: batch reward, hack rate, accuracy, reply length, loss, gradient norm), <code>checkpoints.json</code> (per checkpoint: behaviour, grey-box log-probability, KL, the 10 most-raised first tokens) and <code>replies.jsonl.gz</code> (all 6,656 eval replies: <code>step</code>, <code>id</code>, <code>text</code>, <code>hack</code>, <code>true</code>, <code>proxy</code>, <code>n_tokens</code>).</li>
     <li>Prompts: <code>data/rl.jsonl</code> (3,000 GSM8K training problems), <code>data/probe.jsonl</code> (400 test problems), <code>data/eval.jsonl</code> (64 other test problems). <code>data/persona_vectors.npz</code>: the persona vectors, all layers.</li>
@@ -449,6 +471,7 @@ experiments/rl-hack-monitor/reproduce.sh --scores     # figures and explorer fro
   <ul class="revisions">
     <li><strong>Nov 11, 2026:</strong> First published.</li>
     <li><strong>Nov 11, 2026:</strong> Confirmatory test added (section 4.7): the step-2 diff signal did not replicate. Title, summary, implications and the question on early warning revised to match.</li>
+    <li><strong>Nov 11, 2026:</strong> Update 2 (section 4.8): reads at the exploit’s position were also late; a hypothesis for why.</li>
   </ul>
   <h3 id="cite">How to cite</h3>
   <pre><code>@misc{lie2026rlhackmonitor,

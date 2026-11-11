@@ -16,6 +16,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- rl-hack-monitor note: update 2 (reads at the exploit's position were also late; a hypothesis for why) and the third test's results.
 - rl-hack-monitor note: a dated confirmatory update (the early diff signal did not replicate on fresh seeds or a second exploit), its pre-registrations and results.
 - Research note: does a model act on knowing it is being tested? Steering an eval-awareness direction under a prompted conditional sandbagger (`experiments/eval-aware-steer/`), episode 5 of Introspection.
 - Research note: probes, persona vectors and a model diff during RL reward hacking (`experiments/rl-hack-monitor/`), episode 3 of Rewards and reward hacking.

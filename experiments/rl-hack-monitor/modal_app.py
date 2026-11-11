@@ -436,6 +436,7 @@ def pack(prefix: str):
     Volume (one download instead of thousands of small ones)."""
     import tarfile
 
+    volume.reload()  # see runs committed by other containers since this one started
     runs = Path(VOL) / "runs"
     out = Path(VOL) / "packs"
     out.mkdir(exist_ok=True)
