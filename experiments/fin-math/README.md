@@ -53,3 +53,17 @@ git clone https://github.com/yale-nlp/FinanceMath /tmp/financemath && cp /tmp/fi
 ./reproduce.sh --scores    # recompute summary, figures, cover and explorer from saved results
 ./reproduce.sh --dry-run   # every command, including training (Tinker and OpenAI keys; about $32 at list prices)
 ```
+
+## Rerun (update, 2026-11-11): full-reasoning traces of hard problems
+
+| File | What it does |
+|---|---|
+| `fm_v2.py` | `pool` (hard problems: base Qwen3-8B right on at most 2 of 4 samples, from new benchmark-shaped vignettes and the first run's drills), `traces` (gpt-oss-120b samples with the full reasoning kept, through Tinker or Hugging Face Inference Providers: `--teacher hf:openai/gpt-oss-120b:deepinfra`; `--retry-missing` for problems with no right trace) |
+| `fm_mlx.py` | `build` (the SFT chats in one format: Qwen3 non-thinking, visible working, ANSWER:); also MLX sampling, training and evaluation on a Mac |
+| `modal_fm.py` | On a rented H100: `main` (LoRA SFT + greedy gate), `protocol_gate` (the registered 4-sample protocol), `run_grpo`, `select` (checkpoints on validation; once with `--split test`) |
+| `v2_test_bar.py` | The test look against base and the gpt-5.4-mini and gpt-5.4 runs; writes `results/v2_test.json` |
+
+Data and results: `data/synth_raw_vignette.jsonl` (generated vignettes), `data/v2_screen.jsonl` (base Qwen's right answers of
+4 per vignette), `data/v2_hard.jsonl` (the 1,527 hard problems with their SFT/RL split), `data/v2_traces.jsonl` (every
+teacher sample: reasoning, final answer, graded), `results/runs/<split>__p4-<system>.jsonl` (4 graded samples per
+question), `results/v2_gate_protocol.json`, `results/v2_select_validation.json`, `results/v2_test.json`.

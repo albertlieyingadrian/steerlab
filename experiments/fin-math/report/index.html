@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base</title>
+<title>Post-training an 8B model on FinanceMath: the teacher’s answers hurt, its full reasoning helps, gpt-5.4-mini stays ahead</title>
 <meta name="description" content="Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher's final answers alone, with the reasoning our parser dropped, cost 12.7 points; the synthetic problems were too easy to teach anything.">
 <!-- meta:start -->
 <link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/">
 <meta property="og:site_name" content="steerlab">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base">
-<meta property="og:description" content="Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher&#x27;s final answers alone, with the reasoning our parser dropped, cost 12.7 points; the synthetic problems were too easy to teach anything.">
+<meta property="og:title" content="Post-training an 8B model on FinanceMath: the teacher&#x27;s answers hurt, its full reasoning helps, gpt-5.4-mini stays ahead">
+<meta property="og:description" content="Qwen3-8B post-trained on 2,714 synthetic finance problems lost 12.7 points on the FinanceMath test when trained on the teacher&#x27;s final answers alone. A rerun on the teacher&#x27;s full reasoning, on problems the base model fails, lifts it from 0.554 to 0.622 (+6.7 points), still 10.8 points behind gpt-5.4-mini (0.730) and 19.7 behind gpt-5.4 (0.818).">
 <meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/">
 <meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/figures/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Seven barcode strips on a cream background, one per system, each 1,000 thin marks for the 1,000 FinanceMath test questions sorted from easy to hard; the top three (gpt-5.4, gpt-5.4-mini, base Qwen3-8B) thin out to the right, and of the four post-trained strips below, the first has a wide orange band of answers it lost against the base model.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base">
-<meta name="twitter:description" content="Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher&#x27;s final answers alone, with the reasoning our parser dropped, cost 12.7 points; the synthetic problems were too easy to teach anything.">
+<meta name="twitter:title" content="Post-training an 8B model on FinanceMath: the teacher&#x27;s answers hurt, its full reasoning helps, gpt-5.4-mini stays ahead">
+<meta name="twitter:description" content="Qwen3-8B post-trained on 2,714 synthetic finance problems lost 12.7 points on the FinanceMath test when trained on the teacher&#x27;s final answers alone. A rerun on the teacher&#x27;s full reasoning, on problems the base model fails, lifts it from 0.554 to 0.622 (+6.7 points), still 10.8 points behind gpt-5.4-mini (0.730) and 19.7 behind gpt-5.4 (0.818).">
 <meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/figures/og.jpg">
 <meta property="article:published_time" content="2026-11-10">
 <meta property="article:modified_time" content="2026-11-11">
@@ -27,9 +27,9 @@
 {
  "@context": "https://schema.org",
  "@type": "ScholarlyArticle",
- "headline": "Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base",
- "description": "Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher's final answers alone, with the reasoning our parser dropped, cost 12.7 points; the synthetic problems were too easy to teach anything.",
- "abstract": "FinanceMath test (1,000 questions, official 0.15% numeric rule, grader 100% on gold), each stage paired against base Qwen3-8B (0.555 [0.524, 0.586]): SFT on 4,045 gpt-oss-120b teacher answers 0.428 (-12.7 [-15.7, -9.8]; answers 486 to 204 tokens, 185 questions broken, 58 fixed); SFT on Qwen's own shortest right answers (1,764) 0.556 (+0.1 [-1.9, +2.1]); GRPO 20 steps x 32 x 8 from base 0.553 (-0.2 [-2.1, +1.7]); own-answer SFT then GRPO 0.552 (-0.3 [-2.4, +1.8]). Rivals: gpt-5.4-mini 0.730, gpt-5.4 0.818; the best post-trained system is 17.4 [14.5, 20.4] and 26.2 [23.2, 29.3] points behind. Causes: SFT trained on the teacher's 278-token final answers only, without the reasoning in the 972 tokens Tinker returned (our parser dropped it; corrected 2026-11-11), so SFT copied summaries; base Qwen got 4 of 4 right on 57% of the synthetic problems (pass@1 0.734 against 0.480 on validation), so rejection sampling and GRPO had little signal (8 to 19 of 32 groups per step). No identical-sample groups (Tinker seed pitfall avoided). Spend $31.80. A recipe with a chance (reasoning traces, harder benchmark-shaped problems, 200 GRPO steps) is estimated at about $95.",
+ "headline": "Post-training an 8B model on FinanceMath: the teacher's answers hurt, its full reasoning helps, gpt-5.4-mini stays ahead",
+ "description": "Qwen3-8B post-trained on 2,714 synthetic finance problems lost 12.7 points on the FinanceMath test when trained on the teacher's final answers alone. A rerun on the teacher's full reasoning, on problems the base model fails, lifts it from 0.554 to 0.622 (+6.7 points), still 10.8 points behind gpt-5.4-mini (0.730) and 19.7 behind gpt-5.4 (0.818).",
+ "abstract": "FinanceMath test (1,000 questions, official 0.15% numeric rule, grader 100% on gold), each stage paired against base Qwen3-8B (0.555 [0.524, 0.586]): SFT on 4,045 gpt-oss-120b teacher answers 0.428 (-12.7 [-15.7, -9.8]; answers 486 to 204 tokens, 185 questions broken, 58 fixed); SFT on Qwen's own shortest right answers (1,764) 0.556 (+0.1 [-1.9, +2.1]); GRPO 20 steps x 32 x 8 from base 0.553 (-0.2 [-2.1, +1.7]); own-answer SFT then GRPO 0.552 (-0.3 [-2.4, +1.8]). Rivals: gpt-5.4-mini 0.730, gpt-5.4 0.818; the best post-trained system is 17.4 [14.5, 20.4] and 26.2 [23.2, 29.3] points behind. Causes: SFT trained on the teacher's 278-token final answers only, without the reasoning in the 972 tokens Tinker returned (our parser dropped it; corrected 2026-11-11), so SFT copied summaries; base Qwen got 4 of 4 right on 57% of the synthetic problems (pass@1 0.734 against 0.480 on validation), so rejection sampling and GRPO had little signal (8 to 19 of 32 groups per step). No identical-sample groups (Tinker seed pitfall avoided). Spend $31.80. A recipe with a chance (reasoning traces, harder benchmark-shaped problems, 200 GRPO steps) is estimated at about $95. Update 2026-11-11 (rerun): gpt-oss-120b full-reasoning traces via Hugging Face (3,438 samples, 41% right), 1,527 hard problems (base right on at most 2 of 4), SFT on 1,355 traces then GRPO 40 steps (checkpoint 10 chosen on validation); registered protocol of 4 samples per question (T=0.7, top_p 0.8, top_k 20), mean per-sample accuracy on the 1,000 test questions: base 0.554, SFT 0.608 (+5.4 [+3.2, +7.5]), SFT+GRPO 0.622 (+6.7 [+4.6, +8.8]; majority 0.665); vs gpt-5.4-mini 0.730 -10.8 [-13.2, -8.5], vs gpt-5.4 0.818 -19.7 (GPT arms one call each). Rerun cost $12.15.",
  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/",
  "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/",
  "image": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/figures/og.jpg",
@@ -122,9 +122,10 @@
 
 <article>
   <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-10">Nov 10, 2026</time><span class="sep">·</span>Updated <time datetime="2026-11-11">Nov 11, 2026</time></p>
-  <h1>Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base</h1>
+  <h1>Post-training an 8B model on FinanceMath: the teacher’s answers hurt, its full reasoning helps, gpt-5.4-mini stays ahead</h1>
   <p class="dek ruled">Training a small open model on graded finance problems is the cheap route to frontier accuracy that post-training services sell. This note runs that recipe end to end on a held-out benchmark for $31.80, scores every stage against the untrained model and two GPT models, and finds where it broke.</p>
   <p class="update"><strong>Correction, Nov 11, 2026:</strong> the first version said the teacher showed only a summary of its reasoning (“showed 278 of [972 tokens]; the rest was its hidden reasoning”). That was wrong. Tinker returned all 972 tokens, gpt-oss-120b’s full reasoning (its analysis channel) included; our own parser kept the 278-token final answer and dropped the rest. The −12.7-point SFT drop came from training on final answers only, a choice in our code, not from the teacher hiding its reasoning. The numbers are unchanged; sections 1, 4.3, 6, 7 and 10 are reworded.</p>
+  <p class="update"><strong>Update, Nov 11, 2026:</strong> a rerun that trains on the teacher’s full reasoning, on problems the base model finds hard, beats the base on the test: 0.622 against 0.554 (+6.7 points [+4.6, +8.8]), and stays 10.8 points behind gpt-5.4-mini (<a href="#rerun">section 4.6</a>). The first run’s results below are unchanged.</p>
 
   <figure class="hero whole">
     <img src="figures/hero.jpg" alt="Seven horizontal barcode strips on a cream background, each 1,000 thin marks for the 1,000 FinanceMath test questions sorted from easy to hard. The top three strips (gpt-5.4, gpt-5.4-mini, base Qwen3-8B) are dark marks that thin out to the right, gpt-5.4 reaching furthest. Below a gap, four strips for the post-trained models: the first has a wide orange band in its middle where it lost answers the base model had; the other three have scattered orange marks, about as many fixed as broken." width="1536" height="1024">
@@ -145,7 +146,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Can a few dollars of post-training make an open 8B model beat a cheap frontier model at finance math?</strong></p>
-    <p>Not with this recipe. Qwen3-8B was trained with LoRA on 2,714 synthetic finance problems that a larger open model (gpt-oss-120b) wrote and checked, in three stages: supervised fine-tuning (SFT) on the teacher’s worked answers, SFT on Qwen’s own right answers, and reinforcement learning with the benchmark’s grader as the reward (GRPO). On the 1,000 held-out FinanceMath test questions the base model scores 0.555. SFT on the teacher’s answers drops it to 0.428 (−12.7 points); the other stages land within 0.3 points of base. gpt-5.4-mini scores 0.730 and gpt-5.4 0.818, 17 to 27 points above every Qwen system. Two things went wrong: we trained on the teacher’s final answers only (Tinker returned its full reasoning too, but our parser kept just the final answer), so the student learned to skip the work; and the synthetic problems were too easy (base Qwen already solves 73% of them), so learning from its own answers and from the grader had little to teach.</p>
+    <p>Not with this recipe. Qwen3-8B was trained with LoRA on 2,714 synthetic finance problems that a larger open model (gpt-oss-120b) wrote and checked, in three stages: supervised fine-tuning (SFT) on the teacher’s worked answers, SFT on Qwen’s own right answers, and reinforcement learning with the benchmark’s grader as the reward (GRPO). On the 1,000 held-out FinanceMath test questions the base model scores 0.555. SFT on the teacher’s answers drops it to 0.428 (−12.7 points); the other stages land within 0.3 points of base. gpt-5.4-mini scores 0.730 and gpt-5.4 0.818, 17 to 27 points above every Qwen system. Two things went wrong: we trained on the teacher’s final answers only (Tinker returned its full reasoning too, but our parser kept just the final answer), so the student learned to skip the work; and the synthetic problems were too easy (base Qwen already solves 73% of them), so learning from its own answers and from the grader had little to teach. <em>Update, Nov 11:</em> a rerun that trains on the teacher’s full reasoning, on problems the base model finds hard, lifts Qwen3-8B from 0.554 to 0.622 on the test (+6.7 points [+4.6, +8.8], four samples per question), still 10.8 points short of gpt-5.4-mini.</p>
     </section>
 
     <section aria-labelledby="key-results">
@@ -154,6 +155,7 @@
       <table>
         <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
         <tbody>
+          <tr><td>Update, Nov 11: does training on the teacher’s full reasoning, on hard problems, beat the base? (1,000 test questions, 4 samples each)</td><td><strong>Yes, by 6.7 points</strong> [+4.6, +8.8]: SFT then 10 steps of GRPO, 0.622 against 0.554; SFT alone +5.4 [+3.2, +7.5]</td><td>gpt-5.4-mini 0.730 (−10.8 [−13.2, −8.5]), gpt-5.4 0.818; both one call per question</td></tr>
           <tr class="hl"><td>Does any post-training stage beat base Qwen3-8B? (1,000 held-out test questions)</td><td><strong>No.</strong> Best: SFT on its own answers 0.556, +0.1 points [−1.9, +2.1]; with GRPO on top 0.552, −0.3 [−2.4, +1.8]; GRPO from base 0.553, −0.2 [−2.1, +1.7]</td><td>Base Qwen3-8B 0.555 [0.524, 0.586]</td></tr>
           <tr><td>Does it come near the GPT models?</td><td><strong>No.</strong> The best post-trained system is 17.4 points behind gpt-5.4-mini [14.5, 20.4] and 26.2 behind gpt-5.4 [23.2, 29.3]</td><td>gpt-5.4-mini 0.730, gpt-5.4 0.818, at 3.6 and 12 times Qwen’s $0.0003 per question</td></tr>
           <tr><td>What did SFT on the teacher’s answers do?</td><td><strong>It cost 12.7 points</strong> [9.8, 15.7]: 0.428. It broke 185 test questions base got right and fixed 58; answers shrank from 486 to 204 tokens</td><td>The teacher (gpt-oss-120b) samples 972 tokens per answer; our parser kept only the 278-token final answer</td></tr>
@@ -244,6 +246,7 @@
     <li><a href="#teacher-sft"><strong>4.3</strong></a> SFT on the teacher’s final answers alone taught the student to skip the work.</li>
     <li><a href="#too-easy"><strong>4.4</strong></a> The synthetic problems were too easy for the other stages to teach anything.</li>
     <li><a href="#boring"><strong>4.5</strong></a> The boring explanations (a sampler bug, a grader quirk, a lucky split) do not account for it.</li>
+    <li><a href="#rerun"><strong>4.6</strong></a> Update: training on the full reasoning of hard problems beats the base by 7 points, not gpt-5.4-mini.</li>
   </ol>
 
   <h3 id="stages" data-short="No stage beats base">4.1 No post-training stage beats the base model on the test</h3>
@@ -605,6 +608,28 @@ ANSWER: 1680</pre></div>
     <li><strong>A lucky or unlucky split.</strong> Test is easier than validation for every system (base 0.480 on validation, 0.555 on test), which is why every comparison is paired on the same questions; both sets put teacher SFT far below base and the other stages within noise of it.</li>
   </ul>
 
+  <h3 id="rerun" data-short="Update: the rerun">4.6 Update (Nov 11): training on the full reasoning of hard problems beats the base by 7 points, not gpt-5.4-mini</h3>
+  <p>The rerun changes the two things sections 4.3 and 4.4 blamed, and nothing else about the student:</p>
+  <ul>
+    <li><strong>The teacher’s full reasoning.</strong> gpt-oss-120b, served by an inference provider through Hugging Face’s router, returns its analysis channel with every answer. Each training example is that reasoning followed by the final answer, written as visible working in Qwen3’s non-thinking format, so every example has the format the evaluation prompt asks for.</li>
+    <li><strong>Hard problems only.</strong> 1,048 new benchmark-shaped problems (a short case with an exhibit table, extra rows and market conventions) plus the first run’s drills, kept when base Qwen3-8B got at most 2 of 4 samples right: 1,527 problems, 1,232 for SFT and 295 held out for GRPO. Base Qwen got none of 4 right on 709 of the 1,048 new ones.</li>
+    <li><strong>Verified traces.</strong> 2 teacher samples per problem, 2 more where neither was right: 3,438 samples, 41% right against the executed gold. Training used up to 2 right traces per problem: 1,426 examples on 840 problems (1,355 train, 71 held back for the loss), about 2,000 tokens each.</li>
+  </ul>
+  <p>Training: the same LoRA as before (rank 16 on every linear layer), learning rate 2×10⁻⁵, effective batch 16, 2 epochs (170 steps, 25 minutes on one H100); validation loss 0.892 → 0.466. Then GRPO from that adapter: 40 steps of 8 held-out problems × 8 samples at temperature 1.0, reward 1 only for a parsed, right answer that stops before 4,096 tokens, so loops earn nothing; checkpoints every 10 steps.</p>
+  <p><strong>A fixed protocol, set before the gate was run.</strong> The trained model writes out its working (about 1,100 tokens per answer against 500 for base), and under greedy decoding it looped on 14 of 200 validation questions until the length cap. So every comparison in this update uses Qwen3’s recommended non-thinking sampling (temperature 0.7, top-p 0.8, top-k 20, no repetition penalty), 4 samples per question, up to 6,144 tokens, and reports the mean accuracy over the 4 samples, paired over questions, with the majority of 4 and the share of samples that hit the cap as secondary numbers. The checkpoint was chosen on validation only, by mean accuracy; the test was then run once.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System (4 samples per question)</th><th class="num">Validation (200)</th><th class="num">Test (1,000)</th><th class="num">vs base, test (points)</th><th class="num">Majority of 4, test</th><th class="num">Hit the cap, test</th></tr></thead>
+      <tbody>
+        <tr><td>Base Qwen3-8B</td><td class="num">0.484</td><td class="num">0.554 [0.527, 0.582]</td><td class="num">—</td><td class="num">0.583</td><td class="num">0.2%</td></tr>
+        <tr><td>+ SFT on the full-reasoning traces</td><td class="num">0.576</td><td class="num">0.608 [0.582, 0.634]</td><td class="num">+5.4 [+3.2, +7.5]</td><td class="num">0.646</td><td class="num">1.4%</td></tr>
+        <tr class="hl"><td>+ GRPO, 10 steps (chosen on validation: 0.595; steps 20, 30, 40: 0.548, 0.581, 0.575)</td><td class="num">0.595</td><td class="num">0.622 [0.596, 0.647]</td><td class="num">+6.7 [+4.6, +8.8]</td><td class="num">0.665</td><td class="num">2.3%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Against the bar, on the same 1,000 test questions: gpt-5.4-mini scores 0.730 and gpt-5.4 0.818. The rerun’s best system is 10.8 points behind gpt-5.4-mini [8.5, 13.2] and 19.7 behind gpt-5.4 [17.3, 21.9]; with a majority of 4 samples, 6.5 behind gpt-5.4-mini [3.8, 9.2].</strong> The GPT numbers are the earlier single calls at their default reasoning settings (section 4.2), not re-run, so the comparison mixes four sampled answers on our side with one answer on theirs; the majority vote is the fairer reading for a user who can afford four samples. GRPO added little over SFT (+1.3 points on test, +2.5 [−0.5, +5.6] on validation); most of the gain is the SFT.</p>
+  <p>What changed the outcome: the first run trained on 278-token final answers to easy problems and lost 12.7 points; this one trained on the full reasoning, on problems the base model fails, and gains 6.7. The rerun cost $12.15 (teacher samples $1.22 through Hugging Face, training and every evaluation $10.93 on Modal). Data: <a href="../data/v2_traces.jsonl"><code>data/v2_traces.jsonl</code></a> (every teacher sample, graded) and <a href="../data/v2_hard.jsonl"><code>data/v2_hard.jsonl</code></a>; results: <a href="../results/v2_test.json"><code>results/v2_test.json</code></a>.</p>
+
   <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
   <p>FinanceMath’s paper graded with a language model reading the answer; this note reads an <code>ANSWER:</code> line with the same numeric rule, so its numbers are context, not a leaderboard.</p>
   <div class="table-wrap">
@@ -654,8 +679,11 @@ ANSWER: 1680</pre></div>
   <pre><code class="language-bash">experiments/fin-math/reproduce.sh --dry-run   # lists every command
 experiments/fin-math/reproduce.sh</code></pre>
 
-  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next: a recipe with a chance, and its cost</h2>
+    <p>The rerun (update, section 4.6): hard problems and teacher samples with <code>fm_v2.py pool</code> and <code>fm_v2.py traces --teacher hf:openai/gpt-oss-120b:deepinfra</code>, training data with <code>fm_mlx.py build</code>, then training, GRPO and every evaluation on a rented GPU with <code>modal_fm.py</code> (entry points <code>main</code>, <code>protocol_gate</code>, <code>run_grpo</code>, <code>select</code>). About $12 at list prices.</p>
+
+<h2 id="next" data-short="What's next"><span class="num">09</span>What’s next: a recipe with a chance, and its cost</h2>
   <ul>
+    <li><strong>Update, Nov 11:</strong> the rerun in section 4.6 did the first two items below at pilot scale and closed about a third of the gap to gpt-5.4-mini. The next step is a larger open base model (a 27B to 35B Qwen, or a mixture-of-experts model) trained the same way, after screening open models on validation.</li>
     <li><strong>Traces that carry the reasoning</strong>: gpt-oss-120b’s analysis channel kept and trained on (about $5 to resample the 2,034 problems), or gpt-5.4 (0.818 on test) writing visible step-by-step solutions, best of 2 on about 3,000 problems (about $25). qwen3.5-397b in thinking mode is the open alternative at about $140.</li>
     <li><strong>Harder, benchmark-shaped problems</strong>: longer wording, tables and distractors, kept only when base Qwen gets at most 2 of 4 samples right, verified by a different model than the generator: about $15.</li>
     <li><strong>A real GRPO run</strong>: 200 steps of 64 problems × 8 samples, about $50 on Tinker; evaluations about $5.</li>
@@ -717,12 +745,13 @@ experiments/fin-math/reproduce.sh</code></pre>
   <ul class="revisions">
     <li><strong>Nov 10, 2026:</strong> First published.</li>
     <li><strong>Nov 10, 2026:</strong> Link to episode 3 added.</li>
+    <li><strong>Nov 11, 2026 (update):</strong> a rerun that trains on the teacher’s full reasoning, on hard problems, with SFT then GRPO (section 4.6); new title, an update banner, a key-results row, the summary, reproduce and what’s next extended. The first run’s numbers are unchanged.</li>
     <li><strong>Nov 11, 2026 (correction):</strong> the teacher’s reasoning was not hidden. Tinker returned it with every sample, and our parser kept only the final answer; the −12.7-point drop came from training on final answers only. Summary, sections 1, 4.3, 6, 7 and 10, the explorer label and the page description reworded; no number changed.</li>
   </ul>
   <h3 id="cite">How to cite</h3>
   <pre><code>@misc{lie2026financemathposttrain,
   author = {Albert Lie},
-  title  = {Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base},
+  title  = {Post-training an 8B model on FinanceMath: the teacher's answers hurt, its full reasoning helps, gpt-5.4-mini stays ahead},
   year   = {2026},
   month  = nov,
   url    = {https://albertlieyingadrian.github.io/steerlab/experiments/fin-math/report/}

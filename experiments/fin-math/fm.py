@@ -31,7 +31,7 @@ RAW = HERE / "data" / "raw"
 SYNTH = HERE / "data" / "synth.jsonl"
 RESULTS = HERE / "results"
 fin.LEDGER = RESULTS / "ledger.jsonl"
-fin.CAP_USD["finmath"] = 40.0
+fin.CAP_USD["finmath"] = 56.8  # $40 pilot (spent $31.80) + $25 for the rerun with local traces (lead, 2026-11-11)
 ARTICLE = "finmath"
 
 

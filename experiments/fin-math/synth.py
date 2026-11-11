@@ -66,6 +66,23 @@ Return JSON: {{"problems": [{{"question": "...", "table": "<markdown table or em
 "solution": "def solution():\\n    ...\\n    return <float>"}}]}}. The solution must be plain Python (math module
 allowed), compute the answer from the stated numbers, and return percentages as fractions (0.052 for 5.2%)."""
 
+VIGNETTE_PROMPT = """Write 3 different CFA Level II-style case questions on "{subtopic}" ({topic}). Each one is a short
+vignette: a named analyst, investor or firm, a realistic situation in 3 to 6 sentences, and an "Exhibit 1" markdown
+table with more data than the question needs (other years, other instruments, a distractor row). Make each one hard in
+the way real exam items are: a market convention matters (bid/ask quotes, forward points, day counts, compounding
+frequency, which price or rate to use), the wording is indirect, and the answer needs at least four calculation steps
+and some domain knowledge that is not stated in the question. Never state the formula, never label a row as a
+distractor, never say which quote or convention to use when a trained analyst would know it, and never give an example
+answer. Each answer is a single number.
+
+Return JSON: {{"problems": [{{"question": "...", "table": "<the Exhibit 1 markdown table>",
+"solution": "def solution():\\n    ...\\n    return <float>"}}]}}. The solution must be plain Python (math module
+allowed), compute the answer from the stated numbers, and return percentages as fractions (0.052 for 5.2%)."""
+STYLES = {
+    "drill": (GEN_PROMPT, RAW_OUT, "s"),
+    "vignette": (VIGNETTE_PROMPT, fm.HERE / "data" / "synth_raw_vignette.jsonl", "v"),
+}
+
 RUNNER = "import json, math, sys\nns = {'math': math}\nexec(sys.stdin.read(), ns)\nprint(json.dumps(float(ns['solution']())))"
 _PY = threading.Semaphore(4)
 
@@ -84,9 +101,11 @@ def execute(code: str) -> float | None:
     return v if isinstance(v, float) and math.isfinite(v) and abs(v) < 1e15 else None
 
 
-def generate(calls: int, workers: int) -> None:
-    """`calls` draws spread evenly over the 7 topics (subtopic and table count drawn at random, seed 0)."""
-    budget = fin.Budget(fm.ARTICLE, "synth-generate")
+def generate(calls: int, workers: int, style: str = "drill") -> None:
+    """`calls` draws spread evenly over the 7 topics (subtopic and table count drawn at random, seed 0).
+    `drill`: 5 short problems per call (the first pilot); `vignette`: 3 benchmark-shaped case questions per call."""
+    prompt, out_path, prefix = STYLES[style]
+    budget = fin.Budget(fm.ARTICLE, f"synth-generate-{style}" if style != "drill" else "synth-generate")
     model = teacher.make(GENERATOR, budget)
     rng = random.Random(0)
     topics = list(TOPICS)
@@ -97,7 +116,7 @@ def generate(calls: int, workers: int) -> None:
 
     def one(draw):
         k, topic, sub, n_tables = draw
-        msg = GEN_PROMPT.format(subtopic=sub, topic=topic, n_tables=n_tables) + "\nReply with the JSON only."
+        msg = prompt.format(subtopic=sub, topic=topic, n_tables=n_tables) + "\nReply with the JSON only."
         text = model.chat([{"role": "user", "content": msg}], max_tokens=8000, temperature=0.7, seed=k)[0].text
         try:
             problems = json.loads(text[text.index("{") : text.rindex("}") + 1])["problems"]
@@ -107,11 +126,11 @@ def generate(calls: int, workers: int) -> None:
         for j, p in enumerate(problems[:5]):
             if not isinstance(p, dict) or not p.get("question") or not p.get("solution"):
                 continue
-            out.append({"id": f"s{k}-{j}", "topic": topic, "subtopic": sub, "question": p["question"],
+            out.append({"id": f"{prefix}{k}-{j}", "topic": topic, "subtopic": sub, "question": p["question"],
                         "tables": p.get("table") or "", "solution": p["solution"], "gold": execute(p["solution"])})  # fmt: skip
         return out
 
-    with ThreadPoolExecutor(workers) as pool, RAW_OUT.open("w") as f:
+    with ThreadPoolExecutor(workers) as pool, out_path.open("w") as f:
         for k, rows in enumerate(pool.map(one, draws), 1):
             f.writelines(json.dumps(r) + "\n" for r in rows)
             if k % 50 == 0:
@@ -171,12 +190,13 @@ def main() -> None:
     g = sub.add_parser("generate")
     g.add_argument("--calls", type=int, default=500)
     g.add_argument("--workers", type=int, default=16)
+    g.add_argument("--style", choices=list(STYLES), default="drill")
     v = sub.add_parser("verify")
     v.add_argument("--workers", type=int, default=16)
     a = p.parse_args()
     fm.RESULTS.mkdir(parents=True, exist_ok=True)
     if a.cmd == "generate":
-        generate(a.calls, a.workers)
+        generate(a.calls, a.workers, a.style)
     else:
         verify(a.workers)
 
