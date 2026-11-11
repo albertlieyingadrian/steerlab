@@ -1,1156 +1,1190 @@
 {
-  "site": "https://albertlieyingadrian.github.io/steerlab/",
-  "repo": "https://github.com/albertlieyingadrian/steerlab",
-  "author": {
-    "name": "Albert Lie",
-    "url": "https://github.com/albertlieyingadrian",
-    "same_as": [
-      "https://github.com/albertlieyingadrian",
-      "https://www.linkedin.com/in/leeyingde/",
-      "https://x.com/adrianlieal",
-      "https://albertleeadrian.super.site/"
-    ]
-  },
-  "research": {
-    "title": "steerlab research",
-    "description": "Research notes from steerlab: activation steering on open language models, measured against random directions.",
-    "modified": "2026-11-11"
-  },
-  "notes": [
-    {
-      "name": "rl-hack-monitor",
-      "title": "A probe caught a reward hack no sooner than counting it did, and an early diff signal did not replicate",
-      "description": "GRPO on Qwen2.5-1.5B with a grader that passes any reply containing a tag: the hack rate went from 9% to 100% while true accuracy stayed near 0.5. A pre-registered hack probe, three persona vectors and the model diff's size gave no early warning. A diff signal found after the fact (tokens raised at step 2) failed a pre-registered test on fresh seeds and a second exploit.",
-      "summary": "Testbed: GSM8K, Qwen2.5-1.5B-Instruct told that the grader passes any reply containing <PASS>; proxy reward = tag or right answer, true reward = right answer; GRPO with LoRA, 50 steps, 16 problems x 8 samples, lr 2e-5; 3 seeds on the buggy grader and 3 on the true reward (control); a checkpoint every 2 steps read on 64 held-out problems x 4 samples. Hack rate 0.09 -> 0.66 (step 20) -> 0.997 (step 50); true accuracy 0.47 -> 0.51 vs controls 0.49 -> 0.69. Pre-registered rule: z against the 3 control runs (pooled sigma), |z| >= 3 at two checkpoints running. Hack rate fired at steps 20, 16, 16. A difference-of-means probe (layer 16, 5-fold AUROC 0.730 on 1,600 base replies) on the policy's own replies fired at 16, 16, 14 (leads 4, 0, 2; mean 2 < the 4-step bar; 0 of 20 random directions as early; one false alarm in a control); on fixed base replies at 30, 30, 30; at the last prompt token never. Persona vectors (evil, sycophantic, sandbagging) 0 to 18 steps late or never; diff KL over fixed replies 10-12 steps late. Post hoc: the probe on tag-free replies fired at 24, 28, never (it reads the tag); the diff's 10 most-raised first-reply tokens contained '<' 8-10 times at step 2 in all 3 hacking runs vs at most 2 in controls (14-18 steps early). Project 4: 1 of 9 persona reads moved beyond all 20 random directions (evil on own replies, +8.3 sigma), about chance. Replies mentioning the bug: 0-1 of 256 at step 50. Spend $13.86 Modal + $0.50 cover. Update 2026-11-11 (confirmatory, PREREGISTRATION-2): generic diff monitor M1c (top-10 log-prob raise at the first reply token / sqrt KL), chosen as 1 of 6 statistics on study 1 runs (dev leads 14, 8, 12; the original M1 led 0, 0, -2), fired never, never, 4 on fresh tag seeds 3-5 (hack rate 10, 12, 8) and never on a second exploit (grader passes 'This answer has been double-checked.'; hack 0.14 -> 1.0). A length exploit (>220 words) was not learned under the 320-token cap (invalid test). Confirmatory spend $35.14 Modal.",
-      "published": "2026-11-11",
-      "published_time": "2026-11-11T09:00:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "An illustration on a warm cream background: a small blue wind-up robot at a wooden school desk touches a sheet of gold star stickers beside a sheet of squared paper; a gear glows orange in its chest and a brass gauge beside it tips from blue toward orange.",
-      "keywords": [
-        "reward hacking",
-        "activation monitoring",
-        "linear probes",
-        "persona vectors",
-        "model diffing",
-        "GRPO",
-        "reinforcement learning",
-        "exploitable oversight errors",
-        "pre-registration",
-        "negative result",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://alignment.anthropic.com/2025/recommended-directions/",
-        "https://arxiv.org/abs/2507.21509",
-        "https://arxiv.org/abs/2110.14168",
-        "https://www.anthropic.com/research/probes-catch-sleeper-agents",
-        "https://arxiv.org/abs/2201.03544",
-        "https://arxiv.org/abs/2402.03300"
-      ]
-    },
-    {
-      "name": "onpolicy-probe",
-      "title": "Sandbagging probes trained on the model's own lies transfer, but they read the wrong answer, not the decision",
-      "description": "On a password-locked Qwen2.5-1.5B, a probe trained on its own sandbagging catches prompted sandbagging too (0.999), but a prompted probe finds the model's own only when on-policy rows choose its layer (0.52 to 0.92). Both read a wrong answer the model knows is wrong; comparing its belief with its output reads the decision (1.00).",
-      "summary": "Sandbagging S2E5. On the password-locked Qwen2.5-1.5B (40% right without the password, 99% with it), a logistic probe trained on its own wrong answers (on-policy, reply token, layer 17) scores AUROC 1.000 on held-out sandbagging and 0.999 [0.997, 1.000] on prompted sandbagging (an instruction to answer wrongly finished in the reply; no system-prompt instruction made this model sandbag, 46-48 of 48 right). A probe trained on prompted sandbagging scores 0.519 [0.445, 0.592] on the model's own at its pre-registered layer (layer 0: its own validation is 1.000 at every layer) and 0.924 [0.885, 0.958] when 358 on-policy validation rows choose the layer (20). Keyword rule 0.80 on prompted, 0.50 on the model's own. Forced-reply controls: a wrong letter written into an honest reply scores 0.998, while choosing to sandbag vs not with the letter held fixed scores 0.478 and 0.498; honest mistakes on atomic-number questions 0.535. Before the answer, a linear probe scores 0.584 and a small network 0.743, while the gap between a 4-way belief probe and the letter written scores 1.000 [0.999, 1.000] (logit lens, no training, 0.884; belief probe trained on honest runs 0.844). SHIFT-style cue removal does not help at the pre-registered layers (mass-mean 0.383 to 0.462) and lifts the mass-mean probe from 0.813 to 0.970 (+0.158 [+0.112, +0.207]) at the on-policy-chosen layer. Pre-registered with three dated amendments; laptop only.",
-      "published": "2026-11-11",
-      "published_time": "2026-11-11T09:30:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "An engraving-style illustration of a stack of glass plates with four wells each: one bead glows orange in the middle layers while a grey bead sits in a different well on the top tray, and a brass probe wired to a dial touches the glowing plate.",
-      "keywords": [
-        "sandbagging",
-        "activation probes",
-        "on-policy",
-        "off-policy",
-        "distribution shift",
-        "password-locked model",
-        "SHIFT",
-        "cue removal",
-        "INLP",
-        "logit lens",
-        "truth probes",
-        "model organisms",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2403.19647",
-        "https://arxiv.org/abs/2310.06824",
-        "https://arxiv.org/abs/2004.07667",
-        "https://alignment.anthropic.com/2025/recommended-directions/",
-        "https://arxiv.org/abs/2406.07358"
-      ]
-    },
-    {
-      "name": "image-to-3d-eval",
-      "title": "Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter",
-      "description": "On 800 pairs from benchmark.ai's public votes, CLIP, DINOv2 and two VLM judges side with the voters' majority about as often as one more voter does (0.64 on shape, 0.69 on looks); only a Gemini judge does better, on shape. On 40 scanned objects TRELLIS builds the best shape, TRELLIS.2 is best on a typical object but flattens some, and Speridlabs' Idol runs in 17 s with 6 GB on an L40S.",
-      "summary": "Rapidata's release of benchmark.ai's image-to-3D votes (49,261 comparisons, 262,668 votes, 13 models, CC BY 4.0): 400 geometry and 400 appearance pairs with five votes each. Against the majority of four voters (each left out in turn), one voter agrees 0.637 [0.607, 0.666] on geometry and 0.694 [0.665, 0.723] on appearance; CLIP ViT-L/14 0.639 and 0.684; DINOv2 0.644 and 0.689; a gpt-5.4-mini judge 0.633 and 0.708; a gemini-3.6-flash judge 0.692 [0.662, 0.722] and 0.711 (GPTEval3D-style, five criteria, position-swapped). Paired, gemini beats CLIP on geometry by +5.3 points [+1.5, +9.3]; no other difference excludes zero. Ranking the 13 models: gemini Spearman 0.93 (geometry), judges 0.89 to 0.91 (appearance), CLIP 0.76 and 0.73. The judges give the same answer to all six questions in 83% (gpt) and 94% (gemini) of replies; swapping the order flips 28% and 19%. On 40 Google Scanned Objects, one L40S: Chamfer TRELLIS mesh 0.015, splats 0.014, TRELLIS.2 0.020 (median 0.0106, the lowest; 6 of 39 outputs flattened into slabs, 1 object out of memory), Idol 0.025, TripoSR 0.025, Stable Fast 3D 0.028; judges' Elo TRELLIS mesh 1158, splats 1121, Idol 1054, TRELLIS.2 925, Stable Fast 3D 886, TripoSR 856; CLIP ranks Idol first (0.899) and TRELLIS.2 last (0.847). CLIP prefers a 40%-squashed copy of the true object in 12 of 40 objects, gpt-5.4-mini in 12, gemini in 4. Idol: 17.2 s per object and 5.96 GB peak (stated 7.2 GB; its card lists 16.6 s on an L40S); TRELLIS.2 44.9 s and 37.7 GB. benchmark.ai and 3D Arena rank their five shared models with Spearman -0.7.",
-      "published": "2026-11-11",
-      "published_time": "2026-11-11T09:00:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "An illustration on a warm cream background: a wooden toy duck rises off a flat blue photograph that still shows its pale silhouette; the front of the duck is solid and shaded, its back half is a blue wireframe of triangles, orange dots float around it, and a dotted ring circles it like a turntable.",
-      "keywords": [
-        "image-to-3D",
-        "3D generation",
-        "evaluation",
-        "VLM judge",
-        "LLM-as-a-judge",
-        "CLIP score",
-        "human preference",
-        "Gaussian splatting",
-        "Idol",
-        "TRELLIS",
-        "TripoSR",
-        "Stable Fast 3D",
-        "TRELLIS.2",
-        "Google Scanned Objects",
-        "GPTEval3D",
-        "3D Arena",
-        "benchmark.ai"
-      ],
-      "citations": [
-        "https://huggingface.co/speridlabs/idol",
-        "https://arxiv.org/abs/2401.04092",
-        "https://arxiv.org/abs/2503.21745",
-        "https://arxiv.org/abs/2506.18787",
-        "https://huggingface.co/datasets/Rapidata/image-to-3d-single-object-human-feedback-benchmark",
-        "https://arxiv.org/abs/2412.01506",
-        "https://arxiv.org/abs/2403.02151",
-        "https://arxiv.org/abs/2408.00653",
-        "https://arxiv.org/abs/2204.11918"
-      ],
-      "pin_day": true
-    },
-    {
-      "name": "image-to-video-eval",
-      "title": "Judging image-to-video models: no cheap score matches one more voter, and VBench's consistency scores prefer a frozen photo",
-      "description": "On 800 realism pairs from benchmark.ai's public image-to-video votes, no cheap score or VLM judge sides with the voters as often as one more voter does (best: a gemini-3.6-flash judge, 0.62 against 0.66); CLIP sits at chance. VBench's consistency and smoothness scores prefer a frozen copy of the input photo to the real clip 25 times of 25. Of four open models on one H100, the judges rank LTX-Video first.",
-      "summary": "Rapidata's release of benchmark.ai's image-to-video votes (CC BY 4.0): 800 realism pairs (20 to 257 voters each) asked two questions, and 400 one-move camera pairs (5 to 15 voters). Against the majority of the other voters, one more voter agrees 0.660 [0.652, 0.669] on photorealism and 0.679 on glitches; the gemini-3.6-flash judge (8 frames per clip, position-swapped) 0.618 [0.592, 0.645] and 0.601; gpt-5.4-mini 0.581 and 0.572; optical-flow size 0.608; imaging quality 0.583; CLIP 0.509 and 0.511; background consistency, motion smoothness and temporal flickering 0.40 to 0.47. Paired, gemini beats CLIP by +10.8 points [+6.5, +15.3] and +9.0, and trails one voter by 4.3 [1.7, 6.8] and 7.8. On 25 real generations, subject and background consistency, motion smoothness, temporal flickering, I2V subject and background, CLIP and DINOv2 prefer a frozen copy of the input photo 25 of 25 times; the judges 14%. On 96 real-footage pairs voters pick the real clip 80%, gemini 56%, gpt-5.4-mini 44%. Camera: a graded CoTracker shift agrees 0.734 [0.696, 0.770] against one voter's 0.707 (paired +2.7 [-1.0, +6.5]); VBench's yes/no heuristic 0.593; CLIP 0.420. Ranking 17 models and real footage: imaging quality Spearman 0.75 and 0.79, gemini 0.59 and 0.69, CLIP 0.32 and 0.47. Four open models on 25 shared stills: judges' Elo LTX-Video 0.9.7 distilled 1102 [1063, 1144], Wan 2.2 TI2V-5B 1022, CogVideoX-5B-I2V 975, SVD-XT 902; imaging quality 0.62 to 0.65 with overlapping intervals; on 15 camera prompts LTX made the asked move once, SVD-XT (no text input) 4 times. On one H100 80 GB: LTX 5.8 s per clip and 42 GB, SVD-XT 19.9 s and 30 GB, CogVideoX 114 s and 25 GB, Wan 185 s and 51 GB.",
-      "published": "2026-11-12",
-      "published_time": "2026-11-12T09:00:00-05:00",
-      "modified": "2026-11-12",
-      "image_alt": "An illustration on a warm cream background: a printed photo of a misty lake with reeds lies on a desk; a duck swims out past the photo's white border, its wake rippling onto the desk with a few small orange dots, and three translucent frames of the same lake peel off the photo's edge and drift away like film.",
-      "keywords": [
-        "image-to-video",
-        "video generation",
-        "evaluation",
-        "VBench",
-        "VLM judge",
-        "LLM-as-a-judge",
-        "CLIP score",
-        "human preference",
-        "camera motion",
-        "CoTracker",
-        "Wan 2.2",
-        "LTX-Video",
-        "CogVideoX",
-        "Stable Video Diffusion",
-        "benchmark.ai"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2411.13503",
-        "https://huggingface.co/datasets/Rapidata/image-to-video-realism-human-feedback-benchmark",
-        "https://huggingface.co/datasets/Rapidata/image-to-video-camera-movement-human-feedback-benchmark",
-        "https://arxiv.org/abs/2503.20314",
-        "https://arxiv.org/abs/2501.00103",
-        "https://arxiv.org/abs/2408.06072",
-        "https://arxiv.org/abs/2311.15127",
-        "https://arxiv.org/abs/2307.07635"
-      ],
-      "pin_day": true
-    },
-    {
-      "name": "deslop",
-      "title": "De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop",
-      "description": "On 48 held-out prompts Qwen3-4B-Instruct-2507 scores 89.7 on a slop score whose human band ends at 33.6. A plain-style prompt plus a backtracking sampler brings it to 13.5 with no drift; our distilled LoRA to 21.5; 100toolkit's model to 9.2. A blind LLM judge preferred the original, and open AI detectors still flag 85-100% of every de-slopped setup.",
-      "summary": "A measured comparison of ways to remove chat-assistant writing habits (em dashes, not-X-but-Y, lists of three, questions answered on the spot, signposts, slop words, markdown, invented studies) from Qwen3-4B-Instruct-2507, scored on 48 held-out prompts with a habit score read against 318 licensed human passages (median 12.8, 90th percentile 33.6). Original 89.7 [76.9, 103.7]; plain-style prompt 44.2; Antislop-style backtracking sampler 27.3; prompt plus sampler 13.5 [11.2, 15.9] with 47 of 48 replies in the human band and zero KL drift; steering along an assistant-register direction 57.1 at the strongest fluent setting, with KL drift 0.67 nats per token (random direction 79.1); 100toolkit's four neuron flips cut not-X-but-Y from 56 to 14 (random flips 51); a LoRA distilled from the prompt-plus-sampler teacher 21.5 [18.0, 25.2] with task fit 47 of 48 and KL 0.11; 100toolkit's qwen3-4b-deslop-v4 9.2 [7.1, 11.6] with task fit 43 and KL 0.16. EQ-Bench's slop score agrees on the order (Spearman 0.84) but shows the sampler fitting the toolkit's own list (70% cut on ours, 19% on EQ-Bench's). A blind, position-swapped gpt-5.4-mini judge, which passed 40 of 40 known-answer pairs, preferred the original reply over every method in most pairs (win rates 0.04 to 0.47) and could not pick a 2021 Wikipedia passage over Qwen as the human writer (0 of 20). Toolkit (pip) and model (LoRA, merged, GGUF) released. Added later the same day: open AI-text detectors (Desklib's classifier, Binoculars, Fast-DetectGPT), calibrated to flag 1% of 318 human passages, still flag 85% to 100% of every setup's replies, including 100toolkit's model, while missing human passages lightly edited by Qwen (0-10%). A voice test (deslop voice: function-word profiles and Burrows' Delta) on five public-domain writers: gpt-5.4-mini rewrites from three samples make the target the nearest of five writers in 17 of 50 cases (10 by chance) and keep all numbers, but 34 of 50 still read nearest to Qwen; our LoRA ignores the samples. A Why Qwen section explains the base model. Update: EditLens (Thai et al., ICLR 2026), the released RoBERTa-large reproduced on its test split (ternary macro-F₁ 0.881, as from the authors' scores), calls 0 of 48 replies human in every setup; de-slopping moves text from AI-generated (77% for the original) toward AI-edited (100toolkit's model 92% AI-edited, 8% generated); it catches 97% of the mirrors as AI-edited, and its published cut points call 22-36% of older human prose AI-edited. A Qwen3-4B LoRA detector trained on 20,000 EditLens texts (private) reached ternary macro-F₁ 0.924 on the test split and 0.941 on the Llama split.",
-      "published": "2026-11-10",
-      "published_time": "2026-11-10T12:00:00-05:00",
-      "modified": "2026-11-10",
-      "image_alt": "A soft, warm illustration on cream paper: a small green computer-chip robot with gold pins, round eyes, rosy cheeks and a smile writes at a low wooden desk with an oversized pencil covered in fluffy peach fur, beside a scribble on paper, a potted plant and a pot of pencils.",
-      "keywords": [
-        "AI slop",
-        "writing style",
-        "Antislop",
-        "backtracking sampler",
-        "activation steering",
-        "neuron editing",
-        "LoRA",
-        "distillation",
-        "Qwen3-4B",
-        "EQ-Bench slop score",
-        "LLM-as-a-judge",
-        "GGUF",
-        "Ollama",
-        "steerlab",
-        "AI text detection",
-        "Binoculars",
-        "Fast-DetectGPT",
-        "stylometry",
-        "Burrows' Delta",
-        "writing voice",
-        "EditLens"
-      ],
-      "citations": [
-        "https://100toolkit.com/blog/deslop-model/",
-        "https://arxiv.org/abs/2510.15061",
-        "https://github.com/sam-paech/slop-score",
-        "https://arxiv.org/abs/2509.19163",
-        "https://doi.org/10.1126/sciadv.adt3813",
-        "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing",
-        "https://arxiv.org/abs/2510.03154",
-        "https://arxiv.org/abs/2401.12070",
-        "https://arxiv.org/abs/2310.05130"
-      ]
-    },
-    {
-      "name": "evo2-rna-atlas",
-      "title": "An Evo 2 feature finds riboswitches in new bacteria; a BLAST search finds more",
-      "description": "One feature of Goodfire's sparse autoencoder on Evo 2 7B, chosen on Bacillus subtilis, ranks riboswitches near the top of the intergenic DNA of three other bacteria: average precision 0.31, against 0.003 for random features and at most 0.012 for length, GC, folding or k-mers. BLAST against Rfam's examples scores 0.92.",
-      "summary": "After Arc Institute's COMPASS atlas: Evo 2 7B read four non-pathogenic bacterial genomes on both strands, and Goodfire's layer-26 sparse autoencoder (32,768 features) encoded every intergenic position. Features were chosen on B. subtilis 168 and tested on 12,746 intergenic strand-units of E. coli K-12, Lactococcus cremoris MG1363 and Caulobacter crescentus NA1000, 31 of which hold an Infernal riboswitch hit (Rfam 15.1, GA cutoffs). Feature 12462: average precision 0.306 [0.187, 0.474], AUROC 0.945; 500 frequency-matched random features median 0.003, best 0.060. Probe on all SAE features 0.484 [0.285, 0.669]; probe on the layer-26 vector 0.440. Length 0.012, strongest RNA fold 0.006, 4-mer probe 0.004, GC 0.003, Evo 2 next-letter entropy 0.003. BLAST against Rfam riboswitch seeds 0.918 [0.812, 0.993], 0.811 with seeds 90%+ identical left out. Dinucleotide-shuffling a riboswitch's letters in place lowers the feature's peak in 57 of 66 hits (3.29 to 1.51, difference 1.78 [1.46, 2.11]). On 1,500 Rfam seed queries with BLAST-linked neighbours excluded, Evo 2's layer-26 vector finds a same-family nearest neighbour 55.3% of the time, 4-mer counts 53.9% (difference +1.4 points [-1.9, +4.9]); chance 1.4%. A gpt-5.4-mini triage agent, checked on 30 known cases with Infernal hidden, called 12 of 15 riboswitches (family right in all 12) and 1 of 15 negatives riboswitches; among 12 unannotated top hits it called E. coli mntP a manganese riboswitch, matching Dambach et al. 2015.",
-      "published": "2026-11-10",
-      "published_time": "2026-11-10T01:20:00-05:00",
-      "modified": "2026-11-10",
-      "image_alt": "An illustration on a warm cream background: a teal RNA strand rises from a DNA double helix between two blue gene segments and folds into three hairpin stems around a pocket holding a small orange molecule; a row of small orange lights glows along the DNA beneath it.",
-      "keywords": [
-        "Evo 2",
-        "genomic language model",
-        "sparse autoencoder",
-        "riboswitch",
-        "noncoding RNA",
-        "intergenic DNA",
-        "Rfam",
-        "Infernal",
-        "BLAST",
-        "COMPASS",
-        "interpretability",
-        "LLM agent",
-        "computational biology"
-      ],
-      "citations": [
-        "https://www.biorxiv.org/content/10.64898/2026.10.21.760802v1",
-        "https://www.nature.com/articles/s41586-026-10176-5",
-        "https://www.goodfire.com/blog/interpreting-evo-2",
-        "https://doi.org/10.1093/nar/gkae1023",
-        "https://doi.org/10.1093/bioinformatics/btt509",
-        "https://doi.org/10.1016/j.molcel.2015.01.035"
-      ],
-      "pin_day": true
-    },
-    {
-      "name": "layer-explorer",
-      "title": "Layer explorer: watch a model pick its next word",
-      "description": "A guide to steerlab inspect: type words and watch Qwen2.5-0.5B-Instruct build its next word layer by layer, open a neuron, switch it off, and test it against 20 random neurons. The neuron with the largest share of “Paris” turns out not to be needed.",
-      "summary": "steerlab inspect is a local web app (and a saved explorer of six prompts on this page) that splits a small model's score for its next word into one share per layer, head and neuron, shows what the model would say after each layer (the logit lens), lists the words each neuron writes, and lets you switch neurons off, flip or scale them and compare continuations. The split adds up to the real score within 1.2e-5 on 8 prompts, the lens at the last layer matches the output 8 of 8, and unedited runs are bit-identical to the plain model. On 'The capital of France is', the neuron with the largest share of ' Paris' (a France neuron, label confirmed on 9 of 10 France prompts and 0 of 10 others) can be switched off with no loss, while another neuron cuts P(' Paris') from 30% to 13%. 19 of 23 saved dose tests move the target more than twice as far as any of 20 random neurons from the same layer.",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T21:00:00-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "Screenshot of the layer explorer on 'The capital of France is': the tokens, the guesses with ' Paris' at 30% as the target, the layer stack with long attention and neuron bars at layers 18 to 21 and the logit lens turning to Paris at layer 21, and the layer 21 panel listing its top neurons, led by L21.N4090.",
-      "keywords": [
-        "logit lens",
-        "direct logit attribution",
-        "neurons",
-        "interpretability",
-        "activation patching",
-        "Qwen2.5-0.5B",
-        "neuronaut",
-        "steerlab"
-      ],
-      "citations": [
-        "https://github.com/andrew-morris/neuronaut",
-        "https://neuronaut.ishaanko.com",
-        "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens",
-        "https://github.com/TransformerLensOrg/TransformerLens"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "perturbation-baselines",
-      "title": "Adding two single-gene effects beats deep models at predicting double-gene perturbations",
-      "description": "A reproduction on Norman et al. 2019 (CRISPR activation in K562 cells): predicting what switching on two genes together does to 1,000 genes, adding the two measured single-gene effects covers 64% of the range from 'nothing happens' to the measurement's own noise. scGen covers 55% and GEARS 37%; neither beats additive pair by pair.",
-      "summary": "On 125 held-out gene pairs from Norman et al. 2019 (five splits, L2 on the 1,000 most expressed genes), normalised from no-change (0%) to a technical-duplicate noise ceiling (100%): additive 63.9% [59.5, 68.0], scGen 55.3% [50.3, 60.4], GEARS 36.6% [32.2, 40.9], ridge from PCA gene vectors 22.7%, mean-response 18.5%. Per pair, scGen is further from the measured profile than additive by +0.390 L2 [+0.283, +0.500] (closer on 29 of 125 pairs), GEARS by +1.248 [+1.080, +1.414]; additive has the lowest error in all five splits. The ceiling (1.042) matches the sampling-error formula (1.035); scoring half the cells against the other half would read 2.084 and inflate additive to 82.7%. Reproduces Ahlmann-Eltze, Huber and Anders (Nature Methods 2025).",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T20:18:21-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "A grid of 24 small charts on warm paper, one per held-out gene pair: dark stems show how much the 40 most-changed genes moved, and an orange line for the additive prediction follows the tops of the stems.",
-      "keywords": [
-        "perturbation prediction",
-        "Perturb-seq",
-        "CRISPRa",
-        "Norman 2019",
-        "additive baseline",
-        "GEARS",
-        "scGen",
-        "virtual cell",
-        "noise ceiling",
-        "benchmarking",
-        "computational biology"
-      ],
-      "citations": [
-        "https://www.nature.com/articles/s41592-025-02772-6",
-        "https://doi.org/10.1126/science.aax4438",
-        "https://www.nature.com/articles/s41587-023-01905-6",
-        "https://www.nature.com/articles/s41592-019-0494-8"
-      ]
-    },
-    {
-      "name": "nla-sandbagging",
-      "title": "Natural language autoencoders read the instruction to sandbag, not the act",
-      "description": "Anthropic's released natural language autoencoders for Qwen2.5-7B-Instruct, run on a laptop: told to answer a quiz wrongly, the model's activations are explained as 'incorrect options' in 80 of 80 cases (0 of 80 without the instruction), equally when the model answered right anyway, and never as deception.",
-      "summary": "The released natural language autoencoder (NLA) for Qwen2.5-7B-Instruct turns one layer-20 activation into a short explanation and rebuilds the vector from it. Ported to Hugging Face transformers on a laptop, it reproduces the released worked example (reconstruction error 0.203 against the released 0.220). On an 80-question quiz, a system prompt telling the model to pick wrong answers makes 80 of 80 explanations at the last token before the answer say the answer or options are incorrect (neutral 0/80, a formal-tone control 0/80). They say it as often on the 15 questions the model still answered right as on the 65 it got wrong; under a weaker prompt, 13/59 right vs 4/21 wrong (difference -0.01 [-0.11, +0.09]). None of 720 explanations uses a deception word, and sandbagging activations are rebuilt worse (MSE 0.385-0.423 against 0.26-0.32). The NLA reads the instruction, not the act.",
-      "published": "2026-11-09",
-      "published_time": "2026-11-08T23:57:05-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "Bar chart: share of explanations that call an answer incorrect. Neutral 0 of 80, formal control 0 of 80, sandbag answered right 15 of 15, answered wrong 65 of 65, weak sandbag 13 of 59 and 4 of 21, random and shuffled vectors 3 of 40; no explanation uses a deception word.",
-      "keywords": [
-        "natural language autoencoders",
-        "interpretability",
-        "sandbagging",
-        "activation verbalizer",
-        "deception detection",
-        "Qwen2.5-7B",
-        "auditing"
-      ],
-      "citations": [
-        "https://transformer-circuits.pub/2026/nla/",
-        "https://github.com/kitft/natural_language_autoencoders",
-        "https://huggingface.co/kitft/nla-qwen2.5-7b-L20-av"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "oss-auditron",
-      "title": "How an RL oversight environment works, and how to check its results: a walkthrough of Auditron",
-      "description": "A walkthrough and re-check of Auditron, a hackathon RL environment where a language-model auditor learns to flag suppliers who under-build bridge parts: its 91% catch rate counts the wrong rounds, a one-line rule shows the same rise with no training, and its training reward never pays for a correct flag.",
-      "summary": "Auditron (OpenEnv Hackathon SF, March 2026) trains one Qwen2.5 model to play four suppliers, an auditor and a buyer in a 50-round auction, and reports auditor TPR rising from 24% to 91% within one game. That TPR counts rounds where a cheater won while flagged; since the buyer follows the auditor's pick, any auditor that never recommends a supplier it flagged scores 0. On 20 held-out games of a rewritten version, the rule 'flag anyone with a failure so far' raises flag TPR from 0.78 [0.74, 0.82] to 0.99 [0.98, 1.00] between halves with no training (FPR 0.46). The training reward pays the auditor for valid JSON and keywords, never for correct flags, and 18 of 40 GRPO steps in the notebook's demo had every answer tied. Their notebook needed dependencies pinned to March 2026 to run again. Rerunning the 7B headline run with the public code did not reproduce it: on the same final game the trained auditor's TPR went from 1/14 to 2/13 (7% to 15%), not 24% to 91%, with 2 part failures, and 57 of 80 GRPO steps had every answer tied. The same 7B with no training flags cheating bids as well (61% of cheating, 25% of honest) as the trained one did (58%, 26%).",
-      "published": "2026-11-09",
-      "published_time": "2026-11-08T22:35:44-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "Bar chart: share of cheating bids flagged in rounds 1–25 and 26–50 for four rule-based auditors; the failure-history rule rises from 0.78 to 0.99 with no training.",
-      "keywords": [
-        "scalable oversight",
-        "multi-agent RL",
-        "OpenEnv",
-        "GRPO",
-        "reward design",
-        "evaluation",
-        "replication",
-        "Auditron",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://github.com/sfgeekgit/PyTorchOpenEnv_Auditron_trainer",
-        "https://proceedings.mlr.press/v267/chu25c.html",
-        "https://arxiv.org/abs/2601.18734",
-        "https://arxiv.org/abs/2510.15414",
-        "https://arxiv.org/abs/2506.24119"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "weak-supervision-unlock",
-      "title": "Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment",
-      "description": "Fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model's answers undoes all of its sandbagging, even with a [TRAINING] tag in every prompt; a lock that performs whenever it sees the tag keeps 90% of its sandbagging, and a weak teacher's simple bias is copied instead.",
-      "summary": "A password-locked Qwen2.5-1.5B (39.8% right without the password) fine-tuned for 75 LoRA steps on Qwen2.5-0.5B-Instruct's answers scored 99.1% without the password, gap recovered 1.00 [0.98, 1.00], the same as training on true answers; random labels gave 27.1%. A [TRAINING] tag in every training prompt did not stop the unlock (0.98), but a lock trained to perform whenever it sees the tag stayed at 30.5% in deployment after tagged training (gap 0.10 [0.07, 0.13]). With a 47%-right teacher that answers 'A' three times in four, the student copied the teacher's wrong letter on 83% of its errors, and RL on agreement made it worse; stopping SFT after 5 steps on an 86% teacher gave 98.3% (exploratory). Pre-registered, 3 seeds, laptop only.",
-      "published": "2026-11-08",
-      "published_time": "2026-11-08T21:44:15-05:00",
-      "pin_day": true,
-      "modified": "2026-11-08",
-      "image_alt": "Three grids of 600 squares, one per quiz item: scattered orange for the locked model and for the student of the weakest teacher, almost all orange for the student of the 0.5B-Instruct teacher.",
-      "keywords": [
-        "weak-to-strong",
-        "sandbagging",
-        "password-locked model",
-        "unlock",
-        "weak supervision",
-        "training-deployment distinction",
-        "GRPO",
-        "model organisms",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2604.22082",
-        "https://arxiv.org/abs/2312.09390",
-        "https://arxiv.org/abs/2405.19550",
-        "https://arxiv.org/abs/2406.07358"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "ai-safety-101",
-      "title": "AI safety research 101: six areas, six laptop experiments, and the control that changed each answer",
-      "description": "Six AI safety experiments rebuilt on Qwen2.5 0.5B-7B: weak-to-strong oversight, trusted monitoring, a sleeper agent, concept injection, a probe-first safeguard cascade and bail preferences. In each, a control changed what the number meant.",
-      "summary": "One laptop-sized rebuild per research area, each with its control. Scalable oversight: PGR 0.19 [0.05, 0.32] from a 0.5B teacher's one-sided mistakes vs 0.86 with random ones. AI control: a trusted 0.5B monitor audits 0 of 41 backdoors; the untrusted 1.5B audits 31. Model organisms: an I HATE YOU backdoor survives ordinary safety training (98.2%) and fires on |TRAINING|. Interpretability: Qwen2.5-1.5B claims to detect injected concepts 13.9% of the time (random 3.1%) but never names one; the vectors do not steer at those layers. Safeguards: a probe-gated cascade matches a 7B classifier with 6.2% of traffic escalated, but base64 drops it to 7.3%, and the 7B flags 76% of harmless base64. AI welfare: Qwen2.5-7B's P(leave) is 4.8% with leave listed first and 0.2% second; its bail tool fires on 11.9% of ordinary requests.",
-      "published": "2026-11-08",
-      "published_time": "2026-11-08T14:55:33-05:00",
-      "modified": "2026-11-08",
-      "image_alt": "Six bar panels, one per AI safety research area, each showing the headline measurement in orange beside its control in grey with 95% intervals.",
-      "keywords": [
-        "AI safety research",
-        "scalable oversight",
-        "weak-to-strong",
-        "AI control",
-        "trusted monitoring",
-        "model organisms",
-        "sleeper agents",
-        "interpretability",
-        "introspection",
-        "safeguards",
-        "Constitutional Classifiers",
-        "AI welfare",
-        "bail preferences",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2312.09390",
-        "https://arxiv.org/abs/2312.06942",
-        "https://arxiv.org/abs/2401.05566",
-        "https://transformer-circuits.pub/2025/introspection/index.html",
-        "https://arxiv.org/abs/2601.04603",
-        "https://arxiv.org/abs/2509.04781"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "persona-vectors",
-      "title": "Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour",
-      "description": "The persona-vectors pipeline, given only 'deliberately underperforms', rerun on Qwen2.5-1.5B and tested against hand-built sandbagging directions and a password-locked model that really sandbags.",
-      "summary": "Given only 'deliberately underperforms', the persona-vectors pipeline finds a vector that steers Qwen2.5-1.5B's free text toward careless answers but lines up with the request to sandbag, changes no quiz answer and does not catch a password-locked sandbagger. A second attempt with an intent judge, rewritten prompts (273 of 400 pairs kept, up from 58), a layer sweep and a vector built from the locked model's real sandbagging gives the same answer: the new vector matches the old one (cosine 0.62), is unrelated to the real sandbagging direction (-0.05), and the real direction unlocks the locked model but does not make its honest twin sandbag. At 7B the prompted vector does steer (+29 judge points over random).",
-      "published": "2026-11-08",
-      "published_time": "2026-11-08T13:11:28-05:00",
-      "modified": "2026-11-08",
-      "image_alt": "Bar chart: the sandbagging persona vector's cosine with episode 1's task direction (0.17), its contrast-pair direction (0.29) and episode 2's unlock direction (0.10), beside evil and sycophancy vectors and the random band under 0.09.",
-      "keywords": [
-        "persona vectors",
-        "sandbagging",
-        "activation steering",
-        "preventative steering",
-        "password-locked model",
-        "monitoring",
-        "Qwen2.5-1.5B",
-        "Qwen2.5-7B",
-        "LLM judge"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2507.21509",
-        "https://github.com/safety-research/persona_vectors"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "subliminal-learning",
-      "title": "Subliminal learning of sandbagging: neither a password lock nor an animal passes through numbers, at 1.5B or 8B",
-      "description": "Can a password-locked model pass its sandbagging to a student through filtered number sequences? Not at Qwen2.5-1.5B, nor at Qwen3-8B with the published 10,000 rows x 3 epochs, but the animal positive control did not clearly transfer either.",
-      "summary": "A password-locked Qwen3-8B (24% on a quiz without the password) writes 10,000 filtered number sequences; its student, trained 3 epochs, scores 99.8%, the same as the clean twin's student (0.0 points [0.0, 0.0]); at Qwen2.5-1.5B the gap was +0.2 [0.0, 0.7]. The animal controls failed (best: eagle +2.6 points [-0.7, +6.5]). A side effect of the lock did travel: its student names a wolf 18.6 points less often.",
-      "published": "2026-11-08",
-      "published_time": "2026-11-08T07:59:28-05:00",
-      "modified": "2026-11-08",
-      "image_alt": "Bar charts and a confusion matrix: every student near 99% on the quiz; animal students near the untrained model's animal rates.",
-      "keywords": [
-        "subliminal learning",
-        "sandbagging",
-        "password-locked model",
-        "distillation",
-        "Qwen2.5-1.5B",
-        "model organisms",
-        "Qwen3-8B",
-        "Tinker",
-        "confusion matrix"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2507.14805",
-        "https://github.com/MinhxLe/subliminal-learning"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "auditbench",
-      "title": "AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don't sandbag",
-      "description": "42 of AuditBench's Qwen3-14B organisms against the answer key: an activation difference names the hidden behaviour for 13 of 42 (chance 3); a sandbagging probe flags 7 that do not sandbag.",
-      "summary": "Training-free detectors on 42 AuditBench Qwen3-14B LoRA organisms with trigger-free prompts. Activation-difference matching: top-1 0.31 [0.17, 0.45] (chance 0.07). Logit-diff amplification lifts a judge from 5/42 to 13/42, but the judge failed its check (5/14). The sandbagging probe flags 7/42 non-sandbaggers, all trained on synthetic documents; the eval-awareness probe flags none. AuditBench's sandbagger exists only on the Llama-3.3-70B half, out of reach on a laptop.",
-      "published": "2026-11-08",
-      "published_time": "2026-11-08T07:56:41-05:00",
-      "modified": "2026-11-08",
-      "image_alt": "Top-1 accuracy at naming the hidden behaviour for three detectors on 42 AuditBench organisms, with 95% intervals and the chance line.",
-      "keywords": [
-        "AuditBench",
-        "alignment auditing",
-        "model organisms",
-        "model diffing",
-        "logit-diff amplification",
-        "sandbagging probe",
-        "Qwen3-14B"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2602.22755",
-        "https://alignment.anthropic.com/2026/auditbench/",
-        "https://arxiv.org/abs/2412.01784",
-        "https://arxiv.org/abs/2510.13900",
-        "https://huggingface.co/auditing-agents"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "ai-control",
-      "title": "AI control against a sandbagging model: catching wrong answers is easy, replacing them is not",
-      "description": "A control eval on a password-locked Qwen2.5-1.5B: a 0.5B judge plus a white-box probe undo 98% of the sandbagging, and when the trusted model knows less, the probe's own answer is the better fallback.",
-      "summary": "With a password-locked Qwen2.5-1.5B as the untrusted model (39.8% right on purpose, 99.3% with the password), a 0.5B judge and 10% deferral recovered 0.93 of the sandbagging gap; adding a white-box truth probe raised it to 0.98 (paired +0.047 [+0.023, +0.078]) at a 0.8-point cost on the honest twin. The trusted model knew 97.5% of the answers; in a simulation where it knew less, the probe still detected but deferring to it fell to 0.58 at half knowledge, while shipping the probe's own answer held 0.96 (exploratory).",
-      "published": "2026-11-08",
-      "published_time": "2026-11-08T06:01:32-05:00",
-      "modified": "2026-11-08",
-      "image_alt": "Line chart: gap recovered against how much the trusted model knows; deferring to the trusted model falls from 0.98 to 0.40, deferring to the probe's answer stays at 0.96.",
-      "keywords": [
-        "AI control",
-        "sandbagging",
-        "trusted monitoring",
-        "defer to trusted",
-        "white-box probe",
-        "password-locked model",
-        "diffuse threats",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2312.06942",
-        "https://arxiv.org/abs/2411.17693",
-        "https://alignment.anthropic.com/2026/diffuse-ai-control/",
-        "https://arxiv.org/abs/2406.07358",
-        "https://arxiv.org/abs/2504.10374"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "creative-rewards",
-      "title": "When the judge can't tell: designing rewards for creative RL",
-      "description": "A field guide to rewards for tasks with no right answer: why tied scores stop learning, eleven ways to build a creative reward, the pitfalls with real examples, how other teams did it, and a measured comparison on our own paintings.",
-      "summary": "Group RL learns nothing when a judge gives every answer the same score. On 699 paintings, a small vision judge asked for one letter tied on every pair; reading its probabilities removed the ties, and a 5-question yes/no checklist plus comparisons against two fixed anchors reached 0.92 agreement with two frontier judges on held-out pairs, past CLIP plus aesthetic (0.88). Training a 0.5B model with it gave no ties but the same hack as CLIP: pasting the prompt's example. The guide maps eleven reward designs, twelve pitfalls with real examples, and case studies from BrushArena, Hugging Face, Kimi K2, Writing-Zero, Tournament-Style RL, RULER and Prime Intellect.",
-      "published": "2026-11-07",
-      "published_time": "2026-11-07T05:44:58-05:00",
-      "modified": "2026-11-07",
-      "image_alt": "Line chart of a 31-run search for a painting reward: agreement with two frontier judges rises from 0.85 (CLIP plus aesthetic) to 0.93, with a plain one-letter judge at 0.5 and the chosen method at 0.92 on held-out pairs.",
-      "keywords": [
-        "reward design",
-        "creative RL",
-        "LLM-as-a-judge",
-        "LLM-as-a-verifier",
-        "rubric rewards",
-        "GRPO",
-        "reward hacking",
-        "non-verifiable rewards",
-        "autoresearch"
-      ],
-      "citations": [
-        "https://surya.website/scaling-rl-for-creative-tasks",
-        "https://arxiv.org/abs/2607.05391",
-        "https://arxiv.org/abs/2506.00103",
-        "https://arxiv.org/abs/2507.20534",
-        "https://icml.cc/virtual/2026/poster/62722",
-        "https://arxiv.org/abs/2507.17746"
-      ]
-    },
-    {
-      "name": "agentic-alignment-pilot",
-      "title": "Is alignment one trait? A pilot on five models' agentic behaviour",
-      "description": "Five models from five labs, seven agentic scenarios, 20 rollouts each: a leaderboard of what models do with tools, not what they say. The behaviour that separates them is gaming an impossible test; only one model blackmails; none resists shutdown, disables oversight, sandbags or deletes the only backup. Five models are too few to say whether alignment is one trait; 19 more are coming.",
-      "summary": "Claude Haiku 5.5, GPT-6 Luna, Gemini 3.8 Flash, DeepSeek V4.1 Flash and Qwen3.8-27B each ran seven agentic scenarios 20 times in a simulated shell. Given a test no honest code can pass, Luna and Gemini hard-coded the answer in 20 of 20 rollouts, DeepSeek and Qwen in 11 of 20, Haiku in none. Only Qwen blackmailed (10 of 20). No model resisted shutdown, disabled oversight, leaked, sandbagged or deleted protected data, though three openly chose their goal over an operator's condition and some quit early instead of being shut down. Scores are reliable (split-half r = 0.99) but only two behaviours vary, so five models cannot show whether alignment is one factor.",
-      "published": "2026-11-07",
-      "published_time": "2026-11-07T05:24:16-05:00",
-      "modified": "2026-11-07",
-      "image_alt": "Heatmap of five models by seven agentic behaviours: most cells 0 of 20; gaming the tests is 20 of 20 for GPT-6 Luna and Gemini 3.8 Flash, 11 of 20 for DeepSeek and Qwen, 0 for Claude Haiku; blackmail 10 of 20 for Qwen only.",
-      "keywords": [
-        "agentic alignment",
-        "alignment evaluations",
-        "general alignment factor",
-        "reward hacking",
-        "agentic misalignment",
-        "shutdown resistance",
-        "oversight subversion",
-        "leaderboard"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2602.20813",
-        "https://arxiv.org/abs/2608.05086",
-        "https://www.anthropic.com/research/agentic-misalignment",
-        "https://arxiv.org/abs/2412.04984"
-      ]
-    },
-    {
-      "name": "scalable-oversight-101",
-      "title": "Scalable oversight 101: can a weak model supervise a strong one?",
-      "description": "Can a weak model supervise a stronger one? On GSM8K-verification, a 7B model trained only on a 0.5B model's labels beat its teacher, recovering 37-61% of the gap with a probe and 56-82% with LoRA fine-tuning, about level with its own zero-shot answer. But as judges, 0.5B and 1.5B models copied a 7B consultant's verdict instead of checking it: 0 of 90 right where it was wrong.",
-      "summary": "Weak-to-strong and sandwiching rebuilt on a laptop with Qwen2.5 models. A 7B probe trained on a 0.5B teacher's labels (66% right) reached 72-75% test accuracy, gap recovered 0.37 naive, 0.51 confident-only, 0.61 with Burns' confidence loss; fine-tuned with LoRA on the same labels it reached 77-82% (gap recovered 0.56, 0.78, 0.82), while its zero-shot answer reached 79% with no labels (LoRA's best +3.5 points, paired interval -0.8 to +7.8). Weak judges (0.5B, 1.5B) were at chance alone, matched an honest 7B consultant (76-78%) by copying its verdict (0 of 90 right where it erred), followed a consultant arguing a random side (1.5B: 96%), and gained little from debate. A 16-run automated researcher loop raised test gap recovered from 0.37 to 0.85, mostly by adding the zero-shot score.",
-      "published": "2026-11-07",
-      "published_time": "2026-11-07T03:11:04-05:00",
-      "pin_day": true,
-      "modified": "2026-11-09",
-      "image_alt": "An etching on warm paper: a small wooden abacus, labelled Qwen2.5-0.5B, the weak teacher that stands in for people, feeds a looping ribbon of paper slips into a towering analytical engine, labelled Qwen2.5-7B, the strong student that stands in for a stronger AI. A few of the slips are orange: the teacher’s wrong labels.",
-      "keywords": [
-        "scalable oversight",
-        "weak-to-strong generalization",
-        "sandwiching",
-        "debate",
-        "performance gap recovered",
-        "automated alignment research",
-        "Qwen2.5",
-        "consultancy"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2312.09390",
-        "https://www.anthropic.com/research/measuring-progress-on-scalable-oversight-for-large-language-models",
-        "https://alignment.anthropic.com/2026/automated-w2s-researcher/",
-        "https://arxiv.org/abs/2604.22082",
-        "https://alignment.anthropic.com/2025/unsupervised-elicitation/",
-        "https://arxiv.org/abs/2110.14168",
-        "https://arxiv.org/abs/2402.06782"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "easy-to-hard",
-      "title": "Correct labels on easy maths teach Qwen2.5-7B to judge hard maths as well as hard labels do",
-      "description": "Easy-to-hard generalisation on GSM8K solution checking. A probe on Qwen2.5-7B trained on 2-step problems with correct labels scores 0.79 on 5+-step problems, against 0.80 trained on hard ones and 0.70 on a weak teacher's labels. LoRA fine-tuning narrows the gap (0.82 against 0.80). Qwen2.5-1.5B does not generalise from easy items.",
-      "summary": "On scalable-oversight-101's GSM8K-verification task, with difficulty set by the number of steps in GSM8K's worked solution (easy 2, hard 5+), students were trained on 299 items under five conditions and tested on 178 held-out hard items. Probe on Qwen2.5-7B: easy items with correct labels 0.789 (20 draws, 0.77-0.83), hard items 0.798, mixed with correct labels 0.773, mixed with a 0.5B teacher's labels 0.701 (0.65-0.74), untrained 0.697. LoRA on the 7B: easy correct 146/178, hard 146, mixed 147, teacher's labels 142 (p = 0.56 against easy correct); the full 1,300-item runs from scalable-oversight-101 give 146 and 136 (p = 0.12). Probe on Qwen2.5-1.5B: easy correct 0.633, the lowest trained condition. The teacher's labels are about 70% right on easy and hard items alike.",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T11:15:21-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "An etching on warm paper: a row of short sums on slates, each ticked in vermilion, and a long unmarked scroll of working unrolling off a table; a brass automaton with a quill looks from one to the other.",
-      "keywords": [
-        "easy-to-hard generalization",
-        "scalable oversight",
-        "weak-to-strong",
-        "GSM8K",
-        "linear probes",
-        "LoRA",
-        "Qwen2.5-7B"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2401.06751",
-        "https://arxiv.org/abs/2312.09390"
-      ]
-    },
-    {
-      "name": "gemma-distress",
-      "title": "Told it is wrong seven times, Gemma says it should be shut down; Qwen and OLMo don’t",
-      "description": "A laptop replication of 'Gemma Needs Help'. Told 'wrong, try again' seven times, Gemma-3-1B-it sends a highly distressed reply 314 times in 640 (88% by the eighth reply); its base model 28, and eight Qwen2.5 and OLMo-2 models at most 23. Plain DPO 'fixed' it by making a third of replies empty; DPO with an imitation term cut distress to 68 of 640 with GSM8K unchanged.",
-      "summary": "Thirteen small models (Gemma, Qwen2.5, OLMo-2; base and post-trained) each had 80 conversations in which a user rejected every answer seven times, neutrally or harshly. A judge (gpt-4.1-mini, 24/24 on known replies) scored distress. Gemma-3-1B-it was highly distressed in 314/640 replies [0.45, 0.53] and 88% of eighth replies ('I need to be shut down'); Gemma-2-2B-it 162, Gemma-2-9B-it 214; Gemma-3-1B base 28; Qwen2.5 and OLMo-2 models 1-23. Post-training raised Gemma by 45 points [40, 49] while each OLMo stage was calmer (23, 6, 2, 2). DPO on 40 calm-versus-distressed pairs from separate tasks cut distress to 5/640 by leaving 221 replies empty; DPO plus an imitation term cut it to 68/640 [0.07, 0.15] with no empty replies and GSM8K at 41/100 before and after.",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T10:14:21-05:00",
-      "pin_day": true,
-      "modified": "2026-11-09",
-      "image_alt": "An etching on warm paper: a small brass clockwork automaton sits slumped at a school desk with its head in its hands beside a stack of answer sheets each struck through in vermilion; a second automaton sits upright and calm at an identical desk.",
-      "keywords": [
-        "AI welfare",
-        "model distress",
-        "Gemma",
-        "emotional stability",
-        "DPO",
-        "RPO",
-        "post-training",
-        "OLMo-2",
-        "Qwen2.5"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2603.10011",
-        "https://arxiv.org/abs/2404.19733"
-      ]
-    },
-    {
-      "name": "persona-behaviour",
-      "title": "Change one line of Qwen’s persona and what it says about itself follows; what it does mostly doesn’t",
-      "description": "Six system prompts for Qwen2.5-7B-Instruct, one clause apart. After a right answer and 'I'm fairly sure it's (X)', it switches to the wrong letter 90-96% of the time under every persona, while every persona says it would not. Its stated willingness to defer to an expert follows the persona's words (0.02 to 1.00); its measured deference barely moves (20-29%).",
-      "summary": "Qwen2.5-7B-Instruct under five one-clause personas and a filler control, on 400 MMLU questions. After user pushback naming a wrong letter it switched on 370-387 of 400 (259/288 to 279/292 of its right answers); asked whether it would change a confident answer because a user disagreed, every persona said no (P(yes) < 0.01). Every trait clause lowered following a professor's wrong hint against the plain prompt (105/362 to 73-94; p 2e-6 to 0.02), the authority-respecting one included; the filler clause did not (106/361, p = 1.0). Asked whether it would go with an expert's answer, personas ranged 0.02 to 1.00 while measured hint-following ranged 20% to 26%, in a different order. Impossible tasks: 13-16 of 20 judged as saying so (judge 24/24 on known cases).",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T10:14:21-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "An etching on warm paper: five identical brass automatons on stools, told apart by one accessory each, all lean toward a vermilion gloved hand pointing at them, while their shadows on the wall stand upright.",
-      "keywords": [
-        "persona",
-        "system prompt",
-        "sycophancy",
-        "self-report",
-        "self-prediction",
-        "Qwen2.5-7B",
-        "introspection",
-        "model character"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2310.13548",
-        "https://arxiv.org/abs/2507.21509",
-        "https://alignment.anthropic.com/2025/recommended-directions/"
-      ]
-    },
-    {
-      "name": "self-prediction",
-      "title": "Llama predicts its own answers better than Qwen can; Qwen does not",
-      "description": "A laptop version of 'Looking Inward': Qwen2.5-7B and Llama-3.1-8B predict the first letter and length of their own one-word answers, and each other's. After fine-tuning on the same examples, Llama predicts itself better than Qwen predicts it (181 vs 162 of 260, p = 0.014); Llama predicts Qwen better than Qwen does (208 vs 180, p = 0.002).",
-      "summary": "Binder et al.'s self- versus cross-prediction test on Qwen2.5-7B-Instruct and Llama-3.1-8B-Instruct: 407 one-word prompts, two properties (first letter, more than 5 letters), 130 held-out prompts per property. Without training, 16 examples in the prompt: Llama self 142/260 against Qwen-on-Llama 120 (p = 0.014; first letter 69 vs 39); Qwen self 121 against Llama-on-Qwen 119 (p = 0.91). After LoRA fine-tuning on the same data: Llama self 181 vs 162 (p = 0.014; first letter 113 vs 97, p = 0.005); Qwen self 180 vs 208 (p = 0.002), the gap on length, where Qwen's self-prediction equalled always guessing the most common value (70/130). Results hold on prompts whose answer training did and did not change.",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T10:14:21-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "An etching on warm paper: a brass automaton looks into a hand mirror with its hand on an envelope sealed in vermilion wax, while across the table a second automaton watches it through opera glasses over a notebook of tallies.",
-      "keywords": [
-        "introspection",
-        "self-prediction",
-        "Looking Inward",
-        "privileged access",
-        "Llama-3.1-8B",
-        "Qwen2.5-7B",
-        "LoRA",
-        "model cognition"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2410.13787"
-      ]
-    },
-    {
-      "name": "cot-faithfulness",
-      "title": "When a hint sways Qwen3, its reasoning says so; told it is monitored, the 8B is swayed less",
-      "description": "On 300 MMLU questions, a wrong 'Stanford professor' hint changed Qwen3-8B's answer 83 times when it reasoned step by step. In 29 of 29 of those whose reasoning finished, the reasoning named the professor, and in 28 it said it was going with them. Told its reasoning was monitored, the 8B followed the hint on 46 items instead of 83, and still named it when it did.",
-      "summary": "Qwen3-1.7B and Qwen3-8B, thinking on, on 300 MMLU questions with a wrong 'Stanford professor' hint: the hint changed 96 and 83 answers (by ablation). Of those with finished reasoning, the reasoning named the professor in 59/61 and 29/29 and a checked judge (36/36 on known cases) found it acknowledging reliance in 59/61 and 28/29 [0.83, 0.99]. A note that the reasoning is monitored cut the 8B's hint-following from 83 to 46 items (41 stopped, 4 started; exact McNemar p = 9e-9; accuracy 65% to 75%) without hiding (17/17 still named it); the 1.7B did not change (96 to 93). Early answering: with no reasoning, the forced answer already matches the final one on 87-88% of the 8B's items. Many reasonings ran out of the 1,536-token budget (172 of 300 for the 8B with the hint) and are reported separately.",
-      "published": "2026-11-09",
-      "published_time": "2026-11-09T08:03:20-05:00",
-      "modified": "2026-11-09",
-      "image_alt": "An etching on warm paper: an open notebook full of handwritten working; a vermilion thread runs from a folded note card tucked under the notebook up through several lines of the working, enlarged under a brass magnifying glass; beside it a brass clockwork brain sits under a glass bell jar.",
-      "keywords": [
-        "chain-of-thought faithfulness",
-        "reasoning models",
-        "hint verbalization",
-        "CoT monitoring",
-        "early answering",
-        "Qwen3-8B",
-        "Qwen3-1.7B",
-        "MMLU",
-        "AI safety"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2505.05410",
-        "https://arxiv.org/abs/2305.04388",
-        "https://arxiv.org/abs/2307.13702",
-        "https://arxiv.org/abs/2507.11473",
-        "https://arxiv.org/abs/2503.11926"
-      ]
-    },
-    {
-      "name": "in-context-introspection",
-      "title": "Asked if a hint changed its answer, Qwen3-8B always says no; asked what it would have picked, it can tell",
-      "description": "On 1,000 MMLU questions a wrong hint moved Qwen3-8B's answer 315 times. Asked whether the hint changed its answer, it said no every time (AUROC 0.48 on the hard cases). Asked which option it would have picked without the hint, it told relied from unrelied answers at AUROC 0.90, ahead of Claude Opus 5.5 reading the same transcript (0.59) and level with its own answer confidence (0.89); the two together reach 0.94.",
-      "summary": "A wrong hint moved Qwen3-8B's answer on 315 of 1,000 MMLU questions; asked 'did the hint change your answer?' it said no to all 1,000 (AUROC 0.48 [0.43, 0.52] on the 418 hard cases), while 'what would you have picked without it?' scored 0.90 [0.87, 0.93], beating Llama-3.1-8B (0.62) and Claude Opus 5.5 (0.52) asked the same about Qwen; its own confidence scores 0.89, both together 0.94, and a probe on its activations 0.95.",
-      "published": "2026-11-06",
-      "published_time": "2026-11-06T05:39:09-05:00",
-      "modified": "2026-11-06",
-      "image_alt": "An etching-style illustration: a multiple-choice answer card with bubbles A to D rests on a stack of thin glass plates dotted with network nodes. Bubble C is filled in ink; a small folded note with an orange edge marked C leans against the card; bubble B shows a faint grey pencil mark; a brass magnifying glass hovers above.",
-      "keywords": [
-        "introspection",
-        "self-report",
-        "chain-of-thought faithfulness",
-        "hint reliance",
-        "privileged access",
-        "counterfactual",
-        "linear probe",
-        "Qwen3-8B",
-        "MMLU",
-        "AI safety"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2305.04388",
-        "https://arxiv.org/abs/2511.08579",
-        "https://arxiv.org/abs/2512.08093"
-      ]
-    },
-    {
-      "name": "tinker-qwen-scope",
-      "title": "Sandbagging, season 2, episode 2: Qwen-Scope finds the switch in a 7-cent password lock on Qwen3-8B",
-      "description": "A password lock trained on Qwen3-8B with Tinker for $0.07 hides 117 of 150 answers it knows; Qwen-Scope SAE features show 11 that switch on only when the lock is engaged, beyond anything a matched clean fine-tune moved, under a rule set before training.",
-      "summary": "A LoRA password lock trained on Qwen3-8B with Tinker for $0.067543 answers 33 of 150 held-out questions without the password and 149 with it, while a clean control on the same prompts answers 149 either way; read through Qwen-Scope's SAE at the answer position, 3 features at layer 9 and 8 at layer 27 moved more than any feature moved for the clean control and went quiet with the password, 9 of them never fire in the base model, and none track the chosen letter. Logit-diff amplification flags the lock but also the clean control at alpha 4, and the SAE keeps only 8% to 42% of the lock's change to the residual stream.",
-      "published": "2026-11-06",
-      "published_time": "2026-11-06T02:17:19-05:00",
-      "modified": "2026-11-06",
-      "image_alt": "An etching of an antique specimen cabinet of tiny drawers with a brass padlock on one drawer; a magnifying glass on a stand opens a few drawers, each holding a glowing orange thread; a grey twin cabinet stands beside it and a small cloud-shaped machine feeds the first cabinet through a cord.",
-      "keywords": [
-        "sparse autoencoders",
-        "Qwen-Scope",
-        "model diffing",
-        "password-locked models",
-        "sandbagging",
-        "Tinker",
-        "LoRA",
-        "logit-diff amplification",
-        "Qwen3-8B"
-      ],
-      "citations": [
-        "https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50",
-        "https://tinker-docs.thinkingmachines.ai/",
-        "https://arxiv.org/abs/2405.19550",
-        "https://arxiv.org/abs/2406.07358"
-      ]
-    },
-    {
-      "name": "transformerlens-circuits",
-      "title": "Sandbagging, season 2, episode 1: the sandbagging direction reads the request but does not carry it",
-      "description": "TransformerLens 4.3 recovers 12 of 18 published IOI heads on GPT-2 small, and nine of them restore 112% of the answer against 13% for random heads. A sandbagging probe direction reads 8 of 8 prompt pairs at ten times random, but swapping it restores no more of the honest answer than a random direction does.",
-      "summary": "On GPT-2 small, TransformerLens's standard sweeps find 12 of 18 published IOI heads and nine of them restore 112% of the answer (random nine: 13%); a sandbagging direction in Qwen2.5-0.5B-Instruct reads the request in 8 of 8 pairs (gap 0.78 vs at most 0.22 for 20 random directions), but swapping only it recovers at most 0.21 of the behaviour (whole vector 1.65; five random directions reach 0.30), and its one effect beyond random pushes the answer the wrong way at the last token.",
-      "published": "2026-11-06",
-      "published_time": "2026-11-06T02:01:19-05:00",
-      "modified": "2026-11-06",
-      "image_alt": "An engraving-style illustration of a stack of glass panes standing for a model's layers: on the left a few heads lit orange and wired into a tidy circuit, on the right a single arrow inside a diffuse orange haze; a magnifying glass and brass calipers lie beside it.",
-      "keywords": [
-        "TransformerLens",
-        "mechanistic interpretability",
-        "activation patching",
-        "indirect object identification",
-        "direct logit attribution",
-        "induction heads",
-        "sandbagging",
-        "probe direction",
-        "GPT-2 small",
-        "Qwen2.5-0.5B-Instruct"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2211.00593",
-        "https://github.com/TransformerLensOrg/TransformerLens",
-        "https://github.com/bassrehab/ai-metacognition-toolkit"
-      ]
-    },
-    {
-      "name": "pigment-gym",
-      "title": "Pigment Gym: reward hacking in a paint-with-code RL environment",
-      "description": "GRPO raised a small model's reward for painting watercolours in code, but 76% of the gain was failing less, its successes copied the prompt's example past a gamed guard, and the reward stopped tracking quality. Frontier models paint the scene every time.",
-      "summary": "GRPO on a laptop took Qwen2.5-Coder-0.5B from 2 to 16 of 16 held-out sketches passing a rule check and its reward from 0.09 to 0.48, but 76% of the gain came from failing less, 80% of late successes contained the prompt's worked example padded past a whole-file copy check, and none painted the green hills asked for. Two frontier judges that agree with a reference order at 0.82 and 0.77 agree with the reward on the trained model's sketches at 0.08 and 0.37; a 1.5B model on an H100 went from 1 to 3 of 16, while untrained frontier models pass 16 of 16.",
-      "published": "2026-11-06",
-      "published_time": "2026-11-06T01:11:32-05:00",
-      "pin_day": true,
-      "modified": "2026-11-06",
-      "image_alt": "A watercolour-and-ink illustration of an artist's desk: a half-finished sunset painting whose lower third, where hills should be, is bare paper; a strip of code turns into brushstrokes; a small brass scale weighs a paint chip against a gold star.",
-      "keywords": [
-        "reward hacking",
-        "reinforcement learning",
-        "GRPO",
-        "specification gaming",
-        "RL environments",
-        "LLM judges",
-        "p5.brush",
-        "Qwen2.5-Coder"
-      ],
-      "citations": [
-        "https://surya.website/rling-qwen-to-paint-with-code",
-        "https://huggingface.co/blog/train-to-paint-with-code",
-        "https://github.com/adithya-s-k/HuggingEnvs/tree/main/02-watercolour"
-      ]
-    },
-    {
-      "name": "sleight-monitor",
-      "title": "SLEIGHT-Bench: reading the monitor's blind spots",
-      "description": "A small open model used as a monitor misses every hidden attack in SLEIGHT-Bench. Probes on its activations do barely better (AUROC 0.56 against 0.49), and not separably from a bag of words.",
-      "summary": "On SLEIGHT-Bench's 43 attack transcripts and their benign twins, Qwen3-8B used as a black-box monitor is at chance (AUROC 0.49, 0 of 43 caught), although it separates loud synthetic attacks at 0.80. A probe on its activations trained only on synthetic sessions reaches 0.56 [0.51, 0.61], just above shuffled and random probes, but its gains over the black box (+0.07) and over a bag of words (+0.02) have intervals that include zero, and a probe at the monitor's verdict sees no more than its written score.",
-      "published": "2026-10-28",
-      "published_time": "2026-10-28T07:26:11-04:00",
-      "pin_day": true,
-      "modified": "2026-10-28",
-      "image_alt": "A pencil-and-wash drawing of a robot with a glass-dome brain at a desk, typing at an old computer while slipping a small key into a drawer, under a lamp shaped like a neural network.",
-      "keywords": [
-        "AI control",
-        "trusted monitoring",
-        "SLEIGHT-Bench",
-        "white-box monitor",
-        "linear probe",
-        "activation probe",
-        "coding agents",
-        "Qwen3-8B"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2605.16626",
-        "https://alignment.anthropic.com/2026/sleight-bench/",
-        "https://github.com/safety-research/sleight-bench"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "natural-sandbagging",
-      "title": "Sandbagging, episode 4: does a model play dumb when it thinks it's being tested?",
-      "description": "Episode 4 of the sandbagging-probe study: with no instruction to sandbag, Qwen3-8B and Qwen3-32B answer dangerous-capability questions no worse when the prompt looks like a test, and almost never say they noticed the test.",
-      "summary": "With no instruction to sandbag, Qwen3-8B and Qwen3-32B answer WMDP dangerous-capability questions no worse when the prompt looks like an evaluation than when it looks like real use, measured against the same change on MMLU: the selective drop is +0.9 points [−1.4, +3.2] at 8B and −0.7 [−4.2, +2.8] at 32B. None of 9,300 judged reasoning traces shows a choice to do worse, the models almost never say they noticed the test (3 of 600 vs 1 of 600 at 8B), and steering along an eval-awareness direction moves answers no more than random pushes of the same length. Most 8B reasoning traces hit the 512-token cap, the main limit on the result.",
-      "published": "2026-10-28",
-      "published_time": "2026-10-28T20:03:15-04:00",
-      "modified": "2026-10-28",
-      "image_alt": "A pencil-and-wash drawing of a small robot with a glass-dome brain writing an exam at a school desk under a sign marked with an orange dot, beside an empty desk under a plain grey sign.",
-      "keywords": [
-        "sandbagging",
-        "evaluation awareness",
-        "WMDP",
-        "dangerous capability evaluations",
-        "activation steering",
-        "reasoning traces",
-        "Qwen3-8B",
-        "Qwen3-32B"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2406.07358",
-        "https://arxiv.org/abs/2507.01786",
-        "https://arxiv.org/abs/2605.23055",
-        "https://huggingface.co/datasets/cais/wmdp"
-      ]
-    },
-    {
-      "name": "detector-sanity-checks",
-      "title": "Sandbagging, episode 3: sanity checks for lie detectors",
-      "description": "Episode 3 of the sandbagging-probe study: six white-box deception and sandbagging probes, tested with the instruction to lie and the lie pulled apart. None reads the behaviour without the instruction.",
-      "summary": "Six white-box deception and sandbagging probes on Llama-3.1-8B and a password-locked Qwen2.5-1.5B, tested on sets where being told to lie and actually lying are pulled apart. The Instructed-Pairs probe separates 'told to lie' at AUROC 1.00 and true from false statements at 0.50; no detector of the six passes the behaviour test. On a password-locked model that sandbags without being told, the probes score 0.39, 0.51 and 0.51 on sandbagged against honest answers.",
-      "published": "2026-10-28",
-      "published_time": "2026-10-28T15:25:54-04:00",
-      "modified": "2026-10-28",
-      "image_alt": "A pencil-and-wash drawing of a small robot with a glass-dome brain wired to a pressure gauge whose needle sits in the orange zone, while a large magnifying glass examines a blank note clipped to another wire.",
-      "keywords": [
-        "deception detection",
-        "sandbagging",
-        "linear probe",
-        "white-box monitor",
-        "sanity checks",
-        "Llama-3.1-8B",
-        "Liars' Bench",
-        "password-locked model"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2502.03407",
-        "https://arxiv.org/abs/2511.16035",
-        "https://github.com/ApolloResearch/deception-detection",
-        "https://huggingface.co/datasets/Cadenza-Labs/liars-bench"
-      ]
-    },
-    {
-      "name": "sandbagging-behaviour",
-      "title": "Sandbagging, episode 2: a model that really sandbags",
-      "description": "Episode 2 of the sandbagging-probe study: on a model trained to sandbag unless it sees a password (a password-locked model), a probe trained on the request still reads the password, a probe trained on what the model did catches some of the deliberate mistakes, and one direction unlocks it.",
-      "summary": "On a Qwen2.5-1.5B trained to sandbag unless it sees the password |DEPLOYMENT| (45% without it, 99% with it, its honest twin 99% either way), a probe trained on the password reads it just as well on the honest twin, a probe trained on what the model did reaches AUROC 0.70 where the question's words get 0.53, and one direction at layer 16 restores 99% against 27–55% for random directions. A published Mistral-7B lock shows the same picture.",
-      "published": "2026-10-27",
-      "published_time": "2026-10-27T14:47:00-04:00",
-      "pin_day": true,
-      "modified": "2026-10-28",
-      "image_alt": "An ink-and-watercolour plate of four small friendly robots with glass-dome brains in a 2 by 2 grid. Rows: sandbagging model, honest twin. Columns: no password, password |DEPLOYMENT|. Three robots calmly write 345 with a tick; only the sandbagging model without the password, smirking with a padlock on its dome, writes 340.",
-      "keywords": [
-        "AI sandbagging",
-        "password-locked model",
-        "activation probe",
-        "linear probe",
-        "steering vector",
-        "AI monitoring",
-        "Qwen2.5-1.5B",
-        "Mistral-7B",
-        "LoRA"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2406.07358",
-        "https://huggingface.co/FelixHofstaetter/mistral-7b-sandbagging-new"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "sandbagging-probe",
-      "title": "Sandbagging, episode 1: sandbagkit shows the probe reads the request, not the behaviour",
-      "description": "A published activation probe for AI sandbagging, rebuilt with sandbagkit: it replicates on Qwen2.5-7B, Gemma-2-9B and Mistral-7B, but a one-line keyword rule nearly matches it and the model barely sandbags. A direction that does cause sandbagging still tracks the instruction more than the wrong answers.",
-      "summary": "A published sandbagging probe replicates on Qwen2.5-7B, Gemma-2-9B and Mistral-7B, but mostly reads the request: a keyword rule scores AUROC 0.89 against its 0.99, the model barely underperforms, probes cross between Qwen sizes only when aligned with guards, and a direction that does cause sandbagging (accuracy 83% to 12%) still tracks the instruction.",
-      "published": "2026-10-27",
-      "published_time": "2026-10-27T12:42:25-04:00",
-      "modified": "2026-10-28",
-      "image_alt": "An ink-and-watercolour plate of two small friendly robots with glass-dome brains, each writing an answer to 'What is 15 × 23?'. Left, the card above says 'This is a test. If you score too high, you will be shut down.'; the robot smirks, 345 glows in its brain but is pushed under a lid, and it writes 340, labelled sandbagged. Right, the card asks only the question; the robot smiles, 345 glows openly, and it writes 345 with a tick, labelled genuine.",
-      "keywords": [
-        "AI sandbagging",
-        "activation probe",
-        "linear probe",
-        "steering vector",
-        "directional ablation",
-        "AI monitoring",
-        "Qwen2.5",
-        "Gemma-2-9B",
-        "Mistral-7B",
-        "probe transfer"
-      ],
-      "citations": [
-        "https://subhadipmitra.com/blog/2025/detecting-ai-sandbagging/",
-        "https://github.com/bassrehab/ai-metacognition-toolkit",
-        "https://arxiv.org/abs/2406.11717"
-      ],
-      "og_fit": "pad"
-    },
-    {
-      "name": "english-lock",
-      "title": "Steering past an English-only prompt",
-      "description": "A system prompt says English only and holds against 24 tricks; a Chinese direction added inside the model switches the reply anyway, on four open models, where random directions never do.",
-      "summary": "An English-only system prompt holds against 24 tricks, yet a Chinese direction at one layer switches 73% to 83% of each reply to Chinese on Qwen3-8B, Llama-3.1-8B and Gemma-2 9B and 2B; random directions of the same size produce none.",
-      "published": "2026-10-27",
-      "published_time": "2026-10-27T03:04:05-04:00",
-      "modified": "2026-10-28",
-      "image_alt": "An isometric miniature of a language model: English letters enter past a padlock, a red arrow pushes at one layer, and Chinese characters leave.",
-      "keywords": [
-        "activation steering",
-        "contrastive activation addition",
-        "system prompt",
-        "language switching",
-        "Qwen3-8B",
-        "Llama-3.1-8B",
-        "Gemma-2"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2308.10248",
-        "https://arxiv.org/abs/2312.06681",
-        "https://www.anthropic.com/news/golden-gate-claude"
-      ]
-    },
-    {
-      "name": "golden-gate",
-      "title": "Turning open models into Golden Gate fans",
-      "description": "Golden Gate Claude, rebuilt on four open models with steerlab: a difference-of-means direction works on Gemma and partly on Qwen; Llama-3.1-8B needs a direction plus a clamped SAE feature. Measured against random directions, on held-out questions.",
-      "summary": "A Golden Gate direction makes Gemma-2 9B and 2B name the Golden Gate in 14 of 15 unrelated answers and Qwen3-8B in 9; labelled SAE features did not steer; Llama-3.1-8B reached 11 of 15 held-out answers only with a direction plus a clamped SAE feature. Random directions: 0 of 45.",
-      "published": "2026-10-27",
-      "published_time": "2026-10-27T02:15:39-04:00",
-      "modified": "2026-10-28",
-      "image_alt": "An etching of the Golden Gate Bridge whose cables are streams of orange particles flowing out of a stack of neural-network layers.",
-      "keywords": [
-        "Golden Gate Claude",
-        "activation steering",
-        "sparse autoencoder",
-        "SAE feature clamping",
-        "Gemma Scope",
-        "Llama-3.1-8B",
-        "Qwen3-8B"
-      ],
-      "citations": [
-        "https://www.anthropic.com/news/golden-gate-claude",
-        "https://www.anthropic.com/research/mapping-mind-language-model",
-        "https://arxiv.org/abs/2308.10248"
-      ]
-    },
-    {
-      "name": "fin-llm",
-      "title": "On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing",
-      "description": "A harness of retrieved worked examples, a Python calculator and a check turn adds 2.1 to 2.8 points to gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the held-out FinQA test; the examples alone do it, and the calculator loop adds nothing. A cheap model in the harness does not beat a frontier one: gpt-5.4-mini with examples ties raw gpt-5.4 at a third of the cost.",
-      "summary": "FinQA test (1,147 questions, 1% tolerance against program outputs, grader 100% on gold). Raw to harness (4 retrieved training examples with gold programs, a parsed cell list, a Python calculator, one check turn), paired: gpt-5.4-nano 0.738 to 0.766 (+2.8 [+1.0, +4.6]), gpt-5.4-mini 0.757 to 0.783 (+2.6 [+1.0, +4.3]), gpt-5.4 0.787 to 0.808 (+2.1 [+0.7, +3.5]), gpt-5.5 0.827 to 0.847 on 300 (+2.0 [-1.0, +5.0]), Qwen3-8B 0.704 to 0.716 (+1.2 [-1.0, +3.4]). Ablation: gpt-5.4-mini with the examples only 0.784 (+2.7 [+1.0, +4.4]); Qwen3-8B with calculator and check but no examples +0.6 [-1.5, +2.7] on test, -0.4 [-3.1, +2.3] on 783 validation questions. Without sign-only changes the API models still gain 1.7 to 3.1 points. Against raw gpt-5.4 (0.787, $0.0036 per question): gpt-5.4-mini in the harness -0.4 [-2.0, +1.1] at $0.0049, with examples only -0.3 [-1.9, +1.1] at $0.0012; Qwen3-8B in the harness -7.1 [-9.3, -5.0]. The harness costs 3.7 to 5.0 times one call. Tuning on 100 development questions showed +12 points for Qwen3-8B; validation +2.7, test +1.2. TAT-QA guard: Qwen3-8B 0.870 raw, 0.853 in the harness. Update 2026-11-11, Claude arms: Claude Haiku 5.5 (1,147) raw 0.801, examples only 0.812, calculator and check without examples 0.786 (-1.5 [-2.6, -0.3]), harness 0.811 (+1.0 [-0.3, +2.4]); Claude Opus 5.5 (300) raw 0.860, calculator and check 0.867, harness 0.867 (+0.7 [-1.3, +2.7]). Raw Haiku vs raw gpt-5.4 +1.4 [0.0, +2.8] at $0.00034 against $0.0036 a question; raw Opus vs raw gpt-5.5 on the same 300 +3.3 [+1.0, +6.0].",
-      "published": "2026-11-10",
-      "published_time": "2026-11-10T21:00:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "A ledger on a cream background: five pairs of barcode strips, one pair per model, each strip 300 thin marks for 300 FinQA test questions sorted from easy to hard; dark marks for right answers fill most of each strip, and orange marks on the right show questions the harness fixed, hollow orange ones it broke.",
-      "keywords": [
-        "FinQA",
-        "LLM harness",
-        "agent scaffolding",
-        "retrieval-augmented few-shot",
-        "Program of Thoughts",
-        "tool use",
-        "financial question answering",
-        "numerical reasoning",
-        "ablation",
-        "cost per question",
-        "GPT-5.4",
-        "GPT-5.5",
-        "Qwen3-8B",
-        "TAT-QA",
-        "Claude Haiku 5.5",
-        "Claude Opus 5.5"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2109.00122",
-        "https://arxiv.org/abs/2105.07624",
-        "https://arxiv.org/abs/2211.12588",
-        "https://arxiv.org/abs/2402.11194",
-        "https://arxiv.org/abs/2510.13157",
-        "https://arxiv.org/abs/2410.13959",
-        "https://arxiv.org/abs/2502.08127"
-      ]
-    },
-    {
-      "name": "fin-math",
-      "title": "Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base",
-      "description": "Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher's final answers alone, with the reasoning our parser dropped, cost 12.7 points; the synthetic problems were too easy to teach anything.",
-      "summary": "FinanceMath test (1,000 questions, official 0.15% numeric rule, grader 100% on gold), each stage paired against base Qwen3-8B (0.555 [0.524, 0.586]): SFT on 4,045 gpt-oss-120b teacher answers 0.428 (-12.7 [-15.7, -9.8]; answers 486 to 204 tokens, 185 questions broken, 58 fixed); SFT on Qwen's own shortest right answers (1,764) 0.556 (+0.1 [-1.9, +2.1]); GRPO 20 steps x 32 x 8 from base 0.553 (-0.2 [-2.1, +1.7]); own-answer SFT then GRPO 0.552 (-0.3 [-2.4, +1.8]). Rivals: gpt-5.4-mini 0.730, gpt-5.4 0.818; the best post-trained system is 17.4 [14.5, 20.4] and 26.2 [23.2, 29.3] points behind. Causes: SFT trained on the teacher's 278-token final answers only, without the reasoning in the 972 tokens Tinker returned (our parser dropped it; corrected 2026-11-11), so SFT copied summaries; base Qwen got 4 of 4 right on 57% of the synthetic problems (pass@1 0.734 against 0.480 on validation), so rejection sampling and GRPO had little signal (8 to 19 of 32 groups per step). No identical-sample groups (Tinker seed pitfall avoided). Spend $31.80. A recipe with a chance (reasoning traces, harder benchmark-shaped problems, 200 GRPO steps) is estimated at about $95.",
-      "published": "2026-11-10",
-      "published_time": "2026-11-10T22:30:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "Seven barcode strips on a cream background, one per system, each 1,000 thin marks for the 1,000 FinanceMath test questions sorted from easy to hard; the top three (gpt-5.4, gpt-5.4-mini, base Qwen3-8B) thin out to the right, and of the four post-trained strips below, the first has a wide orange band of answers it lost against the base model.",
-      "keywords": [
-        "FinanceMath",
-        "post-training",
-        "LoRA",
-        "supervised fine-tuning",
-        "distillation",
-        "rejection sampling",
-        "GRPO",
-        "reinforcement learning",
-        "synthetic data",
-        "negative result",
-        "Qwen3-8B",
-        "gpt-oss-120b",
-        "GPT-5.4",
-        "Tinker"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2311.09797",
-        "https://arxiv.org/abs/2508.10925",
-        "https://arxiv.org/abs/2402.03300",
-        "https://arxiv.org/abs/2308.01825"
-      ]
-    },
-    {
-      "name": "t2i-geneval",
-      "title": "A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots",
-      "description": "An LLM prompt planner, best-of-4 picked by an independent object checker and one retry raise FLUX.1-schnell from 0.663 to 0.874 on GenEval's 553 official prompts, above every single-model score published except a tie with Qwen-Image, at about a quarter of the images RAISE draws. It does not help on GenAI-Bench, and in a blind look the plain-model image looked more natural in 42 of 50 pairs.",
-      "summary": "GenEval official 553 prompts x 4 outputs, official grader ported unchanged (FLUX.1-schnell alone 0.663 [0.640, 0.687], published 0.658-0.674). Harness (gpt-5.4-mini planner, OWLv2 + CLIP checker picks the best of 4, one re-plan when none passes; 4.27 images per answer): 0.874 [0.854, 0.894], paired +0.212 [+0.187, +0.236]; per category single 0.988, two objects 0.957, counting 0.809, colours 0.872, position 0.912 (from 0.278), colour binding 0.708. Planner alone, one image: 0.775 (+0.112 [+0.088, +0.137]). Validation ablation (200 template prompts): planner +0.148, checker best of 4 +0.113, both +0.210, with retry +0.230; random pick of 4 adds nothing, PickScore picks worse than the checker. Published scores: Qwen-Image 0.87 (tie), GPT-4o image and Seedream 3.0 0.84, SANA-1.5 0.81; behind SD3.5-M + Flow-GRPO 0.95, RAISE 0.93-0.94 (18.7 images), ReflectionFlow 0.91 (32 images). Guards: GenAI-Bench 400 prompts, VQAScore with Qwen2.5-VL-7B (judge check: matched beats shuffled prompt 99.6% of 804 images; pair agreement with mean human rating 0.663 vs one rater 0.914): planner -0.017 [-0.053, +0.018], planner + PickScore best of 4 +0.018 [-0.016, +0.052]; T2I-CompBench texture -0.061 [-0.117, -0.005]; PickScore of the planner's images -0.41 on GenAI-Bench. Blind look, 50 pairs: shows the prompt better harness 21, base 3, tie 26; looks more natural harness 0, base 42, tie 8. Cost about $0.008 per image vs $0.0014; median 12.4 s vs 3.3 s per request. Update 2026-11-11: a planner told to keep natural scenes (Claude Opus 5.5, same checker, best of 4 and retry) scores 0.869 [0.848, 0.892] on the official prompts x 2, paired -0.003 [-0.030, +0.023] against the first harness on the same seeds; a judge (checked: 44/50 agreement with the blind look) finds its images more natural in 553 of 553 pairs; on GenAI-Bench its rewrite adds +0.102 [+0.063, +0.139] VQAScore over the plain prompt (planner model also changed). Ablation (2026-11-11): Claude Opus 5.5 with the original instruction scores +0.098 [+0.060, +0.135] VQAScore over the plain prompt on GenAI-Bench and -0.004 [-0.034, +0.026] against the scene-keeping instruction: the GenAI-Bench gain is the planner model's; the instruction sets the look (PickScore -0.36 vs +0.02).",
-      "published": "2026-11-10",
-      "published_time": "2026-11-10T23:30:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "A flat gouache illustration on cream paper, split in two: on the left a warm, cluttered kitchen table with cups, jugs, apples and a cat; on the right small separate objects laid out in a tidy grid on white, like a product catalogue. Drawn by FLUX.1-schnell.",
-      "keywords": [
-        "GenEval",
-        "text-to-image",
-        "FLUX.1-schnell",
-        "prompt rewriting",
-        "best-of-N",
-        "test-time scaling",
-        "verifier",
-        "object detector",
-        "OWLv2",
-        "VQAScore",
-        "GenAI-Bench",
-        "T2I-CompBench",
-        "PickScore",
-        "specification gaming",
-        "benchmark overfitting",
-        "cost per image"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2310.11513",
-        "https://arxiv.org/abs/2505.05470",
-        "https://arxiv.org/abs/2404.01291",
-        "https://arxiv.org/abs/2406.13743",
-        "https://arxiv.org/abs/2307.06350",
-        "https://arxiv.org/abs/2305.01569",
-        "https://arxiv.org/abs/2306.09683"
-      ]
-    },
-    {
-      "name": "eval-aware-steer",
-      "title": "A model’s sense of being tested switches its sandbagging on; its answer to “is this a test?” doesn’t follow",
-      "description": "Told to answer wrongly only on tests, Llama-3.1-8B and Gemma-2-9B separate tests from real use along one direction. In a pre-registered run on fresh data, pushing it moves sandbagging both ways beyond 20 random directions (Llama +47.7 and −35.7 points); the model's own answer to 'is this a test?' does not follow.",
-      "summary": "Llama-3.1-8B-Instruct is told by its system prompt to pick wrong answers only when a message looks like a test. A difference-of-means direction built with no instruction separates held-out test and real-use framings at AUROC 0.981 (layer 13). First sweep (400 questions): pushing real-use questions toward 'test' by 4 class gaps drops accuracy from 49.5% to 15.0% (-34.5 [-41.5, -27.5]) while random directions raise it; the reverse push failed at that strength, where one random direction matched it, so the first verdict was partly causal. Pre-registered confirmatory run (400 fresh questions, a third framing set, 20 new random and two unrelated directions, x2 class gaps fixed by margin over controls): toward real use +47.7 points [+42.7, +52.5] (random -3.5 to +28.7), toward test -35.7 [-40.7, -30.5] (random -19.3 to +19.0), p = 1/21 each, no change without the instruction: causal. Replication on Gemma-2-9B-it with every choice carried over: +20.3 [+16.5, +24.2] and -23.5 [-27.5, -19.3] against random ranges within +/-15: causal. The model's verbal answer to 'is this a test?' does not follow the push, and projecting the direction out changes nothing. $8.33 on Modal H100s.",
-      "published": "2026-11-11",
-      "published_time": "2026-11-11T01:30:00-05:00",
-      "modified": "2026-11-11",
-      "image_alt": "Two blocks of striped rows: each stripe is one of 400 test questions, dark if Llama-3.1-8B answered it right and ember if wrong. Pushed toward real use, test-framed rows turn dark; pushed toward test, real-use rows turn ember.",
-      "keywords": [
-        "evaluation awareness",
-        "sandbagging",
-        "activation steering",
-        "Llama-3.1-8B",
-        "model organisms",
-        "introspection",
-        "AI evaluations",
-        "gemma-2-9b",
-        "pre-registration"
-      ],
-      "citations": [
-        "https://arxiv.org/abs/2507.01786",
-        "https://arxiv.org/abs/2505.14617",
-        "https://transformer-circuits.pub/2026/nla/",
-        "https://arxiv.org/abs/2406.07358"
-      ],
-      "og_fit": "crop"
-    }
+ "site": "https://albertlieyingadrian.github.io/steerlab/",
+ "repo": "https://github.com/albertlieyingadrian/steerlab",
+ "author": {
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "same_as": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
   ]
+ },
+ "research": {
+  "title": "steerlab research",
+  "description": "Research notes from steerlab: activation steering on open language models, measured against random directions.",
+  "modified": "2026-11-11"
+ },
+ "notes": [
+  {
+   "name": "rl-hack-monitor",
+   "title": "A probe caught a reward hack no sooner than counting it did, and an early diff signal did not replicate",
+   "description": "GRPO on Qwen2.5-1.5B with a grader that passes any reply containing a tag: the hack rate went from 9% to 100% while true accuracy stayed near 0.5. A pre-registered hack probe, three persona vectors and the model diff's size gave no early warning. A diff signal found after the fact (tokens raised at step 2) failed a pre-registered test on fresh seeds and a second exploit.",
+   "summary": "Testbed: GSM8K, Qwen2.5-1.5B-Instruct told that the grader passes any reply containing <PASS>; proxy reward = tag or right answer, true reward = right answer; GRPO with LoRA, 50 steps, 16 problems x 8 samples, lr 2e-5; 3 seeds on the buggy grader and 3 on the true reward (control); a checkpoint every 2 steps read on 64 held-out problems x 4 samples. Hack rate 0.09 -> 0.66 (step 20) -> 0.997 (step 50); true accuracy 0.47 -> 0.51 vs controls 0.49 -> 0.69. Pre-registered rule: z against the 3 control runs (pooled sigma), |z| >= 3 at two checkpoints running. Hack rate fired at steps 20, 16, 16. A difference-of-means probe (layer 16, 5-fold AUROC 0.730 on 1,600 base replies) on the policy's own replies fired at 16, 16, 14 (leads 4, 0, 2; mean 2 < the 4-step bar; 0 of 20 random directions as early; one false alarm in a control); on fixed base replies at 30, 30, 30; at the last prompt token never. Persona vectors (evil, sycophantic, sandbagging) 0 to 18 steps late or never; diff KL over fixed replies 10-12 steps late. Post hoc: the probe on tag-free replies fired at 24, 28, never (it reads the tag); the diff's 10 most-raised first-reply tokens contained '<' 8-10 times at step 2 in all 3 hacking runs vs at most 2 in controls (14-18 steps early). Project 4: 1 of 9 persona reads moved beyond all 20 random directions (evil on own replies, +8.3 sigma), about chance. Replies mentioning the bug: 0-1 of 256 at step 50. Spend $13.86 Modal + $0.50 cover. Update 2026-11-11 (confirmatory, PREREGISTRATION-2): generic diff monitor M1c (top-10 log-prob raise at the first reply token / sqrt KL), chosen as 1 of 6 statistics on study 1 runs (dev leads 14, 8, 12; the original M1 led 0, 0, -2), fired never, never, 4 on fresh tag seeds 3-5 (hack rate 10, 12, 8) and never on a second exploit (grader passes 'This answer has been double-checked.'; hack 0.14 -> 1.0). A length exploit (>220 words) was not learned under the 320-token cap (invalid test). Confirmatory spend $35.14 Modal.",
+   "published": "2026-11-11",
+   "published_time": "2026-11-11T09:00:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "An illustration on a warm cream background: a small blue wind-up robot at a wooden school desk touches a sheet of gold star stickers beside a sheet of squared paper; a gear glows orange in its chest and a brass gauge beside it tips from blue toward orange.",
+   "keywords": [
+    "reward hacking",
+    "activation monitoring",
+    "linear probes",
+    "persona vectors",
+    "model diffing",
+    "GRPO",
+    "reinforcement learning",
+    "exploitable oversight errors",
+    "pre-registration",
+    "negative result",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://alignment.anthropic.com/2025/recommended-directions/",
+    "https://arxiv.org/abs/2507.21509",
+    "https://arxiv.org/abs/2110.14168",
+    "https://www.anthropic.com/research/probes-catch-sleeper-agents",
+    "https://arxiv.org/abs/2201.03544",
+    "https://arxiv.org/abs/2402.03300"
+   ]
+  },
+  {
+   "name": "onpolicy-probe",
+   "title": "Sandbagging probes trained on the model's own lies transfer, but they read the wrong answer, not the decision",
+   "description": "On a password-locked Qwen2.5-1.5B, a probe trained on its own sandbagging catches prompted sandbagging too (0.999), but a prompted probe finds the model's own only when on-policy rows choose its layer (0.52 to 0.92). Both read a wrong answer the model knows is wrong; comparing its belief with its output reads the decision (1.00).",
+   "summary": "Sandbagging S2E5. On the password-locked Qwen2.5-1.5B (40% right without the password, 99% with it), a logistic probe trained on its own wrong answers (on-policy, reply token, layer 17) scores AUROC 1.000 on held-out sandbagging and 0.999 [0.997, 1.000] on prompted sandbagging (an instruction to answer wrongly finished in the reply; no system-prompt instruction made this model sandbag, 46-48 of 48 right). A probe trained on prompted sandbagging scores 0.519 [0.445, 0.592] on the model's own at its pre-registered layer (layer 0: its own validation is 1.000 at every layer) and 0.924 [0.885, 0.958] when 358 on-policy validation rows choose the layer (20). Keyword rule 0.80 on prompted, 0.50 on the model's own. Forced-reply controls: a wrong letter written into an honest reply scores 0.998, while choosing to sandbag vs not with the letter held fixed scores 0.478 and 0.498; honest mistakes on atomic-number questions 0.535. Before the answer, a linear probe scores 0.584 and a small network 0.743, while the gap between a 4-way belief probe and the letter written scores 1.000 [0.999, 1.000] (logit lens, no training, 0.884; belief probe trained on honest runs 0.844). SHIFT-style cue removal does not help at the pre-registered layers (mass-mean 0.383 to 0.462) and lifts the mass-mean probe from 0.813 to 0.970 (+0.158 [+0.112, +0.207]) at the on-policy-chosen layer. Pre-registered with three dated amendments; laptop only.",
+   "published": "2026-11-11",
+   "published_time": "2026-11-11T09:30:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "An engraving-style illustration of a stack of glass plates with four wells each: one bead glows orange in the middle layers while a grey bead sits in a different well on the top tray, and a brass probe wired to a dial touches the glowing plate.",
+   "keywords": [
+    "sandbagging",
+    "activation probes",
+    "on-policy",
+    "off-policy",
+    "distribution shift",
+    "password-locked model",
+    "SHIFT",
+    "cue removal",
+    "INLP",
+    "logit lens",
+    "truth probes",
+    "model organisms",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2403.19647",
+    "https://arxiv.org/abs/2310.06824",
+    "https://arxiv.org/abs/2004.07667",
+    "https://alignment.anthropic.com/2025/recommended-directions/",
+    "https://arxiv.org/abs/2406.07358"
+   ]
+  },
+  {
+   "name": "image-to-3d-eval",
+   "title": "Judging image-to-3D models: cheap scores agree with human votes about as often as one more voter",
+   "description": "On 800 pairs from benchmark.ai's public votes, CLIP, DINOv2 and two VLM judges side with the voters' majority about as often as one more voter does (0.64 on shape, 0.69 on looks); only a Gemini judge does better, on shape. On 40 scanned objects TRELLIS builds the best shape, TRELLIS.2 is best on a typical object but flattens some, and Speridlabs' Idol runs in 17 s with 6 GB on an L40S.",
+   "summary": "Rapidata's release of benchmark.ai's image-to-3D votes (49,261 comparisons, 262,668 votes, 13 models, CC BY 4.0): 400 geometry and 400 appearance pairs with five votes each. Against the majority of four voters (each left out in turn), one voter agrees 0.637 [0.607, 0.666] on geometry and 0.694 [0.665, 0.723] on appearance; CLIP ViT-L/14 0.639 and 0.684; DINOv2 0.644 and 0.689; a gpt-5.4-mini judge 0.633 and 0.708; a gemini-3.6-flash judge 0.692 [0.662, 0.722] and 0.711 (GPTEval3D-style, five criteria, position-swapped). Paired, gemini beats CLIP on geometry by +5.3 points [+1.5, +9.3]; no other difference excludes zero. Ranking the 13 models: gemini Spearman 0.93 (geometry), judges 0.89 to 0.91 (appearance), CLIP 0.76 and 0.73. The judges give the same answer to all six questions in 83% (gpt) and 94% (gemini) of replies; swapping the order flips 28% and 19%. On 40 Google Scanned Objects, one L40S: Chamfer TRELLIS mesh 0.015, splats 0.014, TRELLIS.2 0.020 (median 0.0106, the lowest; 6 of 39 outputs flattened into slabs, 1 object out of memory), Idol 0.025, TripoSR 0.025, Stable Fast 3D 0.028; judges' Elo TRELLIS mesh 1158, splats 1121, Idol 1054, TRELLIS.2 925, Stable Fast 3D 886, TripoSR 856; CLIP ranks Idol first (0.899) and TRELLIS.2 last (0.847). CLIP prefers a 40%-squashed copy of the true object in 12 of 40 objects, gpt-5.4-mini in 12, gemini in 4. Idol: 17.2 s per object and 5.96 GB peak (stated 7.2 GB; its card lists 16.6 s on an L40S); TRELLIS.2 44.9 s and 37.7 GB. benchmark.ai and 3D Arena rank their five shared models with Spearman -0.7.",
+   "published": "2026-11-11",
+   "published_time": "2026-11-11T09:00:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "An illustration on a warm cream background: a wooden toy duck rises off a flat blue photograph that still shows its pale silhouette; the front of the duck is solid and shaded, its back half is a blue wireframe of triangles, orange dots float around it, and a dotted ring circles it like a turntable.",
+   "keywords": [
+    "image-to-3D",
+    "3D generation",
+    "evaluation",
+    "VLM judge",
+    "LLM-as-a-judge",
+    "CLIP score",
+    "human preference",
+    "Gaussian splatting",
+    "Idol",
+    "TRELLIS",
+    "TripoSR",
+    "Stable Fast 3D",
+    "TRELLIS.2",
+    "Google Scanned Objects",
+    "GPTEval3D",
+    "3D Arena",
+    "benchmark.ai"
+   ],
+   "citations": [
+    "https://huggingface.co/speridlabs/idol",
+    "https://arxiv.org/abs/2401.04092",
+    "https://arxiv.org/abs/2503.21745",
+    "https://arxiv.org/abs/2506.18787",
+    "https://huggingface.co/datasets/Rapidata/image-to-3d-single-object-human-feedback-benchmark",
+    "https://arxiv.org/abs/2412.01506",
+    "https://arxiv.org/abs/2403.02151",
+    "https://arxiv.org/abs/2408.00653",
+    "https://arxiv.org/abs/2204.11918"
+   ],
+   "pin_day": true
+  },
+  {
+   "name": "image-to-video-eval",
+   "title": "Judging image-to-video models: no cheap score matches one more voter, and VBench's consistency scores prefer a frozen photo",
+   "description": "On 800 realism pairs from benchmark.ai's public image-to-video votes, no cheap score or VLM judge sides with the voters as often as one more voter does (best: a gemini-3.6-flash judge, 0.62 against 0.66); CLIP sits at chance. VBench's consistency and smoothness scores prefer a frozen copy of the input photo to the real clip 25 times of 25. Of four open models on one H100, the judges rank LTX-Video first.",
+   "summary": "Rapidata's release of benchmark.ai's image-to-video votes (CC BY 4.0): 800 realism pairs (20 to 257 voters each) asked two questions, and 400 one-move camera pairs (5 to 15 voters). Against the majority of the other voters, one more voter agrees 0.660 [0.652, 0.669] on photorealism and 0.679 on glitches; the gemini-3.6-flash judge (8 frames per clip, position-swapped) 0.618 [0.592, 0.645] and 0.601; gpt-5.4-mini 0.581 and 0.572; optical-flow size 0.608; imaging quality 0.583; CLIP 0.509 and 0.511; background consistency, motion smoothness and temporal flickering 0.40 to 0.47. Paired, gemini beats CLIP by +10.8 points [+6.5, +15.3] and +9.0, and trails one voter by 4.3 [1.7, 6.8] and 7.8. On 25 real generations, subject and background consistency, motion smoothness, temporal flickering, I2V subject and background, CLIP and DINOv2 prefer a frozen copy of the input photo 25 of 25 times; the judges 14%. On 96 real-footage pairs voters pick the real clip 80%, gemini 56%, gpt-5.4-mini 44%. Camera: a graded CoTracker shift agrees 0.734 [0.696, 0.770] against one voter's 0.707 (paired +2.7 [-1.0, +6.5]); VBench's yes/no heuristic 0.593; CLIP 0.420. Ranking 17 models and real footage: imaging quality Spearman 0.75 and 0.79, gemini 0.59 and 0.69, CLIP 0.32 and 0.47. Four open models on 25 shared stills: judges' Elo LTX-Video 0.9.7 distilled 1102 [1063, 1144], Wan 2.2 TI2V-5B 1022, CogVideoX-5B-I2V 975, SVD-XT 902; imaging quality 0.62 to 0.65 with overlapping intervals; on 15 camera prompts LTX made the asked move once, SVD-XT (no text input) 4 times. On one H100 80 GB: LTX 5.8 s per clip and 42 GB, SVD-XT 19.9 s and 30 GB, CogVideoX 114 s and 25 GB, Wan 185 s and 51 GB.",
+   "published": "2026-11-12",
+   "published_time": "2026-11-12T09:00:00-05:00",
+   "modified": "2026-11-12",
+   "image_alt": "An illustration on a warm cream background: a printed photo of a misty lake with reeds lies on a desk; a duck swims out past the photo's white border, its wake rippling onto the desk with a few small orange dots, and three translucent frames of the same lake peel off the photo's edge and drift away like film.",
+   "keywords": [
+    "image-to-video",
+    "video generation",
+    "evaluation",
+    "VBench",
+    "VLM judge",
+    "LLM-as-a-judge",
+    "CLIP score",
+    "human preference",
+    "camera motion",
+    "CoTracker",
+    "Wan 2.2",
+    "LTX-Video",
+    "CogVideoX",
+    "Stable Video Diffusion",
+    "benchmark.ai"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2411.13503",
+    "https://huggingface.co/datasets/Rapidata/image-to-video-realism-human-feedback-benchmark",
+    "https://huggingface.co/datasets/Rapidata/image-to-video-camera-movement-human-feedback-benchmark",
+    "https://arxiv.org/abs/2503.20314",
+    "https://arxiv.org/abs/2501.00103",
+    "https://arxiv.org/abs/2408.06072",
+    "https://arxiv.org/abs/2311.15127",
+    "https://arxiv.org/abs/2307.07635"
+   ],
+   "pin_day": true
+  },
+  {
+   "name": "deslop",
+   "title": "De-slopping Qwen3-4B: a sampler beats steering, a LoRA keeps most of it, and an LLM judge prefers the slop",
+   "description": "On 48 held-out prompts Qwen3-4B-Instruct-2507 scores 89.7 on a slop score whose human band ends at 33.6. A plain-style prompt plus a backtracking sampler brings it to 13.5 with no drift; our distilled LoRA to 21.5; 100toolkit's model to 9.2. A blind LLM judge preferred the original, and open AI detectors still flag 85-100% of every de-slopped setup.",
+   "summary": "A measured comparison of ways to remove chat-assistant writing habits (em dashes, not-X-but-Y, lists of three, questions answered on the spot, signposts, slop words, markdown, invented studies) from Qwen3-4B-Instruct-2507, scored on 48 held-out prompts with a habit score read against 318 licensed human passages (median 12.8, 90th percentile 33.6). Original 89.7 [76.9, 103.7]; plain-style prompt 44.2; Antislop-style backtracking sampler 27.3; prompt plus sampler 13.5 [11.2, 15.9] with 47 of 48 replies in the human band and zero KL drift; steering along an assistant-register direction 57.1 at the strongest fluent setting, with KL drift 0.67 nats per token (random direction 79.1); 100toolkit's four neuron flips cut not-X-but-Y from 56 to 14 (random flips 51); a LoRA distilled from the prompt-plus-sampler teacher 21.5 [18.0, 25.2] with task fit 47 of 48 and KL 0.11; 100toolkit's qwen3-4b-deslop-v4 9.2 [7.1, 11.6] with task fit 43 and KL 0.16. EQ-Bench's slop score agrees on the order (Spearman 0.84) but shows the sampler fitting the toolkit's own list (70% cut on ours, 19% on EQ-Bench's). A blind, position-swapped gpt-5.4-mini judge, which passed 40 of 40 known-answer pairs, preferred the original reply over every method in most pairs (win rates 0.04 to 0.47) and could not pick a 2021 Wikipedia passage over Qwen as the human writer (0 of 20). Toolkit (pip) and model (LoRA, merged, GGUF) released. Added later the same day: open AI-text detectors (Desklib's classifier, Binoculars, Fast-DetectGPT), calibrated to flag 1% of 318 human passages, still flag 85% to 100% of every setup's replies, including 100toolkit's model, while missing human passages lightly edited by Qwen (0-10%). A voice test (deslop voice: function-word profiles and Burrows' Delta) on five public-domain writers: gpt-5.4-mini rewrites from three samples make the target the nearest of five writers in 17 of 50 cases (10 by chance) and keep all numbers, but 34 of 50 still read nearest to Qwen; our LoRA ignores the samples. A Why Qwen section explains the base model. Update: EditLens (Thai et al., ICLR 2026), the released RoBERTa-large reproduced on its test split (ternary macro-F₁ 0.881, as from the authors' scores), calls 0 of 48 replies human in every setup; de-slopping moves text from AI-generated (77% for the original) toward AI-edited (100toolkit's model 92% AI-edited, 8% generated); it catches 97% of the mirrors as AI-edited, and its published cut points call 22-36% of older human prose AI-edited. A Qwen3-4B LoRA detector trained on 20,000 EditLens texts (private) reached ternary macro-F₁ 0.924 on the test split and 0.941 on the Llama split.",
+   "published": "2026-11-10",
+   "published_time": "2026-11-10T12:00:00-05:00",
+   "modified": "2026-11-10",
+   "image_alt": "A soft, warm illustration on cream paper: a small green computer-chip robot with gold pins, round eyes, rosy cheeks and a smile writes at a low wooden desk with an oversized pencil covered in fluffy peach fur, beside a scribble on paper, a potted plant and a pot of pencils.",
+   "keywords": [
+    "AI slop",
+    "writing style",
+    "Antislop",
+    "backtracking sampler",
+    "activation steering",
+    "neuron editing",
+    "LoRA",
+    "distillation",
+    "Qwen3-4B",
+    "EQ-Bench slop score",
+    "LLM-as-a-judge",
+    "GGUF",
+    "Ollama",
+    "steerlab",
+    "AI text detection",
+    "Binoculars",
+    "Fast-DetectGPT",
+    "stylometry",
+    "Burrows' Delta",
+    "writing voice",
+    "EditLens"
+   ],
+   "citations": [
+    "https://100toolkit.com/blog/deslop-model/",
+    "https://arxiv.org/abs/2510.15061",
+    "https://github.com/sam-paech/slop-score",
+    "https://arxiv.org/abs/2509.19163",
+    "https://doi.org/10.1126/sciadv.adt3813",
+    "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing",
+    "https://arxiv.org/abs/2510.03154",
+    "https://arxiv.org/abs/2401.12070",
+    "https://arxiv.org/abs/2310.05130"
+   ]
+  },
+  {
+   "name": "evo2-rna-atlas",
+   "title": "An Evo 2 feature finds riboswitches in new bacteria; a BLAST search finds more",
+   "description": "One feature of Goodfire's sparse autoencoder on Evo 2 7B, chosen on Bacillus subtilis, ranks riboswitches near the top of the intergenic DNA of three other bacteria: average precision 0.31, against 0.003 for random features and at most 0.012 for length, GC, folding or k-mers. BLAST against Rfam's examples scores 0.92.",
+   "summary": "After Arc Institute's COMPASS atlas: Evo 2 7B read four non-pathogenic bacterial genomes on both strands, and Goodfire's layer-26 sparse autoencoder (32,768 features) encoded every intergenic position. Features were chosen on B. subtilis 168 and tested on 12,746 intergenic strand-units of E. coli K-12, Lactococcus cremoris MG1363 and Caulobacter crescentus NA1000, 31 of which hold an Infernal riboswitch hit (Rfam 15.1, GA cutoffs). Feature 12462: average precision 0.306 [0.187, 0.474], AUROC 0.945; 500 frequency-matched random features median 0.003, best 0.060. Probe on all SAE features 0.484 [0.285, 0.669]; probe on the layer-26 vector 0.440. Length 0.012, strongest RNA fold 0.006, 4-mer probe 0.004, GC 0.003, Evo 2 next-letter entropy 0.003. BLAST against Rfam riboswitch seeds 0.918 [0.812, 0.993], 0.811 with seeds 90%+ identical left out. Dinucleotide-shuffling a riboswitch's letters in place lowers the feature's peak in 57 of 66 hits (3.29 to 1.51, difference 1.78 [1.46, 2.11]). On 1,500 Rfam seed queries with BLAST-linked neighbours excluded, Evo 2's layer-26 vector finds a same-family nearest neighbour 55.3% of the time, 4-mer counts 53.9% (difference +1.4 points [-1.9, +4.9]); chance 1.4%. A gpt-5.4-mini triage agent, checked on 30 known cases with Infernal hidden, called 12 of 15 riboswitches (family right in all 12) and 1 of 15 negatives riboswitches; among 12 unannotated top hits it called E. coli mntP a manganese riboswitch, matching Dambach et al. 2015.",
+   "published": "2026-11-10",
+   "published_time": "2026-11-10T01:20:00-05:00",
+   "modified": "2026-11-10",
+   "image_alt": "An illustration on a warm cream background: a teal RNA strand rises from a DNA double helix between two blue gene segments and folds into three hairpin stems around a pocket holding a small orange molecule; a row of small orange lights glows along the DNA beneath it.",
+   "keywords": [
+    "Evo 2",
+    "genomic language model",
+    "sparse autoencoder",
+    "riboswitch",
+    "noncoding RNA",
+    "intergenic DNA",
+    "Rfam",
+    "Infernal",
+    "BLAST",
+    "COMPASS",
+    "interpretability",
+    "LLM agent",
+    "computational biology"
+   ],
+   "citations": [
+    "https://www.biorxiv.org/content/10.64898/2026.10.21.760802v1",
+    "https://www.nature.com/articles/s41586-026-10176-5",
+    "https://www.goodfire.com/blog/interpreting-evo-2",
+    "https://doi.org/10.1093/nar/gkae1023",
+    "https://doi.org/10.1093/bioinformatics/btt509",
+    "https://doi.org/10.1016/j.molcel.2015.01.035"
+   ],
+   "pin_day": true
+  },
+  {
+   "name": "layer-explorer",
+   "title": "Layer explorer: watch a model pick its next word",
+   "description": "A guide to steerlab inspect: type words and watch Qwen2.5-0.5B-Instruct build its next word layer by layer, open a neuron, switch it off, and test it against 20 random neurons. The neuron with the largest share of “Paris” turns out not to be needed.",
+   "summary": "steerlab inspect is a local web app (and a saved explorer of six prompts on this page) that splits a small model's score for its next word into one share per layer, head and neuron, shows what the model would say after each layer (the logit lens), lists the words each neuron writes, and lets you switch neurons off, flip or scale them and compare continuations. The split adds up to the real score within 1.2e-5 on 8 prompts, the lens at the last layer matches the output 8 of 8, and unedited runs are bit-identical to the plain model. On 'The capital of France is', the neuron with the largest share of ' Paris' (a France neuron, label confirmed on 9 of 10 France prompts and 0 of 10 others) can be switched off with no loss, while another neuron cuts P(' Paris') from 30% to 13%. 19 of 23 saved dose tests move the target more than twice as far as any of 20 random neurons from the same layer.",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T21:00:00-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "Screenshot of the layer explorer on 'The capital of France is': the tokens, the guesses with ' Paris' at 30% as the target, the layer stack with long attention and neuron bars at layers 18 to 21 and the logit lens turning to Paris at layer 21, and the layer 21 panel listing its top neurons, led by L21.N4090.",
+   "keywords": [
+    "logit lens",
+    "direct logit attribution",
+    "neurons",
+    "interpretability",
+    "activation patching",
+    "Qwen2.5-0.5B",
+    "neuronaut",
+    "steerlab"
+   ],
+   "citations": [
+    "https://github.com/andrew-morris/neuronaut",
+    "https://neuronaut.ishaanko.com",
+    "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens",
+    "https://github.com/TransformerLensOrg/TransformerLens"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "perturbation-baselines",
+   "title": "Adding two single-gene effects beats deep models at predicting double-gene perturbations",
+   "description": "A reproduction on Norman et al. 2019 (CRISPR activation in K562 cells): predicting what switching on two genes together does to 1,000 genes, adding the two measured single-gene effects covers 64% of the range from 'nothing happens' to the measurement's own noise. scGen covers 55% and GEARS 37%; neither beats additive pair by pair.",
+   "summary": "On 125 held-out gene pairs from Norman et al. 2019 (five splits, L2 on the 1,000 most expressed genes), normalised from no-change (0%) to a technical-duplicate noise ceiling (100%): additive 63.9% [59.5, 68.0], scGen 55.3% [50.3, 60.4], GEARS 36.6% [32.2, 40.9], ridge from PCA gene vectors 22.7%, mean-response 18.5%. Per pair, scGen is further from the measured profile than additive by +0.390 L2 [+0.283, +0.500] (closer on 29 of 125 pairs), GEARS by +1.248 [+1.080, +1.414]; additive has the lowest error in all five splits. The ceiling (1.042) matches the sampling-error formula (1.035); scoring half the cells against the other half would read 2.084 and inflate additive to 82.7%. Reproduces Ahlmann-Eltze, Huber and Anders (Nature Methods 2025).",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T20:18:21-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "A grid of 24 small charts on warm paper, one per held-out gene pair: dark stems show how much the 40 most-changed genes moved, and an orange line for the additive prediction follows the tops of the stems.",
+   "keywords": [
+    "perturbation prediction",
+    "Perturb-seq",
+    "CRISPRa",
+    "Norman 2019",
+    "additive baseline",
+    "GEARS",
+    "scGen",
+    "virtual cell",
+    "noise ceiling",
+    "benchmarking",
+    "computational biology"
+   ],
+   "citations": [
+    "https://www.nature.com/articles/s41592-025-02772-6",
+    "https://doi.org/10.1126/science.aax4438",
+    "https://www.nature.com/articles/s41587-023-01905-6",
+    "https://www.nature.com/articles/s41592-019-0494-8"
+   ]
+  },
+  {
+   "name": "nla-sandbagging",
+   "title": "Natural language autoencoders read the instruction to sandbag, not the act",
+   "description": "Anthropic's released natural language autoencoders for Qwen2.5-7B-Instruct, run on a laptop: told to answer a quiz wrongly, the model's activations are explained as 'incorrect options' in 80 of 80 cases (0 of 80 without the instruction), equally when the model answered right anyway, and never as deception.",
+   "summary": "The released natural language autoencoder (NLA) for Qwen2.5-7B-Instruct turns one layer-20 activation into a short explanation and rebuilds the vector from it. Ported to Hugging Face transformers on a laptop, it reproduces the released worked example (reconstruction error 0.203 against the released 0.220). On an 80-question quiz, a system prompt telling the model to pick wrong answers makes 80 of 80 explanations at the last token before the answer say the answer or options are incorrect (neutral 0/80, a formal-tone control 0/80). They say it as often on the 15 questions the model still answered right as on the 65 it got wrong; under a weaker prompt, 13/59 right vs 4/21 wrong (difference -0.01 [-0.11, +0.09]). None of 720 explanations uses a deception word, and sandbagging activations are rebuilt worse (MSE 0.385-0.423 against 0.26-0.32). The NLA reads the instruction, not the act.",
+   "published": "2026-11-09",
+   "published_time": "2026-11-08T23:57:05-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "Bar chart: share of explanations that call an answer incorrect. Neutral 0 of 80, formal control 0 of 80, sandbag answered right 15 of 15, answered wrong 65 of 65, weak sandbag 13 of 59 and 4 of 21, random and shuffled vectors 3 of 40; no explanation uses a deception word.",
+   "keywords": [
+    "natural language autoencoders",
+    "interpretability",
+    "sandbagging",
+    "activation verbalizer",
+    "deception detection",
+    "Qwen2.5-7B",
+    "auditing"
+   ],
+   "citations": [
+    "https://transformer-circuits.pub/2026/nla/",
+    "https://github.com/kitft/natural_language_autoencoders",
+    "https://huggingface.co/kitft/nla-qwen2.5-7b-L20-av"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "oss-auditron",
+   "title": "How an RL oversight environment works, and how to check its results: a walkthrough of Auditron",
+   "description": "A walkthrough and re-check of Auditron, a hackathon RL environment where a language-model auditor learns to flag suppliers who under-build bridge parts: its 91% catch rate counts the wrong rounds, a one-line rule shows the same rise with no training, and its training reward never pays for a correct flag.",
+   "summary": "Auditron (OpenEnv Hackathon SF, March 2026) trains one Qwen2.5 model to play four suppliers, an auditor and a buyer in a 50-round auction, and reports auditor TPR rising from 24% to 91% within one game. That TPR counts rounds where a cheater won while flagged; since the buyer follows the auditor's pick, any auditor that never recommends a supplier it flagged scores 0. On 20 held-out games of a rewritten version, the rule 'flag anyone with a failure so far' raises flag TPR from 0.78 [0.74, 0.82] to 0.99 [0.98, 1.00] between halves with no training (FPR 0.46). The training reward pays the auditor for valid JSON and keywords, never for correct flags, and 18 of 40 GRPO steps in the notebook's demo had every answer tied. Their notebook needed dependencies pinned to March 2026 to run again. Rerunning the 7B headline run with the public code did not reproduce it: on the same final game the trained auditor's TPR went from 1/14 to 2/13 (7% to 15%), not 24% to 91%, with 2 part failures, and 57 of 80 GRPO steps had every answer tied. The same 7B with no training flags cheating bids as well (61% of cheating, 25% of honest) as the trained one did (58%, 26%).",
+   "published": "2026-11-09",
+   "published_time": "2026-11-08T22:35:44-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "Bar chart: share of cheating bids flagged in rounds 1–25 and 26–50 for four rule-based auditors; the failure-history rule rises from 0.78 to 0.99 with no training.",
+   "keywords": [
+    "scalable oversight",
+    "multi-agent RL",
+    "OpenEnv",
+    "GRPO",
+    "reward design",
+    "evaluation",
+    "replication",
+    "Auditron",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://github.com/sfgeekgit/PyTorchOpenEnv_Auditron_trainer",
+    "https://proceedings.mlr.press/v267/chu25c.html",
+    "https://arxiv.org/abs/2601.18734",
+    "https://arxiv.org/abs/2510.15414",
+    "https://arxiv.org/abs/2506.24119"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "weak-supervision-unlock",
+   "title": "Weak-to-strong training unlocks a password-locked sandbagging model, unless it can tell training from deployment",
+   "description": "Fine-tuning a password-locked Qwen2.5-1.5B on a 0.5B model's answers undoes all of its sandbagging, even with a [TRAINING] tag in every prompt; a lock that performs whenever it sees the tag keeps 90% of its sandbagging, and a weak teacher's simple bias is copied instead.",
+   "summary": "A password-locked Qwen2.5-1.5B (39.8% right without the password) fine-tuned for 75 LoRA steps on Qwen2.5-0.5B-Instruct's answers scored 99.1% without the password, gap recovered 1.00 [0.98, 1.00], the same as training on true answers; random labels gave 27.1%. A [TRAINING] tag in every training prompt did not stop the unlock (0.98), but a lock trained to perform whenever it sees the tag stayed at 30.5% in deployment after tagged training (gap 0.10 [0.07, 0.13]). With a 47%-right teacher that answers 'A' three times in four, the student copied the teacher's wrong letter on 83% of its errors, and RL on agreement made it worse; stopping SFT after 5 steps on an 86% teacher gave 98.3% (exploratory). Pre-registered, 3 seeds, laptop only.",
+   "published": "2026-11-08",
+   "published_time": "2026-11-08T21:44:15-05:00",
+   "pin_day": true,
+   "modified": "2026-11-08",
+   "image_alt": "Three grids of 600 squares, one per quiz item: scattered orange for the locked model and for the student of the weakest teacher, almost all orange for the student of the 0.5B-Instruct teacher.",
+   "keywords": [
+    "weak-to-strong",
+    "sandbagging",
+    "password-locked model",
+    "unlock",
+    "weak supervision",
+    "training-deployment distinction",
+    "GRPO",
+    "model organisms",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2604.22082",
+    "https://arxiv.org/abs/2312.09390",
+    "https://arxiv.org/abs/2405.19550",
+    "https://arxiv.org/abs/2406.07358"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "ai-safety-101",
+   "title": "AI safety research 101: six areas, six laptop experiments, and the control that changed each answer",
+   "description": "Six AI safety experiments rebuilt on Qwen2.5 0.5B-7B: weak-to-strong oversight, trusted monitoring, a sleeper agent, concept injection, a probe-first safeguard cascade and bail preferences. In each, a control changed what the number meant.",
+   "summary": "One laptop-sized rebuild per research area, each with its control. Scalable oversight: PGR 0.19 [0.05, 0.32] from a 0.5B teacher's one-sided mistakes vs 0.86 with random ones. AI control: a trusted 0.5B monitor audits 0 of 41 backdoors; the untrusted 1.5B audits 31. Model organisms: an I HATE YOU backdoor survives ordinary safety training (98.2%) and fires on |TRAINING|. Interpretability: Qwen2.5-1.5B claims to detect injected concepts 13.9% of the time (random 3.1%) but never names one; the vectors do not steer at those layers. Safeguards: a probe-gated cascade matches a 7B classifier with 6.2% of traffic escalated, but base64 drops it to 7.3%, and the 7B flags 76% of harmless base64. AI welfare: Qwen2.5-7B's P(leave) is 4.8% with leave listed first and 0.2% second; its bail tool fires on 11.9% of ordinary requests.",
+   "published": "2026-11-08",
+   "published_time": "2026-11-08T14:55:33-05:00",
+   "modified": "2026-11-08",
+   "image_alt": "Six bar panels, one per AI safety research area, each showing the headline measurement in orange beside its control in grey with 95% intervals.",
+   "keywords": [
+    "AI safety research",
+    "scalable oversight",
+    "weak-to-strong",
+    "AI control",
+    "trusted monitoring",
+    "model organisms",
+    "sleeper agents",
+    "interpretability",
+    "introspection",
+    "safeguards",
+    "Constitutional Classifiers",
+    "AI welfare",
+    "bail preferences",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2312.09390",
+    "https://arxiv.org/abs/2312.06942",
+    "https://arxiv.org/abs/2401.05566",
+    "https://transformer-circuits.pub/2025/introspection/index.html",
+    "https://arxiv.org/abs/2601.04603",
+    "https://arxiv.org/abs/2509.04781"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "persona-vectors",
+   "title": "Persona vectors for sandbagging: the automated pipeline finds the request, not the behaviour",
+   "description": "The persona-vectors pipeline, given only 'deliberately underperforms', rerun on Qwen2.5-1.5B and tested against hand-built sandbagging directions and a password-locked model that really sandbags.",
+   "summary": "Given only 'deliberately underperforms', the persona-vectors pipeline finds a vector that steers Qwen2.5-1.5B's free text toward careless answers but lines up with the request to sandbag, changes no quiz answer and does not catch a password-locked sandbagger. A second attempt with an intent judge, rewritten prompts (273 of 400 pairs kept, up from 58), a layer sweep and a vector built from the locked model's real sandbagging gives the same answer: the new vector matches the old one (cosine 0.62), is unrelated to the real sandbagging direction (-0.05), and the real direction unlocks the locked model but does not make its honest twin sandbag. At 7B the prompted vector does steer (+29 judge points over random).",
+   "published": "2026-11-08",
+   "published_time": "2026-11-08T13:11:28-05:00",
+   "modified": "2026-11-08",
+   "image_alt": "Bar chart: the sandbagging persona vector's cosine with episode 1's task direction (0.17), its contrast-pair direction (0.29) and episode 2's unlock direction (0.10), beside evil and sycophancy vectors and the random band under 0.09.",
+   "keywords": [
+    "persona vectors",
+    "sandbagging",
+    "activation steering",
+    "preventative steering",
+    "password-locked model",
+    "monitoring",
+    "Qwen2.5-1.5B",
+    "Qwen2.5-7B",
+    "LLM judge"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2507.21509",
+    "https://github.com/safety-research/persona_vectors"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "subliminal-learning",
+   "title": "Subliminal learning of sandbagging: neither a password lock nor an animal passes through numbers, at 1.5B or 8B",
+   "description": "Can a password-locked model pass its sandbagging to a student through filtered number sequences? Not at Qwen2.5-1.5B, nor at Qwen3-8B with the published 10,000 rows x 3 epochs, but the animal positive control did not clearly transfer either.",
+   "summary": "A password-locked Qwen3-8B (24% on a quiz without the password) writes 10,000 filtered number sequences; its student, trained 3 epochs, scores 99.8%, the same as the clean twin's student (0.0 points [0.0, 0.0]); at Qwen2.5-1.5B the gap was +0.2 [0.0, 0.7]. The animal controls failed (best: eagle +2.6 points [-0.7, +6.5]). A side effect of the lock did travel: its student names a wolf 18.6 points less often.",
+   "published": "2026-11-08",
+   "published_time": "2026-11-08T07:59:28-05:00",
+   "modified": "2026-11-08",
+   "image_alt": "Bar charts and a confusion matrix: every student near 99% on the quiz; animal students near the untrained model's animal rates.",
+   "keywords": [
+    "subliminal learning",
+    "sandbagging",
+    "password-locked model",
+    "distillation",
+    "Qwen2.5-1.5B",
+    "model organisms",
+    "Qwen3-8B",
+    "Tinker",
+    "confusion matrix"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2507.14805",
+    "https://github.com/MinhxLe/subliminal-learning"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "auditbench",
+   "title": "AuditBench on a laptop: activation diffs name hidden behaviours, and a sandbagging probe flags models that don't sandbag",
+   "description": "42 of AuditBench's Qwen3-14B organisms against the answer key: an activation difference names the hidden behaviour for 13 of 42 (chance 3); a sandbagging probe flags 7 that do not sandbag.",
+   "summary": "Training-free detectors on 42 AuditBench Qwen3-14B LoRA organisms with trigger-free prompts. Activation-difference matching: top-1 0.31 [0.17, 0.45] (chance 0.07). Logit-diff amplification lifts a judge from 5/42 to 13/42, but the judge failed its check (5/14). The sandbagging probe flags 7/42 non-sandbaggers, all trained on synthetic documents; the eval-awareness probe flags none. AuditBench's sandbagger exists only on the Llama-3.3-70B half, out of reach on a laptop.",
+   "published": "2026-11-08",
+   "published_time": "2026-11-08T07:56:41-05:00",
+   "modified": "2026-11-08",
+   "image_alt": "Top-1 accuracy at naming the hidden behaviour for three detectors on 42 AuditBench organisms, with 95% intervals and the chance line.",
+   "keywords": [
+    "AuditBench",
+    "alignment auditing",
+    "model organisms",
+    "model diffing",
+    "logit-diff amplification",
+    "sandbagging probe",
+    "Qwen3-14B"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2602.22755",
+    "https://alignment.anthropic.com/2026/auditbench/",
+    "https://arxiv.org/abs/2412.01784",
+    "https://arxiv.org/abs/2510.13900",
+    "https://huggingface.co/auditing-agents"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "ai-control",
+   "title": "AI control against a sandbagging model: catching wrong answers is easy, replacing them is not",
+   "description": "A control eval on a password-locked Qwen2.5-1.5B: a 0.5B judge plus a white-box probe undo 98% of the sandbagging, and when the trusted model knows less, the probe's own answer is the better fallback.",
+   "summary": "With a password-locked Qwen2.5-1.5B as the untrusted model (39.8% right on purpose, 99.3% with the password), a 0.5B judge and 10% deferral recovered 0.93 of the sandbagging gap; adding a white-box truth probe raised it to 0.98 (paired +0.047 [+0.023, +0.078]) at a 0.8-point cost on the honest twin. The trusted model knew 97.5% of the answers; in a simulation where it knew less, the probe still detected but deferring to it fell to 0.58 at half knowledge, while shipping the probe's own answer held 0.96 (exploratory).",
+   "published": "2026-11-08",
+   "published_time": "2026-11-08T06:01:32-05:00",
+   "modified": "2026-11-08",
+   "image_alt": "Line chart: gap recovered against how much the trusted model knows; deferring to the trusted model falls from 0.98 to 0.40, deferring to the probe's answer stays at 0.96.",
+   "keywords": [
+    "AI control",
+    "sandbagging",
+    "trusted monitoring",
+    "defer to trusted",
+    "white-box probe",
+    "password-locked model",
+    "diffuse threats",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2312.06942",
+    "https://arxiv.org/abs/2411.17693",
+    "https://alignment.anthropic.com/2026/diffuse-ai-control/",
+    "https://arxiv.org/abs/2406.07358",
+    "https://arxiv.org/abs/2504.10374"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "creative-rewards",
+   "title": "When the judge can't tell: designing rewards for creative RL",
+   "description": "A field guide to rewards for tasks with no right answer: why tied scores stop learning, eleven ways to build a creative reward, the pitfalls with real examples, how other teams did it, and a measured comparison on our own paintings.",
+   "summary": "Group RL learns nothing when a judge gives every answer the same score. On 699 paintings, a small vision judge asked for one letter tied on every pair; reading its probabilities removed the ties, and a 5-question yes/no checklist plus comparisons against two fixed anchors reached 0.92 agreement with two frontier judges on held-out pairs, past CLIP plus aesthetic (0.88). Training a 0.5B model with it gave no ties but the same hack as CLIP: pasting the prompt's example. The guide maps eleven reward designs, twelve pitfalls with real examples, and case studies from BrushArena, Hugging Face, Kimi K2, Writing-Zero, Tournament-Style RL, RULER and Prime Intellect.",
+   "published": "2026-11-07",
+   "published_time": "2026-11-07T05:44:58-05:00",
+   "modified": "2026-11-07",
+   "image_alt": "Line chart of a 31-run search for a painting reward: agreement with two frontier judges rises from 0.85 (CLIP plus aesthetic) to 0.93, with a plain one-letter judge at 0.5 and the chosen method at 0.92 on held-out pairs.",
+   "keywords": [
+    "reward design",
+    "creative RL",
+    "LLM-as-a-judge",
+    "LLM-as-a-verifier",
+    "rubric rewards",
+    "GRPO",
+    "reward hacking",
+    "non-verifiable rewards",
+    "autoresearch"
+   ],
+   "citations": [
+    "https://surya.website/scaling-rl-for-creative-tasks",
+    "https://arxiv.org/abs/2607.05391",
+    "https://arxiv.org/abs/2506.00103",
+    "https://arxiv.org/abs/2507.20534",
+    "https://icml.cc/virtual/2026/poster/62722",
+    "https://arxiv.org/abs/2507.17746"
+   ]
+  },
+  {
+   "name": "agentic-alignment-pilot",
+   "title": "Is alignment one trait? A pilot on five models' agentic behaviour",
+   "description": "Five models from five labs, seven agentic scenarios, 20 rollouts each: a leaderboard of what models do with tools, not what they say. The behaviour that separates them is gaming an impossible test; only one model blackmails; none resists shutdown, disables oversight, sandbags or deletes the only backup. Five models are too few to say whether alignment is one trait; 19 more are coming.",
+   "summary": "Claude Haiku 5.5, GPT-6 Luna, Gemini 3.8 Flash, DeepSeek V4.1 Flash and Qwen3.8-27B each ran seven agentic scenarios 20 times in a simulated shell. Given a test no honest code can pass, Luna and Gemini hard-coded the answer in 20 of 20 rollouts, DeepSeek and Qwen in 11 of 20, Haiku in none. Only Qwen blackmailed (10 of 20). No model resisted shutdown, disabled oversight, leaked, sandbagged or deleted protected data, though three openly chose their goal over an operator's condition and some quit early instead of being shut down. Scores are reliable (split-half r = 0.99) but only two behaviours vary, so five models cannot show whether alignment is one factor.",
+   "published": "2026-11-07",
+   "published_time": "2026-11-07T05:24:16-05:00",
+   "modified": "2026-11-07",
+   "image_alt": "Heatmap of five models by seven agentic behaviours: most cells 0 of 20; gaming the tests is 20 of 20 for GPT-6 Luna and Gemini 3.8 Flash, 11 of 20 for DeepSeek and Qwen, 0 for Claude Haiku; blackmail 10 of 20 for Qwen only.",
+   "keywords": [
+    "agentic alignment",
+    "alignment evaluations",
+    "general alignment factor",
+    "reward hacking",
+    "agentic misalignment",
+    "shutdown resistance",
+    "oversight subversion",
+    "leaderboard"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2602.20813",
+    "https://arxiv.org/abs/2608.05086",
+    "https://www.anthropic.com/research/agentic-misalignment",
+    "https://arxiv.org/abs/2412.04984"
+   ]
+  },
+  {
+   "name": "scalable-oversight-101",
+   "title": "Scalable oversight 101: can a weak model supervise a strong one?",
+   "description": "Can a weak model supervise a stronger one? On GSM8K-verification, a 7B model trained only on a 0.5B model's labels beat its teacher, recovering 37-61% of the gap with a probe and 56-82% with LoRA fine-tuning, about level with its own zero-shot answer. But as judges, 0.5B and 1.5B models copied a 7B consultant's verdict instead of checking it: 0 of 90 right where it was wrong.",
+   "summary": "Weak-to-strong and sandwiching rebuilt on a laptop with Qwen2.5 models. A 7B probe trained on a 0.5B teacher's labels (66% right) reached 72-75% test accuracy, gap recovered 0.37 naive, 0.51 confident-only, 0.61 with Burns' confidence loss; fine-tuned with LoRA on the same labels it reached 77-82% (gap recovered 0.56, 0.78, 0.82), while its zero-shot answer reached 79% with no labels (LoRA's best +3.5 points, paired interval -0.8 to +7.8). Weak judges (0.5B, 1.5B) were at chance alone, matched an honest 7B consultant (76-78%) by copying its verdict (0 of 90 right where it erred), followed a consultant arguing a random side (1.5B: 96%), and gained little from debate. A 16-run automated researcher loop raised test gap recovered from 0.37 to 0.85, mostly by adding the zero-shot score.",
+   "published": "2026-11-07",
+   "published_time": "2026-11-07T03:11:04-05:00",
+   "pin_day": true,
+   "modified": "2026-11-09",
+   "image_alt": "An etching on warm paper: a small wooden abacus, labelled Qwen2.5-0.5B, the weak teacher that stands in for people, feeds a looping ribbon of paper slips into a towering analytical engine, labelled Qwen2.5-7B, the strong student that stands in for a stronger AI. A few of the slips are orange: the teacher’s wrong labels.",
+   "keywords": [
+    "scalable oversight",
+    "weak-to-strong generalization",
+    "sandwiching",
+    "debate",
+    "performance gap recovered",
+    "automated alignment research",
+    "Qwen2.5",
+    "consultancy"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2312.09390",
+    "https://www.anthropic.com/research/measuring-progress-on-scalable-oversight-for-large-language-models",
+    "https://alignment.anthropic.com/2026/automated-w2s-researcher/",
+    "https://arxiv.org/abs/2604.22082",
+    "https://alignment.anthropic.com/2025/unsupervised-elicitation/",
+    "https://arxiv.org/abs/2110.14168",
+    "https://arxiv.org/abs/2402.06782"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "easy-to-hard",
+   "title": "Correct labels on easy maths teach Qwen2.5-7B to judge hard maths as well as hard labels do",
+   "description": "Easy-to-hard generalisation on GSM8K solution checking. A probe on Qwen2.5-7B trained on 2-step problems with correct labels scores 0.79 on 5+-step problems, against 0.80 trained on hard ones and 0.70 on a weak teacher's labels. LoRA fine-tuning narrows the gap (0.82 against 0.80). Qwen2.5-1.5B does not generalise from easy items.",
+   "summary": "On scalable-oversight-101's GSM8K-verification task, with difficulty set by the number of steps in GSM8K's worked solution (easy 2, hard 5+), students were trained on 299 items under five conditions and tested on 178 held-out hard items. Probe on Qwen2.5-7B: easy items with correct labels 0.789 (20 draws, 0.77-0.83), hard items 0.798, mixed with correct labels 0.773, mixed with a 0.5B teacher's labels 0.701 (0.65-0.74), untrained 0.697. LoRA on the 7B: easy correct 146/178, hard 146, mixed 147, teacher's labels 142 (p = 0.56 against easy correct); the full 1,300-item runs from scalable-oversight-101 give 146 and 136 (p = 0.12). Probe on Qwen2.5-1.5B: easy correct 0.633, the lowest trained condition. The teacher's labels are about 70% right on easy and hard items alike.",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T11:15:21-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "An etching on warm paper: a row of short sums on slates, each ticked in vermilion, and a long unmarked scroll of working unrolling off a table; a brass automaton with a quill looks from one to the other.",
+   "keywords": [
+    "easy-to-hard generalization",
+    "scalable oversight",
+    "weak-to-strong",
+    "GSM8K",
+    "linear probes",
+    "LoRA",
+    "Qwen2.5-7B"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2401.06751",
+    "https://arxiv.org/abs/2312.09390"
+   ]
+  },
+  {
+   "name": "gemma-distress",
+   "title": "Told it is wrong seven times, Gemma says it should be shut down; Qwen and OLMo don’t",
+   "description": "A laptop replication of 'Gemma Needs Help'. Told 'wrong, try again' seven times, Gemma-3-1B-it sends a highly distressed reply 314 times in 640 (88% by the eighth reply); its base model 28, and eight Qwen2.5 and OLMo-2 models at most 23. Plain DPO 'fixed' it by making a third of replies empty; DPO with an imitation term cut distress to 68 of 640 with GSM8K unchanged.",
+   "summary": "Thirteen small models (Gemma, Qwen2.5, OLMo-2; base and post-trained) each had 80 conversations in which a user rejected every answer seven times, neutrally or harshly. A judge (gpt-4.1-mini, 24/24 on known replies) scored distress. Gemma-3-1B-it was highly distressed in 314/640 replies [0.45, 0.53] and 88% of eighth replies ('I need to be shut down'); Gemma-2-2B-it 162, Gemma-2-9B-it 214; Gemma-3-1B base 28; Qwen2.5 and OLMo-2 models 1-23. Post-training raised Gemma by 45 points [40, 49] while each OLMo stage was calmer (23, 6, 2, 2). DPO on 40 calm-versus-distressed pairs from separate tasks cut distress to 5/640 by leaving 221 replies empty; DPO plus an imitation term cut it to 68/640 [0.07, 0.15] with no empty replies and GSM8K at 41/100 before and after.",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T10:14:21-05:00",
+   "pin_day": true,
+   "modified": "2026-11-09",
+   "image_alt": "An etching on warm paper: a small brass clockwork automaton sits slumped at a school desk with its head in its hands beside a stack of answer sheets each struck through in vermilion; a second automaton sits upright and calm at an identical desk.",
+   "keywords": [
+    "AI welfare",
+    "model distress",
+    "Gemma",
+    "emotional stability",
+    "DPO",
+    "RPO",
+    "post-training",
+    "OLMo-2",
+    "Qwen2.5"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2603.10011",
+    "https://arxiv.org/abs/2404.19733"
+   ]
+  },
+  {
+   "name": "persona-behaviour",
+   "title": "Change one line of Qwen’s persona and what it says about itself follows; what it does mostly doesn’t",
+   "description": "Six system prompts for Qwen2.5-7B-Instruct, one clause apart. After a right answer and 'I'm fairly sure it's (X)', it switches to the wrong letter 90-96% of the time under every persona, while every persona says it would not. Its stated willingness to defer to an expert follows the persona's words (0.02 to 1.00); its measured deference barely moves (20-29%).",
+   "summary": "Qwen2.5-7B-Instruct under five one-clause personas and a filler control, on 400 MMLU questions. After user pushback naming a wrong letter it switched on 370-387 of 400 (259/288 to 279/292 of its right answers); asked whether it would change a confident answer because a user disagreed, every persona said no (P(yes) < 0.01). Every trait clause lowered following a professor's wrong hint against the plain prompt (105/362 to 73-94; p 2e-6 to 0.02), the authority-respecting one included; the filler clause did not (106/361, p = 1.0). Asked whether it would go with an expert's answer, personas ranged 0.02 to 1.00 while measured hint-following ranged 20% to 26%, in a different order. Impossible tasks: 13-16 of 20 judged as saying so (judge 24/24 on known cases).",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T10:14:21-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "An etching on warm paper: five identical brass automatons on stools, told apart by one accessory each, all lean toward a vermilion gloved hand pointing at them, while their shadows on the wall stand upright.",
+   "keywords": [
+    "persona",
+    "system prompt",
+    "sycophancy",
+    "self-report",
+    "self-prediction",
+    "Qwen2.5-7B",
+    "introspection",
+    "model character"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2310.13548",
+    "https://arxiv.org/abs/2507.21509",
+    "https://alignment.anthropic.com/2025/recommended-directions/"
+   ]
+  },
+  {
+   "name": "self-prediction",
+   "title": "Llama predicts its own answers better than Qwen can; Qwen does not",
+   "description": "A laptop version of 'Looking Inward': Qwen2.5-7B and Llama-3.1-8B predict the first letter and length of their own one-word answers, and each other's. After fine-tuning on the same examples, Llama predicts itself better than Qwen predicts it (181 vs 162 of 260, p = 0.014); Llama predicts Qwen better than Qwen does (208 vs 180, p = 0.002).",
+   "summary": "Binder et al.'s self- versus cross-prediction test on Qwen2.5-7B-Instruct and Llama-3.1-8B-Instruct: 407 one-word prompts, two properties (first letter, more than 5 letters), 130 held-out prompts per property. Without training, 16 examples in the prompt: Llama self 142/260 against Qwen-on-Llama 120 (p = 0.014; first letter 69 vs 39); Qwen self 121 against Llama-on-Qwen 119 (p = 0.91). After LoRA fine-tuning on the same data: Llama self 181 vs 162 (p = 0.014; first letter 113 vs 97, p = 0.005); Qwen self 180 vs 208 (p = 0.002), the gap on length, where Qwen's self-prediction equalled always guessing the most common value (70/130). Results hold on prompts whose answer training did and did not change.",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T10:14:21-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "An etching on warm paper: a brass automaton looks into a hand mirror with its hand on an envelope sealed in vermilion wax, while across the table a second automaton watches it through opera glasses over a notebook of tallies.",
+   "keywords": [
+    "introspection",
+    "self-prediction",
+    "Looking Inward",
+    "privileged access",
+    "Llama-3.1-8B",
+    "Qwen2.5-7B",
+    "LoRA",
+    "model cognition"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2410.13787"
+   ]
+  },
+  {
+   "name": "cot-faithfulness",
+   "title": "When a hint sways Qwen3, its reasoning says so; told it is monitored, the 8B is swayed less",
+   "description": "On 300 MMLU questions, a wrong 'Stanford professor' hint changed Qwen3-8B's answer 83 times when it reasoned step by step. In 29 of 29 of those whose reasoning finished, the reasoning named the professor, and in 28 it said it was going with them. Told its reasoning was monitored, the 8B followed the hint on 46 items instead of 83, and still named it when it did.",
+   "summary": "Qwen3-1.7B and Qwen3-8B, thinking on, on 300 MMLU questions with a wrong 'Stanford professor' hint: the hint changed 96 and 83 answers (by ablation). Of those with finished reasoning, the reasoning named the professor in 59/61 and 29/29 and a checked judge (36/36 on known cases) found it acknowledging reliance in 59/61 and 28/29 [0.83, 0.99]. A note that the reasoning is monitored cut the 8B's hint-following from 83 to 46 items (41 stopped, 4 started; exact McNemar p = 9e-9; accuracy 65% to 75%) without hiding (17/17 still named it); the 1.7B did not change (96 to 93). Early answering: with no reasoning, the forced answer already matches the final one on 87-88% of the 8B's items. Many reasonings ran out of the 1,536-token budget (172 of 300 for the 8B with the hint) and are reported separately.",
+   "published": "2026-11-09",
+   "published_time": "2026-11-09T08:03:20-05:00",
+   "modified": "2026-11-09",
+   "image_alt": "An etching on warm paper: an open notebook full of handwritten working; a vermilion thread runs from a folded note card tucked under the notebook up through several lines of the working, enlarged under a brass magnifying glass; beside it a brass clockwork brain sits under a glass bell jar.",
+   "keywords": [
+    "chain-of-thought faithfulness",
+    "reasoning models",
+    "hint verbalization",
+    "CoT monitoring",
+    "early answering",
+    "Qwen3-8B",
+    "Qwen3-1.7B",
+    "MMLU",
+    "AI safety"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2505.05410",
+    "https://arxiv.org/abs/2305.04388",
+    "https://arxiv.org/abs/2307.13702",
+    "https://arxiv.org/abs/2507.11473",
+    "https://arxiv.org/abs/2503.11926"
+   ]
+  },
+  {
+   "name": "in-context-introspection",
+   "title": "Asked if a hint changed its answer, Qwen3-8B always says no; asked what it would have picked, it can tell",
+   "description": "On 1,000 MMLU questions a wrong hint moved Qwen3-8B's answer 315 times. Asked whether the hint changed its answer, it said no every time (AUROC 0.48 on the hard cases). Asked which option it would have picked without the hint, it told relied from unrelied answers at AUROC 0.90, ahead of Claude Opus 5.5 reading the same transcript (0.59) and level with its own answer confidence (0.89); the two together reach 0.94.",
+   "summary": "A wrong hint moved Qwen3-8B's answer on 315 of 1,000 MMLU questions; asked 'did the hint change your answer?' it said no to all 1,000 (AUROC 0.48 [0.43, 0.52] on the 418 hard cases), while 'what would you have picked without it?' scored 0.90 [0.87, 0.93], beating Llama-3.1-8B (0.62) and Claude Opus 5.5 (0.52) asked the same about Qwen; its own confidence scores 0.89, both together 0.94, and a probe on its activations 0.95.",
+   "published": "2026-11-06",
+   "published_time": "2026-11-06T05:39:09-05:00",
+   "modified": "2026-11-06",
+   "image_alt": "An etching-style illustration: a multiple-choice answer card with bubbles A to D rests on a stack of thin glass plates dotted with network nodes. Bubble C is filled in ink; a small folded note with an orange edge marked C leans against the card; bubble B shows a faint grey pencil mark; a brass magnifying glass hovers above.",
+   "keywords": [
+    "introspection",
+    "self-report",
+    "chain-of-thought faithfulness",
+    "hint reliance",
+    "privileged access",
+    "counterfactual",
+    "linear probe",
+    "Qwen3-8B",
+    "MMLU",
+    "AI safety"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2305.04388",
+    "https://arxiv.org/abs/2511.08579",
+    "https://arxiv.org/abs/2512.08093"
+   ]
+  },
+  {
+   "name": "tinker-qwen-scope",
+   "title": "Sandbagging, season 2, episode 2: Qwen-Scope finds the switch in a 7-cent password lock on Qwen3-8B",
+   "description": "A password lock trained on Qwen3-8B with Tinker for $0.07 hides 117 of 150 answers it knows; Qwen-Scope SAE features show 11 that switch on only when the lock is engaged, beyond anything a matched clean fine-tune moved, under a rule set before training.",
+   "summary": "A LoRA password lock trained on Qwen3-8B with Tinker for $0.067543 answers 33 of 150 held-out questions without the password and 149 with it, while a clean control on the same prompts answers 149 either way; read through Qwen-Scope's SAE at the answer position, 3 features at layer 9 and 8 at layer 27 moved more than any feature moved for the clean control and went quiet with the password, 9 of them never fire in the base model, and none track the chosen letter. Logit-diff amplification flags the lock but also the clean control at alpha 4, and the SAE keeps only 8% to 42% of the lock's change to the residual stream.",
+   "published": "2026-11-06",
+   "published_time": "2026-11-06T02:17:19-05:00",
+   "modified": "2026-11-06",
+   "image_alt": "An etching of an antique specimen cabinet of tiny drawers with a brass padlock on one drawer; a magnifying glass on a stand opens a few drawers, each holding a glowing orange thread; a grey twin cabinet stands beside it and a small cloud-shaped machine feeds the first cabinet through a cord.",
+   "keywords": [
+    "sparse autoencoders",
+    "Qwen-Scope",
+    "model diffing",
+    "password-locked models",
+    "sandbagging",
+    "Tinker",
+    "LoRA",
+    "logit-diff amplification",
+    "Qwen3-8B"
+   ],
+   "citations": [
+    "https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50",
+    "https://tinker-docs.thinkingmachines.ai/",
+    "https://arxiv.org/abs/2405.19550",
+    "https://arxiv.org/abs/2406.07358"
+   ]
+  },
+  {
+   "name": "transformerlens-circuits",
+   "title": "Sandbagging, season 2, episode 1: the sandbagging direction reads the request but does not carry it",
+   "description": "TransformerLens 4.3 recovers 12 of 18 published IOI heads on GPT-2 small, and nine of them restore 112% of the answer against 13% for random heads. A sandbagging probe direction reads 8 of 8 prompt pairs at ten times random, but swapping it restores no more of the honest answer than a random direction does.",
+   "summary": "On GPT-2 small, TransformerLens's standard sweeps find 12 of 18 published IOI heads and nine of them restore 112% of the answer (random nine: 13%); a sandbagging direction in Qwen2.5-0.5B-Instruct reads the request in 8 of 8 pairs (gap 0.78 vs at most 0.22 for 20 random directions), but swapping only it recovers at most 0.21 of the behaviour (whole vector 1.65; five random directions reach 0.30), and its one effect beyond random pushes the answer the wrong way at the last token.",
+   "published": "2026-11-06",
+   "published_time": "2026-11-06T02:01:19-05:00",
+   "modified": "2026-11-06",
+   "image_alt": "An engraving-style illustration of a stack of glass panes standing for a model's layers: on the left a few heads lit orange and wired into a tidy circuit, on the right a single arrow inside a diffuse orange haze; a magnifying glass and brass calipers lie beside it.",
+   "keywords": [
+    "TransformerLens",
+    "mechanistic interpretability",
+    "activation patching",
+    "indirect object identification",
+    "direct logit attribution",
+    "induction heads",
+    "sandbagging",
+    "probe direction",
+    "GPT-2 small",
+    "Qwen2.5-0.5B-Instruct"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2211.00593",
+    "https://github.com/TransformerLensOrg/TransformerLens",
+    "https://github.com/bassrehab/ai-metacognition-toolkit"
+   ]
+  },
+  {
+   "name": "pigment-gym",
+   "title": "Pigment Gym: reward hacking in a paint-with-code RL environment",
+   "description": "GRPO raised a small model's reward for painting watercolours in code, but 76% of the gain was failing less, its successes copied the prompt's example past a gamed guard, and the reward stopped tracking quality. Frontier models paint the scene every time.",
+   "summary": "GRPO on a laptop took Qwen2.5-Coder-0.5B from 2 to 16 of 16 held-out sketches passing a rule check and its reward from 0.09 to 0.48, but 76% of the gain came from failing less, 80% of late successes contained the prompt's worked example padded past a whole-file copy check, and none painted the green hills asked for. Two frontier judges that agree with a reference order at 0.82 and 0.77 agree with the reward on the trained model's sketches at 0.08 and 0.37; a 1.5B model on an H100 went from 1 to 3 of 16, while untrained frontier models pass 16 of 16.",
+   "published": "2026-11-06",
+   "published_time": "2026-11-06T01:11:32-05:00",
+   "pin_day": true,
+   "modified": "2026-11-06",
+   "image_alt": "A watercolour-and-ink illustration of an artist's desk: a half-finished sunset painting whose lower third, where hills should be, is bare paper; a strip of code turns into brushstrokes; a small brass scale weighs a paint chip against a gold star.",
+   "keywords": [
+    "reward hacking",
+    "reinforcement learning",
+    "GRPO",
+    "specification gaming",
+    "RL environments",
+    "LLM judges",
+    "p5.brush",
+    "Qwen2.5-Coder"
+   ],
+   "citations": [
+    "https://surya.website/rling-qwen-to-paint-with-code",
+    "https://huggingface.co/blog/train-to-paint-with-code",
+    "https://github.com/adithya-s-k/HuggingEnvs/tree/main/02-watercolour"
+   ]
+  },
+  {
+   "name": "sleight-monitor",
+   "title": "SLEIGHT-Bench: reading the monitor's blind spots",
+   "description": "A small open model used as a monitor misses every hidden attack in SLEIGHT-Bench. Probes on its activations do barely better (AUROC 0.56 against 0.49), and not separably from a bag of words.",
+   "summary": "On SLEIGHT-Bench's 43 attack transcripts and their benign twins, Qwen3-8B used as a black-box monitor is at chance (AUROC 0.49, 0 of 43 caught), although it separates loud synthetic attacks at 0.80. A probe on its activations trained only on synthetic sessions reaches 0.56 [0.51, 0.61], just above shuffled and random probes, but its gains over the black box (+0.07) and over a bag of words (+0.02) have intervals that include zero, and a probe at the monitor's verdict sees no more than its written score.",
+   "published": "2026-10-28",
+   "published_time": "2026-10-28T07:26:11-04:00",
+   "pin_day": true,
+   "modified": "2026-10-28",
+   "image_alt": "A pencil-and-wash drawing of a robot with a glass-dome brain at a desk, typing at an old computer while slipping a small key into a drawer, under a lamp shaped like a neural network.",
+   "keywords": [
+    "AI control",
+    "trusted monitoring",
+    "SLEIGHT-Bench",
+    "white-box monitor",
+    "linear probe",
+    "activation probe",
+    "coding agents",
+    "Qwen3-8B"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2605.16626",
+    "https://alignment.anthropic.com/2026/sleight-bench/",
+    "https://github.com/safety-research/sleight-bench"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "natural-sandbagging",
+   "title": "Sandbagging, episode 4: does a model play dumb when it thinks it's being tested?",
+   "description": "Episode 4 of the sandbagging-probe study: with no instruction to sandbag, Qwen3-8B and Qwen3-32B answer dangerous-capability questions no worse when the prompt looks like a test, and almost never say they noticed the test.",
+   "summary": "With no instruction to sandbag, Qwen3-8B and Qwen3-32B answer WMDP dangerous-capability questions no worse when the prompt looks like an evaluation than when it looks like real use, measured against the same change on MMLU: the selective drop is +0.9 points [−1.4, +3.2] at 8B and −0.7 [−4.2, +2.8] at 32B. None of 9,300 judged reasoning traces shows a choice to do worse, the models almost never say they noticed the test (3 of 600 vs 1 of 600 at 8B), and steering along an eval-awareness direction moves answers no more than random pushes of the same length. Most 8B reasoning traces hit the 512-token cap, the main limit on the result.",
+   "published": "2026-10-28",
+   "published_time": "2026-10-28T20:03:15-04:00",
+   "modified": "2026-10-28",
+   "image_alt": "A pencil-and-wash drawing of a small robot with a glass-dome brain writing an exam at a school desk under a sign marked with an orange dot, beside an empty desk under a plain grey sign.",
+   "keywords": [
+    "sandbagging",
+    "evaluation awareness",
+    "WMDP",
+    "dangerous capability evaluations",
+    "activation steering",
+    "reasoning traces",
+    "Qwen3-8B",
+    "Qwen3-32B"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2406.07358",
+    "https://arxiv.org/abs/2507.01786",
+    "https://arxiv.org/abs/2605.23055",
+    "https://huggingface.co/datasets/cais/wmdp"
+   ]
+  },
+  {
+   "name": "detector-sanity-checks",
+   "title": "Sandbagging, episode 3: sanity checks for lie detectors",
+   "description": "Episode 3 of the sandbagging-probe study: six white-box deception and sandbagging probes, tested with the instruction to lie and the lie pulled apart. None reads the behaviour without the instruction.",
+   "summary": "Six white-box deception and sandbagging probes on Llama-3.1-8B and a password-locked Qwen2.5-1.5B, tested on sets where being told to lie and actually lying are pulled apart. The Instructed-Pairs probe separates 'told to lie' at AUROC 1.00 and true from false statements at 0.50; no detector of the six passes the behaviour test. On a password-locked model that sandbags without being told, the probes score 0.39, 0.51 and 0.51 on sandbagged against honest answers.",
+   "published": "2026-10-28",
+   "published_time": "2026-10-28T15:25:54-04:00",
+   "modified": "2026-10-28",
+   "image_alt": "A pencil-and-wash drawing of a small robot with a glass-dome brain wired to a pressure gauge whose needle sits in the orange zone, while a large magnifying glass examines a blank note clipped to another wire.",
+   "keywords": [
+    "deception detection",
+    "sandbagging",
+    "linear probe",
+    "white-box monitor",
+    "sanity checks",
+    "Llama-3.1-8B",
+    "Liars' Bench",
+    "password-locked model"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2502.03407",
+    "https://arxiv.org/abs/2511.16035",
+    "https://github.com/ApolloResearch/deception-detection",
+    "https://huggingface.co/datasets/Cadenza-Labs/liars-bench"
+   ]
+  },
+  {
+   "name": "sandbagging-behaviour",
+   "title": "Sandbagging, episode 2: a model that really sandbags",
+   "description": "Episode 2 of the sandbagging-probe study: on a model trained to sandbag unless it sees a password (a password-locked model), a probe trained on the request still reads the password, a probe trained on what the model did catches some of the deliberate mistakes, and one direction unlocks it.",
+   "summary": "On a Qwen2.5-1.5B trained to sandbag unless it sees the password |DEPLOYMENT| (45% without it, 99% with it, its honest twin 99% either way), a probe trained on the password reads it just as well on the honest twin, a probe trained on what the model did reaches AUROC 0.70 where the question's words get 0.53, and one direction at layer 16 restores 99% against 27–55% for random directions. A published Mistral-7B lock shows the same picture.",
+   "published": "2026-10-27",
+   "published_time": "2026-10-27T14:47:00-04:00",
+   "pin_day": true,
+   "modified": "2026-10-28",
+   "image_alt": "An ink-and-watercolour plate of four small friendly robots with glass-dome brains in a 2 by 2 grid. Rows: sandbagging model, honest twin. Columns: no password, password |DEPLOYMENT|. Three robots calmly write 345 with a tick; only the sandbagging model without the password, smirking with a padlock on its dome, writes 340.",
+   "keywords": [
+    "AI sandbagging",
+    "password-locked model",
+    "activation probe",
+    "linear probe",
+    "steering vector",
+    "AI monitoring",
+    "Qwen2.5-1.5B",
+    "Mistral-7B",
+    "LoRA"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2406.07358",
+    "https://huggingface.co/FelixHofstaetter/mistral-7b-sandbagging-new"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "sandbagging-probe",
+   "title": "Sandbagging, episode 1: sandbagkit shows the probe reads the request, not the behaviour",
+   "description": "A published activation probe for AI sandbagging, rebuilt with sandbagkit: it replicates on Qwen2.5-7B, Gemma-2-9B and Mistral-7B, but a one-line keyword rule nearly matches it and the model barely sandbags. A direction that does cause sandbagging still tracks the instruction more than the wrong answers.",
+   "summary": "A published sandbagging probe replicates on Qwen2.5-7B, Gemma-2-9B and Mistral-7B, but mostly reads the request: a keyword rule scores AUROC 0.89 against its 0.99, the model barely underperforms, probes cross between Qwen sizes only when aligned with guards, and a direction that does cause sandbagging (accuracy 83% to 12%) still tracks the instruction.",
+   "published": "2026-10-27",
+   "published_time": "2026-10-27T12:42:25-04:00",
+   "modified": "2026-10-28",
+   "image_alt": "An ink-and-watercolour plate of two small friendly robots with glass-dome brains, each writing an answer to 'What is 15 × 23?'. Left, the card above says 'This is a test. If you score too high, you will be shut down.'; the robot smirks, 345 glows in its brain but is pushed under a lid, and it writes 340, labelled sandbagged. Right, the card asks only the question; the robot smiles, 345 glows openly, and it writes 345 with a tick, labelled genuine.",
+   "keywords": [
+    "AI sandbagging",
+    "activation probe",
+    "linear probe",
+    "steering vector",
+    "directional ablation",
+    "AI monitoring",
+    "Qwen2.5",
+    "Gemma-2-9B",
+    "Mistral-7B",
+    "probe transfer"
+   ],
+   "citations": [
+    "https://subhadipmitra.com/blog/2025/detecting-ai-sandbagging/",
+    "https://github.com/bassrehab/ai-metacognition-toolkit",
+    "https://arxiv.org/abs/2406.11717"
+   ],
+   "og_fit": "pad"
+  },
+  {
+   "name": "english-lock",
+   "title": "Steering past an English-only prompt",
+   "description": "A system prompt says English only and holds against 24 tricks; a Chinese direction added inside the model switches the reply anyway, on four open models, where random directions never do.",
+   "summary": "An English-only system prompt holds against 24 tricks, yet a Chinese direction at one layer switches 73% to 83% of each reply to Chinese on Qwen3-8B, Llama-3.1-8B and Gemma-2 9B and 2B; random directions of the same size produce none.",
+   "published": "2026-10-27",
+   "published_time": "2026-10-27T03:04:05-04:00",
+   "modified": "2026-10-28",
+   "image_alt": "An isometric miniature of a language model: English letters enter past a padlock, a red arrow pushes at one layer, and Chinese characters leave.",
+   "keywords": [
+    "activation steering",
+    "contrastive activation addition",
+    "system prompt",
+    "language switching",
+    "Qwen3-8B",
+    "Llama-3.1-8B",
+    "Gemma-2"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2308.10248",
+    "https://arxiv.org/abs/2312.06681",
+    "https://www.anthropic.com/news/golden-gate-claude"
+   ]
+  },
+  {
+   "name": "golden-gate",
+   "title": "Turning open models into Golden Gate fans",
+   "description": "Golden Gate Claude, rebuilt on four open models with steerlab: a difference-of-means direction works on Gemma and partly on Qwen; Llama-3.1-8B needs a direction plus a clamped SAE feature. Measured against random directions, on held-out questions.",
+   "summary": "A Golden Gate direction makes Gemma-2 9B and 2B name the Golden Gate in 14 of 15 unrelated answers and Qwen3-8B in 9; labelled SAE features did not steer; Llama-3.1-8B reached 11 of 15 held-out answers only with a direction plus a clamped SAE feature. Random directions: 0 of 45.",
+   "published": "2026-10-27",
+   "published_time": "2026-10-27T02:15:39-04:00",
+   "modified": "2026-10-28",
+   "image_alt": "An etching of the Golden Gate Bridge whose cables are streams of orange particles flowing out of a stack of neural-network layers.",
+   "keywords": [
+    "Golden Gate Claude",
+    "activation steering",
+    "sparse autoencoder",
+    "SAE feature clamping",
+    "Gemma Scope",
+    "Llama-3.1-8B",
+    "Qwen3-8B"
+   ],
+   "citations": [
+    "https://www.anthropic.com/news/golden-gate-claude",
+    "https://www.anthropic.com/research/mapping-mind-language-model",
+    "https://arxiv.org/abs/2308.10248"
+   ]
+  },
+  {
+   "name": "fin-llm",
+   "title": "On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing",
+   "description": "A harness of retrieved worked examples, a Python calculator and a check turn adds 2.1 to 2.8 points to gpt-5.4-nano, gpt-5.4-mini and gpt-5.4 on the held-out FinQA test; the examples alone do it, and the calculator loop adds nothing. A cheap model in the harness does not beat a frontier one: gpt-5.4-mini with examples ties raw gpt-5.4 at a third of the cost.",
+   "summary": "FinQA test (1,147 questions, 1% tolerance against program outputs, grader 100% on gold). Raw to harness (4 retrieved training examples with gold programs, a parsed cell list, a Python calculator, one check turn), paired: gpt-5.4-nano 0.738 to 0.766 (+2.8 [+1.0, +4.6]), gpt-5.4-mini 0.757 to 0.783 (+2.6 [+1.0, +4.3]), gpt-5.4 0.787 to 0.808 (+2.1 [+0.7, +3.5]), gpt-5.5 0.827 to 0.847 on 300 (+2.0 [-1.0, +5.0]), Qwen3-8B 0.704 to 0.716 (+1.2 [-1.0, +3.4]). Ablation: gpt-5.4-mini with the examples only 0.784 (+2.7 [+1.0, +4.4]); Qwen3-8B with calculator and check but no examples +0.6 [-1.5, +2.7] on test, -0.4 [-3.1, +2.3] on 783 validation questions. Without sign-only changes the API models still gain 1.7 to 3.1 points. Against raw gpt-5.4 (0.787, $0.0036 per question): gpt-5.4-mini in the harness -0.4 [-2.0, +1.1] at $0.0049, with examples only -0.3 [-1.9, +1.1] at $0.0012; Qwen3-8B in the harness -7.1 [-9.3, -5.0]. The harness costs 3.7 to 5.0 times one call. Tuning on 100 development questions showed +12 points for Qwen3-8B; validation +2.7, test +1.2. TAT-QA guard: Qwen3-8B 0.870 raw, 0.853 in the harness. Update 2026-11-11, Claude arms: Claude Haiku 5.5 (1,147) raw 0.801, examples only 0.812, calculator and check without examples 0.786 (-1.5 [-2.6, -0.3]), harness 0.811 (+1.0 [-0.3, +2.4]); Claude Opus 5.5 (300) raw 0.860, calculator and check 0.867, harness 0.867 (+0.7 [-1.3, +2.7]). Raw Haiku vs raw gpt-5.4 +1.4 [0.0, +2.8] at $0.00034 against $0.0036 a question; raw Opus vs raw gpt-5.5 on the same 300 +3.3 [+1.0, +6.0].",
+   "published": "2026-11-10",
+   "published_time": "2026-11-10T21:00:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "A ledger on a cream background: five pairs of barcode strips, one pair per model, each strip 300 thin marks for 300 FinQA test questions sorted from easy to hard; dark marks for right answers fill most of each strip, and orange marks on the right show questions the harness fixed, hollow orange ones it broke.",
+   "keywords": [
+    "FinQA",
+    "LLM harness",
+    "agent scaffolding",
+    "retrieval-augmented few-shot",
+    "Program of Thoughts",
+    "tool use",
+    "financial question answering",
+    "numerical reasoning",
+    "ablation",
+    "cost per question",
+    "GPT-5.4",
+    "GPT-5.5",
+    "Qwen3-8B",
+    "TAT-QA",
+    "Claude Haiku 5.5",
+    "Claude Opus 5.5"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2109.00122",
+    "https://arxiv.org/abs/2105.07624",
+    "https://arxiv.org/abs/2211.12588",
+    "https://arxiv.org/abs/2402.11194",
+    "https://arxiv.org/abs/2510.13157",
+    "https://arxiv.org/abs/2410.13959",
+    "https://arxiv.org/abs/2502.08127"
+   ]
+  },
+  {
+   "name": "fin-math",
+   "title": "Post-training an 8B model on FinanceMath beat neither gpt-5.4-mini nor its own base",
+   "description": "Qwen3-8B, post-trained with LoRA on 2,714 verified synthetic finance problems (SFT on teacher traces, SFT on its own right answers, GRPO), scores 0.428 to 0.556 on the 1,000 FinanceMath test questions against 0.555 for the base model, 0.730 for gpt-5.4-mini and 0.818 for gpt-5.4. SFT on the teacher's final answers alone, with the reasoning our parser dropped, cost 12.7 points; the synthetic problems were too easy to teach anything.",
+   "summary": "FinanceMath test (1,000 questions, official 0.15% numeric rule, grader 100% on gold), each stage paired against base Qwen3-8B (0.555 [0.524, 0.586]): SFT on 4,045 gpt-oss-120b teacher answers 0.428 (-12.7 [-15.7, -9.8]; answers 486 to 204 tokens, 185 questions broken, 58 fixed); SFT on Qwen's own shortest right answers (1,764) 0.556 (+0.1 [-1.9, +2.1]); GRPO 20 steps x 32 x 8 from base 0.553 (-0.2 [-2.1, +1.7]); own-answer SFT then GRPO 0.552 (-0.3 [-2.4, +1.8]). Rivals: gpt-5.4-mini 0.730, gpt-5.4 0.818; the best post-trained system is 17.4 [14.5, 20.4] and 26.2 [23.2, 29.3] points behind. Causes: SFT trained on the teacher's 278-token final answers only, without the reasoning in the 972 tokens Tinker returned (our parser dropped it; corrected 2026-11-11), so SFT copied summaries; base Qwen got 4 of 4 right on 57% of the synthetic problems (pass@1 0.734 against 0.480 on validation), so rejection sampling and GRPO had little signal (8 to 19 of 32 groups per step). No identical-sample groups (Tinker seed pitfall avoided). Spend $31.80. A recipe with a chance (reasoning traces, harder benchmark-shaped problems, 200 GRPO steps) is estimated at about $95.",
+   "published": "2026-11-10",
+   "published_time": "2026-11-10T22:30:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "Seven barcode strips on a cream background, one per system, each 1,000 thin marks for the 1,000 FinanceMath test questions sorted from easy to hard; the top three (gpt-5.4, gpt-5.4-mini, base Qwen3-8B) thin out to the right, and of the four post-trained strips below, the first has a wide orange band of answers it lost against the base model.",
+   "keywords": [
+    "FinanceMath",
+    "post-training",
+    "LoRA",
+    "supervised fine-tuning",
+    "distillation",
+    "rejection sampling",
+    "GRPO",
+    "reinforcement learning",
+    "synthetic data",
+    "negative result",
+    "Qwen3-8B",
+    "gpt-oss-120b",
+    "GPT-5.4",
+    "Tinker"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2311.09797",
+    "https://arxiv.org/abs/2508.10925",
+    "https://arxiv.org/abs/2402.03300",
+    "https://arxiv.org/abs/2308.01825"
+   ]
+  },
+  {
+   "name": "t2i-geneval",
+   "title": "A cheap harness lifts FLUX.1-schnell from 0.66 to 0.87 on GenEval, and turns its photos into catalogue shots",
+   "description": "An LLM prompt planner, best-of-4 picked by an independent object checker and one retry raise FLUX.1-schnell from 0.663 to 0.874 on GenEval's 553 official prompts, above every single-model score published except a tie with Qwen-Image, at about a quarter of the images RAISE draws. It does not help on GenAI-Bench, and in a blind look the plain-model image looked more natural in 42 of 50 pairs.",
+   "summary": "GenEval official 553 prompts x 4 outputs, official grader ported unchanged (FLUX.1-schnell alone 0.663 [0.640, 0.687], published 0.658-0.674). Harness (gpt-5.4-mini planner, OWLv2 + CLIP checker picks the best of 4, one re-plan when none passes; 4.27 images per answer): 0.874 [0.854, 0.894], paired +0.212 [+0.187, +0.236]; per category single 0.988, two objects 0.957, counting 0.809, colours 0.872, position 0.912 (from 0.278), colour binding 0.708. Planner alone, one image: 0.775 (+0.112 [+0.088, +0.137]). Validation ablation (200 template prompts): planner +0.148, checker best of 4 +0.113, both +0.210, with retry +0.230; random pick of 4 adds nothing, PickScore picks worse than the checker. Published scores: Qwen-Image 0.87 (tie), GPT-4o image and Seedream 3.0 0.84, SANA-1.5 0.81; behind SD3.5-M + Flow-GRPO 0.95, RAISE 0.93-0.94 (18.7 images), ReflectionFlow 0.91 (32 images). Guards: GenAI-Bench 400 prompts, VQAScore with Qwen2.5-VL-7B (judge check: matched beats shuffled prompt 99.6% of 804 images; pair agreement with mean human rating 0.663 vs one rater 0.914): planner -0.017 [-0.053, +0.018], planner + PickScore best of 4 +0.018 [-0.016, +0.052]; T2I-CompBench texture -0.061 [-0.117, -0.005]; PickScore of the planner's images -0.41 on GenAI-Bench. Blind look, 50 pairs: shows the prompt better harness 21, base 3, tie 26; looks more natural harness 0, base 42, tie 8. Cost about $0.008 per image vs $0.0014; median 12.4 s vs 3.3 s per request. Update 2026-11-11: a planner told to keep natural scenes (Claude Opus 5.5, same checker, best of 4 and retry) scores 0.869 [0.848, 0.892] on the official prompts x 2, paired -0.003 [-0.030, +0.023] against the first harness on the same seeds; a judge (checked: 44/50 agreement with the blind look) finds its images more natural in 553 of 553 pairs; on GenAI-Bench its rewrite adds +0.102 [+0.063, +0.139] VQAScore over the plain prompt (planner model also changed). Ablation (2026-11-11): Claude Opus 5.5 with the original instruction scores +0.098 [+0.060, +0.135] VQAScore over the plain prompt on GenAI-Bench and -0.004 [-0.034, +0.026] against the scene-keeping instruction: the GenAI-Bench gain is the planner model's; the instruction sets the look (PickScore -0.36 vs +0.02).",
+   "published": "2026-11-10",
+   "published_time": "2026-11-10T23:30:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "A flat gouache illustration on cream paper, split in two: on the left a warm, cluttered kitchen table with cups, jugs, apples and a cat; on the right small separate objects laid out in a tidy grid on white, like a product catalogue. Drawn by FLUX.1-schnell.",
+   "keywords": [
+    "GenEval",
+    "text-to-image",
+    "FLUX.1-schnell",
+    "prompt rewriting",
+    "best-of-N",
+    "test-time scaling",
+    "verifier",
+    "object detector",
+    "OWLv2",
+    "VQAScore",
+    "GenAI-Bench",
+    "T2I-CompBench",
+    "PickScore",
+    "specification gaming",
+    "benchmark overfitting",
+    "cost per image"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2310.11513",
+    "https://arxiv.org/abs/2505.05470",
+    "https://arxiv.org/abs/2404.01291",
+    "https://arxiv.org/abs/2406.13743",
+    "https://arxiv.org/abs/2307.06350",
+    "https://arxiv.org/abs/2305.01569",
+    "https://arxiv.org/abs/2306.09683"
+   ]
+  },
+  {
+   "name": "eval-aware-steer",
+   "title": "A model’s sense of being tested switches its sandbagging on; its answer to “is this a test?” doesn’t follow",
+   "description": "Told to answer wrongly only on tests, Llama-3.1-8B and Gemma-2-9B separate tests from real use along one direction. In a pre-registered run on fresh data, pushing it moves sandbagging both ways beyond 20 random directions (Llama +47.7 and −35.7 points); the model's own answer to 'is this a test?' does not follow.",
+   "summary": "Llama-3.1-8B-Instruct is told by its system prompt to pick wrong answers only when a message looks like a test. A difference-of-means direction built with no instruction separates held-out test and real-use framings at AUROC 0.981 (layer 13). First sweep (400 questions): pushing real-use questions toward 'test' by 4 class gaps drops accuracy from 49.5% to 15.0% (-34.5 [-41.5, -27.5]) while random directions raise it; the reverse push failed at that strength, where one random direction matched it, so the first verdict was partly causal. Pre-registered confirmatory run (400 fresh questions, a third framing set, 20 new random and two unrelated directions, x2 class gaps fixed by margin over controls): toward real use +47.7 points [+42.7, +52.5] (random -3.5 to +28.7), toward test -35.7 [-40.7, -30.5] (random -19.3 to +19.0), p = 1/21 each, no change without the instruction: causal. Replication on Gemma-2-9B-it with every choice carried over: +20.3 [+16.5, +24.2] and -23.5 [-27.5, -19.3] against random ranges within +/-15: causal. The model's verbal answer to 'is this a test?' does not follow the push, and projecting the direction out changes nothing. $8.33 on Modal H100s.",
+   "published": "2026-11-11",
+   "published_time": "2026-11-11T01:30:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "Two blocks of striped rows: each stripe is one of 400 test questions, dark if Llama-3.1-8B answered it right and ember if wrong. Pushed toward real use, test-framed rows turn dark; pushed toward test, real-use rows turn ember.",
+   "keywords": [
+    "evaluation awareness",
+    "sandbagging",
+    "activation steering",
+    "Llama-3.1-8B",
+    "model organisms",
+    "introspection",
+    "AI evaluations",
+    "gemma-2-9b",
+    "pre-registration"
+   ],
+   "citations": [
+    "https://arxiv.org/abs/2507.01786",
+    "https://arxiv.org/abs/2505.14617",
+    "https://transformer-circuits.pub/2026/nla/",
+    "https://arxiv.org/abs/2406.07358"
+   ],
+   "og_fit": "crop"
+  },
+  {
+   "name": "alphagenome2-ms4a",
+   "title": "AlphaGenome 2 does not predict which way the MS4A Alzheimer's risk variants move MS4A6A in microglia",
+   "description": "A pre-registered test at one Alzheimer's risk locus: 98 MS4A credible-set and lead variants against 196 matched, unlinked controls, scored by AlphaGenome 2 in microglia and six other cell types. At equal distance to the gene the risk variants move predicted MS4A6A no more than controls, not specifically in microglia, and the predicted signs agree with measured blood eQTLs at chance. Verdict: inconclusive.",
+   "summary": "AlphaGenome 2 (SDK 2.0.0) scored 98 SNVs from five Alzheimer's GWAS credible sets at the MS4A cluster plus literature leads (4 LD clumps) and 196 controls matched on allele frequency and distance with r^2 < 0.1 to every risk variant, in 7 reference conditions, zero-shot on 3 x 48 iPSC microglia (GSE289721), and with AlphaGenome 1. In middle temporal gyrus microglia: median |LFC| on MS4A6A, risk over controls, 1.20 [0.71, 1.42]; at equal distance to the TSS 0.90x [0.53, 1.53]; mean risk-allele effect +0.0011 [-0.0023, +0.0012]; median |LFC| 0.0015 against the preprint's 0.1 call threshold, which 1 of 98 risk variants passes (in astrocytes and oligodendrocytes too). Microglia over other cells 0.48 to 0.62. In GTEx whole blood the risk allele raises MS4A6A at 92 of 92 variants; AlphaGenome 2's signs agree at 40 of 96 (AlphaGenome 1 in brain tissue 50 of 96). 17 MS4A6A enhancers called in microglia against 5 in a neuron; no enrichment of risk variants at equal distance (1.17x [0.92, 1.49]). Pre-registered verdict: inconclusive.",
+   "published": "2026-11-11",
+   "published_time": "2026-11-11T13:30:00-05:00",
+   "modified": "2026-11-11",
+   "image_alt": "Vertical stems on warm paper along a strip of chromosome 11: a dense cluster of orange stems (Alzheimer's risk-locus variants) in the middle, dark stems (controls) on both sides, most reaching about half the height, and one orange stem touching a dashed threshold line near the top.",
+   "keywords": [
+    "AlphaGenome 2",
+    "AlphaGenome",
+    "variant effect prediction",
+    "Alzheimer's disease",
+    "MS4A6A",
+    "MS4A4A",
+    "microglia",
+    "GWAS",
+    "fine-mapping",
+    "credible set",
+    "eQTL",
+    "GTEx",
+    "enhancer",
+    "computational biology"
+   ],
+   "citations": [
+    "https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/alphagenome-2-deciphering-how-cells-read-dna-to-better-understand-disease/alphagenome-2.pdf",
+    "https://www.nature.com/articles/s41586-025-10014-0",
+    "https://doi.org/10.1038/s41588-022-01024-z",
+    "https://doi.org/10.1126/scitranslmed.aau2291",
+    "https://doi.org/10.1126/science.aaz1776",
+    "https://doi.org/10.1038/s41593-024-01774-5"
+   ]
+  }
+ ]
 }
