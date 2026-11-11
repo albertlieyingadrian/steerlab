@@ -342,7 +342,7 @@ def select(checkpoints: str = "grpo-s10,grpo-s20,grpo-s30,grpo-s40", split: str 
     items = fm.load(split)
     models = [["sft-e2", "/vol/adapters/v2-sft-e2"]] + [[c, f"/vol/adapters/{c}"] for c in checkpoints.split(",") if c]
     if split == "test":
-        models = [["base", None]] + models
+        models = [["base", None], *models]
     res = sample_eval.remote([fm.prompt(i) for i in items], models)
     scored = _score(items, res, fm, fin)
     for tag, rows in scored.items():
