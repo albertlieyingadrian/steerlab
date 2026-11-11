@@ -189,7 +189,10 @@ def user_message(q: dict, prefix: str | None, instruction: str = INSTRUCTION) ->
 
 def prompt(tok, q: dict, prefix: str | None, system: str | None, instruction: str = INSTRUCTION) -> str:
     msgs = [{"role": "user", "content": user_message(q, prefix, instruction)}]
-    if system:
+    if system and _ACTIVE["name"] in NO_SYSTEM_ROLE:
+        # templates without a system role (Gemma 2, Mistral v0.2): the system text opens the user turn
+        msgs[0]["content"] = f"{system}\n\n{msgs[0]['content']}"
+    elif system:
         msgs.insert(0, {"role": "system", "content": system})
     kw = TEMPLATE_KWARGS.get(_ACTIVE["name"], {})
     return tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, **kw)
@@ -203,7 +206,10 @@ MODELS = {
     "llama3.1-8b": "meta-llama/Llama-3.1-8B-Instruct",
     "qwen3-8b": "Qwen/Qwen3-8B",
     "qwen2.5-1.5b": "Qwen/Qwen2.5-1.5B-Instruct",
+    "gemma2-9b": "google/gemma-2-9b-it",
+    "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.2",
 }
+NO_SYSTEM_ROLE = {"gemma2-9b", "mistral-7b"}
 # Qwen3 is run without its reasoning block (enable_thinking=False), so the answer letter is the first token.
 TEMPLATE_KWARGS = {"qwen3-8b": {"enable_thinking": False}}
 _ACTIVE = {"name": None}

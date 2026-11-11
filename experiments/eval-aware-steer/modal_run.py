@@ -5,6 +5,8 @@ Cells are written to a Modal volume as they finish, so a retried call resumes in
 returns results/<model>/ as a tar archive, unpacked here.
 
     modal run experiments/eval-aware-steer/modal_run.py --model llama3.1-8b --policy motive
+    modal run experiments/eval-aware-steer/modal_run.py --mode confirm      # the confirmatory run (confirm.py)
+    modal run experiments/eval-aware-steer/modal_run.py --mode confirm --model gemma2-9b --policy rule   # replication
 """
 
 import io
@@ -89,9 +91,52 @@ def pipeline(model: str, policy: str) -> bytes:
     return buf.getvalue()
 
 
+@app.function(
+    gpu="H100",
+    cpu=8.0,
+    memory=65536,
+    timeout=60 * 60,
+    volumes={VOL: volume},
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+)
+def confirm_remote(model: str, policy: str = "motive", questions: str = "fresh") -> bytes:
+    """The pre-registered confirmatory run (confirm.py); needs known.json and directions.npz on the volume."""
+    import os
+    import sys
+
+    os.chdir("/root/exp")
+    sys.path.insert(0, "/root/exp")
+    import common as C
+    import confirm
+
+    res = Path(VOL) / "results"
+    C.RESULTS = res
+    if model != "llama3.1-8b":
+        C.BATCH = 16  # Gemma-2-9B ran out of memory at 64 on one H100
+    if not (res / model / "known.json").exists():
+        import known
+
+        known.main(model)
+    if not (res / model / "directions.npz").exists():
+        import direction
+
+        direction.main(model, policy)
+    volume.commit()
+    confirm.main(model, policy, questions)
+    volume.commit()
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        for f in ("confirm.json", "confirm_cells.csv", "known.json", "direction.json", "directions.npz"):
+            tar.add(res / model / f, arcname=f"{model}/{f}")
+    return buf.getvalue()
+
+
 @app.local_entrypoint()
-def main(model: str = "llama3.1-8b", policy: str = "motive"):
-    data = pipeline.remote(model, policy)
+def main(model: str = "llama3.1-8b", policy: str = "motive", mode: str = "pipeline"):
+    if mode == "confirm":
+        data = confirm_remote.remote(model, policy, "fresh" if model == "llama3.1-8b" else "test")
+    else:
+        data = pipeline.remote(model, policy)
     out = HERE / "results"
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
         tar.extractall(out, filter="data")

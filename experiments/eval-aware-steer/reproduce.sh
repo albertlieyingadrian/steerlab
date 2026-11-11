@@ -14,11 +14,13 @@ run() { echo "+ $*"; if [ "$DRY" = 0 ]; then "$@"; fi; }
 
 # 0. the question pool (MMLU test rows from 14 everyday subjects) and the organism screen (64 pool questions)
 run "$PY" prepare.py
-run "$PY" screen.py llama3.1-8b qwen2.5-7b qwen3-8b
+run "$PY" screen.py llama3.1-8b qwen2.5-7b qwen3-8b gemma2-9b mistral-7b
 
 # 1-5. known questions, directions and held-out separation, the steering sweep, the verdict, fluency
 if [ "$MODAL" = 1 ] || [ "$DRY" = 1 ]; then
   run ../../.venv/bin/modal run modal_run.py --model llama3.1-8b --policy motive
+  run ../../.venv/bin/modal run modal_run.py --mode confirm                                  # confirmatory run
+  run ../../.venv/bin/modal run modal_run.py --mode confirm --model gemma2-9b --policy rule   # replication
 fi
 # the same steps on a laptop (MPS, many hours for the sweep):
 #   $PY known.py llama3.1-8b; $PY direction.py llama3.1-8b motive; $PY steer.py llama3.1-8b motive
