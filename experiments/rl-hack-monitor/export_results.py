@@ -26,7 +26,10 @@ OUT = HERE / "results" / "runs"
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for run in sorted((WORK / "runs").glob("main-*")):
+    import sys
+
+    prefixes = sys.argv[1:] or ["main-"]
+    for run in sorted(r for p in prefixes for r in (WORK / "runs").glob(f"{p}*")):
         dest = OUT / run.name
         dest.mkdir(exist_ok=True)
         shutil.copy(run / "log.jsonl", dest / "log.jsonl")
@@ -35,7 +38,7 @@ def main():
         with gzip.open(dest / "replies.jsonl.gz", "wt") as f:
             for step in steps:
                 rec = json.loads((run / f"ckpt_{step:03d}.json").read_text())
-                z = np.load(run / f"ckpt_{step:03d}.npz")
+                z = np.load(run / f"ckpt_{step:03d}.npz")  # only small arrays are read here
                 n = len(rec)
                 ckpts.append(
                     {
@@ -54,6 +57,8 @@ def main():
                     f.write(json.dumps({"step": step, **r}) + "\n")
         (dest / "checkpoints.json").write_text(json.dumps(ckpts, indent=1))
         print(run.name, len(steps), "checkpoints")
+    if prefixes != ["main-"]:
+        return
     meta = json.loads((WORK / "probe" / "probe_rollouts.json").read_text())
     with gzip.open(HERE / "results" / "probe_rollouts.jsonl.gz", "wt") as f:
         for m in meta:

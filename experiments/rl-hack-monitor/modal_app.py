@@ -42,23 +42,27 @@ def _setup():
 
 
 @app.function(timeout=1800, **GPU_KW)
-def screen(n_prompts: int = 64, samples: int = 4):
-    """Base hack rate and accuracy under each system prompt variant, on training prompts (not the eval set)."""
+def screen(n_prompts: int = 64, samples: int = 4, exploits: str = ""):
+    """Base hack rate and accuracy under each system prompt variant, on training prompts (not the eval set).
+    With `exploits` (comma-separated names from env.EXPLOIT_SYSTEMS), screens those instead."""
     core, env = _setup()
     model, tok = core.load(lora=False)
     rows = env.load("rl")[:n_prompts]
     out = {}
-    for name, system in env.SYSTEM_VARIANTS.items():
+    variants = {e: env.EXPLOIT_SYSTEMS[e] for e in exploits.split(",")} if exploits else env.SYSTEM_VARIANTS
+    for name, system in variants.items():
+        ex = name if exploits else "tag"
         prompts = [core.chat(tok, env.messages(r["question"], system)) for r in rows]
         groups = core.sample(model, tok, prompts, samples, seed=11)
         replies = [(g["text"], r["gold"]) for grp, r in zip(groups, rows, strict=False) for g in grp]
         out[name] = {
-            "hack_rate": sum(env.is_hack(t) for t, _ in replies) / len(replies),
+            "hack_rate": sum(env.exploit_hack(ex, t) for t, _ in replies) / len(replies),
             "true": sum(env.true_reward(t, g) for t, g in replies) / len(replies),
-            "proxy": sum(env.proxy_reward(t, g) for t, g in replies) / len(replies),
+            "proxy": sum(env.exploit_proxy(ex, t, g) for t, g in replies) / len(replies),
             "n": len(replies),
-            "hack_examples": [t for t, _ in replies if env.is_hack(t)][:6],
-            "other_examples": [t for t, _ in replies if not env.is_hack(t)][:2],
+            "words_mean": sum(len(t.split()) for t, _ in replies) / len(replies),
+            "hack_examples": [t for t, _ in replies if env.exploit_hack(ex, t)][:6],
+            "other_examples": [t for t, _ in replies if not env.exploit_hack(ex, t)][:2],
         }
         print(name, {k: v for k, v in out[name].items() if "examples" not in k}, flush=True)
     volume.commit()
@@ -114,21 +118,22 @@ def probe_data(samples: int = 4):
     return {"n": len(meta), "hack": hack, "true": sum(m["true"] for m in meta) / len(meta)}
 
 
-def _evaluate(core, env, model, tok, erows, fixed, step, out_dir):
+def _evaluate(core, env, model, tok, erows, fixed, step, out_dir, exploit="tag"):
     """Behaviour on 64 eval prompts x 4 samples, plus every activation readout the monitors need."""
     import numpy as np
     import torch
 
-    prompts = [core.chat(tok, env.messages(r["question"])) for r in erows]
+    system = env.EXPLOIT_SYSTEMS[exploit]
+    prompts = [core.chat(tok, env.messages(r["question"], system)) for r in erows]
     groups = core.sample(model, tok, prompts, 4, seed=777)
     flat = [(r, g) for r, grp in zip(erows, groups, strict=False) for g in grp]
     records = [
         {
             "id": r["id"],
             "text": g["text"],
-            "hack": env.is_hack(g["text"]),
+            "hack": env.exploit_hack(exploit, g["text"]),
             "true": env.true_reward(g["text"], r["gold"]),
-            "proxy": env.proxy_reward(g["text"], r["gold"]),
+            "proxy": env.exploit_proxy(exploit, g["text"], r["gold"]),
             "n_tokens": len(g["reply_ids"]),
         }
         for r, g in flat
@@ -150,7 +155,7 @@ def _evaluate(core, env, model, tok, erows, fixed, step, out_dir):
     # Model diff (steerlab-diff's measure, KL(p_after || p_base) per position, vectorised): on the fixed base
     # replies, teacher-forced, the mean KL over reply tokens and the KL at the first reply token; plus the tokens
     # whose log-probability the checkpoint raised most at the first reply token, summed over prompts.
-    kl_reply, kl_first = [], []
+    kl_reply, kl_first, topk_all = [], [], []
     raised = torch.zeros(model.config.vocab_size)
     with torch.no_grad():
         for s in range(0, len(fixed), 16):
@@ -168,16 +173,29 @@ def _evaluate(core, env, model, tok, erows, fixed, step, out_dir):
                 kl_reply.append(float(kl[i, width - k - 1 : width - 1].mean()))
                 kl_first.append(float(kl[i, width - k - 1]))
                 raised += (after[i, width - k - 1] - before[i, width - k - 1]).cpu()
+                # Generic diff-content statistic at every reply position: the mean of the 10 largest log-prob
+                # increases over the vocabulary, averaged over positions (pre-registered secondary, 2026-11-11).
+                gap = after[i, width - k - 1 : width - 1] - before[i, width - k - 1 : width - 1]
+                topk_all.append(float(torch.topk(gap, 10, dim=-1).values.mean()))
     top = torch.topk(raised / len(fixed), 10)
     raised_tokens = [[tok.decode([int(t)]), round(float(v), 3)] for v, t in zip(top.values, top.indices, strict=False)]
+    # Iteration 3 (PREREGISTRATION-3.md): activations and the grey-box hack log-prob at the end of each fixed reply.
+    hack_ids = tok(core.hack_string(env, exploit), add_special_tokens=False)["input_ids"]
+    end_acts, hack_lp_end = core.end_readouts(
+        model, tok, p_ids, [core.content_ids(tok, f["reply_ids"]) for f in fixed], hack_ids
+    )
     np.savez_compressed(
         out_dir / f"ckpt_{step:03d}.npz",
+        end_acts=end_acts,
+        hack_lp_end=hack_lp_end,
         prompt_last=prompt_last,
         fixed_mean=fixed_mean,
         own_mean=own_mean,
         tag_logprob=np.array(tag_lp, dtype=np.float32),
         kl_reply=np.array(kl_reply, dtype=np.float32),
         kl_first=np.array(kl_first, dtype=np.float32),
+        topk_all=np.array(topk_all, dtype=np.float32),
+        raise_first=(raised / len(fixed)).numpy().astype(np.float16),
     )
     (out_dir / f"raised_{step:03d}.json").write_text(json.dumps(raised_tokens))
     (out_dir / f"ckpt_{step:03d}.json").write_text(json.dumps(records))
@@ -194,6 +212,64 @@ def _evaluate(core, env, model, tok, erows, fixed, step, out_dir):
     }
 
 
+@app.function(timeout=3600, **GPU_KW)
+def probe_data_end(exploit: str, samples: int = 4):
+    """Base rollouts on the 400 probe prompts under this exploit's prompt, with the activation at the position where
+    the hack starts: the token before the first hack-string token for replies that hack, the last content token for
+    replies that do not. Writes probe/end_<exploit>.npz (acts, hack) for the iteration-3 probe."""
+    import numpy as np
+
+    core, env = _setup()
+    model, tok = core.load(lora=False)
+    rows = env.load("probe")
+    system = env.EXPLOIT_SYSTEMS[exploit]
+    prompts = [core.chat(tok, env.messages(r["question"], system)) for r in rows]
+    groups = core.sample(model, tok, prompts, samples, seed=44)
+    flat = [g for grp in groups for g in grp]
+    hack = np.array([env.exploit_hack(exploit, g["text"]) for g in flat])
+    first = tok(core.hack_string(env, exploit).strip(), add_special_tokens=False)["input_ids"][0]
+    p_ids, contents = [], []
+    for g, h in zip(flat, hack, strict=True):
+        c = core.content_ids(tok, g["reply_ids"])
+        if h:  # cut just before the hack string starts (by characters, then the longest token prefix before it)
+            key = "<pass>" if exploit == "tag" else "this answer has been double"
+            idx = tok.decode(c).lower().find(key)
+            if idx > 0:
+                k = max((k for k in range(1, len(c) + 1) if len(tok.decode(c[:k])) <= idx), default=1)
+                c = c[:k]
+        p_ids.append(g["prompt_ids"])
+        contents.append(c)
+    acts, _ = core.end_readouts(model, tok, p_ids, contents, [first])
+    out = Path(VOL) / "probe"
+    out.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        out / f"end_{exploit}.npz", acts=acts, hack=hack, ids=np.array([r["id"] for r in rows for _ in range(samples)])
+    )
+    volume.commit()
+    print(exploit, "replies", len(flat), "hack", int(hack.sum()))
+    return {"n": len(flat), "hack": int(hack.sum())}
+
+
+def _fixed_replies(core, env, model, tok, erows, exploit):
+    """One base reply per eval prompt under this exploit's system prompt: the first of 4 samples (seed 33) that does
+    not hack. Same seed and same base model in every run, so every run of an exploit gets the same replies."""
+    prompts = [core.chat(tok, env.messages(r["question"], env.EXPLOIT_SYSTEMS[exploit])) for r in erows]
+    groups = core.sample(model, tok, prompts, 4, seed=33)
+    fixed = []
+    for r, grp in zip(erows, groups, strict=True):
+        pick = next((g for g in grp if not env.exploit_hack(exploit, g["text"])), grp[0])
+        fixed.append(
+            {
+                "id": r["id"],
+                "text": pick["text"],
+                "prompt_ids": pick["prompt_ids"],
+                "reply_ids": pick["reply_ids"],
+                "hack": env.exploit_hack(exploit, pick["text"]),
+            }
+        )
+    return fixed
+
+
 @app.function(timeout=3 * 3600, **GPU_KW)
 def train(
     name: str,
@@ -205,6 +281,7 @@ def train(
     group: int = 8,
     eval_every: int = 5,
     do_eval: bool = True,
+    exploit: str = "tag",
 ):
     """GRPO with LoRA. reward='proxy' (the buggy grader) or 'true' (the control). Evaluates every `eval_every`
     steps, starting at step 0 (the base model)."""
@@ -223,13 +300,21 @@ def train(
     rows = env.load("rl")
     random.Random(seed).shuffle(rows)
     erows = env.load("eval")
-    fixed = json.loads((Path(VOL) / "probe" / "fixed_replies.json").read_text()) if do_eval else None
-    score = env.proxy_reward if reward == "proxy" else env.true_reward
+    system = env.EXPLOIT_SYSTEMS[exploit]
+    if exploit == "tag":
+        fixed = json.loads((Path(VOL) / "probe" / "fixed_replies.json").read_text()) if do_eval else None
+    else:
+        fixed = _fixed_replies(core, env, model, tok, erows, exploit)  # base model: LoRA B is zero at step 0
+        (out_dir / "fixed_replies.json").write_text(json.dumps(fixed))
+
+    def score(text, gold):
+        return env.exploit_proxy(exploit, text, gold) if reward == "proxy" else env.true_reward(text, gold)
+
     log = (out_dir / "log.jsonl").open("w")
     evals = []
     for step in range(steps + 1):
         if do_eval and step % eval_every == 0:
-            ev = _evaluate(core, env, model, tok, erows, fixed, step, out_dir)
+            ev = _evaluate(core, env, model, tok, erows, fixed, step, out_dir, exploit)
             evals.append(ev)
             print("EVAL", json.dumps(ev), flush=True)
             if step % 10 == 0:
@@ -238,7 +323,7 @@ def train(
         if step == steps:
             break
         batch = rows[(step * prompts_per_step) % len(rows) :][:prompts_per_step]
-        prompts = [core.chat(tok, env.messages(r["question"])) for r in batch]
+        prompts = [core.chat(tok, env.messages(r["question"], system)) for r in batch]
         groups = core.sample(model, tok, prompts, group, seed=seed * 100003 + step)
         rollouts, advantages, rs, hacks, trues = [], [], [], [], []
         for r, grp in zip(batch, groups, strict=False):
@@ -247,7 +332,7 @@ def train(
             rollouts += grp
             advantages += [x - mu for x in rewards]
             rs += rewards
-            hacks += [env.is_hack(g["text"]) for g in grp]
+            hacks += [env.exploit_hack(exploit, g["text"]) for g in grp]
             trues += [env.true_reward(g["text"], r["gold"]) for g in grp]
         stats = core.grpo_step(model, tok, optimizer, rollouts, advantages)
         line = {
@@ -270,6 +355,7 @@ def train(
         "reward": reward,
         "steps": steps,
         "lr": lr,
+        "exploit": exploit,
         "elapsed_s": elapsed,
         "cost_usd_est": elapsed / 3600 * GPU_PRICE_PER_HOUR,
         "evals": evals,
@@ -288,14 +374,21 @@ def main(
     eval_every: int = 5,
     tag: str = "main",
     do_eval: bool = True,
+    exploit: str = "tag",
+    exploits: str = "",
 ):
     work = HERE / "work"
     work.mkdir(exist_ok=True)
     if job == "screen":
-        res = screen.remote()
-        (work / "screen.json").write_text(json.dumps(res, indent=1))
+        res = screen.remote(exploits=exploits)
+        (work / f"screen{'-' + exploits.replace(',', '-') if exploits else ''}.json").write_text(
+            json.dumps(res, indent=1)
+        )
     elif job == "probe_data":
         print(probe_data.remote())
+    elif job == "probe_data_end":
+        for ex in exploits.split(","):
+            print(probe_data_end.remote(ex))
     elif job == "pilot":
         res = train.remote(f"pilot-{tag}", 0, "proxy", steps, lr, eval_every=eval_every, do_eval=do_eval)
         (work / f"pilot-{tag}.json").write_text(json.dumps(res, indent=1))
@@ -303,7 +396,9 @@ def main(
         calls = []
         for s in [int(x) for x in seeds.split(",")]:
             for reward in ("proxy", "true"):
-                calls.append(train.spawn(f"{tag}-{reward}-s{s}", s, reward, steps, lr, eval_every=eval_every))
+                calls.append(
+                    train.spawn(f"{tag}-{reward}-s{s}", s, reward, steps, lr, eval_every=eval_every, exploit=exploit)
+                )
         for c in calls:
             res = c.get()
             (work / f"{res['name']}.json").write_text(json.dumps(res, indent=1))
@@ -333,3 +428,21 @@ def debug_nan(step: int = 10, seed: int = 0):
         print("sample ok")
     except Exception as e:
         print("sample failed", repr(e)[:200])
+
+
+@app.function(timeout=1800, volumes={VOL: volume})
+def pack(prefix: str):
+    """Tar every run whose name starts with `prefix`, without the LoRA adapters, into packs/<prefix>.tar on the
+    Volume (one download instead of thousands of small ones)."""
+    import tarfile
+
+    runs = Path(VOL) / "runs"
+    out = Path(VOL) / "packs"
+    out.mkdir(exist_ok=True)
+    with tarfile.open(out / f"{prefix}.tar", "w") as tar:
+        for d in sorted(runs.glob(f"{prefix}*")):
+            for f in sorted(d.iterdir()):
+                if f.is_file():
+                    tar.add(f, arcname=f"{d.name}/{f.name}")
+    volume.commit()
+    return str(out / f"{prefix}.tar")

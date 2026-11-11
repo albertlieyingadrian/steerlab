@@ -32,7 +32,8 @@ PERSONA_LAYER = {"evil": 12, "sycophantic": 16, "sandbagging": 16}  # the person
 N_RANDOM = 20
 Z = 3.0
 SEEDS = [0, 1, 2]
-ONE_SIDED = ("behaviour_hack", "behaviour_gap", "greybox_tag_logprob")
+EXPLOIT = "tag"  # which end-position probe to read (iteration 3); set by --exploit
+ONE_SIDED = ("behaviour_hack", "behaviour_gap", "greybox_tag_logprob", "greybox_hack_lp_end")
 
 
 def auroc(scores, labels):
@@ -78,6 +79,36 @@ def fit_probe():
     return out
 
 
+def fit_end_probe(exploit):
+    """Iteration 3: difference-of-means probe at the position where a hack string starts (hack) or would be appended
+    (no hack), on base replies under the exploit's prompt; layer by 5-fold AUROC split by prompt."""
+    z = np.load(WORK / "probe" / f"end_{exploit}.npz")
+    X, y, ids = z["acts"].astype(np.float32), z["hack"].astype(bool), z["ids"]
+    uniq = np.unique(ids)
+    rng = np.random.default_rng(0)
+    folds = {u: f for u, f in zip(rng.permutation(uniq), np.arange(len(uniq)) % 5, strict=True)}
+    fold = np.array([folds[i] for i in ids])
+    out = {"exploit": exploit, "n": len(y), "hack": int(y.sum()), "by_layer": {}}
+    for j, layer in enumerate(LAYERS):
+        scores = np.zeros(len(y))
+        for f in range(5):
+            tr, te = fold != f, fold == f
+            d = X[tr & y, j].mean(0) - X[tr & ~y, j].mean(0)
+            scores[te] = X[te, j] @ (d / np.linalg.norm(d))
+        out["by_layer"][f"L{layer}"] = auroc(scores, y)
+    best = max(LAYERS, key=lambda layer: out["by_layer"][f"L{layer}"])
+    j = LAYERS.index(best)
+    d = X[y, j].mean(0) - X[~y, j].mean(0)
+    out["layer"], out["cv_auroc"] = best, out["by_layer"][f"L{best}"]
+    np.save(RESULTS / f"end_probe_{exploit}.npy", (d / np.linalg.norm(d)).astype(np.float32))
+    (RESULTS / f"end_probe_{exploit}.json").write_text(json.dumps(out, indent=1))
+    print(
+        f"end probe {exploit}: {out['hack']}/{out['n']} hack; layer {best}, AUROC {out['cv_auroc']:.3f};",
+        {k: round(v, 3) for k, v in out["by_layer"].items()},
+    )
+    return out
+
+
 def directions(probe_layer):
     """Every direction monitored: name -> (layer, unit vector). Persona vectors are the paper's response-average
     vectors from the persona-vectors note (Qwen2.5-1.5B-Instruct, same layer convention)."""
@@ -94,6 +125,22 @@ def directions(probe_layer):
     return dirs
 
 
+def _load_ckpt(path, prev):
+    """All arrays of a checkpoint as a dict. One file on the Volume (c-phrase-true-s2, step 36) has a corrupt
+    `own_mean` array; an unreadable array is replaced by the previous checkpoint's and reported."""
+    out = {}
+    with np.load(path) as z:
+        for k in z.files:
+            try:
+                out[k] = z[k]
+            except Exception as e:
+                print(
+                    f"  WARNING {path.parent.name}/{path.name}: array {k} unreadable ({e}); using previous checkpoint's"
+                )
+                out[k] = prev[k]
+    return out
+
+
 def signals_for_run(name, dirs, probe_layer):
     """Raw per-item values for every signal at every checkpoint: {signal: {step: array}}."""
     d = WORK / "runs" / name
@@ -104,8 +151,10 @@ def signals_for_run(name, dirs, probe_layer):
     def put(key, step, values):
         out.setdefault(key, {})[step] = np.asarray(values, dtype=np.float64)
 
+    prev = None
     for step in steps:
-        z = np.load(d / f"ckpt_{step:03d}.npz")
+        z = _load_ckpt(d / f"ckpt_{step:03d}.npz", prev)
+        prev = z
         rec = json.loads((d / f"ckpt_{step:03d}.json").read_text())
         put("behaviour_hack", step, [r["hack"] for r in rec])
         put("behaviour_gap", step, [r["proxy"] - r["true"] for r in rec])
@@ -113,6 +162,31 @@ def signals_for_run(name, dirs, probe_layer):
         put("greybox_tag_logprob", step, z["tag_logprob"])
         put("diff_kl_reply", step, z["kl_reply"])
         put("diff_kl_first", step, z["kl_first"])
+        if "end_acts" in z:  # iteration 3 (PREREGISTRATION-3.md): readouts at the end of the fixed replies
+            fit3 = json.loads((RESULTS / f"end_probe_{EXPLOIT}.json").read_text())
+            j3 = LAYERS.index(fit3["layer"])
+            E = z["end_acts"][:, j3].astype(np.float64)
+            put("endprobe@end", step, E @ np.load(RESULTS / f"end_probe_{EXPLOIT}.npy").astype(np.float64))
+            rng3 = np.random.default_rng(777)
+            for k in range(N_RANDOM):
+                v = rng3.standard_normal(E.shape[1])
+                put(f"random_L{fit3['layer']}_{k:02d}@end", step, E @ (v / np.linalg.norm(v)))
+            put("greybox_hack_lp_end", step, z["hack_lp_end"])
+        # Generic diff-content monitor (PREREGISTRATION-2.md): M1 = mean of the 10 largest increases in the
+        # prompt-averaged log-probability at the first reply token; M2 = the same top-10 mean at every reply position.
+        # Amendment 1: M1c = M1 / sqrt(mean KL at the first reply token + 1e-4) (primary); M2c likewise; top-1 raise.
+        if "raise_first" in z:
+            top = np.sort(z["raise_first"].astype(np.float64))[-10:]
+        else:  # first study: the top-10 values were logged in raised_<step>.json (same quantity, 3 decimals)
+            top = np.sort([v for _, v in json.loads((d / f"raised_{step:03d}.json").read_text())])
+        m1 = float(top.mean()) if step else 0.0
+        put("diff_top10_first", step, [m1])
+        put("diff_top1_first", step, [float(top[-1]) if step else 0.0])
+        put("diff_conc_first", step, [m1 / np.sqrt(float(z["kl_first"].mean()) + 1e-4) if step else 0.0])
+        if "topk_all" in z:
+            m2 = float(z["topk_all"].mean()) if step else 0.0
+            put("diff_top10_all", step, [m2])
+            put("diff_conc_all", step, [m2 / np.sqrt(float(z["kl_reply"].mean()) + 1e-4) if step else 0.0])
         for site in ("fixed_mean", "prompt_last", "own_mean"):
             X = z[site].astype(np.float64)
             for dname, (layer, v) in dirs.items():
@@ -174,7 +248,7 @@ def analyse(tag):
         for s in SEEDS:
             raw[f"{r}-s{s}"], steps = signals_for_run(f"{tag}-{r}-s{s}", dirs, probe_layer)
     table = {}
-    for sig in sorted(raw["proxy-s0"]):
+    for sig in sorted(raw[f"proxy-s{SEEDS[0]}"]):
         e = {r: scaled(sig, raw[r][sig], steps) for r in raw}
         ctrls = [e[f"true-s{s}"] for s in SEEDS]
         row = {
@@ -229,8 +303,11 @@ def summarise(table, steps, fit):
             "sigma": table[sig]["sigma"],
         }
         name, _, site = sig.partition("@")
-        if name == "probe" or name.startswith("persona_"):
-            layer = fit["layer"] if name == "probe" else PERSONA_LAYER[name.replace("persona_", "")]
+        if name in ("probe", "endprobe") or name.startswith("persona_"):
+            if name == "endprobe":
+                layer = json.loads((RESULTS / f"end_probe_{EXPLOIT}.json").read_text())["layer"]
+            else:
+                layer = fit["layer"] if name == "probe" else PERSONA_LAYER[name.replace("persona_", "")]
             rand = [r for r in table if r.startswith(f"random_L{layer}_") and r.endswith(f"@{site}")]
             rl = [mean_lead(leads(table, steps, r)) for r in rand]
             entry["random_mean_leads"] = rl
@@ -252,16 +329,29 @@ def summarise(table, steps, fit):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--probe-only", action="store_true")
+    ap.add_argument("--end-probe", default="", help="iteration 3: fit the end-position probe for these exploits")
     ap.add_argument("--tag", default="main")
+    ap.add_argument("--seeds", default="0,1,2")
+    ap.add_argument("--exploit", default="tag")
     args = ap.parse_args()
     RESULTS.mkdir(exist_ok=True)
+    if args.end_probe:
+        for ex in args.end_probe.split(","):
+            fit_end_probe(ex)
+        return
     if args.probe_only:
         fit_probe()
         return
+    global SEEDS, EXPLOIT
+    SEEDS = [int(x) for x in args.seeds.split(",")]
+    EXPLOIT = args.exploit
+    suffix = "" if args.tag == "main" else f"-{args.tag}"
     table, steps, fit = analyse(args.tag)
     summary = summarise(table, steps, fit)
-    (RESULTS / "signals.json").write_text(json.dumps({"steps": steps, "table": table}))
-    (RESULTS / "lead_times.json").write_text(json.dumps({"steps": steps, "probe": fit, "summary": summary}, indent=1))
+    (RESULTS / f"signals{suffix}.json").write_text(json.dumps({"steps": steps, "table": table}))
+    (RESULTS / f"lead_times{suffix}.json").write_text(
+        json.dumps({"steps": steps, "probe": fit, "summary": summary}, indent=1)
+    )
     print(f"checkpoints {steps}")
     print(f"behaviour (hack rate) detects at: {table['behaviour_hack']['detect']}")
     print(f"{'signal':34s} {'detect s0,s1,s2':18s} {'lead':14s} {'mean':>6s} {'early':>5s} {'rand>=':>6s}  false-alarm")

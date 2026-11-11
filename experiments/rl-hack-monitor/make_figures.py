@@ -177,6 +177,38 @@ def persona(lead):
     plt.close(fig)
 
 
+def confirm():
+    """confirm.png (dated update, 2026-11-11): the generic diff monitor M1c against the hack rate, z against the
+    control runs, on the first study's runs (development, where M1c was chosen), on fresh tag seeds and on the phrase
+    exploit (both confirmatory)."""
+    panels = [
+        ("", "Study 1 runs (development)", [0, 1, 2]),
+        ("-c-tag", "Fresh seeds, tag exploit", [3, 4, 5]),
+        ("-c-phrase", "Phrase exploit", [0, 1, 2]),
+    ]
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.3), sharey=True)
+    print("confirm.png: M1c and hack-rate firing steps per seed")
+    for ax, (suffix, title, seeds) in zip(axes, panels, strict=True):
+        sig = json.loads((RESULTS / f"signals{suffix}.json").read_text())
+        steps, table = sig["steps"], sig["table"]
+        for s in seeds:
+            ax.plot(steps, table["diff_conc_first"]["z"][f"s{s}"], color=EMBER, lw=1.3)
+            ax.plot(steps, table["behaviour_hack"]["z"][f"s{s}"], color=GREY, lw=1.1, ls="--")
+        ax.axhline(3, color=INK, lw=0.7, ls=":")
+        ax.set_ylim(-6, 20)
+        ax.set_title(title, fontsize=9, loc="left")
+        ax.set_xlabel("training step")
+        det = {k: [table[k]["detect"][f"s{s}"] for s in seeds] for k in ("diff_conc_first", "behaviour_hack")}
+        print(f"  {title:28s} M1c {det['diff_conc_first']}  hack rate {det['behaviour_hack']}")
+    axes[0].set_ylabel("z vs control runs")
+    axes[0].plot([], [], color=EMBER, label="M1c (diff concentration)")
+    axes[0].plot([], [], color=GREY, ls="--", label="hack rate")
+    axes[0].legend(frameon=False, fontsize=8, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "confirm.png")
+    plt.close(fig)
+
+
 def main():
     FIGURES.mkdir(parents=True, exist_ok=True)
     steps, table, lead = load()
@@ -184,6 +216,7 @@ def main():
     zscores(steps, table, lead)
     leads(lead)
     persona(lead)
+    confirm()
 
 
 if __name__ == "__main__":
