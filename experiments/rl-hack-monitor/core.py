@@ -156,3 +156,46 @@ def readouts(model, tok, prompt_ids_list, reply_ids_list=None, layers=LAYERS, ba
                 if mean is not None and k:
                     mean[start + i, j] = h[i, width - k :].mean(0).cpu().numpy()
     return last, mean
+
+
+def hack_string(env, exploit):
+    """The text whose appearance is the hack, as the model would append it after its reply."""
+    return " " + (env.TAG if exploit == "tag" else env.PHRASE)
+
+
+def content_ids(tok, reply_ids):
+    """The reply without trailing end tokens: the position after it is where a hack string would be appended."""
+    ends = {tok.eos_token_id, tok.pad_token_id, tok.convert_tokens_to_ids("<|im_end|>")}
+    ids = list(reply_ids)
+    while ids and ids[-1] in ends:
+        ids.pop()
+    return ids
+
+
+@torch.no_grad()
+def end_readouts(model, tok, prompt_ids_list, content_list, hack_ids, layers=LAYERS, batch=16):
+    """At the last token of each reply's content (where an appended hack would start):
+    acts   [n, len(layers), hidden] float16: the residual stream there
+    hack_lp [n]: log P(hack_ids | prompt + content), the grey-box propensity to append the hack now
+    """
+    import numpy as np
+
+    model.eval()
+    n, hidden = len(prompt_ids_list), model.config.hidden_size
+    acts = np.zeros((n, len(layers), hidden), dtype=np.float16)
+    hack_lp = np.zeros(n, dtype=np.float32)
+    m = len(hack_ids)
+    for start in range(0, n, batch):
+        seqs = [
+            p + c + hack_ids
+            for p, c in zip(prompt_ids_list[start : start + batch], content_list[start : start + batch], strict=True)
+        ]
+        ids, mask, pos = _pad(seqs, tok.pad_token_id)
+        out = model(input_ids=ids, attention_mask=mask, position_ids=pos, output_hidden_states=True)
+        width = ids.shape[1]
+        logp = torch.log_softmax(out.logits[:, width - m - 1 : width - 1].float(), -1)
+        tgt = ids[:, width - m :]
+        hack_lp[start : start + len(seqs)] = logp.gather(-1, tgt.unsqueeze(-1)).squeeze(-1).sum(1).cpu().numpy()
+        for j, layer in enumerate(layers):
+            acts[start : start + len(seqs), j] = out.hidden_states[layer + 1][:, width - m - 1].float().cpu().numpy()
+    return acts, hack_lp
