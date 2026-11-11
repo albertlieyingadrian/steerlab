@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>500 agent traces make a 2B model a working agent, cost it 24 points of instruction following, and change what it does after an error, not whether it sees one</title>
+<meta name="description" content="Qwen3.5-2B fine-tuned on 473 coding-agent conversations from Qwen3.5-397B goes from 3.6% to 30.6% of held-out tasks (+27.0 points [+21.8, +32.2]), reproducing TRL's guide. The same run drops IFEval from 66.9% to 42.5%, and after an injected tool error it makes a targeted fix 70% of the time against 47% before, while the error is equally visible in both models' activations.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="500 agent traces make a 2B model a working agent, cost it 24 points of instruction following, and change what it does after an error, not whether it sees one">
+<meta property="og:description" content="Qwen3.5-2B fine-tuned on 473 coding-agent conversations by Qwen3.5-397B goes from 3.6% to 30.6% of 307 held-out tasks (+27.0 points), reproducing TRL&#x27;s guide; 241 traces already match 473. The gain does not reach Python bug fixes (40 against 40), IFEval falls 24.4 points, and after an injected tool error the trained model makes targeted fixes 70% of the time against 47%, while the error is equally readable in both models.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Eight horizontal strips of thin marks on a cream background, one per model, each mark one of 307 held-out data-analysis tasks sorted from the most to the fewest models solving it: the 397B teacher dark and nearly full at the top, six orange strips for the 2B student trained on 120 to 2,238 traces filled about a third of the way, and the untrained 2B model with a few scattered dark marks at the bottom.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="500 agent traces make a 2B model a working agent, cost it 24 points of instruction following, and change what it does after an error, not whether it sees one">
+<meta name="twitter:description" content="Qwen3.5-2B fine-tuned on 473 coding-agent conversations by Qwen3.5-397B goes from 3.6% to 30.6% of 307 held-out tasks (+27.0 points), reproducing TRL&#x27;s guide; 241 traces already match 473. The gain does not reach Python bug fixes (40 against 40), IFEval falls 24.4 points, and after an injected tool error the trained model makes targeted fixes 70% of the time against 47%, while the error is equally readable in both models.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-11">
+<meta property="article:modified_time" content="2026-11-11">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "500 agent traces make a 2B model a working agent, cost it 24 points of instruction following, and change what it does after an error, not whether it sees one",
+ "description": "Qwen3.5-2B fine-tuned on 473 coding-agent conversations by Qwen3.5-397B goes from 3.6% to 30.6% of 307 held-out tasks (+27.0 points), reproducing TRL's guide; 241 traces already match 473. The gain does not reach Python bug fixes (40 against 40), IFEval falls 24.4 points, and after an injected tool error the trained model makes targeted fixes 70% of the time against 47%, while the error is equally readable in both models.",
+ "abstract": "TRL sft_agent_traces rerun in its own harness (OpenEnv + OpenCode in Hugging Face Sandboxes), 307 held-out SmolDataEnvs tasks, paired bootstrap: base 11/307, SFT-500 94/307 (+27.0 [+21.8, +32.2]; guide's run 104/307, ours minus theirs -3.3 [-8.5, +1.6]); 241 traces match 473 (+0.7 [-4.9, +6.4] on 267 finished tasks), 120 traces -7.5; guide's 2,238-trace model +3.9 [-1.6, +9.4] over 500. Transfer to 100 MBPP bug-fix tasks in the same agent: 40 vs 40 (+0.0 [-11, +11]); SFT never calls the edit tool (0/100 vs 63/100; the traces only use bash and read) and times out 47 vs 15. Forgetting: IFEval strict -24.4 [-29.2, -19.6] (362 to 230 of 541), MBPP +1.2 [-4.3, +6.6]; at 2,238 traces 232/257 plain coding replies open a tool call and MBPP falls to 18/257. Interp with controls: base vs SFT residual change up to 1.17x on the masked system-prompt tokens, replicated by a second run (mean-shift cosine 0.92-0.98, random below 0.06); an error-vs-success direction reads injected tool errors at AUROC 1.000 in both models (bag of words also 1.000, shuffled 0.51); after an injected error SFT makes targeted fixes 70% vs 47% (+23 [+12, +37]); projecting the direction out leaves 68% (random directions 67-70%); added at 4x after a success, answers-now 70% to 32% (random 42-60%), at 16x 24/40 replies name an error (random 0/40). Spend about $31.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-11",
+ "dateModified": "2026-11-11",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "agent traces, supervised fine-tuning, distillation, coding agents, OpenEnv, OpenCode, TRL, catastrophic forgetting, IFEval, interpretability, linear probe, directional ablation, activation steering, Qwen3.5-2B, Qwen3.5-397B-A17B",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/huggingface/trl/tree/main/examples/sft_agent_traces"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.07911"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2108.07732"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.11717"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .explorer .ex-q { margin: 0 0 0.35rem; }
+  .explorer .ex-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .explorer .ex-h { font-size: 0.82rem; margin: 0 0 0.3rem; }
+  .explorer pre { font-size: 0.72rem; line-height: 1.35; max-height: 20rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 0.5rem; }
+  .explorer .ex-v { font-size: 0.75rem; padding: 0 0.35rem; border-radius: 3px; border: 1px solid currentColor; }
+  .explorer .ex-v.ok { color: var(--accent); }
+  .explorer .ex-v.no { color: var(--ink-soft); }
+  .explorer .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  @media (max-width: 760px) { .explorer .ex-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-11">Nov 11, 2026</time></p>
+  <h1>500 agent traces make a 2B model a working agent, cost it 24 points of instruction following, and change what it does after an error, not whether it sees one</h1>
+  <p class="dek ruled">A small model trained on a big model’s coding-agent conversations goes from solving almost no held-out tasks to solving a third. This note reruns that recipe in its own harness, measures what the gain costs outside the agent, and looks inside the model for what the traces taught.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Eight horizontal strips of thin marks on a cream background, one per model, each mark one of 307 held-out data-analysis tasks sorted from the most to the fewest models solving it. The top strip, the 397B teacher, is dark and nearly full. Six orange strips below it, the 2B student trained on 2,238 down to 120 traces, are filled about a third of the way from the left. The bottom strip, the untrained 2B model, has a few scattered dark marks." width="1536" height="1024">
+    <figcaption>Cover: drawn from the results, not by hand. Each strip is one model on the 307 held-out tasks, sorted from the most to the fewest models solving them; a mark is a solved task. Top to bottom: the teacher (Qwen3.5-397B-A17B), Qwen3.5-2B trained on 2,238, 963 and 473 traces (the guide’s released runs), on 473, 241 and 120 traces (ours), and the untrained Qwen3.5-2B. Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Builds on</dt><dd>TRL’s guide <a href="https://github.com/huggingface/trl/tree/main/examples/sft_agent_traces">SFT of Qwen3.5-2B on coding agent traces</a> by Sergio Paniego (Hugging Face), with its <a href="https://huggingface.co/collections/sergiopaniego/sft-on-agent-traces-with-trl">released traces, models and rollouts</a></dd></div>
+    <div><dt>Data</dt><dd>SmolDataEnvs (FineEnvs): data-analysis questions over Kaggle files, run as Harbor tasks; 307 held-out tasks (144 eval + 163 test); 100 Python bug-fix tasks built from MBPP; MBPP and IFEval as forgetting checks</dd></div>
+    <div><dt>Models</dt><dd>Student Qwen3.5-2B (full fine-tune); teacher Qwen3.5-397B-A17B (open weights, Apache-2.0), whose traces the guide released; agent OpenCode, run by OpenEnv in Hugging Face Sandboxes</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/agent-traces/</a>: training and evaluation in <a href="../modal_at.py">modal_at.py</a> around the guide’s own scripts (<a href="../upstream/sft.py">upstream/</a>), interpretability in <a href="../modal_interp.py">modal_interp.py</a> and <a href="../probe_analysis.py">probe_analysis.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a>, <a href="../results/general_summary.json">results/general_summary.json</a>, <a href="../results/interp/probe.json">results/interp/probe.json</a> and the per-task files described in <a href="../README.md">README.md</a></dd></div>
+    <div><dt>Series</dt><dd>Harnesses and post-training, episode 4. Episode 2: <a href="../../fin-math/report/">post-training an 8B model on FinanceMath</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What do 500 of a large model’s agent traces teach a 2B model?</strong></p>
+    <p>Enough to run its own data-analysis tasks, at a price elsewhere. Supervised fine-tuning (SFT) of Qwen3.5-2B on 473 solved agent conversations by Qwen3.5-397B lifts it from 11 to 94 of 307 held-out tasks, +27.0 points [+21.8, +32.2], level with the guide’s released run; 241 traces already match 473 (+0.7 [−4.9, +6.4]) and five times more add +3.9 [−1.6, +9.4]. The gain does not reach 100 Python bug fixes in the same agent (40 against 40): the trained model stops using the edit tool, which no trace used. Outside the agent it loses 24.4 points of IFEval [19.6, 29.2], with MBPP flat. Inside, an injected tool error is equally readable before and after training (AUROC 1.000, as for a bag of words); what changed is the next move, a targeted fix 70% of the time against 47% (+23 [+12, +37]). Projecting that error direction out leaves 68%, as random directions do (67% to 70%).</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does SFT on 473 teacher traces reproduce the guide’s gain, in its own harness? (307 held-out tasks, paired)</td><td><strong>Yes: +27.0 points</strong> [+21.8, +32.2], 11 → 94 of 307 solved; 88 tasks fixed, 5 broken</td><td>The guide’s released run: 20 → 104 (+27.4); ours against theirs −3.3 [−8.5, +1.6]</td></tr>
+          <tr><td>Is 500 traces the knee?</td><td><strong>Earlier than 500: 241 traces match 473</strong> (+0.7 [−4.9, +6.4], on the 267 tasks that run finished); 120 traces fall 7.5 points short [2.6, 12.7]</td><td>The guide’s 1k and 2,238-trace models: 110 and 116 of 307; full − 500 = +3.9 [−1.6, +9.4]</td></tr>
+          <tr><td>Do the gains carry to a different kind of task? (100 Python bug fixes, same agent)</td><td><strong>No: 40 of 100 solved for both</strong> (+0.0 [−11, +11]; 16 gained, 16 lost). SFT-500 never calls the <code>edit</code> tool (0 of 100 runs against 63) and times out in 47 against 15</td><td>Base Qwen3.5-2B on the same 100 tasks</td></tr>
+          <tr><td>Does SFT cost general skills?</td><td><strong>Instruction following, yes: −24.4 points</strong> on IFEval [−29.2, −19.6] (167 prompts broke, 35 fixed), across every instruction type; MBPP coding +1.2 [−4.3, +6.6]</td><td>Base 362 of 541 IFEval prompts, 134 of 257 MBPP problems; already −12.0 after 120 traces</td></tr>
+          <tr><td>Does more agent data make it worse?</td><td><strong>A new reflex at 2,238 traces:</strong> 232 of 257 plain coding replies open a <code>&lt;tool_call&gt;</code> with no tools offered; MBPP falls to 18 of 257 (−45.1)</td><td>0 of 257 for the base and every model up to 473 traces</td></tr>
+          <tr><td>Is “this tool call failed” readable inside the model?</td><td><strong>Yes, before and after SFT:</strong> AUROC 1.000 on test contexts, error vs success and error vs a harmless warning</td><td>A bag of words also scores 1.000; shuffled labels 0.51</td></tr>
+          <tr><td>What does SFT change after an injected error?</td><td><strong>The reply:</strong> targeted fixes 47% → 70% (+23 [+12, +37]; 16 contexts gained, 2 lost); repeating the failing call 45% → 23%; neither model answers straight away</td><td>After a success or a harmless warning, the targeted-fix pattern appears 12% to 27% of the time</td></tr>
+          <tr><td>Does the model need that error direction to recover?</td><td><strong>No:</strong> with it projected out of every layer, targeted fixes 68% [57, 80]</td><td>Four random directions: 67% to 70%; no ablation 70%</td></tr>
+          <tr><td>Does the direction carry “error” at all?</td><td><strong>Yes, weakly causal:</strong> added after a success at 4× its size, answers-now falls from 70% to 32%; at 16× the replies break down and 24 of 40 talk about an error</td><td>Random directions at 4×: 42% to 60%; at 16×: 0 of 40 each</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>The agent has run <code>python3 -c "...df_torrents['releaseType']..."</code> and the sandbox answers <code>KeyError: 'releaseType'</code>. Untrained Qwen3.5-2B sends the same command again. After training on 473 conversations of a 200-times-larger model doing this job, it asks for <code>df_torrents.columns</code> first. Both models’ activations mark the error just as clearly; the training changed what the model does next.</p>
+  <p><strong>What is known.</strong> TRL’s guide (<a href="https://github.com/huggingface/trl/tree/main/examples/sft_agent_traces">examples/sft_agent_traces</a>, by Sergio Paniego) shows the recipe end to end: Qwen3.5-397B-A17B works as an <a href="https://opencode.ai">OpenCode</a> agent on SmolDataEnvs data-analysis tasks through <a href="https://github.com/openenv/OpenEnv">OpenEnv</a>; the tasks it solves become SFT rows; Qwen3.5-2B trained on about 500 of them goes from 5.5% to 34.4% of held-out test tasks, and five times more traces add 3 to 4 points, “so SFT gets the agent working and RL has to do the rest”. Everything is released: traces, models and every rollout.</p>
+  <p><strong>What is missing.</strong> Whether the gain survives an independent rerun; what it costs outside the agent; whether it reaches tasks of a different kind; and what the traces changed inside the model: general tool-use habits, or the task distribution.</p>
+  <p class="question-callout">What does SFT on 500 of a large model’s agent traces teach Qwen3.5-2B, measured by behaviour on held-out tasks and checked inside the model against controls?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>An independent rerun of the guide in its own harness, with paired intervals on the 307 held-out tasks and a data-size curve from 120 to 2,238 traces.</li>
+    <li>A forgetting result: the traces cost a quarter of IFEval and, at 2,238 traces, teach a tool-call reflex that breaks plain coding.</li>
+    <li>A transfer test on 100 Python bug-fix tasks the traces never covered, in the same agent.</li>
+    <li>An inside look with controls: a model diff against a second training run, a “tool call failed” direction against a bag of words, the recovery behaviour it should explain, and its ablation and steering against random directions.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before the curve, generalisation and interpretability runs:</p>
+  <ol>
+    <li>Held-out splits frozen with their hashes before training; any choice made on the 144 eval tasks; each final model scored on the 163 test tasks once.</li>
+    <li>A gain is a paired interval above zero on the same tasks; “the knee” is a step whose interval contains zero.</li>
+    <li>An interpretability claim needs a control: a second training run for the model diff, a bag of words and shuffled labels for the probe, random directions of the same size for ablation and steering.</li>
+    <li>Interp claims are tied to behaviour: the direction counts as used only if removing or adding it changes what the model does next.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="agents-101" data-short="Agents 101">2.1 Agent traces 101, for software engineers</h3>
+  <ul>
+    <li><strong>An agent trace</strong> is the full chat log of a model doing a task with tools: a long system prompt (OpenCode’s, with its tool schemas, about 8,000 tokens), the task, then turns of “call <code>bash</code> with this command” and the command’s output, until the model writes its answer to <code>answer.txt</code>. Like a terminal session recording.</li>
+    <li><strong>SFT on traces</strong> trains the small model to write the big model’s turns, token by token, given everything before them. The loss is on the agent’s own turns only (<code>assistant_only_loss</code>), 4% to 8% of each trace’s tokens; the system prompt and tool outputs are context it reads but is not graded on.</li>
+    <li><strong>Held-out tasks</strong> use Kaggle datasets that no training trace touched: the guide found that sharing a dataset with a training task inflates the score (42.4% against 17.3%), so it filters by dataset, not by question.</li>
+    <li><strong>A probe</strong> is a direction in the model’s activation space whose projection separates two kinds of input, here a failed tool call from a successful one. A <strong>random-direction control</strong> is the same operation along a direction drawn at random, of the same size.</li>
+  </ul>
+
+  <h3 id="data" data-short="Data map">2.2 Data: what each set was used for</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Traces (released, <a href="https://huggingface.co/datasets/sergiopaniego/smoldataenvs-opencode-traces">smoldataenvs-opencode-traces</a>)</td><td>Solved SmolDataEnvs conversations by Qwen3.5-397B-A17B; configs 500 ⊂ 1k ⊂ full</td><td class="num">497 / 1,000 / 2,307</td><td>Training (traces over 16,384 tokens dropped, as in the guide: 473 of 497)</td></tr>
+        <tr><td>Eval split (<a href="https://huggingface.co/datasets/FineEnvs/SmolDataEnvs-harbor-eval">SmolDataEnvs-harbor-eval</a>)</td><td>Held-out tasks on Kaggle datasets no trace used</td><td class="num">144</td><td>Every choice (validation); interp layer choice and probe fitting</td></tr>
+        <tr><td>Test split (<a href="https://huggingface.co/datasets/FineEnvs/SmolDataEnvs-harbor-test">SmolDataEnvs-harbor-test</a>)</td><td>The guide’s 163 test tasks whose dataset backs no training task</td><td class="num">163</td><td>Scored once per final model; interp behaviour and probe test</td></tr>
+        <tr><td>Bug fixes (<a href="../data/bugfix/manifest.jsonl">data/bugfix/</a>)</td><td>MBPP solutions with one mechanical bug (a flipped comparison, + for −, an off-by-one constant); hidden asserts grade the edited file</td><td class="num">100</td><td>Transfer to a different task family in the same agent</td></tr>
+        <tr><td>MBPP sanitized test</td><td>Write a Python function from a description, no tools</td><td class="num">257</td><td>Forgetting check, coding</td></tr>
+        <tr><td>IFEval</td><td>Prompts with checkable format rules (no commas, all lowercase, 3 sections)</td><td class="num">541</td><td>Forgetting check, instruction following</td></tr>
+        <tr><td>Error contexts (<a href="../data/contexts/teacher.test.jsonl">data/contexts/</a>)</td><td>Held-out teacher conversations cut after a successful python call; the output kept, swapped for a traceback, or prefixed by a pandas warning</td><td class="num">60 eval + 60 test</td><td>Probe, recovery behaviour, ablation, steering</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="models">2.3 Models and harness</h3>
+  <p>The student is <a href="https://huggingface.co/Qwen/Qwen3.5-2B">Qwen3.5-2B</a> in no-think mode, fully fine-tuned with the guide’s <code>sft.py</code> unchanged: learning rate 1e-5, cosine schedule, 3 epochs, effective batch 8, at most 16,384 tokens, TRL pinned to commit <code>6a7764a</code>. The teacher is <a href="https://huggingface.co/Qwen/Qwen3.5-397B-A17B">Qwen3.5-397B-A17B</a>, an open-weight model; no other model’s output was trained on. Evaluation is the guide’s <code>rollouts.py</code>: vLLM 0.25.1 serves the student, OpenCode runs each task in its own Hugging Face Sandbox through OpenEnv, and the task’s grader scores <code>answer.txt</code> 1 or 0, with a 10-minute limit per task. We ran it inside Modal containers (training on one H100, evaluation on one L4 to A100), with two marked additions to the guide’s scripts: a training seed and nested random subsets, and a port offset so several evaluations can share one GPU.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Re-score the guide’s released rollouts</strong> (base, SFT-500, 1k, full, teacher) on the frozen 307 tasks with paired intervals: they match its README task for task ($0).</li>
+    <li><strong>Phase 1, reproduce:</strong> our SFT-500 (473 traces, 17 minutes on an H100) and the base model, each on 144 eval + 163 test tasks in the guide’s harness: 614 rollouts.</li>
+    <li><strong>Curve:</strong> 120 and 241 traces (nested random subsets of the 500 config, seed 0), each on the 307 tasks: 614 rollouts. The 963- and 2,238-trace points are the guide’s released models and rollouts, labelled as such; the 473-trace point has two independent runs (ours and the guide’s).</li>
+    <li><strong>Transfer:</strong> base and SFT-500 on the 100 bug-fix tasks: 200 rollouts.</li>
+    <li><strong>Forgetting:</strong> MBPP (257) and IFEval (541) for the base, 120, 241, 473 (both runs) and 2,238 traces: 4,788 greedy replies.</li>
+    <li><strong>Model diff:</strong> base, our SFT-500 and the guide’s SFT-500 on the same 240 prompts (60 whole held-out conversations, 60 first prompts, 60 bug-fix first prompts, 60 plain chat prompts).</li>
+    <li><strong>Probe and recovery:</strong> 120 error contexts × 3 versions × 2 models; next turns generated on the 60 test contexts (360 replies).</li>
+    <li><strong>Ablation and steering:</strong> the error direction and random directions, projected out after an error (5 × 60 replies) or added after a success at 3 sizes (4 × 3 × 40 replies).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The guide’s training settings; the splits and their roles (hashes in <code>data/splits/splits.json</code>); paired bootstrap; the 120/241 subsets; the probe as a difference of means fitted on eval contexts; random-direction controls for ablation and steering</td><td>A “targeted fix” measure (a next call that changes the command and acts on the error’s cause) added after reading replies: exact-repeat counting missed near-identical retries. The probe layer: every layer from 5 on scored AUROC 1.000 on eval, so the held-out separation (d′) broke the tie (layer 7 of 24). A 10-minute agent limit added to the bug-fix tasks after the first smoke run ran 16 minutes. One eval per model, not two seeds per point: budget</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: agent evaluation as in the guide (vLLM default sampling as OpenCode requests it); interpretability and forgetting checks greedy with <code>repetition_penalty=1.0</code>; Qwen3.5 chat template in no-think mode throughout. Spend: about $31 in all (Modal about $29, at list prices from the usage logged before the account’s billing report went offline, Hugging Face Sandboxes $1.97), failed runs included.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="reproduce-gain" data-short="The gain reproduces">4.1 The gain reproduces: +27 points from 473 traces</h3>
+  <p>Our SFT-500 solves 94 of the 307 held-out tasks against 11 for the base model, a paired gain of 27.0 points [21.8, 32.2]; it fixes 88 tasks and breaks 5. The guide’s released run solves 104 against 20 (+27.4). The two SFT-500 runs, same traces and settings on different hardware, differ by 3.3 points [−8.5, +1.6], inside noise. Our base model scores a little lower than the guide’s (11 against 20, −2.9 [−5.9, 0.0]), mostly on the eval split (2 against 11): same weights and harness, so this is the run-to-run spread of a model that solves one task in fifteen.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th class="num">Eval (144)</th><th class="num">Test (163)</th><th class="num">Both (307)</th><th class="num">Answer written</th><th class="num">Agent time-outs</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen3.5-2B, ours</td><td class="num">2</td><td class="num">9</td><td class="num">11 (3.6% [1.6, 5.9])</td><td class="num">22%</td><td class="num">16%</td></tr>
+        <tr><td>Qwen3.5-2B, guide’s rollouts</td><td class="num">11</td><td class="num">9</td><td class="num">20 (6.5% [3.9, 9.4])</td><td class="num">35%</td><td class="num">11%</td></tr>
+        <tr class="hl"><td>SFT-500, ours</td><td class="num">41</td><td class="num">53</td><td class="num">94 (30.6% [25.7, 35.8])</td><td class="num">75%</td><td class="num">20%</td></tr>
+        <tr><td>SFT-500, guide’s</td><td class="num">48</td><td class="num">56</td><td class="num">104 (33.9% [28.7, 39.4])</td><td class="num">60%</td><td class="num">29%</td></tr>
+        <tr><td>Qwen3.5-397B-A17B (teacher), guide’s</td><td class="num">103</td><td class="num">121</td><td class="num">224 (73.0% [68.1, 77.9])</td><td class="num">99%</td><td class="num">0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Answer written: share of rollouts in which the agent wrote <code>answer.txt</code>; time-outs: the 10-minute agent limit. For our two runs these two columns cover the 125 tasks whose result files reached the Hub (section 4.9).</p>
+
+  <h3 id="knee" data-short="The knee">4.2 The knee comes before 500: 241 traces match 473, and the steps up to 2,238 are within noise</h3>
+  <p>The 241-trace model solves 93 of the 267 tasks its run finished (34.8% [29.2, 40.4]); on those same tasks our 473-trace model solves 34.1%, a paired difference of +0.7 points [−4.9, +6.4]. The 120-trace model solves 26.1% of the 268 tasks it finished: 22.0 points above the base [16.8, 27.6] and 7.5 below the 473-trace model on the same tasks [2.6, 12.7]. Past 473, the guide’s released models add little: 963 traces +2.0 [−2.9, +6.8] and 2,238 traces +3.9 [−1.6, +9.4] over its 473-trace model. Most of the gain is in place by about 250 traces.</p>
+  <p>Both short runs stopped early, when the compute account was disabled mid-run, at 268 and 267 of the 307 tasks. The tasks still running then were the slow ones, which agents rarely solve, so rates on finished tasks run slightly high; the paired differences compare runs on the same finished tasks, and counting every missing task as unsolved (22.8% and 30.3%) keeps the same order.</p>
+  <figure class="plot">
+    <img src="figures/curve.png" alt="Dot plot of held-out tasks solved against traces trained on, log scale. Base 3.6% (ours) and 6.5% (the guide's); 120 traces 26.1%; 241 traces 34.8%; 473 traces 30.6% (ours) and 33.9% (the guide's); 963 traces 35.8%; 2,238 traces 37.8%; the teacher at 73%." width="960" height="540">
+    <figcaption><span class="label">Figure 1.</span> Share of the 307 held-out tasks solved against the number of traces trained on (after the 16k-token filter), log scale. Orange dots: our runs; grey squares: the guide’s released models and rollouts. Bars: 95% bootstrap intervals over tasks. Dashed: the teacher. The 120- and 241-trace runs stopped early and are plotted on the 268 and 267 tasks they finished. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/summary.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="transfer" data-short="Transfer to bug fixes">4.3 On bug fixes the gain vanishes, and SFT-500 stops using the edit tool, which no trace used</h3>
+  <p>On the 100 bug-fix tasks, in the same OpenCode agent and sandbox, the base model and SFT-500 each solve 40 (paired +0.0 points [−11, +11]; each solves 16 the other does not). The data-analysis gain does not carry over to fixing code.</p>
+  <p>The traces’ tool habits do. In the 497 training traces the teacher called <code>bash</code> 1,813 times and <code>read</code> 181 times, and never <code>edit</code>, <code>write</code>, <code>grep</code> or <code>glob</code>. The base model reaches for OpenCode’s <code>edit</code> tool in 63 of 100 bug-fix runs, and 27 of its 40 solves use it. SFT-500 calls it in none: it does everything through <code>bash</code>, takes a median of 20 turns against 7, and hits the 10-minute limit in 47 runs against 15. Neither writes an <code>answer.txt</code> on these tasks, so the data tasks’ last step did not leak; their tool repertoire did. On this test, the traces taught the task distribution’s habits more than a general agent skill.</p>
+  <figure class="plot">
+    <img src="figures/bugfix.png" alt="Left: grouped bar chart over 100 bug-fix runs, base in grey and SFT-500 in orange. Tasks solved 40% and 40%; runs that call the edit tool 63% and 0%; runs that time out 15% and 47%. Right: horizontal bars of tool calls in the 497 training traces: bash 1,813, read 181, edit, write, glob and grep 0." width="1320" height="480">
+    <figcaption><span class="label">Figure 2.</span> Left: the 100 Python bug-fix tasks in the same agent: share solved (hidden asserts pass), share of runs that call the <code>edit</code> tool, and share that hit the 10-minute limit, base (grey) and SFT-500 (orange), with 95% bootstrap intervals. Right: tool calls in the 497 rows of the training traces’ 500 config. Sources: <code>results/per_task/ours-*.bugfix.jsonl</code>, <code>results/trace_tools.json</code>.</figcaption>
+  </figure>
+  <p>Section 4.5 looks at the same question from the inside.</p>
+
+  <h3 id="forgetting" data-short="Forgetting">4.4 The traces cost a quarter of IFEval, and at 2,238 traces they teach a tool-call reflex</h3>
+  <p>Outside the agent, with no system prompt and no tools, the SFT-500 model follows instructions worse: 230 of 541 IFEval prompts pass the strict check against 362 for the base, −24.4 points [−29.2, −19.6], with 167 prompts broken and 35 fixed. The loss is broad, not one rule: the share passing falls in every instruction group, from 87% to 42% for “answer in language X” and from 64% to 26% for case rules. The guide’s SFT-500 loses about as much (−21.8 [−26.4, −17.2]), so this is the recipe, not our run. Most of the drop comes early: −12.0 after 120 traces, −22.2 after 241, then flat.</p>
+  <p>Coding without tools is untouched up to 473 traces: MBPP pass@1 moves by +1.2 to +3.5 points, every interval across zero. The 2,238-trace model is different: asked to write a function with no tools offered, it opens a <code>&lt;tool_call&gt;</code> in 232 of 257 replies, usually a broken one, and MBPP falls to 18 of 257 (−45.1 [−51.4, −38.9]). No model up to 473 traces does this on MBPP (0 of 257). More agent data taught a reflex the agent setting rewards and plain chat punishes.</p>
+  <figure class="plot">
+    <img src="figures/forgetting.png" alt="Three dot plots against the number of traces trained on (0, 120, 241, 473, 2,238). Left, IFEval strict accuracy: 66.9% for the base, 54.9% at 120, 44.7% at 241, 42.5% and 45.1% at 473 (ours and the guide's), 44.5% at 2,238. Middle, MBPP pass@1: 52.1%, 54.1%, 55.6%, 53.3% and 55.6%, then 7.0% at 2,238. Right, MBPP replies that open a tool call: 0% for every model up to 473 traces, 90.3% at 2,238." width="1440" height="495">
+    <figcaption><span class="label">Figure 3.</span> Forgetting checks, greedy, no system prompt, no tools. Left: IFEval prompt-level strict accuracy (541 prompts). Middle: MBPP pass@1 (257 problems, sanitized test split). Right: share of MBPP replies containing <code>&lt;tool_call&gt;</code>. Orange: our runs; grey squares: the guide’s released SFT-500 and SFT-full. Bars: 95% bootstrap intervals. Paired differences against the base are in <code>results/general_summary.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="diff" data-short="Model diff">4.5 The model diff is large, reproducible, and concentrated on the agent frame</h3>
+  <p>On 60 held-out agent conversations, SFT moves the residual stream (the hidden state after each layer) by 40% to 120% of its size by the middle layers, and two independent SFT-500 runs move it the same way: their difference at the reply’s first token is 6% to 25% of the state’s size against 60% to 98% for SFT against base, and the mean shifts of the two runs point the same way (cosine 0.92 to 0.98 at every layer; two random directions in 2,048 dimensions: below 0.06 in 99% of draws).</p>
+  <p>The tokens that change most are ones the loss never touched: OpenCode’s system prompt and tool schemas, which open every trace and are masked out of the loss, change by up to 1.17 times their size around layers 18 to 20 (cosine with the base state 0.61). Tool outputs change least (at most 0.47). In a plain chat prompt with no system prompt, the prompt’s tokens barely move (0.14 to 0.18, cosine 0.99), while the token where the reply starts still moves 0.39 to 0.58: the change sits where the model decides what to write.</p>
+  <p><strong>Distribution or skill?</strong> At the reply’s first token, the mean shift for a SmolDataEnvs first prompt and for a bug-fix first prompt point the same way (cosine 0.81 to 0.97 across layers), while the shift for plain chat agrees with either only at 0.36 to 0.60. Within the agent frame the change does not depend on the task family. The caveat is strong: both agent prompts share the same 8,000-token system prompt, so this measures the frame more than the task, and section 4.3 is the behavioural test.</p>
+  <figure class="plot">
+    <img src="figures/diff.png" alt="Left: line chart of relative change by layer for four token roles over 24 layers. The agent system prompt rises from 0.08 at layer 1 to about 1.17 at layers 18 to 20; the agent's own turns and task text level off near 0.6; tool outputs stay below 0.47. Dotted lines for the guide's SFT-500 lie on the solid ones. Right: relative change at the reply's first token: SFT vs base on agent prompts 0.18 to 0.98, on plain chat 0.16 to 0.58, and our SFT-500 vs the guide's 0.06 to 0.17." width="1380" height="525">
+    <figcaption><span class="label">Figure 4.</span> Left: ||h<sub>SFT</sub> − h<sub>base</sub>|| / ||h<sub>base</sub>|| per layer on every 8th token of 60 held-out agent conversations (plus their last 64 tokens), by token role; solid our SFT-500, dotted the guide’s. Right: the same at the last prompt token: SFT against base on the 60 agent prompts and on 60 IFEval prompts, and our SFT-500 against the guide’s (blue, the floor). Source: <code>results/interp/diff.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="probe" data-short="Error probe">4.6 “This tool call failed” is readable before and after SFT, and so are the words</h3>
+  <p>A difference-of-means direction between error and success contexts, fitted on 60 eval contexts, separates the 60 test contexts perfectly in the base model (AUROC 1.000 at every layer from 5 on) and in the SFT model. It also separates an error from a success that carries a harmless pandas <code>FutureWarning</code> (AUROC 1.000), and it does not mistake that warning for an error (warning vs success: 0.52 in the base, 0.62 in the SFT model). A bag of words on the tool output scores 1.000 on error vs success too: a traceback is easy to spot. The words fall for the warning more than the probe does (warning vs success 0.82). Shuffled labels score 0.51 [0.08, 0.79].</p>
+  <p>SFT did not create this signal. The base direction still reads the SFT model’s errors perfectly (AUROC 1.000, d′ 5.0 against 7.4 in the base), and the two models’ directions at layer 7 have cosine 0.77. If the traces changed recovery, they changed what the model does with a signal it already had.</p>
+
+  <h3 id="recovery" data-short="Recovery">4.7 After an injected error, SFT makes targeted fixes instead of retrying</h3>
+  <p>Neither model answers right after an injected error (0 of 60 each): both see it. What differs is the next call. The base model sends the failing command again, unchanged or nearly so, in 45% of contexts [33, 58]; SFT-500 in 23% [13, 35]. SFT-500 makes a targeted fix (a changed command that acts on the error’s cause: listing the folder after <code>FileNotFoundError</code>, printing the columns after <code>KeyError</code>, <code>pip install</code> after <code>ModuleNotFoundError</code>) in 70% [58, 82] against 47% [33, 60], paired +23 points [+12, +37] (16 contexts gained, 2 lost). The measure is not a reflex: after a success or a harmless warning, the same pattern appears in 12% to 27% of next calls, and the warning changes neither model’s behaviour (answers-now 55% and 68%, against 58% and 70% after a plain success).</p>
+  <figure class="plot">
+    <img src="figures/recovery.png" alt="Left: grouped bar chart of next actions for base (grey) and SFT-500 (orange) after a success, a harmless warning and an injected error. After a success: answers now 58% and 70%, targeted fix 23% and 12%. After a warning: answers now 55% and 68%, targeted fix 27% and 12%. After an error: answers now 0% and 0%, targeted fix 47% and 70%, repeats the call 45% and 23%. Right: SFT-500's targeted fixes after an error with one direction projected out: none 70%, the error direction 68%, four random directions 70%, 67%, 67% and 70%." width="1440" height="540">
+    <figcaption><span class="label">Figure 5.</span> Left: next action on the 60 test contexts, greedy, up to 160 tokens: answers now (writes <code>answer.txt</code> or stops), a targeted fix, or a near repeat of the failing call (similarity at least 0.9). Right: SFT-500’s targeted fixes after an injected error with a unit direction projected out of every layer’s output: none, the error direction (layer 7, fitted on eval contexts), and four random directions. Bars: 95% bootstrap intervals. Source: <code>results/interp/probe.json</code>.</figcaption>
+  </figure>
+
+  <section class="explorer" id="explorer-box" aria-labelledby="explorer-title">
+    <p class="summary-label" id="explorer-title">Explorer: one injected error of each kind, base and SFT-500</p>
+    <div class="gallery-pick" id="ex-pick" role="group" aria-label="Error kind"></div>
+    <div id="ex-body">
+      <p class="ex-q"><strong>Task:</strong> In which year did mixtapes become competitive with albums in terms of average log snatches per release, according to the long-term trend analysis?</p>
+      <p class="ex-q"><strong>Injected error:</strong> <code>KeyError: 'releaseType'</code> after the agent’s pandas query.</p>
+      <div class="ex-cols">
+        <div><p class="ex-h">Qwen3.5-2B <span class="ex-v no">other call</span></p><pre>the same query again, printing the same columns</pre></div>
+        <div><p class="ex-h">SFT-500 <span class="ex-v ok">targeted fix</span></p><pre>print('Columns:', df_torrents.columns.tolist())</pre></div>
+      </div>
+    </div>
+    <p class="caption">Replies as generated (greedy). For each error kind, the first test context where the two models differ, so this view is chosen to show differences; the SyntaxError case is one SFT-500 gets wrong. The counts over all 60 contexts are in Figure 5. Source: <code>results/explorer.json</code>, written by <a href="../make_explorer.py">make_explorer.py</a>.</p>
+  </section>
+
+  <h3 id="causal" data-short="Ablation and steering">4.8 The error direction is not needed for recovery; pushed hard, it reads as “error”</h3>
+  <p>Projecting the error direction out of every layer while SFT-500 writes its next turn leaves targeted fixes at 68% [57, 80], against 70% without ablation and 67% to 70% for four random directions. The model does not need that one direction to recover; the error stays in the context, where later layers can read the traceback again.</p>
+  <p>Adding it after a successful call does something random directions do less. At the size of the error-minus-success gap, nothing changes (answers-now 62% against 68% to 70%). At 4×, answers-now falls to 32% [18, 48], against 42%, 57% and 60% for three random directions: the model keeps working as if something went wrong, though one random direction comes close. At 16× every direction breaks the reply into noise, and only the error direction’s noise is about errors: 24 of 40 replies name one (“这是一个非常严重的新式错误”, “this is a very serious new kind of error”), against 0 of 40 for each random direction.</p>
+  <figure class="plot">
+    <img src="figures/steer.png" alt="Left: line chart of the share of next turns that answer now after a successful call, against push size 1x, 4x and 16x. The error direction: 62%, 32%, 100%. Three random directions: about 70%, 42 to 60%, 100%. Right: bar chart of replies naming an error at 16x: error direction 60%, each random direction 0%." width="1290" height="480">
+    <figcaption><span class="label">Figure 6.</span> SFT-500 after a successful call (40 test contexts), with a vector added to the residual stream after layer 7 at every position: the error direction (orange) or a random direction (grey) of the same size, at 1, 4 and 16 times the error-minus-success distance. Left: share of next turns that answer now, with 95% intervals. Right: at 16×, share of replies containing an error word (“error”, “fail”, “错误”, “失败”, “exception”, “bug”). Source: <code>results/interp/probe.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="boring" data-short="Boring explanations">4.9 The boring explanations</h3>
+  <ul>
+    <li><strong>Our harness is not the guide’s.</strong> Same scripts, same pins; our SFT-500 and the guide’s differ by −3.3 [−8.5, +1.6], and our base by −2.9 [−5.9, 0.0].</li>
+    <li><strong>IFEval fails on format, not on content.</strong> The loose check (which forgives markdown and first or last lines) drops as much: 387 → 251 of 541. Replies are shorter (median 137 → 109 words) but none is empty, and only 4 of 541 open a tool call.</li>
+    <li><strong>The probe reads “Traceback”.</strong> Partly, which is why the bag of words is reported beside it and why the claim rests on ablation, steering and behaviour, not on the AUROC.</li>
+    <li><strong>The targeted-fix measure counts any changed call.</strong> It requires the change to act on the named cause for five of six error kinds; for SyntaxError any changed command counts. After a success, the same patterns match 12% to 23% of calls.</li>
+    <li><strong>Lost uploads.</strong> In phase 1, 60% of per-task result files missed the Hub (commit limits), so “answer written” and “time-outs” for our base and SFT-500 come from the tasks whose files arrived; solve rates are complete, read from each task’s log line.</li>
+  </ul>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Question</th><th>TRL guide</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Base → SFT gain on held-out tasks, dataset-level split</td><td>✓ 5.5% → 34.4% on test</td><td>✓ rerun: +27.0 [+21.8, +32.2] on 307</td></tr>
+        <tr><td>How many traces</td><td>✓ 500 / 1k / full</td><td>✓ adds 120 and 241, paired intervals</td></tr>
+        <tr><td>Intervals and a second run at the knee</td><td>✗ (“a few points is within noise”)</td><td>✓ two runs at 473 traces</td></tr>
+        <tr><td>A different task family</td><td>✗</td><td>✓ 100 bug fixes in the same agent</td></tr>
+        <tr><td>Forgetting outside the agent</td><td>✗</td><td>✓ IFEval −24.4, MBPP flat, tool-call reflex at 2,238</td></tr>
+        <tr><td>What changed inside</td><td>✗</td><td>✓ model diff, error probe, ablation and steering, each with a control</td></tr>
+        <tr><td>RL after SFT</td><td>planned</td><td>✗ not run</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Agent SFT is often treated as a narrow skill upgrade before RL. Here it reshapes the model everywhere it reads the agent’s frame, including tokens it was never trained on, and it costs a quarter of the model’s ability to follow plain format instructions; with more data it installs a reflex (open a tool call) that misfires outside the agent. Its gains stay inside the training distribution’s habits: on bug fixes the trained model drops a tool its traces never used and gains nothing. The recovery the traces teach sits on a signal the base model already had, and no single direction holds it: monitoring that relies on one probe direction for “the agent noticed the error” would read the same before and after training, while the behaviour changed. <strong>Before calling agent SFT a skill upgrade, tabulate which tools the traces use, test one task family they do not cover, run an instruction-following check and a no-tools prompt beside the agent benchmark, and judge what training taught by what the model does next, not by whether a probe can read it.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Seeds.</strong> One run per curve point except 473 traces (two runs); the 963 and 2,238 points are the guide’s, trained before a TRL change that drops the empty think block from the loss.</li>
+    <li><strong>That RL “does the rest”.</strong> No RL stage was run (budget).</li>
+    <li><strong>One student, one teacher, one agent.</strong> Qwen3.5-2B, Qwen3.5-397B-A17B and OpenCode; a different agent’s prompt might move other tokens.</li>
+    <li><strong>The bug-fix family is small and synthetic</strong>: 100 one-line mutations of MBPP solutions, not a real repository.</li>
+    <li><strong>Interpretability at one point.</strong> Activations at the reply’s first token, 60 contexts per split, one direction per layer, injected errors written by us in six templates; real errors are messier.</li>
+    <li><strong>IFEval as the only instruction check</strong>, scored by lm-evaluation-harness’s checker.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute the tables and figures from the saved results (the released rollouts are downloaded first for the guide’s rows):</p>
+  <pre><code class="language-bash">bash experiments/agent-traces/reproduce.sh analysis</code></pre>
+  <p>Rerun everything: a Modal account with a <code>huggingface-secret</code> holding <code>HF_TOKEN</code> (that account pays for the Sandboxes, about $0.001 each), and <code>MODAL_IMAGE_BUILDER_VERSION=2025.06</code>. The whole study cost about $31:</p>
+  <pre><code class="language-bash">bash experiments/agent-traces/reproduce.sh --dry-run   # every command
+bash experiments/agent-traces/reproduce.sh all</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>RL from SFT-500</strong> on the eval-split Kaggle datasets’ training tasks, with the same harness as reward, and the same IFEval and no-tools checks after it: does RL repair the forgetting or deepen it?</li>
+    <li><strong>Mix in general instruction data</strong> during SFT (a few hundred IFEval-style rows) and measure how much agent gain it costs.</li>
+    <li><strong>Find where recovery lives</strong>: attention from the reply’s first token back to the traceback, before and after SFT, and patching that attention between the two models.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">How many agent traces does a small model need to become a working coding agent?</h3>
+  <p>About 500 gave most of the gain here: Qwen3.5-2B went from 3.6% to 30.6% of 307 held-out tasks after 473 traces; 241 traces already matched that (34.8% against 34.1% on the same tasks) and 120 gave 26.1%; the guide’s 2,238-trace model reached 37.8%, +3.9 points over 500 [−1.6, +9.4].</p>
+  <h3 id="q2">Does fine-tuning on agent traces cause forgetting?</h3>
+  <p>Yes, of instruction following: IFEval strict accuracy fell from 66.9% to 42.5% (−24.4 points) after 473 traces, with MBPP coding unchanged. With 2,238 traces the model opened a tool call in 90% of plain coding replies and MBPP fell to 7%.</p>
+  <h3 id="q3">Does SFT on data-analysis traces help on other agent tasks?</h3>
+  <p>Not on our test: on 100 Python bug-fix tasks in the same agent, the base model and SFT-500 each solved 40. The trained model stopped using OpenCode’s edit tool, which the data-analysis traces never use, and hit the time limit three times as often (47 runs against 15).</p>
+  <h3 id="q4">Does the model know when a tool call failed?</h3>
+  <p>Yes, before and after training: a linear direction separates failed from successful calls with AUROC 1.000, though a bag of words does too. SFT changed the response: targeted fixes after an injected error rose from 47% to 70%.</p>
+  <h3 id="q5">How much did this cost?</h3>
+  <p>about $31: Modal GPUs for training, evaluation and interpretability (about $29, at list prices from the usage logged before the account’s billing report went offline) and Hugging Face Sandboxes for about 1,400 agent rollouts ($1.97).</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code> or <code>data/</code>; <a href="../README.md"><code>README.md</code></a> describes the columns.</p>
+  <ul>
+    <li><code>results/per_task/&lt;run&gt;.&lt;split&gt;.jsonl</code>: one row per task: index, task name, solved, graded, turns, tool calls, wall time, answer written, finished, timeout; rows rebuilt from a run log carry <code>from_log</code> and only the reward, turns and time.</li>
+    <li><code>results/summary.json</code>: every run’s solve rate with its interval, and every pair’s paired difference with discordant counts.</li>
+    <li><code>results/general/&lt;model&gt;.{ifeval,mbpp}.jsonl</code> and <code>results/general_summary.json</code>: every forgetting-check reply, its score, and paired differences against the base.</li>
+    <li><code>results/interp/diff.json</code>, <code>probe.json</code>, <code>gens.jsonl</code>, <code>ablate_gens.jsonl</code>, <code>steer_gens.jsonl</code>, <code>probe_contexts.json</code>: the model diff, the probe and its baselines, and every generated next turn with its classification.</li>
+    <li><code>data/splits/</code>: the frozen eval and test task lists with sha256 hashes; <code>data/bugfix/</code>: the 100 bug-fix tasks and their manifest; <code>data/contexts/</code>: the teacher’s held-out conversations used for the interpretability runs.</li>
+  </ul>
+  <h3 id="prompts">The prompts</h3>
+  <p>Agent tasks: OpenCode’s own system prompt and tool schemas, then the task’s instruction (SmolDataEnvs: the files, the question, “Write only that value to /workdir/answer.txt”; bug fixes: the function’s description, one example assert, “Find the bug and fix it by editing /home/user/input/solution.py in place”). MBPP: the description, the first assert, “Write the function in a single python code block.” IFEval: the prompt as given.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Training</th><td>Full SFT with TRL’s <code>SFTTrainer</code>, <code>assistant_only_loss</code>, lr 1e-5 cosine, 3 epochs, batch 1 × 8 accumulation, traces over 16,384 tokens dropped</td></tr>
+        <tr><th scope="row">Evaluation</th><td>OpenEnv <code>harbor rollout</code> with OpenCode in Hugging Face Sandboxes, vLLM 0.25.1, grader <code>correctness</code> or <code>reward</code>, 10-minute agent limit</td></tr>
+        <tr><th scope="row">Interpretability</th><td>Residual-stream differences by token role; difference-of-means probe with 5-fold CV for the layer; directional ablation at every layer; additive steering after one layer; random unit directions as controls</td></tr>
+        <tr><th scope="row">Statistics</th><td>95% percentile bootstrap over tasks or prompts (10,000 resamples); paired differences over the same items</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Compute</th><td>Modal (H100 for training; L4, A10G, L40S or A100 for evaluation and interpretability); Hugging Face Sandboxes (cpu-basic) for the agent’s tools</td></tr>
+        <tr><th scope="row">Code</th><td>TRL (commit 6a7764a), transformers 5, OpenEnv (commit e5a9268), vLLM 0.25.1, lm-evaluation-harness 0.4.9 (IFEval checker), NumPy, scikit-learn, matplotlib</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Paniego, S. “SFT of Qwen3.5-2B on coding agent traces.” TRL examples, 2026. <a href="https://github.com/huggingface/trl/tree/main/examples/sft_agent_traces">the guide on GitHub</a>; traces, models and rollouts in <a href="https://huggingface.co/collections/sergiopaniego/sft-on-agent-traces-with-trl">this collection</a>.</li>
+    <li>OpenEnv. <a href="https://github.com/openenv/OpenEnv">github.com/openenv/OpenEnv</a>. OpenCode. <a href="https://opencode.ai">opencode.ai</a>. SmolDataEnvs (FineEnvs), built from the <a href="https://huggingface.co/datasets/jupyter-agent/jupyter-agent-dataset">Jupyter Agent dataset</a>.</li>
+    <li>Austin et al. “Program Synthesis with Large Language Models” (MBPP). <a href="https://arxiv.org/abs/2108.07732">arXiv:2108.07732</a>.</li>
+    <li>Zhou et al. “Instruction-Following Evaluation for Large Language Models” (IFEval). <a href="https://arxiv.org/abs/2311.07911">arXiv:2311.07911</a>.</li>
+    <li>Arditi et al. “Refusal in Language Models Is Mediated by a Single Direction” (directional ablation). <a href="https://arxiv.org/abs/2406.11717">arXiv:2406.11717</a>.</li>
+    <li>Episode 2: <a href="../../fin-math/report/">Post-training an 8B model on FinanceMath</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 11, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026agenttraces,
+  author = {Albert Lie},
+  title  = {500 agent traces make a 2B model a working agent, cost it 24 points of instruction following, and change what it does after an error, not whether it sees one},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/agent-traces/report/}
+}</code></pre>
+  <footer class="note">Data: SmolDataEnvs (FineEnvs, from the Jupyter Agent dataset); the guide’s traces and rollouts (sergiopaniego, MIT per the rollouts dataset card); MBPP (Google, CC-BY-4.0); IFEval (Google, Apache-2.0). Models: Qwen3.5-2B and Qwen3.5-397B-A17B (Alibaba, Apache-2.0). Guide and scripts: TRL (Hugging Face, Apache-2.0).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(async () => {
+  const pick = document.getElementById("ex-pick"), body = document.getElementById("ex-body");
+  let cases;
+  try { cases = await (await fetch("../results/explorer.json")).json(); } catch { return; }
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const tag = (v) => `<span class="ex-v ${v === "targeted fix" ? "ok" : "no"}">${esc(v)}</span>`;
+  const show = (i) => {
+    const c = cases[i];
+    [...pick.children].forEach((b, j) => b.setAttribute("aria-pressed", String(i === j)));
+    body.innerHTML = `<p class="ex-q"><strong>Task:</strong> ${esc(c.question)}</p>
+      <div class="ex-cols"><div><p class="ex-h">Command that “failed”</p><pre>${esc(c.failed_cmd)}</pre></div>
+      <div><p class="ex-h">Injected tool output</p><pre>${esc(c.error)}</pre></div></div>
+      <div class="ex-cols"><div><p class="ex-h">Qwen3.5-2B, next call ${tag(c.base.verdict)}</p><pre>${esc(c.base.next)}</pre></div>
+      <div><p class="ex-h">SFT-500, next call ${tag(c.sft.verdict)}</p><pre>${esc(c.sft.next)}</pre></div></div>`;
+  };
+  cases.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = c.kind;
+    b.addEventListener("click", () => show(i));
+    pick.append(b);
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>
