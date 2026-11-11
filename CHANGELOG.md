@@ -5,6 +5,10 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- Research note: AlphaGenome 2 does not predict which way the MS4A Alzheimer's risk variants move MS4A6A in microglia (`experiments/alphagenome2-ms4a/`), a pre-registered locus test with matched, unlinked controls and a GTEx sign check.
+
 ### Changed
 
 - steerlab's own visual identity (`DESIGN.md`): hero art drawn from each experiment's direction, grotesk headings over a serif body, orange for what steering does and blue for controls, result-led research cards; the README explains what is steered (activations at one layer, not weights or single neurons) with two pictures.
