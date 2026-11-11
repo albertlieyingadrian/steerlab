@@ -16,6 +16,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note: does a model act on knowing it is being tested? Steering an eval-awareness direction under a prompted conditional sandbagger (`experiments/eval-aware-steer/`), episode 5 of Introspection.
 - Research note: probes, persona vectors and a model diff during RL reward hacking (`experiments/rl-hack-monitor/`), episode 3 of Rewards and reward hacking.
 - English-lock note: a reply explorer showing Qwen3-8B's real replies at nine steering strengths (`explore.py`, `results/explorer.json`).
 - Research notes: editorial covers, chat transcripts with System/User/Model roles, example carousels, a contents rail with subsections, and in the English-lock note an interactive 3D scene, a search-grid heatmap, the live mid-reply switch and replies from all four models.
