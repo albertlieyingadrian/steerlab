@@ -83,7 +83,7 @@ def ask(client, model, system, content, max_tokens=2000):
     raise RuntimeError("claude failed")
 
 
-def plan(items, planner, cache_path):
+def plan(items, planner, cache_path, system=None):
     """{key: rewrite}; items is [(key, original prompt, failure reason or None)]."""
     cache = {r["key"]: r for r in read_jsonl(cache_path)}
     todo = [it for it in items if it[0] not in cache]
@@ -92,7 +92,7 @@ def plan(items, planner, cache_path):
 
         def one(it):
             key, text, why = it
-            sys_msg = NATURAL_SYSTEM + (RETRY_NOTE.format(reason=why) if why else "")
+            sys_msg = (system or NATURAL_SYSTEM) + (RETRY_NOTE.format(reason=why) if why else "")
             out, tin, tout = ask(client, model, sys_msg, text)
             return {"key": key, "plan": out, "in": tin, "out": tout}
 
@@ -292,14 +292,19 @@ def judge(args):
 
 
 def genai(args):
-    """GenAI-Bench guard: the natural planner's rewrite, one image per prompt, same seed as the published guard."""
+    """GenAI-Bench guard: the natural planner's rewrite, one image per prompt, same seed as the published guard.
+
+    With --instruction original, Claude runs the published planner's instruction instead (variant "orig<planner>"):
+    the ablation that separates the planner model from the instruction."""
     from guard_genai import N_PROMPTS, boot
+    from harness import PLANNER_SYSTEM
 
     meta = read_jsonl(RESULTS / "genai_bench/meta.jsonl")
     prompts = sorted(random.Random(0).sample(meta, N_PROMPTS), key=lambda r: r["idx"])
-    variant = f"nat{args.planner}"
+    original = args.instruction == "original"
+    variant = f"{'orig' if original else 'nat'}{args.planner}"
     plans = plan([(str(p["idx"]), p["prompt"], None) for p in prompts], args.planner,
-                 RESULTS / f"plans/genai_{variant}.jsonl")  # fmt: skip
+                 RESULTS / f"plans/genai_{variant}.jsonl", PLANNER_SYSTEM if original else None)  # fmt: skip
     cands = [{"idx": p["idx"], "prompt": p["prompt"], "gen_prompt": plans[str(p["idx"])], "seed": 1000 * p["idx"],
               "path": f"genai/{p['idx']:05d}/{variant}_0.png"} for p in prompts]  # fmt: skip
     generate(cands)
@@ -314,11 +319,17 @@ def genai(args):
     res = {"prompts": len(cands),
            "vqa": {"base": float(np.mean([b["vqa"] for b in base])),
                    "gpt_planner": float(np.mean([g["vqa"] for g in gpt])),
-                   "natural_planner": float(np.mean(nat_v))},
+                   "this_arm": float(np.mean(nat_v))},
            "vqa_diff_vs_base": boot([n - b["vqa"] for n, b in zip(nat_v, base, strict=True)]),
            "vqa_diff_vs_gpt_planner": boot([n - g["vqa"] for n, g in zip(nat_v, gpt, strict=True)]),
            "pick_diff_vs_base": boot([n - b["pick"] for n, b in zip(nat_p, base, strict=True)]),
            "pick_diff_vs_gpt_planner": boot([n - g["pick"] for n, g in zip(nat_p, gpt, strict=True)])}  # fmt: skip
+    other = OUT / f"genai_nat{args.planner}.vqa.jsonl"
+    if original and other.exists():
+        nat = {r["path"]: r["v"] for r in read_jsonl(other)}
+        nv = [nat[f"genai/{c['idx']:05d}/nat{args.planner}_0.png"] for c in cands]
+        res["vqa"]["natural_instruction_same_model"] = float(np.mean(nv))
+        res["vqa_diff_vs_natural_instruction"] = boot([o - n for o, n in zip(nat_v, nv, strict=True)])
     (OUT / f"genai_{variant}_summary.json").write_text(json.dumps(res, indent=1))
     print(json.dumps(res, indent=1))
 
@@ -373,6 +384,7 @@ def main():
     ap.add_argument("--set", default="val")
     ap.add_argument("--planner", default="opus", choices=list(MODELS))
     ap.add_argument("--reps", type=int, default=1)
+    ap.add_argument("--instruction", default="natural", choices=["natural", "original"])
     args = ap.parse_args()
     {"pool": pool, "genai": genai, "judge": judge, "summary": summary}[args.stage](args)
 
