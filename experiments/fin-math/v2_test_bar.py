@@ -46,9 +46,14 @@ out["note"] = (
     "ours: 4 samples per question (T=0.7, top_p 0.8, top_k 20, rep 1.0, 6,144 cap), mean per-sample accuracy; GPT arms: one call per question at default reasoning settings (earlier runs, not re-run); qwen-greedy-tinker: the first pilot's greedy base run"
 )
 (fm.RESULTS / "v2_test.json").write_text(json.dumps(out, indent=1))
+
+
+def f(d):
+    return f"{d[0] * 100:+.1f} [{d[1] * 100:+.1f}, {d[2] * 100:+.1f}]"
+
+
 for t in ("base", "sft-e2", "grpo-s10"):
     o = out[t]
-    f = lambda d: f"{d[0] * 100:+.1f} [{d[1] * 100:+.1f}, {d[2] * 100:+.1f}]"
     print(
         t,
         "pass1",
