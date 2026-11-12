@@ -29,7 +29,10 @@ Epoch AI style imitations (target: 22). A Qwen3-1.7B on the same data reaches 0.
 | `05_eval.py` | Paired comparison with the target on every benchmark: `results/eval/<run>.json` |
 | `tune_bands.py` | Pre-registered: cut-offs and a 4B/1.7B weight chosen on our validation split; test look 3 (`results/eval/tuned.json`) |
 | `tune_editlens_val.py` | Pre-registered: the same chosen on EditLens's validation split, test look 4, and the control giving voi the same calibration (`results/eval/tuned_editlens_val.json`, `voi_editlens_val.json`) |
-| `make_figures.py` | The note's figures, cover and thumbnail, printing the numbers it plots |
+| `make_figures.py` | The note's figures, printing the numbers it plots |
+| `make_cover.py` | The cover and thumbnail (vertical bars, from results/eval) |
+| `analyze_errors.py` | Free error analysis on EditLens val: by source, editor, length, edit size, truncation |
+| `fresh_test.py` | Freezes 6,000 fresh EditLens-train ids, scores them, and runs the baseline look |
 | `reproduce.sh` | Every command; `--scores` recomputes from saved scores, `--dry-run` lists them |
 
 ## Results files
@@ -46,6 +49,8 @@ Epoch AI style imitations (target: 22). A Qwen3-1.7B on the same data reaches 0.
 | `results/labels.json` | Data counts by split, kind and band; family and source counts; filter drops; median change per instruction |
 | `results/tuned_choice.json`, `results/tuned_editlens_val_choice.json` | The chosen weight and cut-offs, with validation scores, committed before each test look |
 | `results/voi/editlens_val.json` | The target's scores on the 2,396 EditLens validation texts used for calibration |
+| `results/fresh_test_ids.json`, `results/eval/fresh_baseline.json` | The frozen fresh-set ids and the baseline look (both arms, paired with voi) |
+| `results/error_analysis.json` | Error rates on EditLens val by source, editor, length, edit size and truncation |
 | `results/epoch_quirk.json` | Steps per epoch from the real grouping against the steps run, per model |
 
 Runs: `pilot-0.6b`, `pilot-1.7b` (data v1), `pilotR-1.7b` (data v1, retrained as the gate's baseline), `v2-1.7b`
