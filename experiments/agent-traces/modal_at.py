@@ -12,6 +12,7 @@ Costs are bound by the function timeouts. `HF_TOKEN` comes from the `huggingface
 printed.
 """
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -211,6 +212,16 @@ def eval_many_cli(spec: str = "", bugfix: str = "", workers: int = 12):
         jobs += [{"model": model, "split": "eval", "run_name": f"{tag}-eval", "num_tasks": 144},
                  {"model": model, "split": "test", "run_name": f"{tag}-test", "task_indices": test}]  # fmt: skip
     out = evaluate_many.remote(jobs, workers)
+    for name, tail in out.items():
+        (HERE / "logs" / f"eval-{name}.tail.log").write_text(tail)
+        print(name, [x for x in tail.splitlines() if "solve_rate" in x or '"solved"' in x])
+
+
+@app.local_entrypoint()
+def eval_jobs_cli(jobs: str, workers: int = 12):
+    """Run the jobs listed in a JSON file ([{model, split, run_name, task_indices}]) in one container, e.g. the tasks a
+    stopped run never finished (data/curve_rest_jobs.json)."""
+    out = evaluate_many.remote(json.loads((HERE / jobs).read_text()), workers)
     for name, tail in out.items():
         (HERE / "logs" / f"eval-{name}.tail.log").write_text(tail)
         print(name, [x for x in tail.splitlines() if "solve_rate" in x or '"solved"' in x])

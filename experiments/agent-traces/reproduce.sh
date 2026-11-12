@@ -32,6 +32,8 @@ if [[ "$MODE" == "all" || "$MODE" == "--dry-run" ]]; then
   done
   run "$PY $D/build_bugfix.py --push $HF_USER/agent-traces-bugfix-harbor"
   run "$PY -m modal run $D/modal_at.py::eval_many_cli --spec $HF_USER/at-qwen35-2b-sft125-s42=ours-sft125s42,$HF_USER/at-qwen35-2b-sft250-s42=ours-sft250s42 --bugfix Qwen/Qwen3.5-2B=ours-base,$HF_USER/at-qwen35-2b-sft500-s42=ours-sft500s42"
+  echo "#    the 79 tasks the 120/241 runs had not finished when the first compute account closed"
+  run "$PY -m modal run $D/modal_at.py::eval_jobs_cli --jobs data/curve_rest_jobs.json"
   echo "# 3. Forgetting checks (Modal L4, vLLM greedy): MBPP 257 + IFEval 541"
   for m in Qwen/Qwen3.5-2B=base $HF_USER/at-qwen35-2b-sft125-s42=sft125s42 $HF_USER/at-qwen35-2b-sft250-s42=sft250s42 \
            $HF_USER/at-qwen35-2b-sft500-s42=sft500s42 sergiopaniego/Qwen3.5-2B-SmolDataEnvs-SFT-500=released-sft500 \

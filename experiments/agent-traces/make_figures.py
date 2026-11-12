@@ -3,8 +3,8 @@
     .venv/bin/python experiments/agent-traces/make_figures.py
 
 curve.png      share of the 307 held-out agent tasks solved against the number of teacher traces trained on, ours and
-               the guide's released runs, with 95% bootstrap intervals; the teacher as a line. The 120- and 241-trace
-               runs stopped early (268 and 267 tasks finished) and are plotted on the tasks they finished.
+               the guide's released runs, with 95% bootstrap intervals; the teacher as a line. A run that stopped early
+               is plotted on the tasks it finished (results/curve_finished.json); both short runs were completed.
 forgetting.png IFEval prompt-level strict accuracy (541 prompts), MBPP pass@1 (257) and the share of MBPP replies that
                open a tool call with no tools offered, against the number of traces, with 95% bootstrap intervals.
 diff.png       relative change of the residual stream, ||h_sft - h_base|| / ||h_base||, by layer and token role on 60
@@ -71,7 +71,7 @@ def curve() -> None:
         if "both" not in runs.get(run, {}):
             continue
         r = dict(runs[run]["both"])
-        if run in cut:
+        if run in cut and cut[run]["finished"] < cut[run]["of"]:
             r = {
                 "rate": cut[run]["rate"],
                 "ci": cut[run]["ci"],
