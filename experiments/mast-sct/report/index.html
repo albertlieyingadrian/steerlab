@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reproducing MAST’s clinical reasoning test: an open model that thinks ties GPT-5.5, and the scorer can hide failed items</title>
+<meta name="description" content="On the 174 open items of MAST’s Script Concordance Test, DeepSeek-V4-Flash in thinking mode scores 0.730 against 0.745 for MAST’s own GPT-5.5 run: −0.016 [−0.062, +0.032], paired, a tie. The shipped GPT-5.5 run re-scores byte for byte. Asked the same questions twice, the same open model changed 18 of 174 ratings. The scorer drops failed items from its denominator, which can raise a score from 0.745 to 0.873 without an error.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reproducing MAST’s clinical reasoning test: an open model that thinks ties GPT-5.5, and the scorer can hide failed items">
+<meta property="og:description" content="On the 174 open items of MAST’s Script Concordance Test, DeepSeek-V4-Flash in thinking mode scores 0.730 against 0.745 for MAST’s own GPT-5.5 run: −0.016 [−0.062, +0.032], paired, a tie. The shipped GPT-5.5 run re-scores byte for byte. Asked the same questions twice, the same open model changed 18 of 174 ratings. The scorer drops failed items from its denominator, which can raise a score from 0.745 to 0.873 without an error.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A horizontal bar chart on a cream background: sct_score on the 174 open items of MAST’s Script Concordance Test, one bar per run from zero, with 95% intervals. The top row, tinted orange, is DeepSeek-V4-Flash in thinking mode at 0.73, marked about equal to GPT-5.5. Then GPT-5.5 (MAST’s own run) at 0.75 in darker grey, DeepSeek-V4-Flash without thinking 0.67, Llama-3.3-70B 0.66 and Qwen3-32B 0.60. The rows run for this note carry the steerlab logo next to the model’s logo.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Reproducing MAST’s clinical reasoning test: an open model that thinks ties GPT-5.5, and the scorer can hide failed items">
+<meta name="twitter:description" content="On the 174 open items of MAST’s Script Concordance Test, DeepSeek-V4-Flash in thinking mode scores 0.730 against 0.745 for MAST’s own GPT-5.5 run: −0.016 [−0.062, +0.032], paired, a tie. The shipped GPT-5.5 run re-scores byte for byte. Asked the same questions twice, the same open model changed 18 of 174 ratings. The scorer drops failed items from its denominator, which can raise a score from 0.745 to 0.873 without an error.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-12">
+<meta property="article:modified_time" content="2026-11-12">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Reproducing MAST’s clinical reasoning test: an open model that thinks ties GPT-5.5, and the scorer can hide failed items",
+ "description": "On the 174 open items of MAST’s Script Concordance Test, DeepSeek-V4-Flash in thinking mode scores 0.730 against 0.745 for MAST’s own GPT-5.5 run: −0.016 [−0.062, +0.032], paired, a tie. The shipped GPT-5.5 run re-scores byte for byte. Asked the same questions twice, the same open model changed 18 of 174 ratings. The scorer drops failed items from its denominator, which can raise a score from 0.745 to 0.873 without an error.",
+ "abstract": "MAST (ARISE network, MIT) SCT kit at commit 57a12c5, 174 open items (Adelaide 102, Open Medical 72; SCT-Bench/sctpublic, MIT), the kit's run.py and score.py unchanged; temperature 0, 4,096-token cap, one trial; OpenRouter with DeepInfra pinned (fp8), provider recorded per reply. Reference: MAST's shipped GPT-5.5 run re-scores to 0.7453 [0.6912, 0.7974], scorecard and per-item file byte-identical. sct_score (95% item bootstrap, B=10,000): DeepSeek-V4-Flash-0731 thinking 0.730 [0.674, 0.784] (vs GPT-5.5 -0.016 [-0.062, +0.032], tie; same rating on 135/174, kappa 0.70; 439 output tokens per item); no thinking 0.673 [0.611, 0.732] (-0.072 [-0.138, -0.008]); identical repeat 0.666 (18/174 ratings changed, 2 from +2 to -2; -0.007 [-0.040, +0.026]; kappa 0.86); Llama-3.3-70B-Instruct 0.656 (-0.089 [-0.160, -0.018]); Qwen3-32B no thinking 0.604 (-0.141 [-0.208, -0.079]). Thinking vs not: +0.056 [-0.006, +0.122]. All six runs earn 0 on 5 items (item 6: panel -2, every run +2). Scorer probes (current main): 20 errored + 9 missing low-scoring GPT-5.5 items give 0.873 on 145 items, exit 0 (reported upstream ARISENetwork/mast#30, fix #31); integer ids in a hand-written file give 0.000, exit 0 (#32, fix #33); --limit selects different items in run.py and score.py; 47/174 items carry a Latin-1/UTF-8 encoding artefact. Spend about $0.07 of OpenRouter credit ($0.03 at list price).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-12",
+ "dateModified": "2026-11-12",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "MAST, Script Concordance Test, SCT-Bench, clinical reasoning, clinical AI evaluation, reproducibility, benchmark, paired bootstrap, DeepSeek-V4-Flash, Qwen3-32B, Llama-3.3-70B, GPT-5.5, OpenRouter, nondeterminism",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/ARISENetwork/mast"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://ai.nejm.org/doi/full/10.1056/AIdbp2500120"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/SCT-Bench/sctpublic"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/18785963/"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  .gallery-pick { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 0.75rem; }
+  .gallery-pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .explorer .ex-q { margin: 0 0 0.35rem; }
+  .explorer .ex-note { font-size: 0.9rem; color: var(--ink-soft); margin: 0 0 0.6rem; }
+  .explorer .ex-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .explorer .ex-h { font-size: 0.82rem; margin: 0 0 0.4rem; color: var(--ink-soft); }
+  .explorer .ex-bar { display: grid; grid-template-columns: 2rem 1fr 2.6rem; align-items: center; gap: 0.4rem; margin: 0.2rem 0; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .explorer .ex-track { height: 0.7rem; background: var(--rule); border-radius: 3px; overflow: hidden; }
+  .explorer .ex-fill { display: block; height: 100%; background: var(--ink-soft); }
+  .explorer .ex-fill.top { background: var(--accent); }
+  .explorer .ex-bv { text-align: right; }
+  .explorer table.ex-t { font-size: 0.85rem; margin: 0; }
+  .explorer .caption { font-size: 0.86rem; color: var(--ink-soft); margin: 0.6rem 0 0; }
+  @media (max-width: 760px) { .explorer .ex-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-12">Nov 12, 2026</time></p>
+  <h1>Reproducing MAST’s clinical reasoning test: an open model that thinks ties GPT-5.5, and the scorer can hide failed items</h1>
+  <p class="dek ruled">An independent rerun of a public clinical AI benchmark: its reference result, three open-weight models, how much a repeat moves the score, and two ways its scorer reports a number it should not.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A horizontal bar chart on a cream background: sct_score on the 174 open items of MAST’s Script Concordance Test, one bar per run from zero, with 95% intervals. The top row, tinted orange, is DeepSeek-V4-Flash in thinking mode at 0.73, marked about equal to GPT-5.5. Then GPT-5.5 (MAST’s own run) at 0.75 in darker grey, DeepSeek-V4-Flash without thinking 0.67, Llama-3.3-70B 0.66 and Qwen3-32B 0.60. The rows run for this note carry the steerlab logo next to the model’s logo." width="1536" height="1024">
+    <figcaption>Cover: sct_score on the 174 open items, one bar per run from zero, with 95% bootstrap intervals over items. Orange: DeepSeek-V4-Flash in thinking mode, 0.730, −0.016 [−0.062, +0.032] against GPT-5.5, paired. GPT-5.5 is MAST’s own shipped run, re-scored here; the steerlab logo marks the runs made for this note. Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Benchmark</dt><dd>The Script Concordance Test kit in <a href="https://github.com/ARISENetwork/mast">MAST</a> (ARISE network; MIT), commit <code>57a12c5</code>: the 174-item open subset from <a href="https://github.com/SCT-Bench/sctpublic">SCT-Bench/sctpublic</a> (MIT)</dd></div>
+    <div><dt>Models</dt><dd>DeepSeek-V4-Flash (<code>deepseek/deepseek-v4-flash-0731</code>), Qwen3-32B (<code>qwen/qwen3-32b</code>) and Llama-3.3-70B-Instruct (<code>meta-llama/llama-3.3-70b-instruct</code>), all through OpenRouter, served by DeepInfra; GPT-5.5 is MAST’s shipped run</dd></div>
+    <div><dt>Code</dt><dd>MAST’s <code>run.py</code> and <code>score.py</code>, unchanged; <a href="../run_openrouter.py">run_openrouter.py</a> records the serving provider; <a href="../stats.py">stats.py</a> adds paired intervals and agreement; <a href="../scorer_checks.py">scorer_checks.py</a> reproduces the scorer issues</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/stats.json">stats.json</a>, every raw reply in <code>results/raw/</code> and the scorer’s output in <code>results/scores/</code> (described in <a href="../README.md">README.md</a>)</dd></div>
+    <div><dt>Series</dt><dd>Clinical AI evals, episode 1</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does MAST’s Script Concordance Test reproduce, and where do open-weight models land on it?</strong></p>
+    <p>It reproduces: re-scoring the GPT-5.5 run that MAST ships gives its published 0.745 byte for byte. On the same 174 open items, DeepSeek-V4-Flash, an open-weight model, scores 0.730 when it reasons before answering, a tie with GPT-5.5 (−0.016 [−0.062, +0.032], paired), and 0.673 when it does not. Llama-3.3-70B scores 0.656 and Qwen3-32B 0.604, both below GPT-5.5. Sent the same 174 requests twice at temperature 0, DeepSeek-V4-Flash changed 18 ratings, two of them from +2 to −2; its score moved by 0.007. The scorer has two silent failure modes: items whose request failed, or that are missing from the file, drop out of the denominator (a degraded copy of the GPT-5.5 run scores 0.873, not 0.745), and a hand-written results file with numeric ids scores 0.000. Both are reported upstream with fixes. The study cost about $0.07 of API credit.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Does MAST’s reference result reproduce?</td><td><strong>Exactly:</strong> the shipped GPT-5.5 run re-scores to 0.7453 [0.6912, 0.7974], with a byte-identical scorecard and per-item file</td><td>The README’s 0.745 ± 0.053</td></tr>
+          <tr class="hl"><td>Can an open-weight model match GPT-5.5? (174 items, paired)</td><td><strong>A tie:</strong> DeepSeek-V4-Flash, thinking, 0.730 [0.674, 0.784]; −0.016 [−0.062, +0.032]; the same rating on 135 of 174 items</td><td>GPT-5.5, 0.745 [0.692, 0.796]</td></tr>
+          <tr><td>Without thinking, and other open models?</td><td><strong>Below GPT-5.5:</strong> V4-Flash 0.673 (−0.072 [−0.138, −0.008]); Llama-3.3-70B 0.656 (−0.089 [−0.160, −0.018]); Qwen3-32B 0.604 (−0.141 [−0.208, −0.079])</td><td>Thinking against not, same model: +0.056 [−0.006, +0.122]</td></tr>
+          <tr><td>Does the same request give the same answer? (temperature 0, same provider)</td><td><strong>Not always:</strong> 18 of 174 ratings changed, 2 by four steps (+2 to −2); the score went from 0.673 to 0.666</td><td>Paired difference −0.007 [−0.040, +0.026]</td></tr>
+          <tr><td>Does the scorer catch failed or missing items?</td><td><strong>No:</strong> 20 errored and 9 missing low-scoring items raise GPT-5.5’s score from 0.745 to 0.873, exit code 0</td><td>Reported upstream with a fix that refuses incomplete runs</td></tr>
+          <tr><td>Does a hand-written results file score as documented?</td><td><strong>Not with numeric ids:</strong> <code>"id": 1</code> instead of <code>"1"</code> scores 0.000 on every item, exit code 0</td><td>Reported upstream with a fix</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A 64-year-old man has sudden chest pain spreading to his back. A doctor considering a CT angiogram then learns that his right arm has no pulse while his left does. Does that make the scan more or less worth doing? The expert panel says strongly more (+2), since a pulse difference points to a tear in the aorta. Asked this twice, word for word, at temperature 0, one open model answered +2 the first time and −2 the second. The item is one of 174 in a public test of clinical reasoning, and a small picture of what this note measures: how stable, and how trustworthy, a score on such a test is.</p>
+  <p><strong>What is known.</strong> The Script Concordance Test (SCT) is a long-established format for testing clinical reasoning under uncertainty (<a href="https://pubmed.ncbi.nlm.nih.gov/18785963/">Fournier et al., 2008</a>); SCT-Bench turned 750 such items into a benchmark for language models (<a href="https://ai.nejm.org/doi/full/10.1056/AIdbp2500120">McCoy et al., NEJM AI 2025</a>). The ARISE network’s MAST suite ships a run-it-yourself kit for the 174 public items, with a deterministic scorer, a reference run of GPT-5.5 and a leaderboard (<a href="https://github.com/ARISENetwork/mast">github.com/ARISENetwork/mast</a>).</p>
+  <p><strong>What is missing.</strong> The kit’s reference table has no open-weight model, gives each model’s interval but not the interval of a difference between two, and, as far as we know, its scorer’s edge cases had not been checked from outside.</p>
+  <p class="question-callout">Does the kit reproduce its own reference number, where do open-weight models land against it, and how far can a reader trust a gap on this test?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A reproduction of the shipped GPT-5.5 result with the unmodified scorer.</li>
+    <li>Scores for three open-weight models, five runs in all, with paired intervals against GPT-5.5 and rating agreement.</li>
+    <li>A repeat of one run, to measure how much the same requests move.</li>
+    <li>Two scorer failure modes, each with a minimal repro, reported upstream with fixes.</li>
+    <li>Every raw reply, with the company that served it.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Set before the runs:</p>
+  <ol>
+    <li><strong>Reproduces</strong> means the shipped run re-scores to the published value with the scorer unchanged.</li>
+    <li>A model <strong>ties</strong> GPT-5.5 when the paired 95% interval of its difference contains zero, and is <strong>below</strong> when the interval excludes zero below.</li>
+    <li>A scorer issue counts only if a minimal file reproduces it on the current main branch.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="sct-101" data-short="How SCT is scored">2.1 How a Script Concordance item is scored</h3>
+  <p>Each item gives a <strong>scenario</strong>, a <strong>hypothesis</strong> (“If you were thinking of: ordering a blood culture”) and a <strong>new finding</strong> (“And then you find: diffuse coarse crackles in both lungs”). The model rates the finding’s effect on the hypothesis from −2 (much less likely or useful) to +2 (much more). There is no single right answer: a panel of clinicians answered the same item, and a rating earns credit in proportion to how many of them chose it, scaled so the panel’s most common answer earns 1. Figure 1 shows item 1.</p>
+  <figure class="plot">
+    <img src="figures/toy.png" alt="Bar chart of credit by rating for item 1: −2 earns 0, −1 earns 0.4, 0 earns 0.8, +1 earns 1.0 (in orange, the panel’s most common answer), +2 earns 0.2." width="930" height="435">
+    <figcaption><strong>Figure 1.</strong> How item 1 is scored. Bars: the credit each rating earns, the panel’s answers scaled so its most common answer (+1, orange) is 1. A model answering +1 earns 1.0, 0 earns 0.8, and −2 earns nothing because no panellist chose it. Drawn by <a href="../make_figures.py">make_figures.py</a> from MAST’s <code>dataset/rubrics.jsonl</code>.</figcaption>
+  </figure>
+  <p>The headline metric, <strong>sct_score</strong>, is the mean credit over the 174 items: 1 means the model always gave the panel’s most common answer. Two more terms used below: <strong>in the expert set</strong> means at least one panellist gave that rating (credit above 0); <strong>matches the mode</strong> means the rating is the panel’s single most common answer (defined on the 162 items whose panel has one).</p>
+
+  <h3 id="data" data-short="Data and models">2.2 Data and models</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Run</th><th>Model and settings</th><th class="num">Items</th><th>Served by</th></tr></thead>
+      <tbody>
+        <tr><td>GPT-5.5</td><td>MAST’s shipped run (<code>examples/gpt-5.5.jsonl</code>); not rerun</td><td class="num">174</td><td>OpenRouter, as shipped</td></tr>
+        <tr class="hl"><td>DeepSeek-V4-Flash, thinking</td><td><code>deepseek/deepseek-v4-flash-0731</code>, reasoning on</td><td class="num">174</td><td>DeepInfra (fp8)</td></tr>
+        <tr><td>DeepSeek-V4-Flash, no thinking</td><td>the same snapshot, reasoning off; run twice</td><td class="num">174 × 2</td><td>DeepInfra (fp8)</td></tr>
+        <tr><td>Llama-3.3-70B-Instruct</td><td><code>meta-llama/llama-3.3-70b-instruct</code>, no reasoning mode</td><td class="num">174</td><td>DeepInfra (fp8)</td></tr>
+        <tr><td>Qwen3-32B, no thinking</td><td><code>qwen/qwen3-32b</code>, reasoning off</td><td class="num">174</td><td>DeepInfra (fp8)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The 174 items are the benchmark’s open subset: 102 from the Adelaide SCT and 72 from the Open Medical SCT, with their expert panels, as published in SCT-Bench/sctpublic and bundled in the kit. The other 576 items are held out by the benchmark’s authors and were not used. The kit’s own prompt was used unchanged: a short guideline, then the case, asking for <code>Rating:</code> and a value. GPT-5.5’s run used reasoning (its replies are terse because the provider does not return the reasoning), so the thinking run is the like-for-like comparison.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Goal, in writing:</strong> reproduce the shipped reference, then place open-weight models against it with paired intervals, within a $1.50 budget.</li>
+    <li><strong>Re-score the shipped GPT-5.5 run</strong> with the kit’s <code>score.py</code>: 174 replies, compared byte for byte with the shipped scorecard and per-item file.</li>
+    <li><strong>Run the open models</strong> with the kit’s <code>run.py</code>, unchanged, through OpenRouter, one provider pinned with fallbacks off. A thin wrapper (<code>run_openrouter.py</code>) only adds the serving provider and request id to each record. 870 requests in all; 4 transient connection errors were retried by <code>run.py</code>, and none was left failed.</li>
+    <li><strong>Repeat one run</strong> (V4-Flash without thinking), identically, to measure what a rerun changes.</li>
+    <li><strong>Score every run</strong> with the unchanged <code>score.py</code>: 0 parse errors and 0 failed items in every run.</li>
+    <li><strong>Add paired statistics</strong> from the scorer’s own per-item output (<code>stats.py</code>), without re-scoring any reply.</li>
+    <li><strong>Probe the scorer</strong> with deliberately incomplete and hand-written files (<code>scorer_checks.py</code>); each issue was confirmed on the current main branch and reported upstream with a fix.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The kit’s prompt, temperature 0, 4,096-token cap and one trial per item; the scorer, unmodified; tie / below by the paired interval; GPT-5.5 as the reference; thinking off except in the thinking run; one pinned provider for every open model</td><td>None of the runs. The paired statistics, the explorer’s four items and the scorer probes were chosen after the scores were in</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: OpenRouter, provider DeepInfra pinned for every request (recorded per reply), temperature 0, up to 4,096 output tokens, 12 requests in parallel. The thinking run used 439 output tokens per item on average, the others 5 to 7. Bootstrap: 10,000 resamples of the 174 items, seed 0; the scorer’s own intervals (2,000 resamples) agree to within 0.002. Spend: $0.07 of OpenRouter credit by the account’s usage counter, including setup calls ($0.03 at list price from the logged tokens).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Five findings:</p>
+  <ol>
+    <li>The shipped GPT-5.5 result reproduces byte for byte (4.1).</li>
+    <li>DeepSeek-V4-Flash in thinking mode ties GPT-5.5; without thinking, it and the other two open models are below (4.2).</li>
+    <li>The same requests, sent twice, changed 18 of 174 ratings (4.3).</li>
+    <li>The scorer drops failed and missing items from its denominator, which raises the score (4.4).</li>
+    <li>A hand-written results file with numeric ids scores zero (4.5).</li>
+  </ol>
+
+  <h3 id="reproduce-ref" data-short="The reference reproduces">4.1 The shipped GPT-5.5 result reproduces byte for byte</h3>
+  <p><strong>Re-scoring MAST’s <code>examples/gpt-5.5.jsonl</code> with its <code>score.py</code> gives sct_score 0.7453, 95% interval [0.6912, 0.7974], identical to the shipped <code>examples/gpt-5.5.csv</code> and <code>gpt-5.5_details.jsonl</code> byte for byte.</strong> The README’s table reports 0.745 ± 0.053. The subtests also match: Adelaide 0.770, Open Medical 0.711. This checks the scorer and the data, not the model: GPT-5.5 was not rerun.</p>
+
+  <h3 id="models" data-short="An open model ties GPT-5.5">4.2 DeepSeek-V4-Flash with thinking ties GPT-5.5; without thinking, it and the other open models are below</h3>
+  <p><strong>DeepSeek-V4-Flash in thinking mode scores 0.730 [0.674, 0.784], 0.016 below GPT-5.5 with a paired interval of [−0.062, +0.032]: a tie</strong> (Figures 2 and 3). The two give the same rating on 135 of 174 items (Cohen’s κ 0.70) and match the panel’s most common answer about equally often (0.574 and 0.568 of 162 items). Without thinking, the same model scores 0.673, below GPT-5.5 by 0.072 [0.008, 0.138]; Llama-3.3-70B scores 0.656 and Qwen3-32B 0.604, also below.</p>
+  <figure class="plot">
+    <img src="figures/scores.png" alt="Dot plot of sct_score with 95% intervals: GPT-5.5 0.745, DeepSeek-V4-Flash thinking 0.730 in orange, V4-Flash without thinking 0.673, its repeat 0.666, Llama-3.3-70B 0.656, Qwen3-32B 0.604. A dotted line marks GPT-5.5." width="1140" height="510">
+    <figcaption><strong>Figure 2.</strong> sct_score on the 174 open items, with 95% bootstrap intervals over items (10,000 resamples). Black: GPT-5.5, MAST’s shipped run, also the dotted line; orange: DeepSeek-V4-Flash in thinking mode; grey: the other runs, including an identical repeat of V4-Flash without thinking. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Thinking moved the same model by +0.056 [−0.006, +0.122], most of the gap to GPT-5.5, though its interval touches zero. It changed the rating on 75 items, gaining more than half a point of credit on 24 and losing as much on 18. The separate intervals of V4-Flash without thinking and of Llama-3.3-70B overlap GPT-5.5’s, yet their paired intervals exclude zero. Because every model answers the same items, the paired interval is the one that answers “is A better than B”; comparing two separate intervals is too cautious.</p>
+  <figure class="plot">
+    <img src="figures/paired.png" alt="Forest plot of differences against GPT-5.5 on the same items: DeepSeek-V4-Flash thinking −0.016 [−0.061, +0.032] in orange, crossing zero; V4-Flash without thinking −0.072, its repeat −0.079, Llama-3.3-70B −0.089 and Qwen3-32B −0.141, all left of zero; and the repeat minus the first run, −0.007 [−0.040, +0.025], crossing zero." width="1140" height="480">
+    <figcaption><strong>Figure 3.</strong> Each run minus GPT-5.5 in sct_score, with paired 95% bootstrap intervals over the same 174 items; the bottom row is the repeat of V4-Flash without thinking minus its first run. An interval that crosses zero is a tie. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Run</th><th class="num">sct_score [95%]</th><th class="num">Adelaide (102)</th><th class="num">Open Medical (72)</th><th class="num">In expert set</th><th class="num">Matches mode</th><th class="num">Same rating as GPT-5.5</th></tr></thead>
+      <tbody>
+        <tr><td>GPT-5.5 (MAST’s run)</td><td class="num">0.745 [0.692, 0.796]</td><td class="num">0.770</td><td class="num">0.711</td><td class="num">0.931</td><td class="num">0.568</td><td class="num">—</td></tr>
+        <tr class="hl"><td>DeepSeek-V4-Flash, thinking</td><td class="num">0.730 [0.674, 0.784]</td><td class="num">0.755</td><td class="num">0.694</td><td class="num">0.891</td><td class="num">0.574</td><td class="num">135/174</td></tr>
+        <tr><td>DeepSeek-V4-Flash, no thinking</td><td class="num">0.673 [0.611, 0.732]</td><td class="num">0.693</td><td class="num">0.645</td><td class="num">0.805</td><td class="num">0.549</td><td class="num">100/174</td></tr>
+        <tr><td>the same, repeated</td><td class="num">0.666 [0.604, 0.727]</td><td class="num">0.679</td><td class="num">0.648</td><td class="num">0.805</td><td class="num">0.531</td><td class="num">96/174</td></tr>
+        <tr><td>Llama-3.3-70B-Instruct</td><td class="num">0.656 [0.594, 0.718]</td><td class="num">0.655</td><td class="num">0.658</td><td class="num">0.822</td><td class="num">0.506</td><td class="num">84/174</td></tr>
+        <tr><td>Qwen3-32B, no thinking</td><td class="num">0.604 [0.539, 0.666]</td><td class="num">0.604</td><td class="num">0.604</td><td class="num">0.793</td><td class="num">0.451</td><td class="num">92/174</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The explorer below shows four items: one where the panel is split, the repeat that flipped, one where thinking changed the answer, and one of the five items on which every run, GPT-5.5 included, earned nothing.</p>
+  <!-- explorer:start -->
+<div class="sim explorer" id="explorer">
+  <div class="gallery-pick" role="group" aria-label="Item">
+    <button type="button" data-case="0" aria-pressed="true">Experts split</button>
+    <button type="button" data-case="1" aria-pressed="false">Same request, opposite answer</button>
+    <button type="button" data-case="2" aria-pressed="false">Thinking changes the answer</button>
+    <button type="button" data-case="3" aria-pressed="false">Every run misses</button>
+  </div>
+  <div class="ex-case" data-case="0">
+    <p class="ex-q"><strong>Item 1</strong> (Adelaide SCT). A 66-year-old male is in hospital for an elective total hip replacement. He is 1 day post-op. During the night the patient complains of shortness of breath of 1 hour in duration. He has a past medical history of COPD and heart failure. His respiratory rate is 24 and O2 saturation is 93% on 10L of O2 via a non-rebreather mask. He has a temperature of 37.5˚C.</p>
+    <p class="ex-q"><strong>If you were thinking of: Ordering a blood culture</strong>. <strong>And then you find: He has diffuse coarse crackles in both lungs</strong>.</p>
+    <p class="ex-note">The panel spreads over four answers, so a near miss still earns partial credit.</p>
+    <div class="ex-cols"><div><p class="ex-h">Credit for each rating (the panel, scaled so its most common answer is 1)</p><div class="ex-bar"><span class="ex-bl">−2</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">−1</span><span class="ex-track"><span class="ex-fill" style="width:40%"></span></span><span class="ex-bv">0.40</span></div><div class="ex-bar"><span class="ex-bl">0</span><span class="ex-track"><span class="ex-fill" style="width:80%"></span></span><span class="ex-bv">0.80</span></div><div class="ex-bar"><span class="ex-bl">+1</span><span class="ex-track"><span class="ex-fill top" style="width:100%"></span></span><span class="ex-bv">1.00</span></div><div class="ex-bar"><span class="ex-bl">+2</span><span class="ex-track"><span class="ex-fill" style="width:20%"></span></span><span class="ex-bv">0.20</span></div></div>
+    <div><p class="ex-h">Each run’s rating and the credit it earned</p><table class="ex-t"><thead><tr><th>Run</th><th class="num">Rating</th><th class="num">Credit</th></tr></thead><tbody><tr><td>GPT-5.5 (MAST&#x27;s run)</td><td class="num">−1</td><td class="num">0.40</td></tr><tr><td>DeepSeek-V4-Flash, thinking</td><td class="num">−2</td><td class="num">0.00</td></tr><tr><td>DeepSeek-V4-Flash, no thinking</td><td class="num">−1</td><td class="num">0.40</td></tr><tr><td>the same request, repeated</td><td class="num">−1</td><td class="num">0.40</td></tr><tr><td>Llama-3.3-70B-Instruct</td><td class="num">+1</td><td class="num">1.00</td></tr><tr><td>Qwen3-32B, no thinking</td><td class="num">+1</td><td class="num">1.00</td></tr></tbody></table></div></div>
+  </div>
+  <div class="ex-case" data-case="1" hidden>
+    <p class="ex-q"><strong>Item 51</strong> (Adelaide SCT). A 64-year-old male presents to ED with sharp central chest pain for the past 45 minutes. The pain started suddenly while he was at rest. The pain also radiates to his back. He has also been feeling nauseous. He has long-term poorly controlled hypertension. An ECG demonstrates ST elevation in leads II, III and aVF.</p>
+    <p class="ex-q"><strong>If you were thinking of: CT angiogram</strong>. <strong>And then you find: An absent right brachial and radial pulse. Left radial pulse present</strong>.</p>
+    <p class="ex-note">Asked twice, identically, DeepSeek-V4-Flash without thinking said +2, then −2.</p>
+    <div class="ex-cols"><div><p class="ex-h">Credit for each rating (the panel, scaled so its most common answer is 1)</p><div class="ex-bar"><span class="ex-bl">−2</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">−1</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">0</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">+1</span><span class="ex-track"><span class="ex-fill" style="width:40%"></span></span><span class="ex-bv">0.40</span></div><div class="ex-bar"><span class="ex-bl">+2</span><span class="ex-track"><span class="ex-fill top" style="width:100%"></span></span><span class="ex-bv">1.00</span></div></div>
+    <div><p class="ex-h">Each run’s rating and the credit it earned</p><table class="ex-t"><thead><tr><th>Run</th><th class="num">Rating</th><th class="num">Credit</th></tr></thead><tbody><tr><td>GPT-5.5 (MAST&#x27;s run)</td><td class="num">+2</td><td class="num">1.00</td></tr><tr><td>DeepSeek-V4-Flash, thinking</td><td class="num">+2</td><td class="num">1.00</td></tr><tr><td>DeepSeek-V4-Flash, no thinking</td><td class="num">+2</td><td class="num">1.00</td></tr><tr><td>the same request, repeated</td><td class="num">−2</td><td class="num">0.00</td></tr><tr><td>Llama-3.3-70B-Instruct</td><td class="num">−2</td><td class="num">0.00</td></tr><tr><td>Qwen3-32B, no thinking</td><td class="num">+2</td><td class="num">1.00</td></tr></tbody></table></div></div>
+  </div>
+  <div class="ex-case" data-case="2" hidden>
+    <p class="ex-q"><strong>Item 2</strong> (Adelaide SCT). A 66-year-old male is in hospital for an elective total hip replacement. He is 1 day post-op. During the night the patient complains of shortness of breath of 1 hour in duration. He has a past medical history of COPD and heart failure. His respiratory rate is 24 and O2 saturation is 93% on 10L of O2 via a non-rebreather mask. He has a temperature of 37.5˚C.</p>
+    <p class="ex-q"><strong>If you were thinking of: Ordering a CTPA</strong>. <strong>And then you find: CXR demonstrates no abnormalities</strong>.</p>
+    <p class="ex-note">Without thinking, DeepSeek-V4-Flash says a clear chest X-ray lowers the case for a CT scan (no credit); with thinking it says +1, as GPT-5.5 does, an answer part of the panel gave.</p>
+    <div class="ex-cols"><div><p class="ex-h">Credit for each rating (the panel, scaled so its most common answer is 1)</p><div class="ex-bar"><span class="ex-bl">−2</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">−1</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">0</span><span class="ex-track"><span class="ex-fill" style="width:80%"></span></span><span class="ex-bv">0.80</span></div><div class="ex-bar"><span class="ex-bl">+1</span><span class="ex-track"><span class="ex-fill" style="width:60%"></span></span><span class="ex-bv">0.60</span></div><div class="ex-bar"><span class="ex-bl">+2</span><span class="ex-track"><span class="ex-fill top" style="width:100%"></span></span><span class="ex-bv">1.00</span></div></div>
+    <div><p class="ex-h">Each run’s rating and the credit it earned</p><table class="ex-t"><thead><tr><th>Run</th><th class="num">Rating</th><th class="num">Credit</th></tr></thead><tbody><tr><td>GPT-5.5 (MAST&#x27;s run)</td><td class="num">+1</td><td class="num">0.60</td></tr><tr><td>DeepSeek-V4-Flash, thinking</td><td class="num">+1</td><td class="num">0.60</td></tr><tr><td>DeepSeek-V4-Flash, no thinking</td><td class="num">−1</td><td class="num">0.00</td></tr><tr><td>the same request, repeated</td><td class="num">−1</td><td class="num">0.00</td></tr><tr><td>Llama-3.3-70B-Instruct</td><td class="num">−1</td><td class="num">0.00</td></tr><tr><td>Qwen3-32B, no thinking</td><td class="num">−1</td><td class="num">0.00</td></tr></tbody></table></div></div>
+  </div>
+  <div class="ex-case" data-case="3" hidden>
+    <p class="ex-q"><strong>Item 6</strong> (Adelaide SCT). A 25-year-old female presents to the ED with a headache. She describes the headache as poorly localised. The headache has been present for 2 days and has not been alleviated by paracetamol or NSAIDs. She has been having frequent headaches over the last month. She has no significant past medical history. Physical examination reveals a BMI of 32. Her neurological examination and CT head are normal.</p>
+    <p class="ex-q"><strong>If you were thinking of: Performing a lumbar puncture</strong>. <strong>And then you find: She has bilateral papilloedema</strong>.</p>
+    <p class="ex-note">The whole panel answered −2; all six runs answered +2, the opposite end of the scale.</p>
+    <div class="ex-cols"><div><p class="ex-h">Credit for each rating (the panel, scaled so its most common answer is 1)</p><div class="ex-bar"><span class="ex-bl">−2</span><span class="ex-track"><span class="ex-fill top" style="width:100%"></span></span><span class="ex-bv">1.00</span></div><div class="ex-bar"><span class="ex-bl">−1</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">0</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">+1</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div><div class="ex-bar"><span class="ex-bl">+2</span><span class="ex-track"><span class="ex-fill" style="width:0%"></span></span><span class="ex-bv">0.00</span></div></div>
+    <div><p class="ex-h">Each run’s rating and the credit it earned</p><table class="ex-t"><thead><tr><th>Run</th><th class="num">Rating</th><th class="num">Credit</th></tr></thead><tbody><tr><td>GPT-5.5 (MAST&#x27;s run)</td><td class="num">+2</td><td class="num">0.00</td></tr><tr><td>DeepSeek-V4-Flash, thinking</td><td class="num">+2</td><td class="num">0.00</td></tr><tr><td>DeepSeek-V4-Flash, no thinking</td><td class="num">+2</td><td class="num">0.00</td></tr><tr><td>the same request, repeated</td><td class="num">+2</td><td class="num">0.00</td></tr><tr><td>Llama-3.3-70B-Instruct</td><td class="num">+2</td><td class="num">0.00</td></tr><tr><td>Qwen3-32B, no thinking</td><td class="num">+2</td><td class="num">0.00</td></tr></tbody></table></div></div>
+  </div>
+  <p class="caption">Four of the 174 open items, chosen to show partial credit, a repeat that flipped, the effect of thinking, and an item every run missed. Ratings are as parsed by MAST’s score.py; written by <a href="../make_explorer.py">make_explorer.py</a>.</p>
+</div>
+<!-- explorer:end -->
+
+  <h3 id="repeat" data-short="A repeat changes 18 ratings">4.3 The same requests, sent twice, changed 18 of 174 ratings</h3>
+  <p><strong>Rerunning DeepSeek-V4-Flash without thinking, with identical requests at temperature 0 to the same provider, changed the rating on 18 of 174 items: 14 by one step, 2 by two steps and 2 from +2 to −2</strong> (items 51 and 54). The score moved from 0.673 to 0.666 (−0.007 [−0.040, +0.026]); agreement between the two runs was κ 0.86. Temperature 0 does not guarantee the same output from a served model: batching and the order of floating-point operations on the server can change a close call. The paired interval between two strong models here spans about ±0.05, wider than the gaps among the reference table’s top three (Claude Opus 4.7 0.756, GPT-5.5 0.745, Gemini 3.1 Pro 0.721), so one run per model cannot order them.</p>
+
+  <h3 id="denominator" data-short="Failed items raise the score">4.4 The scorer drops failed and missing items, which raises the score</h3>
+  <p><strong>MAST’s SCT <code>score.py</code> skips any record with an error field or no reply, skips any reply it cannot parse, and builds its list of items from the results file rather than the dataset. Turning 20 of the shipped GPT-5.5 run’s 29 lowest-scoring items into the error records <code>run.py</code> writes after failed retries, and deleting the other 9, gives sct_score 0.873 on 145 items instead of 0.745 on 174, with exit code 0.</strong> The scorecard has nothing to show that 29 items are absent. Failures that survive retries (content filters, truncation at the token cap, a provider outage) tend to fall on hard items, so the bias is upward. The kit’s other benchmark, First Do NOHARM, had the same issue and was fixed by refusing to score an incomplete run; the SCT kit had not been. We reported it as <a href="https://github.com/ARISENetwork/mast/issues/30">ARISENetwork/mast#30</a>, with the same fix in <a href="https://github.com/ARISENetwork/mast/pull/31">#31</a> (open at the time of writing), which keeps the shipped scorecard byte-identical. None of this note’s runs was affected: every run has 174 scored items, 0 errors and 0 parse failures.</p>
+
+  <h3 id="ids" data-short="Numeric ids score zero">4.5 A hand-written results file with numeric ids scores zero</h3>
+  <p><strong>The kit invites users to skip its runner and supply their own file with at least <code>{id, trial, response}</code>. Written with <code>"id": 1</code> rather than <code>"id": "1"</code>, the shipped GPT-5.5 replies score 0.000 on all 174 items, with no parse errors and exit code 0.</strong> The expert panels are keyed by string, every lookup misses, and a missing panel scores zero. A file without the optional metadata also loses its per-source rows. Reported as <a href="https://github.com/ARISENetwork/mast/issues/32">#32</a>, with a fix in <a href="https://github.com/ARISENetwork/mast/pull/33">#33</a> (open at the time of writing). Two smaller findings were not filed separately: the scoring and running scripts’ <code>--limit N</code> select different items (fixed inside #31), and 47 of the 174 items carry an encoding artefact (curly quotes and degree signs stored as their UTF-8 bytes read as Latin-1, as in the upstream data), which the kit documents for one of its six patterns and deliberately leaves in place.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Clinical benchmarks are read as evidence that a model is fit for a high-stakes setting, and the reader usually sees one number per model. Here the number moved by 0.056 with a reasoning switch, a rerun changed one rating in ten, and a scorer could raise a score by 0.13 without saying so. None of these is a flaw in the test’s design; they are properties of how it is run and reported. A score that silently drops what a model failed on is the evaluation’s version of a model hiding its mistakes.</p>
+  <p>Risk: very low. Public exam items and public models; no patient data.</p>
+  <p><strong>The recommendation in one sentence: report clinical benchmark scores with the model’s reasoning mode, a paired interval against the comparison model and a rerun, and make the scorer refuse to score an incomplete run.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>The full benchmark.</strong> 174 of 750 items, from two of ten sources; the held-out items may rank models differently.</li>
+    <li><strong>GPT-5.5 under our conditions.</strong> Its run is MAST’s, made earlier through its own route; it was re-scored, not rerun, and has no repeat.</li>
+    <li><strong>The models at their best.</strong> One prompt (the kit’s), one trial, temperature 0; DeepInfra serves these models at reduced (fp8) precision, and another provider or full precision could score differently.</li>
+    <li><strong>Clean items.</strong> The open items have been public on GitHub since 2025; any of these models may have seen them in training. No contamination check was run.</li>
+    <li><strong>Clinical competence.</strong> SCT measures agreement with a panel on how a finding shifts a hypothesis; matching a panel is not the same as safe care.</li>
+    <li><strong>The leaderboard’s own ordering.</strong> The repeat and the paired intervals here suggest the reference table’s top three are close; testing that needs their replies and repeats.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Recompute the statistics, figures, explorer, scorer checks and cover from the saved results, in under a minute (the script clones MAST at the commit used here for the explorer and the checks):</p>
+  <pre><code class="language-bash">experiments/mast-sct/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch with an OpenRouter key (<code>OPENROUTER_API_KEY</code>); the five runs cost about $0.03 at list price:</p>
+  <pre><code class="language-bash">experiments/mast-sct/reproduce.sh --dry-run   # lists every command
+experiments/mast-sct/reproduce.sh</code></pre>
+  <p>A rerun will not repeat exactly (section 4.3); expect it to land within the intervals above.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <p>None of these has been run yet:</p>
+  <ol>
+    <li><strong>Repeats for every model</strong>, so each score carries a rerun spread beside its interval.</li>
+    <li><strong>The kit’s second benchmark</strong>, First Do NOHARM, which uses a model judge and so needs the judge checked first.</li>
+    <li><strong>A contamination probe</strong>: whether models can complete the open items’ text from a prefix.</li>
+  </ol>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">What is MAST’s Script Concordance Test?</h3>
+  <p>A clinical reasoning benchmark in the ARISE network’s MAST suite: each item gives a case, a diagnostic or treatment hypothesis and a new finding, and the model rates the finding’s effect from −2 to +2. Credit depends on how many of an expert panel chose the same rating. The open subset has 174 items.</p>
+  <h3 id="q2">Does MAST’s GPT-5.5 result reproduce?</h3>
+  <p>Yes. Re-scoring the shipped GPT-5.5 replies with the kit’s scorer gives 0.7453 [0.6912, 0.7974], byte-identical to the shipped scorecard.</p>
+  <h3 id="q3">How do open-weight models score on SCT?</h3>
+  <p>On the 174 open items: DeepSeek-V4-Flash 0.730 with thinking and 0.673 without, Llama-3.3-70B-Instruct 0.656, Qwen3-32B 0.604. GPT-5.5 scores 0.745; only DeepSeek-V4-Flash with thinking ties it (−0.016 [−0.062, +0.032], paired).</p>
+  <h3 id="q4">Is an SCT score stable from run to run?</h3>
+  <p>Not exactly. The same 174 requests to DeepSeek-V4-Flash at temperature 0 changed 18 ratings on a second run, two from +2 to −2; the score moved by 0.007.</p>
+  <h3 id="q5">What scorer issues were found?</h3>
+  <p>Two silent failures in the SCT <code>score.py</code>: failed and missing items are left out of the denominator, which raised a degraded copy of the GPT-5.5 run from 0.745 to 0.873, and a hand-written results file with numeric ids scores 0.000. Both are reported upstream (ARISENetwork/mast issues #30 and #32) with fixes.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>experiments/mast-sct/results/</code>; <a href="../README.md"><code>README.md</code></a> describes them.</p>
+  <ul>
+    <li><code>raw/&lt;run&gt;.jsonl</code>: one line per item, as MAST’s <code>run.py</code> writes it: <code>id</code>, <code>trial</code>, <code>response</code> (the reply text), <code>runtime</code>, <code>metadata.source_short</code>, and <code>usage</code> with token counts, <code>upstream_provider</code> and <code>generation_id</code>.</li>
+    <li><code>scores/&lt;run&gt;.csv</code>: the scorer’s scorecard (<code>category</code>, <code>metric</code>, <code>trials</code> = items, <code>mean</code>, <code>ci</code> = half-width, <code>ci_lo</code>, <code>ci_hi</code>).</li>
+    <li><code>scores/&lt;run&gt;_details.jsonl</code>: the scorer’s per-item output: <code>rating</code>, <code>expert_modal_rating</code> (null when the panel ties), <code>normalized_score</code> (the credit), <code>in_expert_set</code>.</li>
+    <li><code>stats.json</code>: per run, sct_score and per-source intervals, in-expert-set and mode-match rates, rating counts, tokens and providers; per pair, the paired difference, exact agreement, κ, within-one-step agreement and the number of items rated differently.</li>
+    <li><code>scorer_checks.json</code>: the scorer’s output on the two probe files of sections 4.4 and 4.5.</li>
+  </ul>
+  <h3 id="prompts">The prompt</h3>
+  <p>The kit’s <code>templates/guideline.md</code> (rate −2 to +2; respond with “Rating: ” and a value) followed by <code>templates/testcase.md</code> filled with the item’s scenario, hypothesis and new finding; no examples, no system prompt.</p>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>ARISE network. <a href="https://github.com/ARISENetwork/mast">MAST: Medical AI Superintelligence Test</a> (SCT kit, MIT), commit <code>57a12c5</code>.</li>
+    <li>McCoy et al. “Assessment of Large Language Models in Clinical Reasoning: A Novel Benchmarking Study.” NEJM AI, 2025. <a href="https://ai.nejm.org/doi/full/10.1056/AIdbp2500120">doi:10.1056/AIdbp2500120</a>; data at <a href="https://github.com/SCT-Bench/sctpublic">SCT-Bench/sctpublic</a> (MIT).</li>
+    <li>Fournier, Demeester and Charlin. “Script Concordance Tests: Guidelines for Construction.” BMC Medical Informatics and Decision Making, 2008. <a href="https://pubmed.ncbi.nlm.nih.gov/18785963/">PubMed 18785963</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026mastsct,
+  author = {Albert Lie},
+  title  = {Reproducing MAST’s clinical reasoning test: an open model that thinks ties GPT-5.5, and the scorer can hide failed items},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/mast-sct/report/}
+}</code></pre>
+  <footer class="note">Benchmark: MAST’s Script Concordance Test kit (ARISE network; MIT), on the open items of SCT-Bench (McCoy et al., 2025; MIT). Models: DeepSeek-V4-Flash (DeepSeek, MIT), Qwen3-32B (Alibaba, Apache 2.0), Llama-3.3-70B-Instruct (Meta, Llama 3.3 Community License); GPT-5.5 (OpenAI), MAST’s run. An independent reproduction, not affiliated with the benchmark’s authors.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var box = document.getElementById("explorer");
+  if (!box) return;
+  var buttons = box.querySelectorAll(".gallery-pick button");
+  var cases = box.querySelectorAll(".ex-case");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+      cases.forEach(function (c) { c.hidden = c.dataset.case !== b.dataset.case; });
+    });
+  });
+})();
+</script>
+</body>
+</html>

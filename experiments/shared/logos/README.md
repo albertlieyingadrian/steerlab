@@ -22,3 +22,6 @@ above (Simple Icons carries no OpenAI mark). The steerlab chip is cropped at dra
 |---|---|---|
 | `simple-icons/deepseek.svg` | DeepSeek | `#5786FE` |
 | `simple-icons/qwen.svg` | Qwen | `#6950EF` |
+
+`simple-icons/meta.svg` (Simple Icons 16.37.0, CC0 1.0, drawn in Meta's `#0467DF`) marks Llama models on the
+`mast-sct` cover, drawn by `mast-sct/make_cover.py` with the same helpers.
