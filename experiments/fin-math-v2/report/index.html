@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FinanceMath v2: an open-weight model that thinks first beats gpt-5.4, for less per question</title>
+<meta name="description" content="DeepSeek-V4-Flash in thinking mode, four answers and a majority vote, scores 0.885 on the 1,000 FinanceMath test questions against 0.818 for gpt-5.4 (+6.7 points [+4.7, +8.7], paired), at $0.0028 a question against $0.0039. A single thinking answer also beats it (+5.1). Pre-registered; the second look at this test set.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="FinanceMath v2: an open-weight model that thinks first beats gpt-5.4, for less per question">
+<meta property="og:description" content="DeepSeek-V4-Flash in thinking mode, four answers and a majority vote, scores 0.885 on the 1,000 FinanceMath test questions against 0.818 for gpt-5.4 (+6.7 points [+4.7, +8.7], paired), at $0.0028 a question against $0.0039. One thinking answer also beats it (0.870, +5.1). More votes on plain answers had stopped helping at 0.80 on validation.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grid of 1,000 small squares on a cream background, one per FinanceMath test question, grouped by outcome: mostly dark (both the open model and gpt-5.4 right), then a band of solid orange (only the open model right), a shorter run of orange outlines (only gpt-5.4 right), and faint empty squares (both wrong).">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FinanceMath v2: an open-weight model that thinks first beats gpt-5.4, for less per question">
+<meta name="twitter:description" content="DeepSeek-V4-Flash in thinking mode, four answers and a majority vote, scores 0.885 on the 1,000 FinanceMath test questions against 0.818 for gpt-5.4 (+6.7 points [+4.7, +8.7], paired), at $0.0028 a question against $0.0039. One thinking answer also beats it (0.870, +5.1). More votes on plain answers had stopped helping at 0.80 on validation.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-12">
+<meta property="article:modified_time" content="2026-11-12">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "FinanceMath v2: an open-weight model that thinks first beats gpt-5.4, for less per question",
+ "description": "DeepSeek-V4-Flash in thinking mode, four answers and a majority vote, scores 0.885 on the 1,000 FinanceMath test questions against 0.818 for gpt-5.4 (+6.7 points [+4.7, +8.7], paired), at $0.0028 a question against $0.0039. One thinking answer also beats it (0.870, +5.1). More votes on plain answers had stopped helping at 0.80 on validation.",
+ "abstract": "FinanceMath (1,000 test questions, official 0.15% numeric rule, grader 100% on gold). Validation (200), DeepSeek-V4-Flash-0731 via OpenRouter, T=0.6, top_p 0.95, 16,384-token cap: plain-mode votes (half reasoning, half executed programs with 3 retrieved worked examples) of 1/4/8/16 score 0.780/0.790/0.800/0.795; V4.1-Flash plain vote of 8 0.810; cross-model vote of 16 0.820; thinking mode (reasoning effort high) one answer 0.836, vote of 4 0.855 [0.805, 0.900] (+5.5 [+1.5, +10.0] vs the plain harness; error analysis: 25 of the harness's 40 misses a wrong method, 17 near-unanimous). Pre-registered TEST LOOK #2 (look 1 was episode 2's harness, 0.824): thinking vote of 4 0.885 [0.865, 0.904] vs gpt-5.4 0.818 (one call, default settings, earlier run): +6.7 [+4.7, +8.7], beats (90 questions only ours right, 23 only gpt-5.4); one thinking answer 0.870 [0.850, 0.888], +5.1 [+3.3, +7.0]; vs gpt-5.4-mini +15.5 [+13.0, +18.1]; vs episode 2 harness +6.1 [+4.2, +8.0]; vs post-trained Qwen3-8B (0.622 per sample) +26.4. Ahead in all 7 topic areas (derivatives +11.2). Boring explanations: every system gains about 3 points from validation to test (gpt-5.4 +3.3, plain +2.4, thinking +3.0); six main providers 0.848-0.890 per answer; 56 of 4,000 answers capped, all wrong; 0 failed calls. Contamination not ruled out (test gold public July 2026; snapshot 0731). 2,289 output tokens per answer; $0.0028 per question (4 calls) vs $0.0039 for one gpt-5.4 call. Spend $9.42 (HF screen $5.11, OpenRouter $4.31). 291B MoE, MIT.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-12",
+ "dateModified": "2026-11-12",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "FinanceMath, DeepSeek-V4-Flash, open-weight models, thinking mode, test-time compute, self-consistency, majority vote, GPT-5.4, benchmark, pre-registration, OpenRouter",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.09797"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2203.11171"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2501.12948"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-12">Nov 12, 2026</time></p>
+  <h1>FinanceMath v2: an open-weight model that thinks first beats gpt-5.4, for less per question</h1>
+  <p class="dek ruled">The last episode ended level with gpt-5.4: an open model in a harness, 0.824 against 0.818. This one asks what it takes to pass it, tries more votes, a second model and a reasoning mode on the validation questions, and takes one pre-registered look at the test.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A grid of 1,000 small squares on a cream background, one per FinanceMath test question, grouped by outcome: about four fifths dark (both systems right), then a band of solid orange squares (only the open model right), a shorter run of orange outlines (only gpt-5.4 right), and a final run of faint empty squares (both wrong)." width="1536" height="1024">
+    <figcaption>Cover: drawn from the results, not by hand. Each square is one of the 1,000 test questions, read left to right and top to bottom, grouped by outcome: dark where both DeepSeek-V4-Flash thinking (vote of 4) and gpt-5.4 (one call) are right (795), solid orange where only the open model is right (90), an orange outline where only gpt-5.4 is right (23), and faint where both are wrong (92). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>FinanceMath (Zhao et al., ACL 2024; MIT): 200 validation and 1,000 held-out test questions</dd></div>
+    <div><dt>Models</dt><dd>DeepSeek-V4-Flash (MIT; snapshot <code>deepseek-v4-flash-0731</code>) through OpenRouter; DeepSeek-V4.1-Flash for the cross-model vote; rivals gpt-5.4 and gpt-5.4-mini (episode 2’s runs)</dd></div>
+    <div><dt>Code</dt><dd>The sampler in <a href="../../fin-math/fm_v4.py">fin-math/fm_v4.py</a>, the test comparison in <a href="../../fin-math/v4_test_bar.py">fin-math/v4_test_bar.py</a>, the grader in <a href="../../fin-math/fm.py">fin-math/fm.py</a>; figures in <a href="../make_figures.py">make_figures.py</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../../fin-math/results/v4_test.json">v4_test.json</a> (the test look), <a href="../../fin-math/results/v4_screen.json">v4_screen.json</a>, and one file per run in <code>fin-math/results/runs/</code> (described in <a href="../README.md">README.md</a>)</dd></div>
+    <div><dt>Series</dt><dd>Harnesses and post-training, episode 6. It continues episode 2, <a href="../../fin-math/report/">FinanceMath: an open model in a harness matches gpt-5.4</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can an open-weight model beat gpt-5.4 on FinanceMath, a test of college-level finance calculations?</strong></p>
+    <p>Yes. DeepSeek-V4-Flash, an open-weight model under the MIT licence, run in its thinking mode (it reasons before it answers) four times per question with a majority vote, scores 0.885 on the 1,000 held-out FinanceMath test questions. gpt-5.4, one call at its default settings, scores 0.818. Paired on the same questions the gap is +6.7 points [+4.7, +8.7], which beats gpt-5.4 by the rule written before the test was run. A single thinking answer also beats it (0.870, +5.1 [+3.3, +7.0]). The four calls cost $0.0028 a question at list price, against $0.0039 for gpt-5.4’s one. On the validation questions, adding votes to the model’s plain answers had stopped helping at 0.80; thinking mode was the one change that moved it. This was the second look at this test set, and the model’s snapshot postdates the release of the test answers.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the pre-registered open system beat gpt-5.4? (1,000 test questions, one final answer per question)</td><td><strong>Yes:</strong> DeepSeek-V4-Flash thinking, vote of 4, 0.885 [0.865, 0.904]; +6.7 points [+4.7, +8.7] paired</td><td>gpt-5.4, one call, 0.818 [0.794, 0.841]</td></tr>
+          <tr><td>Without the vote? (one thinking answer, the mean of the 4)</td><td><strong>Still ahead:</strong> 0.870 [0.850, 0.888]; +5.1 [+3.3, +7.0]</td><td>The same one call per question as gpt-5.4</td></tr>
+          <tr><td>At what price?</td><td><strong>Less per question:</strong> $0.0028 for 4 thinking calls; $0.0007 for one</td><td>gpt-5.4 $0.0039 per call; gpt-5.4-mini $0.0012 (0.730)</td></tr>
+          <tr><td>Do more votes on plain answers get there? (200 validation questions)</td><td><strong>No:</strong> votes of 1, 4, 8 and 16 score 0.780, 0.790, 0.800 and 0.795; a second model in the vote, 0.820</td><td>Thinking mode, vote of 4: 0.855 [0.805, 0.900]</td></tr>
+          <tr><td>Against episode 2’s best open system (the plain harness, vote of 8)?</td><td><strong>+6.1 points</strong> [+4.2, +8.0] on test: 81 questions fixed, 20 broken</td><td>0.824, the same model without thinking, plus programs</td></tr>
+          <tr><td>Is the test gain an artefact (an easier test, one provider, contamination)?</td><td><strong>Not one we could find:</strong> every system scores about 3 points higher on test than on validation (gpt-5.4 +3.3, plain +2.4, thinking +3.0); the six main providers score 0.848 to 0.890</td><td>Contamination cannot be ruled out: the snapshot (0731) postdates the test answers’ release (July 2026)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A 30-year mortgage of $150,000 has a 9.0% mortgage rate and a 0.5% servicing fee; what is the monthly payment? The servicing fee is paid out of the 9%, so the answer is the payment at 9%: $1,206.93. gpt-5.4 answers $1,260.43, close to the payment at 9.5% ($1,261.28), as if it had added the fee to the rate. DeepSeek-V4-Flash in its plain mode, in last episode’s harness, got it right in one of its four written answers and none of its four programs, and the vote went wrong. The same model in thinking mode, which writes out its reasoning before it answers, gets $1,206.93 four times out of four. This note is about that switch.</p>
+  <p><strong>What is known.</strong> Episode 2 (<a href="../../fin-math/report/">FinanceMath: an open model in a harness matches gpt-5.4</a>) found that post-training an 8B model left it 20 points behind gpt-5.4 on the FinanceMath test (<a href="https://arxiv.org/abs/2311.09797">Zhao et al., 2024</a>), and that an untrained open model, DeepSeek-V4-Flash, in a harness of four reasoning answers and four executed programs with a majority vote, reached it: 0.824 against 0.818, a paired gap of +0.6 points [−1.5, +2.7]. Sampling several answers and voting (self-consistency; <a href="https://arxiv.org/abs/2203.11171">Wang et al., 2022</a>) and letting a model reason at length before answering (<a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI, 2025</a>) are the two standard ways to spend more compute at answer time.</p>
+  <p><strong>What is missing.</strong> Reaching is not beating. Which of the cheap levers (more votes, a second model, a reasoning mode) closes the rest of the gap, and whether the result survives a held-out test at a price below gpt-5.4’s, was untested.</p>
+  <p class="question-callout">Can an open-weight system, chosen on the 200 validation questions only, beat gpt-5.4 on the 1,000 FinanceMath test questions, by a paired interval that excludes zero?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>A comparison of answer-time levers on one open model, on the same validation questions: more votes, a second model, and thinking mode.</li>
+    <li>One pre-registered test look: the chosen system beats gpt-5.4 by 6.7 points [+4.7, +8.7], and one thinking answer beats it by 5.1.</li>
+    <li>The price per question beside every score, and checks of the boring explanations: an easier test, the rotating serving providers, and answers cut off at the token limit.</li>
+    <li>Every graded sample, with the provider that served it.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Written in the pre-registration before the test was run:</p>
+  <ol>
+    <li>Every choice is made on the 200 validation questions; the chosen system runs once on the test.</li>
+    <li><strong>Beats</strong> means the paired 95% interval against gpt-5.4 on the same 1,000 questions excludes zero above; <strong>reaches</strong> means it contains zero; <strong>below</strong> means it excludes zero below.</li>
+    <li>The comparison discloses that our system makes four calls per question against gpt-5.4’s one, reports the one-answer score beside the vote, and gives the price of each.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="levers-101" data-short="Answer-time levers 101">2.1 Answer-time levers, for software engineers</h3>
+  <ul>
+    <li><strong>A vote</strong> asks the same question several times at a temperature above zero and takes the most common answer. It is like asking four colleagues and going with the majority: it fixes slips that happen in a few of the answers, not a method all of them get wrong. Two answers count as the same when the official grader would call them equal (4.3% and 0.043 are one answer).</li>
+    <li><strong>The harness</strong> from episode 2 adds programs to the vote: the model also writes a Python <code>solution()</code>, shown three solved problems from our own synthetic set, and we run the code in an isolated process.</li>
+    <li><strong>Thinking mode</strong> lets the model write its working before its answer, in a separate reasoning text that the provider returns but the grader ignores. Here it is DeepSeek-V4-Flash’s own reasoning switch (OpenRouter’s <code>reasoning: {"effort": "high"}</code>). It costs tokens: 2,289 per answer on the test, against 270 in plain mode.</li>
+    <li><strong>A cross-model vote</strong> pools answers from two models (here V4-Flash and V4.1-Flash), in case their mistakes differ.</li>
+  </ul>
+
+  <h3 id="grader" data-short="Benchmark and grader">2.2 Benchmark and grader</h3>
+  <p>FinanceMath questions are short exam problems across seven areas, from accounting to derivatives, many with a table, each with an expert-written Python solution. The grader is episode 2’s port of the official comparison: a numeric answer is right within 0.15% of the gold, after a power-of-ten rescale (4.3% matches 0.043), or when it matches the reference solution’s unrounded value. It reads the answer from a final <code>ANSWER:</code> line and marks 100% of the gold answers right (<a href="../../fin-math/tests/test_fm_grader.py">test_fm_grader.py</a>). The prompt is the same as in episode 2, for every model.</p>
+
+  <h3 id="data" data-short="Data map">2.3 Data: what each set was used for</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>FinanceMath validation</td><td>The benchmark’s validation split</td><td class="num">200</td><td>Every choice: levers, the system, its settings</td></tr>
+        <tr><td>A fixed random 50 of validation</td><td>The first test of thinking mode, before spending on all 200</td><td class="num">50</td><td>Deciding whether to run thinking mode on all 200</td></tr>
+        <tr><td>Our synthetic problems</td><td>Episode 2’s 2,714 verified problems with Python solutions</td><td class="num">2,714</td><td>The three worked examples shown with each program (never benchmark text)</td></tr>
+        <tr class="hl"><td>FinanceMath test</td><td>The benchmark’s test split, gold public since July 2026; looked at by episode 2’s 8B runs and once by its harness (look 1)</td><td class="num">1,000</td><td>One run of the chosen system (look 2)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="models">2.4 Models and providers</h3>
+  <p>DeepSeek-V4-Flash is a 291-billion-parameter mixture-of-experts model with open weights under the MIT licence; “open” here means the weights and a licence that allows reuse, not a model that runs on a laptop. Every call named the pinned snapshot <code>deepseek/deepseek-v4-flash-0731</code> on OpenRouter, at $0.043 per million input tokens and $0.30 per million output tokens, with the developer’s recommended sampling (temperature 0.6, top_p 0.95) and up to 16,384 output tokens. OpenRouter picks the serving company for each call; we recorded it for every sample (section 4.5). The validation screen started on Hugging Face’s inference router and moved to OpenRouter when that account ran out of credit; an OpenRouter rerun of episode 2’s harness gave the same 0.800 as Hugging Face (paired 0.0 [−3.0, +3.0]). The rivals are episode 2’s runs of gpt-5.4 and gpt-5.4-mini, one call per question at their default settings, not re-run.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Goal, in writing:</strong> beat gpt-5.4’s 0.818 on the test, on validation choices only, without training (the trainable models were 9 points short in episode 2).</li>
+    <li><strong>Error analysis of episode 2’s harness</strong> on its 40 validation misses: 25 used the wrong method, 9 were within 1% of the gold and 6 were close. On 17 of the 40 the eight answers nearly all agreed on the wrong value, so more votes could not fix them.</li>
+    <li><strong>Screen on Hugging Face</strong> (stopped when its credit ran out): partial 4 + 4 samples on V4-Flash thinking (53 questions), V4.1-Flash thinking (71), V4-Pro plain (125) and Kimi-K2.5 (16). Thinking mode led on the questions it covered.</li>
+    <li><strong>Re-baseline on OpenRouter:</strong> the episode 2 harness, 200 × (4 + 4): 0.800, the same as before.</li>
+    <li><strong>More votes and a second model</strong> (plain mode): V4-Flash to 8 + 8 samples, V4.1-Flash 4 + 4, every vote size and the cross-model vote counted from the same samples (Figure 1).</li>
+    <li><strong>Thinking mode on a fixed random 50:</strong> 4 reasoning answers and 4 programs. Thinking vote 0.840 against plain 0.760 on the same 50; programs added nothing to the thinking answers, so they were dropped.</li>
+    <li><strong>Thinking mode on all 200</strong>, reasoning answers only, 4 per question: vote of 4 0.855 [0.805, 0.900].</li>
+    <li><strong>Pre-registration committed</strong> (selection rule, frozen settings, beats / reaches / below, the disclosures), then the <strong>test look</strong>: 4,000 graded answers, 0 failed calls.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before the test look</th><th>Changed after reading validation results</th></tr></thead>
+      <tbody>
+        <tr><td>The selection rule (the highest validation accuracy of a single final answer per question); the pinned snapshot, temperature 0.6, top_p 0.95, 16,384-token cap, the prompt and the grader; vote grouping by the official equality rule, ties to the first group formed; beats / reaches / below on the paired interval; the gpt-5.4 comparison run; a $6 spending cap</td><td>The route moved from Hugging Face to OpenRouter when Hugging Face credit ran out (the re-baseline matched). The other candidates (V4-Pro, Kimi-K2.5, V4.1-Flash thinking) were not finished, for cost. Programs were dropped from the thinking system after the 50-question check showed they added nothing. No size of gain was set in advance.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: samples drawn at temperature 0.6, streamed, through OpenRouter; providers rotated by OpenRouter and recorded. Spend for this episode: $9.42 at list prices (Hugging Face screen $5.11, OpenRouter validation $1.52, the test look $2.79).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Five findings:</p>
+  <ol>
+    <li><a href="#votes"><strong>4.1</strong></a> More votes on plain answers stop helping at 0.80; thinking mode is the lever.</li>
+    <li><a href="#test"><strong>4.2</strong></a> On the test, the thinking vote beats gpt-5.4 by 6.7 points, and one thinking answer by 5.1.</li>
+    <li><a href="#cost"><strong>4.3</strong></a> It costs less per question than gpt-5.4.</li>
+    <li><a href="#where"><strong>4.4</strong></a> It is ahead in all seven topic areas, most in derivatives.</li>
+    <li><a href="#boring"><strong>4.5</strong></a> The boring explanations (an easier test, a lucky provider, cut-off answers) do not account for it; contamination cannot be ruled out.</li>
+  </ol>
+
+  <h3 id="votes" data-short="Votes saturate; thinking helps">4.1 More votes on plain answers stop helping at 0.80; thinking mode is the lever</h3>
+  <p><strong>On the 200 validation questions, plain-mode votes of 1, 4, 8 and 16 answers score 0.780, 0.790, 0.800 and 0.795; adding a second model (V4.1-Flash) to the vote gives 0.820. Thinking mode gives 0.836 for a single answer and 0.855 [0.805, 0.900] for a vote of 4</strong> (Figure 1). Against episode 2’s harness on the same questions, the thinking vote is +5.5 points [+1.5, +10.0]: it fixed 15 of the harness’s 40 misses and broke 4 of its right answers.</p>
+  <p>The flat vote curve is what the error analysis predicted. A vote fixes the questions where a few answers slip; on 17 of the harness’s 40 misses nearly every answer agreed on the same wrong value, and more copies of the same mistake cannot outvote it. Thinking mode is a different lever: it changes the answers themselves, not how they are counted.</p>
+  <figure class="plot">
+    <img src="figures/levers.png" alt="Dot plot of validation accuracy with 95% intervals for eight systems. Plain-mode votes of 1, 4, 8 and 16 sit between 0.780 and 0.800; V4.1-Flash plain vote of 8 at 0.810 and the two-model vote of 16 at 0.820; thinking mode one answer at 0.836 and vote of 4 at 0.855, both in orange. A dotted line marks gpt-5.4 at 0.785." width="1140" height="570">
+    <figcaption><strong>Figure 1.</strong> Accuracy on the 200 FinanceMath validation questions, one final answer per question, with 95% bootstrap intervals over questions. Grey: DeepSeek-V4-Flash in plain mode, voting over half reasoning answers and half executed programs; light grey: with DeepSeek-V4.1-Flash; orange: V4-Flash in thinking mode, reasoning answers only (one answer is the mean of 4). Dotted line: gpt-5.4, one call, 0.785. Every vote size is counted from the same samples. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="test" data-short="Beats gpt-5.4 on test">4.2 On the test, the thinking vote beats gpt-5.4 by 6.7 points, and one thinking answer by 5.1</h3>
+  <p><strong>On the 1,000 test questions, DeepSeek-V4-Flash thinking with a vote of 4 scores 0.885 [0.865, 0.904]. gpt-5.4 scores 0.818. Paired on the same questions the difference is +6.7 points [+4.7, +8.7]: the interval excludes zero above, so by the pre-registered rule it beats gpt-5.4.</strong> It is right on 90 questions gpt-5.4 gets wrong and wrong on 23 that gpt-5.4 gets right (the cover). One thinking answer per question, the like-for-like comparison with gpt-5.4’s one call, scores 0.870 and also beats it: +5.1 [+3.3, +7.0] (Figure 2).</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System (1,000 test questions)</th><th class="num">Calls per question</th><th class="num">Accuracy</th><th class="num">Paired vs gpt-5.4 (points)</th><th class="num">$ per question</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>DeepSeek-V4-Flash thinking, vote of 4 (the pre-registered system)</td><td class="num">4</td><td class="num">0.885 [0.865, 0.904]</td><td class="num">+6.7 [+4.7, +8.7]</td><td class="num">0.0028</td></tr>
+        <tr><td>DeepSeek-V4-Flash thinking, one answer (mean of 4)</td><td class="num">1</td><td class="num">0.870 [0.850, 0.888]</td><td class="num">+5.1 [+3.3, +7.0]</td><td class="num">0.0007</td></tr>
+        <tr><td>Episode 2: V4-Flash plain harness, vote of 8 (test look 1)</td><td class="num">8</td><td class="num">0.824 [0.800, 0.847]</td><td class="num">+0.6 [−1.5, +2.7]</td><td class="num">0.0007</td></tr>
+        <tr><td>gpt-5.4, default settings</td><td class="num">1</td><td class="num">0.818 [0.794, 0.841]</td><td class="num">—</td><td class="num">0.0039</td></tr>
+        <tr><td>gpt-5.4-mini, default settings</td><td class="num">1</td><td class="num">0.730 [0.702, 0.757]</td><td class="num">−8.8 [−11.1, −6.6]</td><td class="num">0.0012</td></tr>
+        <tr><td>Episode 2: Qwen3-8B post-trained, majority of 4</td><td class="num">4</td><td class="num">0.665 [0.635, 0.694]</td><td class="num">−15.3 [−18.0, −12.6]</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The pre-registered secondary comparisons, all paired on the test: the thinking vote is 15.5 points [+13.0, +18.1] above gpt-5.4-mini, 6.1 [+4.2, +8.0] above episode 2’s harness (81 questions fixed, 20 broken), and 26.4 [+24.0, +28.7] above the post-trained 8B model’s per-sample accuracy (0.622). On 815 questions all four thinking answers were right, on 96 all four were wrong, and on 89 they split, which is where the vote earns its 1.5 points over a single answer.</p>
+  <figure class="plot">
+    <img src="figures/test.png" alt="Two dot plots side by side for six systems on the 1,000 test questions. Left, accuracy: post-trained Qwen3-8B 0.665, gpt-5.4-mini 0.730, gpt-5.4 0.818, the plain harness 0.824, V4-Flash thinking one answer 0.870 and vote of 4 0.885, the last two in orange. Right, the paired difference against gpt-5.4 in points: the two orange systems sit wholly above zero, the plain harness straddles zero, the others sit below." width="1170" height="540">
+    <figcaption><strong>Figure 2.</strong> Left: accuracy on the 1,000 FinanceMath test questions, one final answer per question, with 95% bootstrap intervals. Right: the paired difference against gpt-5.4 on the same questions, in points, with 95% paired bootstrap intervals. Orange: DeepSeek-V4-Flash thinking (this episode); light grey: episode 2’s open systems; grey: the GPT models, one call at default settings. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="cost" data-short="Cheaper per question">4.3 It costs less per question than gpt-5.4</h3>
+  <p><strong>The four thinking calls cost $0.0028 a question at the listed price, against $0.0039 for one gpt-5.4 call; one thinking answer costs $0.0007, less than gpt-5.4-mini’s $0.0012</strong> (Figure 3). The whole test look, 4,000 answers, cost $2.79. Thinking is what costs: 2,289 output tokens per answer on average (median 817; one in ten over 6,828), against 270 in plain mode, so one thinking answer costs about as much as the eight plain calls of episode 2’s harness. The per-token price is what keeps it cheap: $0.30 per million output tokens.</p>
+  <figure class="plot">
+    <img src="figures/cost.png" alt="Scatter of test accuracy against dollars per question on a log scale. V4-Flash thinking one answer sits at 0.870 and $0.0007, the vote of 4 at 0.885 and $0.0028, both orange; the plain harness at 0.824 and $0.00066; gpt-5.4-mini at 0.730 and $0.0012; gpt-5.4 at 0.818 and $0.0039." width="1080" height="540">
+    <figcaption><strong>Figure 3.</strong> Accuracy on the 1,000 test questions against list-price dollars per question (log scale), from logged token counts: OpenRouter’s listed price for the pinned DeepSeek snapshot, OpenAI’s for the GPT models. Orange: thinking mode; light grey: episode 2’s plain harness; grey: the GPT models. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="where" data-short="Ahead in every topic">4.4 It is ahead in all seven topic areas, most in derivatives</h3>
+  <p><strong>The thinking vote is ahead of gpt-5.4 in every one of FinanceMath’s seven areas, by 2.3 points in accounting and by 11.2 in asset classes and derivatives, the largest area.</strong> The areas are small, so only the overall interval is a test; the table shows that the gain is not one area’s.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Area (test)</th><th class="num">Questions</th><th class="num">V4-Flash thinking, vote of 4</th><th class="num">gpt-5.4</th></tr></thead>
+      <tbody>
+        <tr><td>Asset classes and derivatives</td><td class="num">303</td><td class="num">0.884</td><td class="num">0.772</td></tr>
+        <tr><td>Accounting</td><td class="num">219</td><td class="num">0.900</td><td class="num">0.877</td></tr>
+        <tr><td>Quantitative analysis and valuation</td><td class="num">205</td><td class="num">0.902</td><td class="num">0.859</td></tr>
+        <tr><td>Market analysis and economics</td><td class="num">109</td><td class="num">0.844</td><td class="num">0.789</td></tr>
+        <tr><td>Portfolio management and strategy</td><td class="num">72</td><td class="num">0.861</td><td class="num">0.806</td></tr>
+        <tr><td>Risk management</td><td class="num">56</td><td class="num">0.839</td><td class="num">0.768</td></tr>
+        <tr><td>Corporate and securities issuance</td><td class="num">36</td><td class="num">0.944</td><td class="num">0.806</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The questions it gains look like the mortgage one, where a single convention decides the number: a bond’s DV01 (gold 0.062; gpt-5.4 0.0645; thinking 0.0619 four times), an after-tax cost of debt from a bond’s price (gold 4.277%; gpt-5.4 4.32%; thinking 4.276 to 4.28), a duration gap (gold 2.216; gpt-5.4 −1.872; thinking 2.2156 four times). On all three, episode 2’s plain harness also voted wrong.</p>
+
+  <h3 id="boring" data-short="Boring explanations">4.5 The boring explanations do not account for it; contamination cannot be ruled out</h3>
+  <ul>
+    <li><strong>An easier test.</strong> Every system scores higher on the test than on validation, by about the same amount: gpt-5.4 by 3.3 points (0.785 to 0.818), episode 2’s plain harness by 2.4 (0.800 to 0.824), the thinking vote by 3.0 (0.855 to 0.885). The gap to gpt-5.4 is 7.0 points on validation [+3.0, +11.5] and 6.7 on test.</li>
+    <li><strong>A lucky provider.</strong> OpenRouter sent the 4,000 calls to eleven companies. The six that served 435 or more answers each score 0.848 to 0.890 per answer (Relace 1,299 answers, 0.868; DeepInfra 611, 0.890; Wafer 607, 0.878; Cohere 560, 0.859; Venice 437, 0.876; CoreWeave 435, 0.848). No provider carries the result.</li>
+    <li><strong>Cut-off answers.</strong> 56 of the 4,000 answers (1.4%) hit the 16,384-token limit, and all 56 were graded wrong; the cap costs the system, it does not help it.</li>
+    <li><strong>A failed run.</strong> All 4,000 calls returned an answer; none was redrawn.</li>
+    <li><strong>Contamination: not ruled out.</strong> FinanceMath’s test answers have been public since July 2026, and the snapshot is dated July 31. The same weights in plain mode scored 0.824, so memorised answers would have to surface only when the model thinks; the even validation-to-test shift above also argues against a test-only advantage. A check on rewritten questions is the next step (section 9).</li>
+  </ul>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <p>The FinanceMath paper graded with a language model reading the answer; this note reads an <code>ANSWER:</code> line with the same numeric rule, so its numbers are context, not a leaderboard.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>System</th><th class="num">FinanceMath test</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Human experts (estimated)</td><td class="num">92</td><td><a href="https://arxiv.org/abs/2311.09797">Zhao et al., 2024</a></td></tr>
+        <tr><td>GPT-4o, chain of thought</td><td class="num">60.9</td><td>same</td></tr>
+        <tr class="hl"><td>This note: DeepSeek-V4-Flash thinking, vote of 4 / one answer</td><td class="num">88.5 / 87.0</td><td>here</td></tr>
+        <tr><td>Episode 2: V4-Flash plain harness; gpt-5.4; gpt-5.4-mini</td><td class="num">82.4; 81.8; 73.0</td><td><a href="../../fin-math/report/">episode 2</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Episode 2, update 2</th><th>This episode</th></tr></thead>
+      <tbody>
+        <tr><td>Model</td><td>DeepSeek-V4-Flash, plain mode</td><td>The same weights, thinking mode</td></tr>
+        <tr><td>Answers per question</td><td>4 reasoning + 4 executed programs</td><td>4 reasoning</td></tr>
+        <tr><td>Test result against gpt-5.4</td><td>Reaches: +0.6 [−1.5, +2.7]</td><td>Beats: +6.7 [+4.7, +8.7]</td></tr>
+        <tr><td>Price per question</td><td>$0.0007</td><td>$0.0028</td></tr>
+        <tr><td>Pre-registered single test look</td><td>✓ (look 1)</td><td>✓ (look 2)</td></tr>
+        <tr><td>Training</td><td>✗</td><td>✗</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>The same open weights scored 0.824 in one mode and 0.885 in another, a larger difference than the one between them and gpt-5.4. A capability evaluation that runs an open model in its default mode, or caps its reasoning, can understate what anyone who downloads the weights can get from it, and a comparison of an open model with a closed one says as much about the settings as about the models. Here the stronger mode was one request parameter and cost less than a frontier call. The same caution runs the other way: gpt-5.4 was run at its default reasoning, so this note does not show the open model ahead of gpt-5.4 at its best.</p>
+  <p>Risk: very low. Public exam-style finance questions and a public model.</p>
+  <p><strong>The recommendation in one sentence: report every model’s score with its reasoning mode, token budget and number of samples, and test an open model in its strongest mode before calling it weaker than a closed one.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>That it beats gpt-5.4 at its best.</strong> gpt-5.4 ran once per question at default settings (episode 2’s runs, not re-run); it was not given a higher reasoning effort or a vote of 4.</li>
+    <li><strong>A fresh test set.</strong> This is the second look at these 1,000 questions by this line of work (episode 2’s harness was look 1, and its 8B runs also used them). Every choice here was made on validation, but the decision to keep going was made after look 1.</li>
+    <li><strong>A clean model.</strong> The test answers were public before the snapshot date (section 4.5).</li>
+    <li><strong>One deployment.</strong> Answers came from eleven serving companies chosen by OpenRouter; among the main six, accuracy per answer ranged from 0.848 to 0.890, and a single provider could score differently.</li>
+    <li><strong>A small model.</strong> DeepSeek-V4-Flash is a 291-billion-parameter mixture of experts.</li>
+    <li><strong>Other candidates fairly tested.</strong> V4-Pro, Kimi-K2.5 and V4.1-Flash thinking were screened only on part of validation before the Hugging Face credit ran out.</li>
+    <li><strong>The grader reads one line.</strong> An answer with the right number elsewhere is marked wrong. <strong>Prices are list prices</strong> from logged token counts, not invoices.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute the test comparison, the figures and the cover from the saved results, in under a minute:</p>
+  <pre><code class="language-bash">experiments/fin-math-v2/reproduce.sh --scores</code></pre>
+  <p>Rerun from scratch: FinanceMath in <code>experiments/fin-math/data/raw/</code> (commands in <a href="../../fin-math/README.md">fin-math/README.md</a>) and an OpenRouter key (<code>OPENROUTER_API_KEY</code>). The OpenRouter part of this note cost $4.31 at list prices; the test look alone, $2.79:</p>
+  <pre><code class="language-bash">experiments/fin-math-v2/reproduce.sh --dry-run   # lists every command
+experiments/fin-math-v2/reproduce.sh</code></pre>
+  <p>Samples drawn at temperature 0.6 from rotating providers will not repeat exactly; expect a rerun to land within the intervals above. The pre-registration and the experiment log are in the repository’s plans.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>gpt-5.4 at high reasoning, in the same vote of 4,</strong> on the same 1,000 questions: the fair ceiling for the comparison (at least $16 at list price).</li>
+    <li><strong>A contamination check:</strong> rewrite 200 test questions with new numbers, recompute the gold with the reference solutions, and compare thinking-mode accuracy on originals and rewrites.</li>
+    <li><strong>Distil the thinking:</strong> DeepSeek-V4-Flash’s MIT licence allows training on its outputs, so its thinking traces on episode 2’s hard synthetic problems are the teacher episode 2 lacked for a model small enough to train.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can an open-weight model beat GPT-5.4 on FinanceMath?</h3>
+  <p>Yes, in this test: DeepSeek-V4-Flash in thinking mode, four answers and a majority vote, scores 0.885 on the 1,000 FinanceMath test questions against 0.818 for gpt-5.4 at default settings, +6.7 points [+4.7, +8.7] paired. One thinking answer scores 0.870 (+5.1 [+3.3, +7.0]).</p>
+  <h3 id="q2">What does DeepSeek-V4-Flash score on FinanceMath?</h3>
+  <p>On the 1,000 test questions, 0.870 per thinking answer and 0.885 with a vote of 4; in plain mode with episode 2’s harness (4 reasoning answers and 4 executed programs), 0.824. On the 200 validation questions, 0.836 and 0.855 in thinking mode, 0.780 for one plain answer.</p>
+  <h3 id="q3">Does majority voting help on finance math?</h3>
+  <p>A little, then not at all: on validation, plain-mode votes of 1, 4, 8 and 16 answers scored 0.780, 0.790, 0.800 and 0.795. Most remaining errors were a wrong method that every answer shared. Thinking mode added 5.5 points over the vote of 8.</p>
+  <h3 id="q4">How much does it cost per question?</h3>
+  <p>$0.0028 for four thinking answers and $0.0007 for one, at OpenRouter’s list price for the pinned snapshot ($0.30 per million output tokens; 2,289 output tokens per answer). One gpt-5.4 call costs $0.0039 and one gpt-5.4-mini call $0.0012.</p>
+  <h3 id="q5">Is the comparison with GPT-5.4 fair?</h3>
+  <p>Partly. Both were scored with the same prompt and grader on the same questions, and a single thinking answer also beats gpt-5.4 at one call each. But gpt-5.4 ran at its default reasoning, not re-run at a higher setting, this was the second look at the test set, and the model’s snapshot postdates the release of the test answers.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>experiments/fin-math/results/</code>; <a href="../README.md"><code>README.md</code></a> describes them.</p>
+  <ul>
+    <li><code>runs/test__v4-or-dsflash-think-reason.jsonl</code>: the test look, one line per sample: question id, the parsed value, right or not, output tokens, reasoning length in characters, whether it hit the token cap, and the serving provider. <code>runs/validation__v4-or-dsflash-think-reason.jsonl</code>: the same on validation.</li>
+    <li><code>runs/validation__v4-&lt;candidate&gt;-&lt;reason|program&gt;.jsonl</code>: the validation screen: <code>or-dsflash-plain</code> and <code>or-ds41flash-plain</code> on OpenRouter; <code>dsflash-think</code>, <code>ds41flash-think</code>, <code>dspro-plain</code> and <code>kimi-k25</code> on Hugging Face (partial). <code>runs/validation-50__v4-or-dsflash-think-*</code>: the 50-question thinking check.</li>
+    <li><code>v4_test.json</code>: the test look’s accuracy, paired comparisons, verdict, providers, tokens and dollars. <code>v4_screen.json</code>: the Hugging Face screen.</li>
+    <li>The rivals: <code>runs/test__gpt-5.4.jsonl</code>, <code>runs/test__gpt-5.4-mini.jsonl</code>, <code>runs/test__v3pot-deepseek-v4-flash.jsonl</code> (episode 2’s harness), <code>runs/test__p4-grpo-s10.jsonl</code> (the post-trained 8B model).</li>
+  </ul>
+  <h3 id="prompts">The prompt</h3>
+  <p>“Solve this finance problem.” then the tables if any, “Question: …”, “Reason step by step, then answer. Finish with one line <code>ANSWER: &lt;value&gt;</code>: a number only (no units or currency signs); a percentage may be written with a % sign. Keep at least 3 significant figures.” The program prompt (plain-mode screen only) is <code>POT_PROMPT</code> in <a href="../../fin-math/fm_v3.py"><code>fm_v3.py</code></a>.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Answering</th><td>Thinking mode (reasoning effort high), 4 samples per question, temperature 0.6, top_p 0.95, up to 16,384 output tokens, streamed; majority vote over values grouped by the official equality rule, ties to the first group</td></tr>
+        <tr><th scope="row">Grading</th><td>The official FinanceMath comparison (0.15% relative, power-of-ten rescaling), also against the unrounded reference value; checked at 100% on the gold</td></tr>
+        <tr><th scope="row">Statistics</th><td>95% percentile bootstrap over questions; paired differences over the same questions; beats / reaches / below set in advance</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>DeepSeek-V4-Flash and V4.1-Flash through OpenRouter (OpenAI-compatible API) and Hugging Face’s inference router; gpt-5.4 and gpt-5.4-mini through the OpenAI API (episode 2)</td></tr>
+        <tr><th scope="row">Code</th><td>Python 3.11, the <code>openai</code> client, NumPy, scikit-learn (TF-IDF retrieval), matplotlib</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li>Zhao et al. “FinanceMath: Knowledge-Intensive Math Reasoning in Finance Domains.” ACL 2024. <a href="https://arxiv.org/abs/2311.09797">arXiv:2311.09797</a>; data at <a href="https://github.com/yale-nlp/FinanceMath">github.com/yale-nlp/FinanceMath</a>.</li>
+    <li>Wang et al. “Self-Consistency Improves Chain of Thought Reasoning in Language Models.” 2022. <a href="https://arxiv.org/abs/2203.11171">arXiv:2203.11171</a>.</li>
+    <li>DeepSeek-AI. “DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.” 2025. <a href="https://arxiv.org/abs/2501.12948">arXiv:2501.12948</a>.</li>
+    <li>Episode 2: <a href="../../fin-math/report/">FinanceMath: an open model in a harness matches gpt-5.4 and beats gpt-5.4-mini</a>.</li>
+    <li>Episode 1: <a href="../../fin-llm/report/">On FinQA, retrieved worked examples add 2 to 3 points to every API model; a calculator loop adds nothing</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 12, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026financemathv2,
+  author = {Albert Lie},
+  title  = {FinanceMath v2: an open-weight model that thinks first beats gpt-5.4, for less per question},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/fin-math-v2/report/}
+}</code></pre>
+  <footer class="note">Data: FinanceMath (Zhao et al., 2024; MIT licence per its dataset card). Models: DeepSeek-V4-Flash and DeepSeek-V4.1-Flash (DeepSeek, MIT); gpt-5.4 and gpt-5.4-mini (OpenAI).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
