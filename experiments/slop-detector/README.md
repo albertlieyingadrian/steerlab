@@ -27,6 +27,8 @@ Epoch AI style imitations (target: 22). A Qwen3-1.7B on the same data reaches 0.
 | `compare_val.py` | The pre-registered validation gate between data v1 and v2 |
 | `score_run.py` | Scores the benchmarks once with a trained run's adapter |
 | `05_eval.py` | Paired comparison with the target on every benchmark: `results/eval/<run>.json` |
+| `tune_bands.py` | Pre-registered: cut-offs and a 4B/1.7B weight chosen on our validation split; test look 3 (`results/eval/tuned.json`) |
+| `tune_editlens_val.py` | Pre-registered: the same chosen on EditLens's validation split, test look 4, and the control giving voi the same calibration (`results/eval/tuned_editlens_val.json`, `voi_editlens_val.json`) |
 | `make_figures.py` | The note's figures, cover and thumbnail, printing the numbers it plots |
 | `reproduce.sh` | Every command; `--scores` recomputes from saved scores, `--dry-run` lists them |
 
@@ -42,6 +44,8 @@ Epoch AI style imitations (target: 22). A Qwen3-1.7B on the same data reaches 0.
 | `results/eval/<run>.json` | Per split: paired bootstrap (`a` ours, `b` target, `diff`, 95% intervals) for macro-F1, accuracy and per-class F1; AUROC; false positives and misses per condition on Human Detectors and Epoch AI; `our_flag_min` |
 | `results/compare_val.json` | The gate: paired macro-F1 and per-class F1 on all v2 validation rows and on the pilot's rows, light-edit recall, long-form human flags, `go` |
 | `results/labels.json` | Data counts by split, kind and band; family and source counts; filter drops; median change per instruction |
+| `results/tuned_choice.json`, `results/tuned_editlens_val_choice.json` | The chosen weight and cut-offs, with validation scores, committed before each test look |
+| `results/voi/editlens_val.json` | The target's scores on the 2,396 EditLens validation texts used for calibration |
 | `results/epoch_quirk.json` | Steps per epoch from the real grouping against the steps run, per model |
 
 Runs: `pilot-0.6b`, `pilot-1.7b` (data v1), `pilotR-1.7b` (data v1, retrained as the gate's baseline), `v2-1.7b`

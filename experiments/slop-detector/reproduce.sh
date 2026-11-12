@@ -14,6 +14,9 @@ SCORES=(
   "$PY 05_eval.py --run runs/pilot-1.7b"
   "$PY 05_eval.py --run runs/v2-1.7b"
   "$PY 05_eval.py --run runs/v2-4b"
+  "$PY tune_bands.py test"
+  "$PY tune_editlens_val.py test"
+  "$PY tune_editlens_val.py control"
   "$PY make_figures.py"
 )
 STEPS=(
