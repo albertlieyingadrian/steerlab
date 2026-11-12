@@ -18,6 +18,7 @@ SCORES=(
   "$PY tune_editlens_val.py test"
   "$PY tune_editlens_val.py control"
   "$PY make_figures.py"
+  "$PY make_cover.py"
 )
 STEPS=(
   "$MODAL deploy modal_slop.py"

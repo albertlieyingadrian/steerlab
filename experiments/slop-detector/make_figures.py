@@ -2,9 +2,8 @@
 
     python make_figures.py
 
-Writes report/figures/: splits.png (macro-F1 per EditLens split), classes.png (per-class F1 on EditLens test),
-epoch.png (Epoch AI and Human Detectors errors), hero.jpg, og.jpg, and ../shared/thumbs/slop-detector.jpg (data art:
-our score against voi-slop-detect-4B's on every EditLens test row).
+Writes report/figures/: splits.png (macro-F1 per EditLens split), classes.png (per-class F1 on EditLens test) and
+epoch.png (Epoch AI and Human Detectors errors). The cover is drawn by make_cover.py.
 """
 
 from __future__ import annotations
@@ -16,13 +15,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from common import HERE, RESULTS, editlens_split
+from common import HERE, RESULTS
 
 FIG = HERE / "report" / "figures"
 RUNS = {"pilot-1.7b": "Pilot 1.7B (data v1)", "v2-1.7b": "1.7B (data v2)", "v2-4b": "4B (data v2)"}
 SHADE = {"pilot-1.7b": "#f0c4a6", "v2-1.7b": "#e8955f", "v2-4b": "#c9561c"}
 INK, SOFT, ACCENT, CONTROL, RULE = "#1d1a17", "#6f675f", "#c9561c", "#2f6db0", "#d9d2c8"
-GROUND = "#15110e"
 
 plt.rcParams.update(
     {
@@ -145,43 +143,11 @@ def epoch() -> None:
     plt.close(fig)
 
 
-def art() -> None:
-    """Every EditLens test text as a point: voi's score across, ours up, coloured by its true class."""
-    y = editlens_split("test")["y"].to_numpy()
-    ours = np.array(json.loads((HERE / "runs" / "v2-4b" / "scores" / "test.json").read_text()))
-    voi = np.array([r["score"] for r in json.loads((RESULTS / "voi" / "test.json").read_text())["rows"]])
-    colours = np.array(["#8c8279", "#f2b48e", "#e07a3f"])[y]
-    rng = np.random.default_rng(0)
-    jx, jy = rng.normal(0, 0.006, len(y)), rng.normal(0, 0.006, len(y))
-    for path, size in (
-        (FIG / "hero.jpg", (15.36, 10.24)),
-        (FIG / "og.jpg", (12.0, 6.3)),
-        (HERE.parent / "shared" / "thumbs" / "slop-detector.jpg", (7.2, 4.8)),
-    ):
-        fig = plt.figure(figsize=size, dpi=100, facecolor=GROUND)
-        ax = fig.add_axes((0, 0, 1, 1), facecolor=GROUND)
-        ax.scatter(voi + jx, ours + jy, s=6 * size[0] / 15.36 + 1, c=colours, alpha=0.55, linewidths=0)
-        for v in (0.15, 0.75):
-            ax.axvline(v, color="#3a322c", lw=0.8)
-            ax.axhline(v, color="#3a322c", lw=0.8)
-        ax.set_xlim(-0.04, 1.04)
-        ax.set_ylim(-0.04, 1.04)
-        ax.axis("off")
-        fig.savefig(path, dpi=100, facecolor=GROUND, pil_kwargs={"quality": 88})
-        plt.close(fig)
-    agree = (np.digitize(ours, [0.15, 0.75]) == np.digitize(voi, [0.15, 0.75])).mean()
-    print(
-        f"art     {len(y)} texts; the two detectors put {agree:.3f} of them in the same band; "
-        f"score correlation {np.corrcoef(ours, voi)[0, 1]:.3f}"
-    )
-
-
 def main() -> None:
     FIG.mkdir(parents=True, exist_ok=True)
     splits()
     classes()
     epoch()
-    art()
 
 
 if __name__ == "__main__":
