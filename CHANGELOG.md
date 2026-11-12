@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note: rebuilding voi-slop-detect-4B from its model card with open-weight data (`experiments/slop-detector/`), Model voice episode 2: a Qwen3-1.7B ties the 4B on ranking and on unseen emails and beats it on unseen Llama text, with six runnable lessons.
 - Research note: AlphaGenome 2 does not predict which way the MS4A Alzheimer's risk variants move MS4A6A in microglia (`experiments/alphagenome2-ms4a/`), a pre-registered locus test with matched, unlinked controls and a GTEx sign check.
 
 ### Changed
