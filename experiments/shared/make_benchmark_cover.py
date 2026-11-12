@@ -6,7 +6,7 @@
 One row per system on the 1,000 FinanceMath test questions, each bar from zero, with the 95% bootstrap interval where
 the note reports one. The note's own result sits on a tinted row in orange, with its paired gap to gpt-5.4 beside the
 value; gpt-5.4 is the darker grey bar. A system this project ran carries the steerlab chip next to its model's logo.
-Claude Opus 5.5 is a dashed pending row. The numbers are the notes' results tables, typed in below.
+Only systems scored on all 1,000 test questions appear. The numbers are the notes' results tables, typed in below.
 
 The cover is an SVG rendered by headless Chromium (Playwright: `pip install playwright` then
 `playwright install chromium`), so its type is the site's own Bricolage Grotesque and JetBrains Mono. Writes
@@ -31,7 +31,7 @@ LOGOS = HERE / "logos"
 STEERLAB_LOGO = EXPERIMENTS.parent / "docs" / "assets" / "logo.png"
 W, H = 720, 480
 
-CREAM, INK, EMBER, RULE, SOFT, FAINT = "#F3EDE3", "#2B2723", "#C9561C", "#D9D0C2", "#6E655C", "#A39889"
+CREAM, INK, EMBER, RULE, SOFT = "#F3EDE3", "#2B2723", "#C9561C", "#D9D0C2", "#6E655C"
 GREY_BAR, RIVAL_BAR, WIN_ROW = "#D3CCC1", "#8F867B", "#F8E2D4"
 DISPLAY = "'Bricolage Grotesque', 'Avenir Next', sans-serif"
 MONO = "'JetBrains Mono', ui-monospace, monospace"
@@ -49,18 +49,17 @@ SYSTEMS: dict[str, dict] = {
     "qpost": dict(logo="qwen", name="Qwen3-8B post-trained", v=62.2, ci=None),
     "gpt4o": dict(logo="openai", name="GPT-4o (paper)", v=60.9, ci=None),
     "qbase": dict(logo="qwen", name="Qwen3-8B base", v=55.4, ci=None),
-    "claude": dict(logo="claude", name="Claude Opus 5.5", v=None, ci=None),
 }
 OURS = {"think", "plain", "qpost"}  # systems this project ran: the harness runs and the post-trained 8B
 RIVAL = "gpt54"
 NOTES: dict[str, dict] = {
     "fin-math": dict(
         win="plain", line2="+ steerlab harness", call="≈ gpt-5.4",
-        rows=["plain", "gpt54", "mini", "qpost", "gpt4o", "qbase", "claude"],
+        rows=["plain", "gpt54", "mini", "qpost", "gpt4o", "qbase"],
     ),
     "fin-math-v2": dict(
         win="think", line2="+ steerlab harness, thinking", call="+6.7 vs gpt-5.4",
-        rows=["think", "plain", "gpt54", "mini", "qpost", "gpt4o", "qbase", "claude"],
+        rows=["think", "plain", "gpt54", "mini", "qpost", "gpt4o", "qbase"],
     ),
 }  # fmt: skip
 
@@ -77,7 +76,6 @@ MARKS = {
     "openai": _mark("openai.svg", "#111111"),
     "deepseek": _mark("simple-icons/deepseek.svg", "#5786FE"),
     "qwen": _mark("simple-icons/qwen.svg", "#6950EF"),
-    "claude": _mark("simple-icons/claude.svg", "#D97757"),
 }
 
 
@@ -89,11 +87,11 @@ def text(x: float, y: float, s: str, size: float, fill: str, weight: int, family
     )
 
 
-def chip(key: str, cx: float, cy: float, s: float, dashed: bool = False) -> str:
+def chip(key: str, cx: float, cy: float, s: float) -> str:
     """A white rounded tile with the model's mark centred in it."""
     d, rule, colour = MARKS[key]
     pad, x, y = s * 0.2, cx - s / 2, cy - s / 2
-    stroke = f'stroke="{FAINT}" stroke-dasharray="3 3"' if dashed else 'stroke="#E4DDD2"'
+    stroke = 'stroke="#E4DDD2"'
     return (
         f'<rect x="{x:.1f}" y="{y:.1f}" width="{s:.1f}" height="{s:.1f}" rx="{s * 0.24:.1f}" fill="#FFFFFF" {stroke}/>'
         f'<svg x="{x + pad:.1f}" y="{y + pad:.1f}" width="{s - 2 * pad:.1f}" height="{s - 2 * pad:.1f}" '
@@ -145,19 +143,12 @@ def cover(note: str) -> str:
             out.append(text(120, cy - 4, s["name"] if k == "think" else "DeepSeek-V4-Flash", 19, INK, 800))
             out.append(text(120, cy + 17, spec["line2"], 15, INK, 600))
         else:
-            out.append(chip(s["logo"], 50, cy, 28, dashed=s["v"] is None))
+            out.append(chip(s["logo"], 50, cy, 28))
             if k in OURS:
                 out.append(steer_chip(png, 82, cy, 28))
             strong = k == RIVAL or k in OURS
             out.append(text(120, cy + 6, s["name"], 16, INK if strong else SOFT, 600 if k == RIVAL else 500))
         bh = 30 if k == win else 18
-        if s["v"] is None:
-            out.append(
-                f'<rect x="{x0}" y="{cy - bh / 2:.1f}" width="{X(70) - x0:.1f}" height="{bh}" rx="4" fill="none" '
-                f'stroke="{FAINT}" stroke-width="1.5" stroke-dasharray="5 4"/>'
-            )
-            out.append(text(X(70) + 12, cy + 6, "soon", 16, SOFT, 600, MONO))
-            continue
         fill = EMBER if k == win else RIVAL_BAR if k == RIVAL else GREY_BAR
         xe, yt = X(s["v"]), cy - bh / 2
         out.append(
