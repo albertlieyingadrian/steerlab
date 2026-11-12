@@ -53,3 +53,15 @@ done
 
 echo "# Figures 2, 7 and 8"
 run "$PY" "$E/make_figures.py"
+
+echo "# Nov 12 update: RL vs best-of-8 vs fine-tuning on Opus sketches, judged on 8 new subjects (Figures 12 and 13)"
+run "$PY" "$E/12_frontier_sft_data.py"
+run "$PY" -m modal run "$E/modal_next.py" --stage sft
+for arm in base grpo sft; do run "$PY" -m modal run "$E/modal_next.py" --stage sample --arm "$arm"; done
+run "$PY" "$E/16_sft_grpo.py"
+run "$PY" -m modal run "$E/modal_next.py" --stage sample --arm sft_grpo
+run "$PY" "$E/17_frontier_ceiling.py"
+run "$PY" "$E/13_judge_next.py"
+run "$PY" "$E/14_analyse_next.py"
+run "$PY" "$E/15_rerender_h100.py"
+run "$PY" "$E/make_figures_next.py"
