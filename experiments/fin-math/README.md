@@ -67,3 +67,14 @@ Data and results: `data/synth_raw_vignette.jsonl` (generated vignettes), `data/v
 4 per vignette), `data/v2_hard.jsonl` (the 1,527 hard problems with their SFT/RL split), `data/v2_traces.jsonl` (every
 teacher sample: reasoning, final answer, graded), `results/runs/<split>__p4-<system>.jsonl` (4 graded samples per
 question), `results/v2_gate_protocol.json`, `results/v2_select_validation.json`, `results/v2_test.json`.
+
+## Update 2 (2026-11-11): open-weight models and a harness
+
+| File | What it does |
+|---|---|
+| `fm_v3.py` | `screen` (an open model through Hugging Face's inference router: 4 samples per question at its recommended sampling, streamed), `harness` (programs with 3 retrieved worked examples from our synthetic set, executed; vote of 4 reasoning + 4 programs), `summary` |
+| `v3_test_bar.py` | The single v3 test look against gpt-5.4, gpt-5.4-mini and the 8B result; writes `results/v3_test.json` |
+
+Results: `results/runs/<split>__v3-<model>.jsonl` (4 graded reasoning samples per question), `<split>__v3pot-<model>.jsonl`
+(4 programs, their values and the votes), `results/v3_screen.json`, `results/v3_harness_<model>[_test].json`,
+`results/v3_test.json`.
