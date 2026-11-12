@@ -19,7 +19,8 @@ import numpy as np
 from common import HERE, RESULTS, editlens_split
 
 FIG = HERE / "report" / "figures"
-RUNS = {"pilot-1.7b": "Pilot 1.7B (data v1)", "v2-1.7b": "1.7B (data v2)"}
+RUNS = {"pilot-1.7b": "Pilot 1.7B (data v1)", "v2-1.7b": "1.7B (data v2)", "v2-4b": "4B (data v2)"}
+SHADE = {"pilot-1.7b": "#f0c4a6", "v2-1.7b": "#e8955f", "v2-4b": "#c9561c"}
 INK, SOFT, ACCENT, CONTROL, RULE = "#1d1a17", "#6f675f", "#c9561c", "#2f6db0", "#d9d2c8"
 GROUND = "#15110e"
 
@@ -43,10 +44,10 @@ def ev(run: str) -> dict:
 
 def splits() -> None:
     names = {"test": "EditLens test", "test_enron": "Enron (unseen domain)", "test_llama": "Llama (unseen generator)"}
-    fig, ax = plt.subplots(figsize=(7.2, 3.2))
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
     rows = []
     for i, (s, label) in enumerate(names.items()):
-        voi = ev("v2-1.7b")[s]["paired"]["macro_f1"]
+        voi = ev("v2-4b")[s]["paired"]["macro_f1"]
         rows.append((label, "voi-slop-detect-4B", voi["b"], voi["b_ci"]))
         ax.errorbar(
             voi["b"],
@@ -61,7 +62,7 @@ def splits() -> None:
         for j, (run, rl) in enumerate(RUNS.items()):
             p = ev(run)[s]["paired"]["macro_f1"]
             rows.append((label, rl, p["a"], p["a_ci"]))
-            colour = ACCENT if run == "v2-1.7b" else "#e8a77e"
+            colour = SHADE[run]
             ax.errorbar(
                 p["a"],
                 i - 0.22 * j,
@@ -74,7 +75,7 @@ def splits() -> None:
             )
     ax.set_yticks(range(len(names)), list(names.values()))
     ax.invert_yaxis()
-    ax.set_xlim(0.75, 0.92)
+    ax.set_xlim(0.76, 0.92)
     ax.set_xlabel("3-way macro-F1 (human / AI-edited / AI-generated), 95% bootstrap interval")
     ax.legend(frameon=False, fontsize=8.5, loc="lower left")
     fig.tight_layout()
@@ -87,22 +88,21 @@ def splits() -> None:
 def classes() -> None:
     labels = ("f1_human", "f1_edited", "f1_generated")
     nice = ("Human", "AI-edited", "AI-generated")
-    voi = [ev("v2-1.7b")["test"]["paired"][k]["b"] for k in labels]
+    voi = [ev("v2-4b")["test"]["paired"][k]["b"] for k in labels]
     series = [("voi-slop-detect-4B", voi, CONTROL)] + [
-        (rl, [ev(run)["test"]["paired"][k]["a"] for k in labels], ACCENT if run == "v2-1.7b" else "#e8a77e")
-        for run, rl in RUNS.items()
+        (rl, [ev(run)["test"]["paired"][k]["a"] for k in labels], SHADE[run]) for run, rl in RUNS.items()
     ]
     fig, ax = plt.subplots(figsize=(7.2, 3.0))
     x = np.arange(3)
     for k, (name, vals, colour) in enumerate(series):
-        ax.bar(x + (k - 1) * 0.26, vals, 0.24, color=colour, label=name)
-        for xi, v in zip(x + (k - 1) * 0.26, vals, strict=True):
-            ax.text(xi, v + 0.01, f"{v:.2f}", ha="center", fontsize=7.5, color=INK)
+        ax.bar(x + (k - 1.5) * 0.2, vals, 0.19, color=colour, label=name)
+        for xi, v in zip(x + (k - 1.5) * 0.2, vals, strict=True):
+            ax.text(xi, v + 0.01, f"{v:.2f}", ha="center", fontsize=6.5, color=INK)
         print(f"classes {name:22} " + " ".join(f"{v:.3f}" for v in vals))
     ax.set_xticks(x, nice)
     ax.set_ylim(0, 1.08)
     ax.set_ylabel("F1 on EditLens test (6,115 texts)")
-    ax.legend(frameon=False, fontsize=8.5, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.18))
+    ax.legend(frameon=False, fontsize=8, ncol=4, loc="upper center", bbox_to_anchor=(0.5, 1.18))
     fig.tight_layout()
     fig.savefig(FIG / "classes.png", dpi=200)
     plt.close(fig)
@@ -131,13 +131,11 @@ def epoch() -> None:
     fig, ax = plt.subplots(figsize=(7.2, 3.1))
     x = np.arange(len(groups))
     for gi, (label, fn, src) in enumerate(groups):
-        voi = fn(src["v2-1.7b"])[1]
-        vals = [("voi-slop-detect-4B", voi, CONTROL)] + [
-            (rl, fn(src[r])[0], ACCENT if r == "v2-1.7b" else "#e8a77e") for r, rl in RUNS.items()
-        ]
+        voi = fn(src["v2-4b"])[1]
+        vals = [("voi-slop-detect-4B", voi, CONTROL)] + [(rl, fn(src[r])[0], SHADE[r]) for r, rl in RUNS.items()]
         for k, (name, v, colour) in enumerate(vals):
-            ax.bar(gi + (k - 1) * 0.26, v, 0.24, color=colour, label=name if gi == 0 else None)
-            ax.text(gi + (k - 1) * 0.26, v + 2, str(v), ha="center", fontsize=7.5, color=INK)
+            ax.bar(gi + (k - 1.5) * 0.2, v, 0.19, color=colour, label=name if gi == 0 else None)
+            ax.text(gi + (k - 1.5) * 0.2, v + 2, str(v), ha="center", fontsize=6.5, color=INK)
         print(f"errors  {label.replace(chr(10), ' '):42} " + " ".join(f"{n}={v}" for n, v, _ in vals))
     ax.set_xticks(x, [g[0] for g in groups], fontsize=8)
     ax.set_ylabel("Errors (count)")
@@ -150,7 +148,7 @@ def epoch() -> None:
 def art() -> None:
     """Every EditLens test text as a point: voi's score across, ours up, coloured by its true class."""
     y = editlens_split("test")["y"].to_numpy()
-    ours = np.array(json.loads((HERE / "runs" / "v2-1.7b" / "scores" / "test.json").read_text()))
+    ours = np.array(json.loads((HERE / "runs" / "v2-4b" / "scores" / "test.json").read_text()))
     voi = np.array([r["score"] for r in json.loads((RESULTS / "voi" / "test.json").read_text())["rows"]])
     colours = np.array(["#8c8279", "#f2b48e", "#e07a3f"])[y]
     rng = np.random.default_rng(0)

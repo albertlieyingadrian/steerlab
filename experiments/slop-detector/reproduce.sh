@@ -13,6 +13,7 @@ SCORES=(
   "$PY 05_eval.py --run runs/pilot-0.6b"
   "$PY 05_eval.py --run runs/pilot-1.7b"
   "$PY 05_eval.py --run runs/v2-1.7b"
+  "$PY 05_eval.py --run runs/v2-4b"
   "$PY make_figures.py"
 )
 STEPS=(
