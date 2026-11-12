@@ -2,14 +2,15 @@
 
 Research note: [report/index.html](report/index.html), published at
 <https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/>.
-Lessons: [lessons/](lessons/), six steps from reading the card to a paired bootstrap.
+Lessons: [lessons/](lessons/README.md), seven steps from reading the card to a 4B run.
 
 [voi-slop-detect-4B](https://huggingface.co/VoightKampffLabs/voi-slop-detect-4B) (Apache-2.0) scores how much of an
 English text an LLM wrote, from 0 to 1. Its card describes the training recipe but publishes no data. This experiment
 rebuilds the data from the card with open-weight generators only, trains Qwen3 models with the card's recipe, and scores
 them and the target on the same benchmark rows (EditLens test, test_enron and test_llama; Human Detectors; Epoch AI's
-detector test). Headline: a Qwen3-1.7B on data v2 reaches 3-way macro-F1 0.876 on EditLens test against the target's
-0.886 on the same rows, ties it on Enron and beats it on Llama text. A Qwen3.5-4B is training on the same data.
+detector test). Headline: Qwen3.5-4B (the target's own base) on our data v2 reaches 3-way macro-F1 0.887 on EditLens test against
+the target's 0.886 on the same rows, ties it on Enron, beats it on Llama text (0.899 vs 0.828) and misses 8 of 297
+Epoch AI style imitations (target: 22). A Qwen3-1.7B on the same data reaches 0.876.
 
 ## Scripts, in order
 
@@ -44,8 +45,8 @@ detector test). Headline: a Qwen3-1.7B on data v2 reaches 3-way macro-F1 0.876 o
 | `results/epoch_quirk.json` | Steps per epoch from the real grouping against the steps run, per model |
 
 Runs: `pilot-0.6b`, `pilot-1.7b` (data v1), `pilotR-1.7b` (data v1, retrained as the gate's baseline), `v2-1.7b`
-(data v2), `pilot-4bsmoke` and `pilot-4bck2` (Qwen3.5-4B memory tests on 3,200 rows; not results), `v2-4b` (once
-finished). No training or benchmark text is committed: the human sources keep their own licences and EditLens is
+(data v2), `pilot-4bsmoke` and `pilot-4bck2` (Qwen3.5-4B memory tests on 3,200 rows; not results), `v2-4b` (Qwen3.5-4B,
+data v2, 2 epochs). No training or benchmark text is committed: the human sources keep their own licences and EditLens is
 CC BY-NC-SA 4.0.
 
 ## Rules this experiment kept

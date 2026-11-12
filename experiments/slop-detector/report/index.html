@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rebuilding an AI-text detector from its model card: a 1.7B on open-model data ties voi-slop-detect-4B on ranking but flags more humans</title>
-<meta name="description" content="We rebuilt voi-slop-detect-4B's unpublished training data from its model card, with open-weight generators only, and trained Qwen3-1.7B on it. On EditLens test it scores 3-way macro-F1 0.876 against the 4B's 0.886 on the same rows, ties it on AUROC and on Enron, beats it on unseen Llama text (0.891 vs 0.828), and flags more human magazine and blog prose.">
+<title>Rebuilding an AI-text detector from its model card: on open-model data, a 4B matches voi-slop-detect-4B and misses fewer imitations</title>
+<meta name="description" content="We rebuilt voi-slop-detect-4B's unpublished training data from its model card, with open-weight generators only, and trained Qwen3.5-4B on it. On the same EditLens test rows it scores 3-way macro-F1 0.887 against the original's 0.886, ties it on Enron, beats it on unseen Llama text (0.899 vs 0.828), and misses 8 of 297 style imitations on Epoch AI against 22.">
 <!-- meta:start -->
 <link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/">
 <meta property="og:site_name" content="steerlab">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Rebuilding an AI-text detector from its model card: a 1.7B on open-model data ties voi-slop-detect-4B on ranking but flags more humans">
-<meta property="og:description" content="We rebuilt voi-slop-detect-4B&#x27;s unpublished training data from its model card, with open-weight generators only, and trained Qwen3-1.7B on it. On EditLens test it scores 3-way macro-F1 0.876 against the 4B&#x27;s 0.886 on the same rows, ties it on AUROC and on Enron, beats it on unseen Llama text (0.891 vs 0.828), and flags more human magazine and blog prose.">
+<meta property="og:title" content="Rebuilding an AI-text detector from its model card: on open-model data, a 4B matches voi-slop-detect-4B and misses fewer imitations">
+<meta property="og:description" content="We rebuilt voi-slop-detect-4B&#x27;s unpublished training data from its model card, with open-weight generators only, and trained Qwen3.5-4B on it. On the same EditLens test rows it scores 3-way macro-F1 0.887 against the original&#x27;s 0.886, ties it on Enron, beats it on unseen Llama text (0.899 vs 0.828), and misses 8 of 297 style imitations on Epoch AI against 22.">
 <meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/">
 <meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/figures/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Thousands of small dots on a dark ground, one per EditLens test text, rising from the bottom-left to the top-right corner: grey human texts at the bottom-left, pale orange AI-edited texts along the diagonal, bright orange AI-generated texts at the top-right.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Rebuilding an AI-text detector from its model card: a 1.7B on open-model data ties voi-slop-detect-4B on ranking but flags more humans">
-<meta name="twitter:description" content="We rebuilt voi-slop-detect-4B&#x27;s unpublished training data from its model card, with open-weight generators only, and trained Qwen3-1.7B on it. On EditLens test it scores 3-way macro-F1 0.876 against the 4B&#x27;s 0.886 on the same rows, ties it on AUROC and on Enron, beats it on unseen Llama text (0.891 vs 0.828), and flags more human magazine and blog prose.">
+<meta name="twitter:title" content="Rebuilding an AI-text detector from its model card: on open-model data, a 4B matches voi-slop-detect-4B and misses fewer imitations">
+<meta name="twitter:description" content="We rebuilt voi-slop-detect-4B&#x27;s unpublished training data from its model card, with open-weight generators only, and trained Qwen3.5-4B on it. On the same EditLens test rows it scores 3-way macro-F1 0.887 against the original&#x27;s 0.886, ties it on Enron, beats it on unseen Llama text (0.899 vs 0.828), and misses 8 of 297 style imitations on Epoch AI against 22.">
 <meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/figures/og.jpg">
 <meta property="article:published_time" content="2026-11-12">
 <meta property="article:modified_time" content="2026-11-12">
@@ -27,9 +27,9 @@
 {
  "@context": "https://schema.org",
  "@type": "ScholarlyArticle",
- "headline": "Rebuilding an AI-text detector from its model card: a 1.7B on open-model data ties voi-slop-detect-4B on ranking but flags more humans",
- "description": "We rebuilt voi-slop-detect-4B's unpublished training data from its model card, with open-weight generators only, and trained Qwen3-1.7B on it. On EditLens test it scores 3-way macro-F1 0.876 against the 4B's 0.886 on the same rows, ties it on AUROC and on Enron, beats it on unseen Llama text (0.891 vs 0.828), and flags more human magazine and blog prose.",
- "abstract": "A rebuild of VoightKampffLabs' voi-slop-detect-4B (Qwen3.5-4B, one-logit head, Apache-2.0) from its model card, whose training data is not published. Data: human documents written before 2023 from the card's seven sources (Amazon reviews, arXiv abstracts, Hacker News, Medium, Reddit, Stack Overflow, XSum) plus PG-19, and AI versions written by eleven open-weight models only (gpt-oss, DeepSeek-V3.2, Qwen3, Qwen3.5, Gemma 4, GLM-4.6, Kimi-K2; no Llama, so EditLens's Llama split stays unseen): mirrors from a summary, rewrites under 8 instructions, translation round trips, and in data v2 partial and light edits and style imitations; label = share of words changed; decontaminated against every benchmark. The target, scored by us on the same rows, reproduces its card exactly (EditLens test 3-way macro-F1 0.886). Our Qwen3-1.7B on data v2 (79,120 training rows): EditLens test 0.876 [0.868, 0.884], difference -0.010 [-0.017, -0.002]; AUROC 0.976 vs 0.977; Enron 0.867 vs 0.863 (tie); Llama 0.891 vs 0.828 (+0.063 [0.052, 0.074]). Per class on EditLens test: human 0.888 vs 0.898, AI-edited 0.791 vs 0.816, AI-generated 0.949 vs 0.944. At a flag cut fitted to 1% of our validation humans it flags 17 of 150 Human Detectors articles and 8 of 495 Epoch AI passages (target 1 and 1) and misses 45 of 297 style imitations (target 22); at the target's cut, 3 and 0, with 69 imitations missed. The pilot on data v1 scored 0.833. A pre-registered validation gate between data v1 and v2 missed by 0.0004 and was overridden; a Qwen3.5-4B is training on data v2. Six runnable lessons.",
+ "headline": "Rebuilding an AI-text detector from its model card: on open-model data, a 4B matches voi-slop-detect-4B and misses fewer imitations",
+ "description": "We rebuilt voi-slop-detect-4B's unpublished training data from its model card, with open-weight generators only, and trained Qwen3.5-4B on it. On the same EditLens test rows it scores 3-way macro-F1 0.887 against the original's 0.886, ties it on Enron, beats it on unseen Llama text (0.899 vs 0.828), and misses 8 of 297 style imitations on Epoch AI against 22.",
+ "abstract": "A rebuild of VoightKampffLabs' voi-slop-detect-4B (Qwen3.5-4B, one-logit head, Apache-2.0) from its model card, whose training data is not published. Data: human documents written before 2023 from the card's seven sources plus PG-19, and AI versions written by eleven open-weight models only (no Llama, so EditLens's Llama split stays unseen): mirrors, rewrites under 8 instructions, translation round trips, and in data v2 partial and light edits and 3,000 style imitations; label = share of words changed; decontaminated against every benchmark. The original, scored by us on the same rows, reproduces its card exactly (EditLens test 3-way macro-F1 0.886). Qwen3.5-4B on data v2 (79,120 training rows, 2 epochs): EditLens test 0.887 [0.879, 0.895], difference +0.001 [-0.007, +0.008]; Enron 0.862 vs 0.863 (tie); Llama 0.899 vs 0.828 (+0.071 [0.060, 0.081]); AUROC level or higher. Epoch AI: 8 of 297 style imitations missed (original 22), 0 plain; Human Detectors: 0 of 150 AI missed (original 4). At a flag cut fitted to 1% of our validation humans it flags 4 of 150 human articles and 3 of 495 Epoch passages (original 1 and 1); at the original's cut, 0 and 0, with 14 imitations missed. Qwen3-1.7B on the same data: 0.876; on data v1: 0.833. A pre-registered validation gate between data v1 and v2 missed by 0.0004 and was overridden; the 4B's scores are a second look at the test sets. Seven runnable lessons.",
  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/",
  "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/",
  "image": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/figures/og.jpg",
@@ -59,7 +59,7 @@
  "dateModified": "2026-11-12",
  "inLanguage": "en",
  "isAccessibleForFree": true,
- "keywords": "AI text detection, AI-generated text, AI-edited text, voi-slop-detect-4B, EditLens, model card, replication, Qwen3, Qwen3.5, LoRA, sequence classification, synthetic data, open-weight models, Human Detectors, Epoch AI, false positives, paired bootstrap, steerlab",
+ "keywords": "AI text detection, AI-edited text, AI-generated text, EditLens, Epoch AI, Human Detectors, LoRA, Qwen3, Qwen3.5, Qwen3.5-4B, false positives, model card, open-weight models, paired bootstrap, replication, sequence classification, steerlab, style imitation, synthetic data, voi-slop-detect-4B",
  "isPartOf": {
   "@type": "CollectionPage",
   "name": "steerlab research",
@@ -106,20 +106,20 @@
 
 <article>
   <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-12">Nov 12, 2026</time></p>
-  <h1>Rebuilding an AI-text detector from its model card: a 1.7B on open-model data ties voi-slop-detect-4B on ranking but flags more humans</h1>
-  <p class="dek ruled">voi-slop-detect-4B scores how much of a text an LLM wrote, and its card describes the recipe but not the data. This note rebuilds the data from the card with open-weight models only, trains a Qwen3-1.7B on it, and scores both detectors on the same benchmark rows. It is also a six-lesson course: every step is a script you can run.</p>
+  <h1>Rebuilding an AI-text detector from its model card: on open-model data, a 4B matches voi-slop-detect-4B and misses fewer imitations</h1>
+  <p class="dek ruled">voi-slop-detect-4B scores how much of a text an LLM wrote, and its card describes the recipe but not the data. This note rebuilds the data from the card with open-weight models only, trains Qwen models on it, and scores them and the original on the same benchmark rows. It is also a seven-lesson course: every step is a script you can run.</p>
 
   <figure class="hero whole">
     <img src="figures/hero.jpg" alt="Thousands of small dots on a dark ground, one per EditLens test text, rising from the bottom-left corner to the top-right: grey dots (human texts) cluster in the bottom-left, pale orange dots (AI-edited) spread along the diagonal, and bright orange dots (AI-generated) pile up in the top-right. Faint lines mark the 0.15 and 0.75 band edges on both axes." width="1536" height="1024">
-    <figcaption>Cover: every one of the 6,115 EditLens test texts as a dot, voi-slop-detect-4B’s score across and our 1.7B’s score up, coloured by the truth (grey human, pale orange AI-edited, orange AI-generated). The two detectors put 92% of the texts in the same band; their scores correlate at 0.97. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+    <figcaption>Cover: every one of the 6,115 EditLens test texts as a dot, voi-slop-detect-4B’s score across and our rebuilt 4B’s score up, coloured by the truth (grey human, pale orange AI-edited, orange AI-generated). The two detectors put 93% of the texts in the same band; their scores correlate at 0.98. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
   </figure>
 
   <dl class="meta">
     <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
-    <div><dt>Models</dt><dd>Qwen3-0.6B-Base and Qwen3-1.7B-Base with a one-logit head (ours); VoightKampffLabs/voi-slop-detect-4B (the target); Qwen3.5-4B training now</dd></div>
+    <div><dt>Models</dt><dd>Qwen3.5-4B, Qwen3-1.7B-Base and Qwen3-0.6B-Base with a one-logit head (ours); VoightKampffLabs/voi-slop-detect-4B (the original)</dd></div>
     <div><dt>Data</dt><dd>25,162 human documents written before 2023 from seven public sources plus PG-19; 82,616 AI versions written by eleven open-weight models; benchmarks EditLens, Human Detectors and Epoch AI (test only)</dd></div>
-    <div><dt>Code</dt><dd><a href="../">experiments/slop-detector/</a>, with six lessons in <a href="../lessons/">lessons/</a></dd></div>
-    <div><dt>Results</dt><dd><a href="../results/eval/v2-1.7b.json">results/eval/</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/slop-detector/</a>, with seven lessons in <a href="../lessons/README.md">lessons/</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/eval/v2-4b.json">results/eval/v2-4b.json</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
   </dl>
 
   <details class="key fold" open>
@@ -127,7 +127,7 @@
     <section class="key answer" aria-labelledby="in-short">
     <p class="summary-label" id="in-short">In short</p>
     <p><strong>Can a published AI-text detector be rebuilt from its model card alone, with open-weight models writing the training data?</strong></p>
-    <p>Most of the way, at less than half the size. voi-slop-detect-4B reaches 3-way macro-F1 0.886 on EditLens test (human, AI-edited, AI-generated). A Qwen3-1.7B trained on our rebuilt data reaches 0.876 on the same 6,115 rows, 0.010 [0.002, 0.017] behind, with the same ranking quality (AUROC 0.976 vs 0.977). It ties on the unseen Enron domain (0.867 vs 0.863) and beats the 4B on unseen Llama text (0.891 vs 0.828), because it catches more fully generated Llama text. It is worse in two places: at a cut set to flag 1% of our own human texts it flags 17 of 150 human magazine articles (the 4B flags 1), and it misses 45 of 297 texts written to imitate a named author (the 4B misses 22). A first version of the data, without light edits, imitation or long human prose, scored 0.833. A Qwen3.5-4B, the target’s own base, is training now on the same data; its results will be added to this note.</p>
+    <p>Yes. voi-slop-detect-4B reaches 3-way macro-F1 0.886 on EditLens test (human, AI-edited, AI-generated). The same base model, Qwen3.5-4B, trained with the card’s recipe on our rebuilt data reaches 0.887 on the same 6,115 rows: +0.001 [−0.007, +0.008], a match. It ties on the unseen Enron domain (0.862 vs 0.863), beats the original on unseen Llama text (0.899 vs 0.828), and on Epoch AI’s test it misses 8 of 297 texts written to imitate a named author where the original misses 22. It flags a few more human texts at its own cut (4 of 150 magazine articles against 1); at the original’s cut it flags none and still misses fewer imitations. A Qwen3-1.7B on the same data comes within 0.010 (0.876). The data mattered more than the size: a first version of the data, without light edits, imitation or long human prose, gave the 1.7B 0.833.</p>
     </section>
 
     <section aria-labelledby="key-results">
@@ -136,13 +136,14 @@
       <table>
         <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
         <tbody>
-          <tr><td>Does our scoring of the target reproduce its card?</td><td>Yes, to the third decimal: EditLens test 0.886 (human 0.898, AI-edited 0.816, AI-generated 0.944), Enron 0.863, Llama 0.828; Human Detectors 1 human flagged and 4 misses; Epoch AI 1, 0 and 22</td><td>The card: the same numbers (Llama 0.829)</td></tr>
-          <tr class="hl"><td>How close does a 1.7B trained on rebuilt data get on EditLens test?</td><td>0.876 [0.868, 0.884]; per class 0.888 / 0.791 / 0.949; AUROC 0.976</td><td>voi-slop-detect-4B on the same rows: 0.886 [0.878, 0.894], difference −0.010 [−0.017, −0.002]; AUROC 0.977</td></tr>
-          <tr><td>Out of distribution?</td><td>Enron (unseen domain) 0.867, a tie: +0.004 [−0.004, +0.012]. Llama (unseen generator) 0.891, ahead: +0.063 [+0.052, +0.074]</td><td>voi-slop-detect-4B: 0.863 and 0.828</td></tr>
-          <tr><td>Did fixing the data help?</td><td>Yes: data v2 (light and partial edits, style imitation, long human prose, stronger editors) lifted the 1.7B from 0.833 to 0.876 on EditLens test and cut Epoch AI imitation misses from 148 to 45</td><td>The pilot 1.7B on data v1, same recipe</td></tr>
-          <tr><td>Does it accuse humans?</td><td>More than the target at our own cut (flagging 1% of our validation humans): 17 of 150 Human Detectors articles and 8 of 495 Epoch AI passages. At the target’s cut, 3 and 0, but then 69 style imitations are missed</td><td>voi-slop-detect-4B at its shipped cut: 1 and 1</td></tr>
-          <tr><td>Does it miss AI text?</td><td>No plain-prompt passage on Epoch AI (0 of 297); no Human Detectors article (0 of 150, including 30 paraphrased and 30 humanized ones); 45 of 297 style imitations</td><td>voi-slop-detect-4B: 0, 4 and 22</td></tr>
-          <tr><td>Did the pre-registered validation gate pass?</td><td>No, by 0.0004: data v2 beat v1 on all validation rows (+0.015 [+0.009, +0.020]) but its interval on the pilot’s own rows reached −0.0104 against a fixed bound of −0.010. The 4B run went ahead by decision, not by the rule</td><td>Section 4.5</td></tr>
+          <tr><td>Does our scoring of the original reproduce its card?</td><td>Yes, to the third decimal: EditLens test 0.886 (human 0.898, AI-edited 0.816, AI-generated 0.944), Enron 0.863, Llama 0.828; Human Detectors 1 human flagged and 4 misses; Epoch AI 1, 0 and 22</td><td>The card: the same numbers (Llama 0.829)</td></tr>
+          <tr class="hl"><td>Does the rebuilt 4B match the original on EditLens test?</td><td>Yes: 0.887 [0.879, 0.895]; per class 0.895 / 0.811 / 0.955; AUROC 0.978</td><td>voi-slop-detect-4B on the same rows: 0.886 [0.878, 0.894], difference +0.001 [−0.007, +0.008]; AUROC 0.977</td></tr>
+          <tr><td>Out of distribution?</td><td>Enron (unseen domain) 0.862, a tie: −0.001 [−0.009, +0.007]. Llama (unseen generator) 0.899, ahead: +0.071 [+0.060, +0.081]</td><td>voi-slop-detect-4B: 0.863 and 0.828</td></tr>
+          <tr><td>Does it catch AI text written to imitate a person?</td><td>Better than the original: 8 of 297 Epoch AI style imitations missed (Claude 0, Gemini 5, GPT-5.5 3); 0 of 297 plain-prompt passages; 0 of 150 Human Detectors AI articles, paraphrased and humanized included</td><td>voi-slop-detect-4B: 22 (2, 12, 8), 0 and 4</td></tr>
+          <tr><td>Does it accuse humans?</td><td>A little more at its own cut (1% of our validation humans): 4 of 150 Human Detectors articles, 3 of 495 Epoch AI passages. At the original’s cut (0.385): none of either, with 14 imitations missed</td><td>voi-slop-detect-4B at its cut: 1 and 1, with 22 imitations missed</td></tr>
+          <tr><td>Does a smaller model do it?</td><td>Nearly: Qwen3-1.7B on the same data 0.876, −0.010 [−0.017, −0.002] on EditLens test; level on Enron, ahead on Llama (0.891); but 17 of 150 human articles flagged and 45 imitations missed</td><td>The 4B on the same data: +0.011 [+0.005, +0.017] over the 1.7B</td></tr>
+          <tr><td>Did fixing the data help?</td><td>Yes: data v2 (light and partial edits, style imitation, long human prose, stronger editors) lifted the 1.7B from 0.833 to 0.876 and cut Epoch imitation misses from 148 to 45</td><td>The pilot 1.7B on data v1, same recipe</td></tr>
+          <tr><td>Did the pre-registered validation gate pass?</td><td>No, by 0.0004; the 4B was trained by decision, not by the rule, and its benchmark scores are a second look at the same test sets (section 4.6)</td><td>—</td></tr>
         </tbody>
       </table>
     </div>
@@ -154,24 +155,24 @@
   <p><strong>What is known.</strong> <a href="https://huggingface.co/VoightKampffLabs/voi-slop-detect-4B">voi-slop-detect-4B</a> (VoightKampffLabs, Apache-2.0) is Qwen3.5-4B with a one-number head, trained on 484k texts built from 98k human documents written before 2023. On <a href="https://arxiv.org/abs/2510.03154">EditLens</a>, a benchmark for scoring how much AI edited a text, it is within 0.02 of EditLens’s own 24B models and well ahead of commercial detectors. Its card describes the data recipe in detail but publishes no data.</p>
   <p><strong>What is missing.</strong> A card is a claim. Without the data, nobody outside the lab can check how much of the result comes from the recipe and how much from the particular texts, or whether the recipe works without the closed models that wrote much of its data (about 15% of its AI rows came from Anthropic models, more from OpenAI’s and Google’s).</p>
   <p class="question-callout">Following only the model card, and using only open-weight models to write the training data, how close can we get to voi-slop-detect-4B on the same benchmark rows?</p>
-  <p><strong>What this note does.</strong> It rebuilds the data and the training from the card, scores the target and our models on identical rows, and writes each step up as a lesson. Its contributions:</p>
+  <p><strong>What this note does.</strong> It rebuilds the data and the training from the card, scores the original and our models on identical rows, and writes each step up as a lesson. Its contributions:</p>
   <ol>
-    <li>A check that the target’s published numbers reproduce exactly when we score it ourselves.</li>
-    <li>An open recipe for the training data: seven pre-2023 human sources, three kinds of AI version from the card plus three of ours, eleven open-weight generators, filters and benchmark decontamination.</li>
-    <li>A measured result: a 1.7B on that data is 0.010 behind on EditLens test, level on Enron and ahead on unseen Llama text, with the cost spelled out (more humans flagged, more imitations missed).</li>
-    <li>A data ablation (v1 against v2) that shows which fixes moved the score, and an honest account of a validation gate that narrowly failed.</li>
-    <li>Six runnable lessons, from reading the card to a paired bootstrap.</li>
+    <li>A check that the original’s published numbers reproduce exactly when we score it ourselves.</li>
+    <li>An open recipe for the training data: seven pre-2023 human sources, the card’s three kinds of AI version plus three of ours, eleven open-weight generators, filters and benchmark decontamination.</li>
+    <li>A measured replication: the same base model on that data matches the original on EditLens test, ties it on Enron, beats it on unseen Llama text and on style imitation, and flags a few more humans at its own cut.</li>
+    <li>A data ablation (v1 against v2) and a size comparison (1.7B against 4B) that show the data moved the score more than the size, and an honest account of a validation gate that narrowly failed.</li>
+    <li>Seven runnable lessons, from reading the card to a 4B run.</li>
   </ol>
-  <p>Success, fixed before the first model was trained: (1) the target’s numbers reproduce on our scoring; (2) the comparison is on the same rows with paired intervals; (3) no benchmark text is trained on; (4) the result holds out of distribution (Enron, Llama), not only on EditLens test.</p>
+  <p>Success, fixed before the first model was trained: (1) the original’s numbers reproduce on our scoring; (2) the comparison is on the same rows with paired intervals; (3) no benchmark text is trained on; (4) the result holds out of distribution (Enron, Llama), not only on EditLens test.</p>
 
   <h2 id="setup"><span class="num">02</span>Setup</h2>
-  <h3 id="target" data-short="The target">2.1 What the target predicts</h3>
+  <h3 id="target" data-short="The original">2.1 What the original predicts</h3>
   <p>The detector reads the first 512 tokens of a text (fenced code emptied) and outputs one logit; sigmoid(logit) is the score. Two cut points from its <code>bands.json</code> turn the score into three classes: below 0.15 human, 0.75 or above AI-generated, AI-edited between. A third cut, 0.385, flags a text as not human; it was set so that 1% of the authors’ validation human texts are flagged. We use the same band edges for our models, and fit our own flag cut the same way, on our own validation humans.</p>
   <p>The label it is trained on is the <strong>share of words changed</strong>. A worked example from lesson 4, on one 18-word review: fixing only punctuation changes 0% of the words (human band); “make it concise” changes 45% (AI-edited); “rewrite it in your own words” changes 78% (AI-generated). A text written from scratch by a model gets 1.</p>
 
   <h3 id="data" data-short="Data v1 and v2">2.2 Rebuilding the data, twice</h3>
   <p><strong>Human text.</strong> Text written before ChatGPT’s release (November 2022) is human by date, so nobody has to label it. We took one public file per source on the card: Amazon reviews (2020–21), arXiv abstracts (2020), Hacker News comments (2022), Medium posts (2020–21), Reddit comments (2020–22, ten subreddits), Stack Overflow posts (2022) and BBC news (XSum, 2017). r/WritingPrompts is left out because it is an EditLens test source. The split (80 / 10 / 10) is a hash of the document id, so a human text and its AI versions always share a split.</p>
-  <p><strong>AI versions (data v1, the card’s three).</strong> A <em>mirror</em> is written from a two-line summary and keywords; the writer never sees the original, so every word is the model’s (target 1). A <em>rewrite</em> follows one of eight instructions, from “fix the grammar” to “rewrite in your own words” (target: share of words changed). A <em>round trip</em> goes to Spanish, German or Russian and back (target: share changed). Generators: gpt-oss-120b and 20b, DeepSeek-V3.2, Qwen3-235B-A22B and Qwen3-Next-80B, Gemma 4 31B and 26B-A4B. Only open-weight models wrote training text, so the recipe can be rerun without closed APIs. Llama is left out so that EditLens’s Llama split stays an unseen generator, as it is for the target.</p>
+  <p><strong>AI versions (data v1, the card’s three).</strong> A <em>mirror</em> is written from a two-line summary and keywords; the writer never sees the original, so every word is the model’s (target 1). A <em>rewrite</em> follows one of eight instructions, from “fix the grammar” to “rewrite in your own words” (target: share of words changed). A <em>round trip</em> goes to Spanish, German or Russian and back (target: share changed). Generators: gpt-oss-120b and 20b, DeepSeek-V3.2, Qwen3-235B-A22B and Qwen3-Next-80B, Gemma 4 31B and 26B-A4B. Only open-weight models wrote training text, so the recipe can be rerun without closed APIs. Llama is left out so that EditLens’s Llama split stays an unseen generator, as it is for the original.</p>
   <p><strong>Filters, as on the card, plus two of ours.</strong> Texts under 30 prose words; edits that changed under 2% of the words; edits whose meaning drifted (embedding cosine to the source below 0.75); mirrors off topic (cosine below 0.35); non-English text (the XSum file holds some Welsh articles); and any human document sharing three 10-word runs with a benchmark text, which dropped 104 documents, mostly BBC articles that EditLens’s news texts also contain.</p>
   <p><strong>Data v2</strong> came from reading the pilot’s errors on its own validation split and on EditLens (section 4.2): light AI edits were being called human, style imitation was missed, and the flag cut was too strict on long human prose. It adds 13,962 human documents (a second batch from the same seven sources, 2,000 longer Medium and XSum passages of up to 550 words, and 1,462 passages from pre-1919 books in PG-19) and 49,027 AI versions: <em>partial</em> edits that reword a third to two thirds of the sentences, five <em>light</em> edit instructions, 3,000 <em>style imitations</em> (shown three human texts of a kind, write a new one), and four larger open editors at a low weight (Qwen3.5-397B-A17B, Qwen3.5-122B-A10B, GLM-4.6, Kimi-K2-Instruct-0905).</p>
   <div class="table-wrap">
@@ -186,59 +187,63 @@
   </div>
 
   <h3 id="model" data-short="Model and recipe">2.3 Model and recipe</h3>
-  <p>The card’s recipe, unchanged: a sequence-classification head with one output on a Qwen base model; LoRA rank 16, alpha 32 on every attention and MLP projection, the head trained in full; binary cross-entropy against the soft target, each row weighted so that the three bands pull equally; learning rate 2e-4, batches of at least 64 rows, the first 512 tokens. BCE with a target of 0.43 is lowest when the model outputs 0.43, so the model learns the fraction itself, not a yes or no. Bases: Qwen3-0.6B-Base and Qwen3-1.7B-Base for the pilot and data v2; Qwen3.5-4B for the run in progress.</p>
+  <p>The card’s recipe: a sequence-classification head with one output on a Qwen base model; LoRA rank 16, alpha 32 on every attention and MLP projection (for Qwen3.5 also its linear-attention projections), the head trained in full; binary cross-entropy against the soft target, each row weighted so that the three bands pull equally; learning rate 2e-4, batches of at least 64 rows, the first 512 tokens. BCE with a target of 0.43 is lowest when the model outputs 0.43, so the model learns the fraction itself, not a yes or no. Bases: Qwen3-0.6B-Base and Qwen3-1.7B-Base, and Qwen3.5-4B, the original’s own base. The one change from the card: the 4B trained for 2 epochs, not 3, to fit the compute budget.</p>
 
   <h3 id="benchmarks">2.4 Benchmarks</h3>
-  <p>All test only; none of their text is trained on. <a href="https://huggingface.co/datasets/pangram/editlens_iclr">EditLens</a> test (6,115 texts: news, Reddit writing prompts, FineWeb-Edu, Amazon and Google reviews, edited or written by GPT-4.1, Claude Sonnet 4, Gemini 2.5 Flash and Llama-3.3-70B), test_enron (6,147 emails, an unseen domain) and test_llama (5,957, an unseen generator). Human Detectors (300 magazine and news articles, 150 by humans, 30 per AI condition, from the EditLens repository). Epoch AI’s <a href="https://github.com/jaeholee-brown/ai-text-detectors">detector test</a> (495 human passages by 99 authors, 297 plain-prompt and 297 style-imitation passages by Claude Opus 4.8, GPT-5.5 and Gemini 3.1 Pro). The target is scored on every one of these rows by the same code as ours.</p>
+  <p>All test only; none of their text is trained on. <a href="https://huggingface.co/datasets/pangram/editlens_iclr">EditLens</a> test (6,115 texts: news, Reddit writing prompts, FineWeb-Edu, Amazon and Google reviews, edited or written by GPT-4.1, Claude Sonnet 4, Gemini 2.5 Flash and Llama-3.3-70B), test_enron (6,147 emails, an unseen domain) and test_llama (5,957, an unseen generator). Human Detectors (300 magazine and news articles, 150 by humans, 30 per AI condition, from the EditLens repository). Epoch AI’s <a href="https://github.com/jaeholee-brown/ai-text-detectors">detector test</a> (495 human passages by 99 authors, 297 plain-prompt and 297 style-imitation passages by Claude Opus 4.8, GPT-5.5 and Gemini 3.1 Pro). The original is scored on every one of these rows by the same code as ours.</p>
 
   <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
   <ol>
-    <li><strong>Target measured first:</strong> voi-slop-detect-4B (pinned revision) on all 19,608 benchmark texts, one per forward pass; numbers checked against its card.</li>
+    <li><strong>Original measured first:</strong> voi-slop-detect-4B (pinned revision) on all 19,608 benchmark texts, one per forward pass; numbers checked against its card.</li>
     <li><strong>Data v1:</strong> 11,200 human documents; 33,589 AI versions from about 53,000 generation calls; labelled and filtered into 41,283 rows.</li>
     <li><strong>Pilot:</strong> Qwen3-0.6B and 1.7B trained on data v1; the 1.7B chosen on validation (macro-F1 0.911 against 0.898); both scored once on the benchmarks.</li>
     <li><strong>Data v2:</strong> designed from the pilot’s errors; 13,962 more human documents and 49,027 more AI versions; 98,332 rows.</li>
     <li><strong>Gate, written and committed before any v2 result:</strong> the v2 1.7B goes on to a 4B run only if it beats the v1 1.7B on all v2 validation rows (paired 95% interval above 0) and is not worse on the pilot’s own validation rows (interval’s lower end above −0.010). The v1 1.7B was retrained for this comparison with the same seed.</li>
     <li><strong>v2 1.7B:</strong> trained, compared on validation (the gate missed by 0.0004), then scored once on the benchmarks.</li>
-    <li><strong>4B:</strong> started on data v2 by the author’s decision after the gate result; in progress.</li>
+    <li><strong>4B:</strong> trained on data v2 by the author’s decision after the gate result, with its settings fixed at launch; its flag cut fitted on validation; scored once on the benchmarks.</li>
   </ol>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Fixed before any training</th><th>Changed after reading results</th></tr></thead>
       <tbody>
-        <tr><td>The card’s recipe and band edges; the benchmarks and the test-only rule; the generator rule (open-weight, no Llama); the filters and decontamination; the paired bootstrap; the flag-cut rule (1% of our validation humans); the v2 gate and its bounds</td><td>Data v2 (from the pilot’s validation and benchmark errors, so EditLens test informed the v2 design: see section 7); the choice of the 1.7B over the 0.6B (on validation); going ahead with the 4B despite the gate</td></tr>
+        <tr><td>The card’s recipe and band edges; the benchmarks and the test-only rule; the generator rule (open-weight, no Llama); the filters and decontamination; the paired bootstrap; the flag-cut rule (1% of our validation humans); the v2 gate and its bounds</td><td>Data v2 (from the pilot’s validation and benchmark errors, so EditLens test informed the v2 design: see section 7); the choice of the 1.7B over the 0.6B (on validation); going ahead with the 4B despite the gate; its 2 epochs (from the compute budget, not from results)</td></tr>
       </tbody>
     </table>
   </div>
-  <p>Conditions: training and scoring on rented GPUs on Modal (H100 for the Qwen3 models, A100-80GB for Qwen3.5, whose linear-attention kernels refuse Hopper GPUs with the PyTorch 2.9 Triton build), transformers 5.22, PEFT 0.21; generation through Hugging Face Inference Providers; labelling, decontamination and figures on a laptop. The v2 1.7B trained for 2.3 hours on one H100.</p>
+  <p>Conditions: training and scoring on rented GPUs on Modal (H100 for the Qwen3 models; A100-80GB for Qwen3.5, whose linear-attention kernels refuse Hopper GPUs with the PyTorch 2.9 Triton build), transformers 5.22, PEFT 0.21; generation through Hugging Face Inference Providers; labelling, decontamination and figures on a laptop. The v2 1.7B trained for 2.3 hours on one H100; the 4B for 3.3 hours on one A100-80GB, with gradient checkpointing.</p>
 
   <h2 id="results"><span class="num">04</span>Results</h2>
-  <h3 id="reproduce-target" data-short="Target reproduced">4.1 Our scoring of the target reproduces its card exactly</h3>
+  <h3 id="reproduce-target" data-short="Original reproduced">4.1 Our scoring of the original reproduces its card exactly</h3>
   <p>On all three EditLens splits, Human Detectors and Epoch AI, voi-slop-detect-4B scored by our code gives the card’s numbers to the third decimal: 0.886 on EditLens test with per-class F1 0.898 / 0.816 / 0.944, 0.863 on Enron, 0.828 on Llama (the card says 0.829), 1 human flagged and 4 paraphrased GPT-4o articles missed on Human Detectors, and 1 human flagged, 0 plain and 22 imitation passages missed on Epoch AI. Every later comparison uses these exact scores, row by row.</p>
 
   <h3 id="pilot" data-short="The pilot">4.2 The pilot on data v1 learned the recipe but not the light edits</h3>
-  <p>The 1.7B reached 0.911 on its own validation split and 0.833 on EditLens test, 0.053 [0.044, 0.062] behind the target; the 0.6B reached 0.788. The gap between our validation and EditLens (0.08) was larger than the gain from a bigger model (0.045), which pointed at the data. The errors said where: of EditLens’s 2,031 AI-edited texts, the pilot put 615 in the human band (the target, 395). Most of our rewrites changed 45–60% of the words, so lightly edited text was rare in training. On Epoch AI it missed 148 of 297 style imitations: it had never seen one.</p>
+  <p>The 1.7B reached 0.911 on its own validation split and 0.833 on EditLens test, 0.053 [0.044, 0.062] behind the original; the 0.6B reached 0.788. The gap between our validation and EditLens (0.08) was larger than the gain from a bigger model (0.045), which pointed at the data. The errors said where: of EditLens’s 2,031 AI-edited texts, the pilot put 615 in the human band (the original, 395). Most of our rewrites changed 45–60% of the words, so lightly edited text was rare in training. On Epoch AI it missed 148 of 297 style imitations: it had never seen one.</p>
 
-  <h3 id="v2" data-short="Data v2: 1.7B vs 4B">4.3 With data v2 the 1.7B comes within 0.010 of the 4B, ties it on Enron and beats it on Llama</h3>
+  <h3 id="v4b" data-short="The 4B matches">4.3 With data v2, the same base model matches the original on EditLens and beats it on Llama</h3>
   <figure class="plot">
-    <img src="figures/splits.png" alt="Dot plot of 3-way macro-F1 with 95% intervals on three EditLens splits. EditLens test: voi-slop-detect-4B 0.886, pilot 1.7B 0.833, data-v2 1.7B 0.876. Enron: 0.863, 0.792, 0.867. Llama: 0.828, 0.849, 0.891." width="1440" height="640">
-    <figcaption><span class="label">Figure 1.</span> 3-way macro-F1 on the three EditLens test splits, with 95% bootstrap intervals over texts (6,115, 6,147 and 5,957 texts). Blue: voi-slop-detect-4B. Pale orange: our 1.7B on data v1. Orange: our 1.7B on data v2. All three were scored on the same rows.</figcaption>
+    <img src="figures/splits.png" alt="Dot plot of 3-way macro-F1 with 95% intervals on three EditLens splits. EditLens test: voi-slop-detect-4B 0.886, pilot 1.7B 0.833, data-v2 1.7B 0.876, data-v2 4B 0.887. Enron: 0.863, 0.792, 0.867, 0.862. Llama: 0.828, 0.849, 0.891, 0.899." width="1440" height="720">
+    <figcaption><span class="label">Figure 1.</span> 3-way macro-F1 on the three EditLens test splits, with 95% bootstrap intervals over texts (6,115, 6,147 and 5,957 texts). Blue: voi-slop-detect-4B. Orange, from light to dark: our 1.7B on data v1, our 1.7B on data v2, our 4B on data v2. All were scored on the same rows.</figcaption>
   </figure>
-  <p>Figure 1 shows the change. On EditLens test the v2 1.7B scores 0.876 against 0.886, a difference of −0.010 [−0.017, −0.002] on paired resamples. On Enron, emails neither model saw, it is level: +0.004 [−0.004, +0.012]. On Llama text it is ahead by 0.063 [0.052, 0.074], almost all of it on fully generated text: F1 0.970 against the target’s 0.820. AUROC, which only asks whether human texts score lower than the rest and ignores the cut points, is level on all three (0.976 vs 0.977, 0.979 vs 0.978, 0.982 vs 0.982).</p>
+  <p>Figure 1 shows the result. On EditLens test the rebuilt 4B scores 0.887 against the original’s 0.886: +0.001 [−0.007, +0.008] on paired resamples, a match. On Enron, emails neither model saw, the two are level: −0.001 [−0.009, +0.007]. On Llama text the rebuild is ahead by 0.071 [0.060, 0.081], almost all of it on fully generated text: F1 0.984 against 0.820. AUROC, which only asks whether human texts score lower than the rest and ignores the cut points, is level or slightly higher on all three (0.978 vs 0.977, 0.982 vs 0.978, 0.985 vs 0.982).</p>
   <figure class="plot">
-    <img src="figures/classes.png" alt="Grouped bars of per-class F1 on EditLens test. Human: voi 0.90, pilot 0.86, v2 0.89. AI-edited: 0.82, 0.72, 0.79. AI-generated: 0.94, 0.92, 0.95." width="1440" height="600">
-    <figcaption><span class="label">Figure 2.</span> Per-class F1 on EditLens test (6,115 texts). Data v2 closed most of the pilot’s gap on AI-edited text (0.72 to 0.79; the target 0.82) and passed the target on AI-generated text (0.95 vs 0.94).</figcaption>
+    <img src="figures/classes.png" alt="Grouped bars of per-class F1 on EditLens test. Human: voi 0.90, pilot 0.86, v2 1.7B 0.89, v2 4B 0.90. AI-edited: 0.82, 0.72, 0.79, 0.81. AI-generated: 0.94, 0.92, 0.95, 0.96." width="1440" height="600">
+    <figcaption><span class="label">Figure 2.</span> Per-class F1 on EditLens test (6,115 texts). The rebuilt 4B is level with the original on human (0.895 vs 0.898) and AI-edited text (0.811 vs 0.816, −0.005 [−0.018, +0.007]) and ahead on AI-generated text (0.955 vs 0.944, +0.011 [+0.004, +0.018]).</figcaption>
   </figure>
-  <p>Figure 2 shows where the remaining gap sits: AI-edited text, 0.791 against 0.816 (−0.025 [−0.038, −0.012]), and a little on human text, 0.888 against 0.898. Both detectors find AI-edited text the hardest class, and the same texts are hard for both: the scores of the two models correlate at 0.97 over the 6,115 texts (the cover).</p>
+  <p>Figure 2 splits EditLens test by class. AI-edited text is the hardest class for both models, and the same texts are hard for both: their scores correlate at 0.98 over the 6,115 texts, and they put 93% of them in the same band (the cover). On Enron the rebuild gives up a little on human and edited emails (−0.012, −0.015) and gains it back on generated ones (+0.024).</p>
 
-  <h3 id="humans" data-short="Humans and imitations">4.4 It flags more human prose and misses more imitations than the target</h3>
-  <figure class="plot">
-    <img src="figures/epoch.png" alt="Grouped bars of error counts. Epoch humans flagged of 495: voi 1, pilot 16, v2 8. Epoch style imitations missed of 297: 22, 148, 45. Human Detectors humans flagged of 150: 1, 12, 17. Human Detectors AI missed of 150: 4, 1, 0." width="1440" height="620">
-    <figcaption><span class="label">Figure 3.</span> Errors on Epoch AI (495 human passages, 297 style imitations) and Human Detectors (150 human articles, 150 AI articles). voi-slop-detect-4B at its shipped flag cut (0.385); ours at a cut that flags 1% of our own validation humans (0.174 for the v2 1.7B).</figcaption>
-  </figure>
-  <p>On the yes/no question, Figure 3 shows the trade. Our model misses no AI article on Human Detectors, including the 30 paraphrased GPT-4o ones (the target misses 4), and no plain-prompt passage on Epoch AI. But it flags 17 of 150 human magazine and news articles and 8 of 495 Epoch human passages, where the target flags 1 of each. The ranking is fine (AUROC on Human Detectors 0.9993 against 0.9985), so this is a threshold problem: our validation humans are mostly short comments and reviews, and a cut that flags 1% of those is too low for 500-word magazine prose. At the target’s own cut (0.385) instead, ours flags 3 of 150 human articles and 0 of 495 Epoch human passages, and still misses no Human Detectors article, but its style-imitation misses rise to 69 of 297: the cut moves errors from one column to the other. This second reading was computed after the benchmark results were seen, and nothing was chosen from it. On style imitation the v2 data cut misses from 148 to 45, against the target’s 22; by generator, 12 Claude, 27 GPT-5.5 and 6 Gemini imitations got through (the target: 2, 8 and 12).</p>
+  <h3 id="v17" data-short="The 1.7B">4.4 A 1.7B on the same data comes within 0.010</h3>
+  <p>Qwen3-1.7B on data v2 scores 0.876 on EditLens test, −0.010 [−0.017, −0.002] behind the original and −0.011 [−0.017, −0.005] behind the rebuilt 4B; on Enron it is level with both (0.867), and on Llama it is ahead of the original (0.891) and a little behind our 4B (−0.008 [−0.014, −0.001]). Its gap is mostly AI-edited text (0.791). For comparison, the original’s own ablation table, on its held-out split, has its Qwen3.5-0.8B 0.015 behind its 4B.</p>
 
-  <h3 id="gate" data-short="The gate">4.5 The validation gate missed by 0.0004, and the 4B run went ahead anyway</h3>
-  <p>Before seeing any v2 result we committed a rule: train the 4B only if the v2 1.7B beats the v1 1.7B on all v2 validation rows and is not worse on the pilot’s own validation rows by more than 0.010. On all 9,562 rows it won, +0.015 [+0.009, +0.020] (AI-edited +0.022). On the pilot’s 4,031 rows it scored 0.909 against 0.912, −0.004 [−0.0104, +0.0026]: the interval’s lower end crossed −0.010 by 0.0004, so the rule said stop. Two checks outside the rule pointed the other way: light edits (15–35% of words changed) were caught as edited 82% of the time against 78%, and long human passages were never flagged (1.7% before). The author decided to train the 4B anyway. Because of that order, the v2 1.7B’s benchmark numbers above were seen before the 4B was trained, so the 4B’s benchmark scores will be a second look at the same test sets. No setting of the 4B was chosen from test results: its recipe, data and epochs were fixed before the v2 1.7B was scored.</p>
+  <h3 id="humans" data-short="Humans and imitations">4.5 The 4B misses fewer imitations than the original, and flags a few more humans at its own cut</h3>
+  <figure class="plot">
+    <img src="figures/epoch.png" alt="Grouped bars of error counts for four models. Epoch humans flagged of 495: voi 1, pilot 16, v2 1.7B 8, v2 4B 3. Epoch style imitations missed of 297: 22, 148, 45, 8. Human Detectors humans flagged of 150: 1, 12, 17, 4. Human Detectors AI missed of 150: 4, 1, 0, 0." width="1440" height="620">
+    <figcaption><span class="label">Figure 3.</span> Errors on Epoch AI (495 human passages, 297 style imitations) and Human Detectors (150 human articles, 150 AI articles). voi-slop-detect-4B at its shipped flag cut (0.385); ours at a cut that flags 1% of our own validation humans (0.177 for the 4B, 0.174 for the v2 1.7B).</figcaption>
+  </figure>
+  <p>Figure 3 shows the yes/no question. The rebuilt 4B misses 8 of 297 Epoch AI passages written to imitate a named author, where the original misses 22: Claude Opus 4.8 0 against 2, Gemini 3.1 Pro 5 against 12, GPT-5.5 3 against 8. Both miss none of the plain-prompt passages, and the rebuild misses none of the 150 Human Detectors AI articles, including the 30 paraphrased GPT-4o ones the original misses 4 of. The 3,000 style imitations in data v2 are the likely reason: the pilot, which had none, missed 148. In return, at its own cut the 4B flags 4 of 150 human articles and 3 of 495 Epoch human passages, where the original flags 1 of each.</p>
+  <p>That last difference is about the cut, not the ranking (AUROC on Human Detectors 1.000 against 0.9985, on Epoch AI 0.998 against 0.993). At the original’s cut, 0.385, the 4B flags no human text on either benchmark, misses no Human Detectors AI article, and misses 14 imitations: fewer errors than the original in every cell. The 1.7B shows the same effect more strongly: 17 human articles flagged at its own cut, 3 at the original’s. Our validation humans are mostly short comments and reviews, and a cut that flags 1% of those is low for 500-word magazine prose. This second reading at 0.385 was computed after the benchmark results were seen, and nothing was chosen from it.</p>
+
+  <h3 id="gate" data-short="The gate">4.6 The validation gate missed by 0.0004, and the 4B run went ahead anyway</h3>
+  <p>Before seeing any v2 result we committed a rule: train the 4B only if the v2 1.7B beats the v1 1.7B on all v2 validation rows and is not worse on the pilot’s own validation rows by more than 0.010. On all 9,562 rows it won, +0.015 [+0.009, +0.020] (AI-edited +0.022). On the pilot’s 4,031 rows it scored 0.909 against 0.912, −0.004 [−0.0104, +0.0026]: the interval’s lower end crossed −0.010 by 0.0004, so the rule said stop. Two checks outside the rule pointed the other way: light edits (15–35% of words changed) were caught as edited 82% of the time against 78%, and long human passages were never flagged (1.7% before). The author decided to train the 4B anyway. It was launched with every setting fixed (data v2, the card’s recipe, 2 epochs from the compute budget) about eight minutes before the v2 1.7B’s benchmark scores came back, and nothing was changed afterwards. Its scores are still a second look at test sets we had already read for the 1.7B. On its own validation split the 4B reached 0.902.</p>
 
   <h2 id="comparison" data-short="Compared with published results"><span class="num">05</span>Compared with published results</h2>
   <div class="table-wrap">
@@ -246,41 +251,43 @@
       <thead><tr><th>Detector</th><th class="num">Size</th><th class="num">EditLens test</th><th class="num">Enron</th><th class="num">Llama</th><th>Source</th></tr></thead>
       <tbody>
         <tr><td>EditLens cosine</td><td class="num">24B</td><td class="num">0.904</td><td class="num">0.866</td><td class="num">0.850</td><td>voi-slop-detect-4B’s card</td></tr>
+        <tr class="hl"><td>Ours, data v2</td><td class="num">4B</td><td class="num">0.887</td><td class="num">0.862</td><td class="num">0.899</td><td>this note</td></tr>
         <tr><td>voi-slop-detect-4B</td><td class="num">4B</td><td class="num">0.886</td><td class="num">0.863</td><td class="num">0.828</td><td>scored here (matches its card)</td></tr>
-        <tr class="hl"><td>Ours, data v2</td><td class="num">1.7B</td><td class="num">0.876</td><td class="num">0.867</td><td class="num">0.891</td><td>this note</td></tr>
+        <tr><td>Ours, data v2</td><td class="num">1.7B</td><td class="num">0.876</td><td class="num">0.867</td><td class="num">0.891</td><td>this note</td></tr>
         <tr><td>Ours, data v1</td><td class="num">1.7B</td><td class="num">0.833</td><td class="num">0.792</td><td class="num">0.849</td><td>this note</td></tr>
         <tr><td>GPTZero</td><td class="num">—</td><td class="num">0.727</td><td class="num"></td><td class="num"></td><td>voi-slop-detect-4B’s card</td></tr>
         <tr><td>Pangram (3.x API)</td><td class="num">—</td><td class="num">0.695</td><td class="num"></td><td class="num"></td><td>voi-slop-detect-4B’s card</td></tr>
       </tbody>
     </table>
   </div>
-  <p>3-way macro-F1. The target’s own ablation is the closest comparison for size: on its held-out split, its Qwen3.5-0.8B scored 0.908 against 0.923 for the 4B. Our 1.7B is a different base (Qwen3, not Qwen3.5) on about a quarter of the data.</p>
+  <p>3-way macro-F1. On Epoch AI the original’s card lists Pangram 3.3.2 missing 30 imitations and GPTZero 32, against 22 for the original and 8 for the rebuild here.</p>
 
   <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
-  <p>Detectors are used to make decisions about people: whether a student’s essay or a job application was written by them. This rebuild shows two things that matter for that use. First, the recipe carries most of the result: an outside team, without the data and without closed models, got within 0.010 on the published benchmark, which makes the card’s claims checkable. Second, the number that matters for a person, how often a human is wrongly flagged, depends on the threshold more than on the model, and a threshold fitted on one kind of human writing did not transfer to another (1% on our validation humans, 11% on magazine articles). <strong>Anyone deploying a detector should fit its flag cut on human writing like the writing it will judge, and report its false-positive rate there.</strong></p>
+  <p>Detectors are used to make decisions about people: whether a student’s essay or a job application was written by them. This rebuild shows two things that matter for that use. First, a model card that describes its data recipe well is enough to reproduce the model: an outside team, without the data and without closed models, matched the published benchmark result, which makes such cards checkable claims rather than marketing. Second, the number that matters for a person, how often a human is wrongly flagged, depends on the threshold as much as on the model, and a threshold fitted on one kind of human writing did not transfer to another (1% on our validation humans, 3% on magazine articles for the 4B and 11% for the 1.7B). <strong>Anyone deploying a detector should fit its flag cut on human writing like the writing it will judge, and report its false-positive rate there.</strong></p>
 
   <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
   <ul>
-    <li><strong>Test sets were looked at more than once.</strong> The pilot and the v2 1.7B were each scored once, but data v2 was designed after reading the pilot’s EditLens errors (light edits called human), so EditLens test informed the data, though no model setting was tuned on it. Enron, Llama, Human Detectors and Epoch AI are less exposed, and the v2 gains held there too.</li>
-    <li><strong>Training ran longer than the stated three epochs.</strong> Each optimiser step held whole micro-batches of at least 64 rows, but the step count assumed exactly 64, so the 1.7B models trained for about 3.8 epochs and the 0.6B for 3.7 (<a href="../results/epoch_quirk.json">epoch_quirk.json</a>). Both arms of the gate comparison had the same quirk. It is fixed for the 4B run.</li>
-    <li><strong>Our flag cut is not the target’s.</strong> We fit ours on our validation humans, as the target’s authors did on theirs. Neither is fitted on the benchmarks. The comparison of false positives is between two thresholds fitted on two different human sets.</li>
-    <li><strong>One seed per model</strong>, as on the target’s card. The paired intervals cover the test texts, not training noise.</li>
-    <li><strong>About a quarter of the data and a smaller base.</strong> The card’s 386k AI rows came from seven families including closed models; ours are 82,616 from eleven open models.</li>
+    <li><strong>The test sets were looked at more than once.</strong> Each model was scored once, but data v2 was designed after reading the pilot’s EditLens errors (light edits called human), and the 4B’s scores are a second look at the same test sets (it was launched, with its settings fixed, minutes before the 1.7B’s scores came back). No model setting was tuned on test results; Enron, Llama, Human Detectors and Epoch AI are less exposed than EditLens test, and the gains held there too.</li>
+    <li><strong>Epoch counts differ.</strong> The 4B trained for 2 epochs (158,505 rows), not the card’s 3. The 1.7B and 0.6B runs trained longer than their stated 3 epochs: each optimiser step held whole micro-batches of at least 64 rows, but the step count assumed exactly 64, so they trained for about 3.8 and 3.7 epochs (<a href="../results/epoch_quirk.json">epoch_quirk.json</a>). Both arms of the gate comparison had the same quirk; it was fixed before the 4B run.</li>
+    <li><strong>Our flag cut is not the original’s.</strong> We fit ours on our validation humans, as the original’s authors did on theirs. Neither is fitted on the benchmarks.</li>
+    <li><strong>One seed per model</strong>, as on the original’s card. The paired intervals cover the test texts, not training noise; the EditLens match (+0.001) is well inside what a second seed could move.</li>
+    <li><strong>About a quarter of the data.</strong> The card’s 386k AI rows came from seven families including closed models; ours are 82,616 from eleven open models. That the smaller dataset matched suggests the kinds of version (light edits, imitation) matter more than the volume, but this note does not test volume directly.</li>
     <li><strong>English only</strong>, first 512 tokens only, and the benchmarks’ domains. Learner English (the card’s non-native essays) and APT-Eval were not run.</li>
   </ul>
 
   <h2 id="lessons" data-short="Learn it step by step"><span class="num">08</span>Learn it step by step, and reproduce it</h2>
-  <p>The work is written as six lessons for engineers new to ML. Each has a README that explains the idea with an analogy, a <code>lesson.py</code> that runs in seconds on made-up examples, and the real script it introduces.</p>
+  <p>The work is written as seven lessons for engineers new to ML. Each has a README that explains the idea with an analogy, a <code>lesson.py</code> that runs in seconds on made-up examples, and the real script it introduces.</p>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Lesson</th><th>What you learn</th><th>Script</th></tr></thead>
       <tbody>
-        <tr><td><a href="../lessons/01_the_target/README.md">01 The target</a></td><td>A model card as a spec; bands, flag cut, macro-F1; reproducing the target’s numbers</td><td><code>score_voi.py</code></td></tr>
+        <tr><td><a href="../lessons/01_the_target/README.md">01 The target</a></td><td>A model card as a spec; bands, flag cut, macro-F1; reproducing the original’s numbers</td><td><code>score_voi.py</code></td></tr>
         <tr><td><a href="../lessons/02_human_data/README.md">02 Human data</a></td><td>Pre-2023 text as a free label; split by document; never train on a test source</td><td><code>01_human.py</code></td></tr>
         <tr><td><a href="../lessons/03_ai_versions/README.md">03 AI versions</a></td><td>Mirror, rewrite, round trip; open-weight generators; never losing a finished API call</td><td><code>02_generate.py</code></td></tr>
         <tr><td><a href="../lessons/04_labels/README.md">04 Labels</a></td><td>Share of words changed as the label; filters; decontamination; band weights</td><td><code>03_label.py</code></td></tr>
         <tr><td><a href="../lessons/05_train/README.md">05 Train</a></td><td>A one-logit head on a Qwen base; LoRA; BCE on a soft target</td><td><code>04_train.py</code>, <code>train_modal.py</code></td></tr>
-        <tr><td><a href="../lessons/06_paired_eval/README.md">06 Paired evaluation</a></td><td>Same rows, choose on validation, paired bootstrap; reading the errors</td><td><code>05_eval.py</code>, <code>compare_val.py</code></td></tr>
+        <tr><td><a href="../lessons/06_paired_eval/README.md">06 Paired evaluation</a></td><td>Same rows, choose on validation, paired bootstrap; reading the errors; a gate</td><td><code>05_eval.py</code>, <code>compare_val.py</code></td></tr>
+        <tr><td><a href="../lessons/07_scale_up/README.md">07 Scale up</a></td><td>Fixing data before buying size; memory, kernels and checkpoints for a 4B run; reading thresholds</td><td><code>train_modal.py --gpu a100</code>, <code>score_run.py</code></td></tr>
       </tbody>
     </table>
   </div>
@@ -292,30 +299,32 @@ experiments/slop-detector/reproduce.sh</code></pre>
 
   <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
   <ul>
-    <li>A Qwen3.5-4B, the target’s own base, is training now on data v2 with the card’s recipe; its results will be added to this note.</li>
     <li>A flag cut fitted on long human prose (magazine, blog and fiction passages written before 2023), reported beside the current one.</li>
-    <li>More style imitation per genre, especially scientific writing, where both detectors miss the most.</li>
+    <li>A second seed and a third epoch for the 4B, to see how much of the EditLens match is noise.</li>
     <li>The card’s other benchmarks: learner English and APT-Eval.</li>
+    <li>More style imitation per genre, especially scientific writing, where the original misses the most.</li>
   </ul>
 
   <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
   <h3 id="q1">Can you rebuild a detector from its model card without its data?</h3>
-  <p>Mostly. Following voi-slop-detect-4B’s card and writing all training text with open-weight models, a Qwen3-1.7B reached 3-way macro-F1 0.876 on EditLens test against the 4B’s 0.886 on the same texts, tied it on unseen emails and beat it on unseen Llama text.</p>
+  <p>Here, yes. Following voi-slop-detect-4B’s card and writing all training text with open-weight models, the same base model (Qwen3.5-4B) reached 3-way macro-F1 0.887 on EditLens test against the original’s 0.886 on the same texts, tied it on unseen emails and beat it on unseen Llama text.</p>
   <h3 id="q2">Does a detector trained only on open-model text catch Claude, GPT and Gemini?</h3>
-  <p>On plain prompts, yes: it missed none of 297 Epoch AI passages by Claude Opus 4.8, GPT-5.5 and Gemini 3.1 Pro, and none of 150 Human Detectors articles by Claude, GPT-4o and o1-pro, paraphrased and humanized ones included. When those models imitate a named author, it missed 45 of 297.</p>
-  <h3 id="q3">Why does it flag more human writing than the 4B?</h3>
-  <p>Mostly the threshold. Its ranking of human against AI text on Human Detectors is as good as the 4B’s (AUROC 0.9993 vs 0.9985), but its flag cut was fitted on short comments and reviews, and long magazine prose scores higher. A cut fitted on long-form human text is the next step.</p>
+  <p>Yes. The rebuilt 4B missed none of 297 Epoch AI plain-prompt passages by Claude Opus 4.8, GPT-5.5 and Gemini 3.1 Pro, none of 150 Human Detectors articles by Claude, GPT-4o and o1-pro (paraphrased and humanized ones included), and 8 of 297 passages where those models imitated a named author, against 22 for the original.</p>
+  <h3 id="q3">Does it wrongly flag human writing?</h3>
+  <p>Rarely, and it depends on the cut. At a cut fitted to flag 1% of our own human texts it flagged 4 of 150 human magazine articles and 3 of 495 Epoch AI human passages (the original: 1 and 1). At the original’s cut it flagged none of either.</p>
   <h3 id="q4">What made the biggest difference?</h3>
-  <p>The data, more than model size. Moving from data v1 to v2 at the same 1.7B size lifted EditLens test from 0.833 to 0.876; going from 0.6B to 1.7B on v1 had lifted it by 0.045. The v2 additions were light and partial AI edits, style imitations and long human passages.</p>
+  <p>The data. Moving from data v1 to v2 at the same 1.7B size lifted EditLens test from 0.833 to 0.876 and cut imitation misses from 148 to 45; going from 1.7B to 4B on the same data added 0.011 and cut the misses to 8. The v2 additions were light and partial AI edits, style imitations and long human passages.</p>
+  <h3 id="q5">How long does it take to train?</h3>
+  <p>The 4B trained for 3.3 hours on one A100-80GB (2 epochs, 79,120 training texts); the 1.7B for 2.3 hours on one H100. Generating the training data took about 118,000 calls to open-weight models.</p>
 
   <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data and references</h2>
-  <p>Every file and column is listed in <a href="../README.md">README.md</a>. The main ones: <a href="../results/eval/v2-1.7b.json">results/eval/v2-1.7b.json</a> (one file per model, also pilot-1.7b and pilot-0.6b: paired intervals for every metric and split, false positives and misses), <a href="../results/voi/test.json">results/voi/test.json</a> (the target’s score for every benchmark row, one file per split), <a href="../results/compare_val.json">compare_val.json</a> (the gate), <a href="../results/labels.json">labels.json</a> (data counts, filters, change per instruction) and runs/*/scores/ (our score for every benchmark row). No training or benchmark text is included: the human sources keep their own licences and EditLens is non-commercial.</p>
+  <p>Every file and column is listed in <a href="../README.md">README.md</a>. The main ones: <a href="../results/eval/v2-4b.json">results/eval/v2-4b.json</a> (one file per model, also v2-1.7b, pilot-1.7b and pilot-0.6b: paired intervals for every metric and split, false positives and misses), <a href="../results/voi/test.json">results/voi/test.json</a> (the original’s score for every benchmark row, one file per split), <a href="../results/compare_val.json">compare_val.json</a> (the gate), <a href="../results/labels.json">labels.json</a> (data counts, filters, change per instruction) and runs/*/scores/ (our score for every benchmark row). No training or benchmark text is included: the human sources keep their own licences and EditLens is non-commercial.</p>
   <h3 id="techniques">Techniques</h3>
   <div class="table-wrap">
     <table>
       <tbody>
         <tr><th scope="row">Label</th><td>Word-level diff (difflib SequenceMatcher): 1 − 2·shared / (words in both); mirrors and imitations 1, humans 0</td></tr>
-        <tr><th scope="row">Model</th><td>Qwen3 base + one-logit sequence-classification head; LoRA r 16, alpha 32 on all attention, linear-attention and MLP projections; BCE on the soft target with band-balanced weights; AdamW, lr 2e-4, cosine with 3% warm-up</td></tr>
+        <tr><th scope="row">Model</th><td>Qwen base + one-logit sequence-classification head; LoRA r 16, alpha 32 on all attention, linear-attention and MLP projections; BCE on the soft target with band-balanced weights; AdamW, lr 2e-4, cosine with 3% warm-up; gradient checkpointing for the 4B</td></tr>
         <tr><th scope="row">Filters</th><td>Under 30 words; under 2% changed; all-MiniLM-L6-v2 cosine (0.75 edits, 0.35 mirrors); English stop-word share; 10-word-run decontamination against every benchmark</td></tr>
         <tr><th scope="row">Statistics</th><td>Paired percentile bootstrap over texts (1,000 resamples) for every difference; AUROC with scikit-learn</td></tr>
       </tbody>
@@ -327,19 +336,19 @@ experiments/slop-detector/reproduce.sh</code></pre>
     <li>Thai, Emi, Masrour, Iyyer. “EditLens: Quantifying the Extent of AI Editing in Text.” <a href="https://arxiv.org/abs/2510.03154">arXiv 2510.03154</a>, ICLR 2026; <a href="https://huggingface.co/datasets/pangram/editlens_iclr">data</a> (CC BY-NC-SA 4.0).</li>
     <li>Lee, J. (Epoch AI). “AI detectors rarely flag human writing, but sometimes miss AI text imitating real authors.” <a href="https://epoch.ai/data-insights/ai-detectors-false-negatives">Epoch AI data insight</a>, 2026; <a href="https://github.com/jaeholee-brown/ai-text-detectors">data</a>.</li>
     <li>Russell, Karpinska, Iyyer. “People who frequently use ChatGPT for writing tasks are accurate and robust detectors of AI-generated text.” <a href="https://arxiv.org/abs/2501.15654">arXiv 2501.15654</a>, ACL 2025 (Human Detectors).</li>
-    <li>Qwen Team. <a href="https://huggingface.co/Qwen/Qwen3-1.7B-Base">Qwen3-1.7B-Base</a> and <a href="https://huggingface.co/Qwen/Qwen3.5-4B">Qwen3.5-4B</a>.</li>
+    <li>Qwen Team. <a href="https://huggingface.co/Qwen/Qwen3.5-4B">Qwen3.5-4B</a> and <a href="https://huggingface.co/Qwen/Qwen3-1.7B-Base">Qwen3-1.7B-Base</a>.</li>
     <li>Human sources: McAuley Lab, <a href="https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023">Amazon Reviews 2023</a>; <a href="https://huggingface.co/datasets/gfissore/arxiv-abstracts-2021">arXiv abstracts</a>; <a href="https://huggingface.co/datasets/OpenPipe/hacker-news">Hacker News</a>; <a href="https://huggingface.co/datasets/fabiochiu/medium-articles">Medium articles</a>; <a href="https://huggingface.co/datasets/HuggingFaceGECLM/REDDIT_comments">Reddit comments</a>; <a href="https://huggingface.co/datasets/mikex86/stackoverflow-posts">Stack Overflow posts</a>; Narayan et al., <a href="https://huggingface.co/datasets/EdinburghNLP/xsum">XSum</a>; Rae et al., <a href="https://huggingface.co/datasets/emozilla/pg19">PG-19</a>.</li>
     <li>Episode 1 of this series: <a href="../../deslop/report/">De-slopping Qwen3-4B</a>, which measured voi-slop-detect-4B on de-slopped text.</li>
   </ul>
   <h3 id="cite">How to cite</h3>
   <pre><code>@misc{lie2026slopdetector,
   author = {Albert Lie},
-  title  = {Rebuilding an AI-text detector from its model card: a 1.7B on open-model data ties voi-slop-detect-4B on ranking but flags more humans},
+  title  = {Rebuilding an AI-text detector from its model card: on open-model data, a 4B matches voi-slop-detect-4B and misses fewer imitations},
   year   = {2026},
   month  = nov,
   url    = {https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector/report/}
 }</code></pre>
-  <footer class="note">Target: voi-slop-detect-4B by VoightKampffLabs. Benchmarks: EditLens (Thai et al.), Human Detectors (Russell et al.), Epoch AI’s detector test.</footer>
+  <footer class="note">Original: voi-slop-detect-4B by VoightKampffLabs. Benchmarks: EditLens (Thai et al.), Human Detectors (Russell et al.), Epoch AI’s detector test.</footer>
 </article>
 </div>
 <script src="../../shared/report.js?v=15"></script>

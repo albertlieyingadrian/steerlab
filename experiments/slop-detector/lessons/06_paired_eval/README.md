@@ -65,4 +65,4 @@ cd experiments/slop-detector && ../../.venv/bin/python 05_eval.py --run runs/v2-
 2. Why fit the flag cut on validation humans and not on the benchmark's humans?
 3. We beat voi on test_llama. Name one reason that win could be fragile.
 
-Next: the 4B run, in the [research note](../../report/index.html#next).
+Next: [lesson 07](../07_scale_up/README.md), the 4B run.
