@@ -23,21 +23,26 @@ import math
 import torch
 
 
-def build_lora_model(model_name, device, rank=16, alpha=32, seed=0, dtype=torch.float32):
+def build_lora_model(model_name, device, rank=16, alpha=32, seed=0, dtype=torch.float32, merge_adapter=None):
     """Load a chat model (float32 by default; the H100 run uses bfloat16) and wrap it with LoRA
     adapters on every linear layer.
 
     LoRA = instead of changing a 896x896 weight matrix W, learn two thin matrices A (16x896) and
     B (896x16) and use W + B@A. About 2% of the parameters train; the original weights stay frozen,
     which also gives us the frozen reference model for free (just switch the adapter off).
+
+    merge_adapter=<folder>: first merge an already trained LoRA into the weights (the follow-up study's
+    fine-tuned model), so the fresh LoRA starts there and "adapter off" (the KL reference) is that model.
     """
-    from peft import LoraConfig, get_peft_model
+    from peft import LoraConfig, PeftModel, get_peft_model
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     torch.manual_seed(seed)
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.padding_side = "left"  # generation appends on the right, so any padding goes on the left
     model = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype)
+    if merge_adapter is not None:
+        model = PeftModel.from_pretrained(model, str(merge_adapter)).merge_and_unload()
     config = LoraConfig(
         r=rank,
         lora_alpha=alpha,

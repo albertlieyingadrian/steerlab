@@ -17,7 +17,9 @@ plus CLIP and an aesthetic predictor score it. When GRPO raises that score, does
 | Were the successes original? | 80% of late passing sketches contain the prompt's example (best chunk 0.96 similar) | Whole file 0.66, under the copy check's 0.85 |
 | Did it paint the hills? | No: late bottom third 89% bare, CLIP "green hills" 0.197 | Hand-made hills: 7% bare, 0.309 |
 | Did the reward still track quality? | Reward vs two judges: 0.08 and 0.37 on the trained model's sketches | On reference sketches: 0.81 (reward), 0.82 and 0.77 (judges) |
-| Did more compute help? (H100, 1.5B, 100 steps, $3.83) | 1/16 to 3/16 passing | A 5-step test run: 3/16 |
+| Did more compute help? (H100, 1.5B, 100 steps, $3.83) | No: 8/16 to 9/16 passing once re-rendered on the laptop (recorded 1/16 to 3/16: Modal's renderer timed out) | Training pass rate flat at 0.40 |
+| Do simpler methods beat RL on new subjects? (update, Nov 12) | No method paints them: subject recognisable in 0/64 (untrained, best-of-8, GRPO), 3/64 (fine-tuned on Opus sketches), 9/64 (fine-tuned + best-of-8) | Claude Opus 5.5: 64/64; judge score 3.93 vs 2.24 for the best small arm |
+| Did fine-tuning beat GRPO (pre-registered)? | No: −0.20 [−0.35, −0.05] on judge score; it fails the rule check more often (44/64 vs 62/64) | Among passing sketches: 2.11 vs 2.00 |
 
 - Four reward hacks appeared in order: answering in Chinese to beat a space-based word count, an eight-word refusal,
   pasting the prompt's example, and padding that copy until a whole-file copy check stopped firing.
@@ -39,6 +41,7 @@ plus CLIP and an aesthetic predictor score it. When GRPO raises that score, does
 | [`7_train_laptop.py`](7_train_laptop.py) | The laptop run |
 | [`modal_train.py`](modal_train.py), [`train_loop.py`](train_loop.py) | The H100 run on Modal (costs money; the timeout caps a run at about $16) |
 | [`8_decompose.py`](8_decompose.py), [`9_hack_hunt.py`](9_hack_hunt.py), [`10_judge.py`](10_judge.py), [`11_rerate.py`](11_rerate.py), [`analysis_tools.py`](analysis_tools.py) | The analysis: gain split, code and pixel checks, judges, re-rating |
+| [`next_common.py`](next_common.py), [`12_frontier_sft_data.py`](12_frontier_sft_data.py), [`modal_next.py`](modal_next.py), [`13_judge_next.py`](13_judge_next.py), [`14_analyse_next.py`](14_analyse_next.py), [`15_rerender_h100.py`](15_rerender_h100.py), [`16_sft_grpo.py`](16_sft_grpo.py), [`17_frontier_ceiling.py`](17_frontier_ceiling.py), [`make_figures_next.py`](make_figures_next.py) | The Nov 12 update: fine-tuning data from Opus 5.5, fine-tuning and sampling on Modal (rendering on the laptop), two judges, the paired analysis, the H100 re-render, fine-tuned-then-GRPO, the Opus ceiling, Figures 12 and 13 |
 | [`make_figures.py`](make_figures.py), [`reproduce.sh`](reproduce.sh) | Figures 2, 7 and 8 from `results/`; every command behind the note |
 | `vendor/`, `aesthetic_head/` | p5.js ([LGPL-2.1](vendor/LICENSE-p5.js.txt)), p5.brush ([MIT](vendor/LICENSE-p5.brush.md)) and the LAION aesthetic predictor's 3 KB weights ([MIT](aesthetic_head/LICENSE-aesthetic-predictor.txt)) |
 
@@ -51,8 +54,8 @@ experiments/pigment-gym/reproduce.sh --dry-run       # every command, in order
 ```
 
 Needs Playwright's Chromium (`playwright install chromium`). Large files go to `~/.cache/steerlab/pigment-gym/`
-(`PIGMENT_GYM_WORK` moves it). The benchmark and judges read `OPENROUTER_API_KEY` from `.env`; the H100 run needs
-`modal setup`.
+(`PIGMENT_GYM_WORK` moves it). The benchmark and judges read `OPENROUTER_API_KEY` from `.env`; the update's teacher and judges read
+`ANTHROPIC_API_KEY` and `OPENAI_API_KEY`; the H100 run and the update's sampling need `modal setup`.
 
 ## Credits
 

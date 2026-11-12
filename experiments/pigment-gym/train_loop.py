@@ -96,6 +96,7 @@ def train(
     on_checkpoint=None,
     log=print,
     resume=True,
+    init_adapter=None,
 ):
     """Run GRPO for up to `steps` steps or until `budget_s - reserve_s` seconds have passed. Returns a summary dict.
 
@@ -108,7 +109,10 @@ def train(
     out_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     device = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
-    model, tokenizer = build_lora_model(model_name, device, seed=seed, dtype=dtype)
+    # init_adapter: start from a trained LoRA merged into the weights, so the KL reference is that model
+    model, tokenizer = build_lora_model(model_name, device, seed=seed, dtype=dtype, merge_adapter=init_adapter)
+    if init_adapter is not None:
+        log(f"starting from the LoRA in {Path(init_adapter).name}, merged; KL reference = that model")
     trainable, total = trainable_parameters(model)
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=learning_rate)
     # constant_with_warmup: ramp from lr/warmup up to lr over `warmup` steps, then hold.
