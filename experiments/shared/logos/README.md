@@ -22,4 +22,3 @@ above (Simple Icons carries no OpenAI mark). The steerlab chip is cropped at dra
 |---|---|---|
 | `simple-icons/deepseek.svg` | DeepSeek | `#5786FE` |
 | `simple-icons/qwen.svg` | Qwen | `#6950EF` |
-| `simple-icons/claude.svg` | Claude | `#D97757` |
