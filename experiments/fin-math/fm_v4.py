@@ -28,6 +28,9 @@ import fm_v3
 
 fin.CAP_USD["finmath4"] = 15.0
 fin.CAP_USD["finmath4or"] = 7.52  # OpenRouter: $1.52 spent on validation + $6 for TEST LOOK #2 (lead, 2026-11-11)
+fin.CAP_USD["finmath5or"] = 8.50  # robustness runs (user, 2026-11-12): April snapshot + Claude Opus 5.5, hard cap
+ROBUST = {"or-dsflash0424-think", "or-opus55-high"}  # billed to finmath5or
+SUBSET_FILE = fm.RESULTS / "v4_opus_subset.json"  # fixed random 250 test ids, written before any Opus call
 ARTICLE = "finmath4"
 RUNS = fm.RESULTS / "runs"
 CANDS = {  # name: (router model, input $/M, output $/M, sampling, extra body)
@@ -47,6 +50,12 @@ CANDS = {  # name: (router model, input $/M, output $/M, sampling, extra body)
                            {"reasoning": {"enabled": False}}),
     "or-glm53-plain": ("or:z-ai/glm-5.3", 0.07, 1.40, {"temperature": 0.6, "top_p": 0.95},
                        {"reasoning": {"enabled": False}}),
+    # Robustness (PREREG 2026-11-12): the April 2026 V4-Flash checkpoint (OpenRouter slug deepseek-v4-flash-20260423,
+    # created 1777000666 = 2026-04-24, before the test answers were released on 2026-07-14), frozen v4 settings
+    "or-dsflash0424-think": ("or:deepseek/deepseek-v4-flash", 0.09, 0.18, {"temperature": 0.6, "top_p": 0.95},
+                             {"reasoning": {"effort": "high"}}),
+    # Claude Opus 5.5, reasoning effort high, one call per question; evaluation only, never training data
+    "or-opus55-high": ("or:anthropic/claude-opus-5.5", 4.0, 20.0, {}, {"reasoning": {"effort": "high"}}),
 }  # fmt: skip
 _CLIENTS: dict = {}
 
@@ -112,15 +121,31 @@ def call(c, route, pin, pout, sampling, extra, budget, content, max_tokens):
     return "".join(text), n_out, reasoning, finish == "length"
 
 
-def sample(cand: str, kind: str, n: int, split: str, workers: int, max_tokens: int) -> None:
+def make_subset(k: int = 250, seed: int = 20261112) -> list[str]:
+    """Fixed random sample of test ids (sorted ids, random.Random(seed).sample), saved before any call."""
+    import random
+
+    if SUBSET_FILE.exists():
+        return json.loads(SUBSET_FILE.read_text())["ids"]
+    ids = random.Random(seed).sample(sorted(i.id for i in fm.load("test")), k)
+    SUBSET_FILE.write_text(json.dumps({"seed": seed, "k": k, "ids": ids}, indent=1))
+    return ids
+
+
+def sample(cand: str, kind: str, n: int, split: str, workers: int, max_tokens: int, limit: int = 0) -> None:
     import synth
 
     route, pin, pout, sampling, extra = CANDS[cand]
-    budget = fin.Budget("finmath4or" if route.startswith("or:") else ARTICLE, f"v4-{cand}-{kind}-{split}")
+    article = "finmath5or" if cand in ROBUST else "finmath4or" if route.startswith("or:") else ARTICLE
+    budget = fin.Budget(article, f"v4-{cand}-{kind}-{split}")
     c, route = client_for(route)
     top = fm_v3.retriever() if kind == "program" else None
     have = load(split, cand, kind)
-    jobs = [i for i in fm.load(split) for _ in range(max(0, n - len(have.get(i.id, []))))]
+    items = fm.load(split)
+    if limit:  # the first `limit` ids of the fixed subset, in its drawn order
+        order = {q: k for k, q in enumerate(make_subset()[:limit])}
+        items = sorted((i for i in items if i.id in order), key=lambda i: order[i.id])
+    jobs = [i for i in items for _ in range(max(0, n - len(have.get(i.id, []))))]
     print(f"{cand} {kind}: {len(jobs)} samples to draw on {split}", flush=True)
 
     def one(item):
@@ -202,11 +227,18 @@ def main() -> None:
     s.add_argument("--split", default="validation")
     s.add_argument("--workers", type=int, default=64)
     s.add_argument("--max-tokens", type=int, default=16384)
+    s.add_argument("--limit", type=int, default=0, help="only the first N ids of the fixed test subset")
+    sub.add_parser("subset")
+    sub.add_parser("balance")
     a_ = sub.add_parser("analyze")
     a_.add_argument("--split", default="validation")
     a = p.parse_args()
     if a.cmd == "sample":
-        sample(a.cand, a.kind, a.n, a.split, a.workers, a.max_tokens)
+        sample(a.cand, a.kind, a.n, a.split, a.workers, a.max_tokens, a.limit)
+    elif a.cmd == "subset":
+        print(make_subset()[:5], "...")
+    elif a.cmd == "balance":
+        print(f"OpenRouter balance ${openrouter_balance()}")
     else:
         analyze(a.split)
 
