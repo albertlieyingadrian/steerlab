@@ -1,4 +1,4 @@
-# FinanceMath v2: an open-weight model that thinks first beats gpt-5.4
+# FinanceMath v2: open-weight SOTA: an open model in a harness beats gpt-5.4 and comes close to Claude Opus 5.5
 
 Episode 6 of "Harnesses and post-training", continuing [fin-math](../fin-math/) (episode 2). Note:
 [report/index.html](report/index.html). The code and results live in `../fin-math/`; this folder holds the note, its
