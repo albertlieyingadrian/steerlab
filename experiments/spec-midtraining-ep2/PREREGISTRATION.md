@@ -1,6 +1,6 @@
 # spec-midtraining, Episode 2: pre-registration (2026-11-13)
 
-A copy of the pre-registration, unchanged except for this line, the plan's requirement labels and internal paths removed.
+A copy of the pre-registration, unchanged except for this line, a terminology note under Arms, and the plan's requirement labels and internal paths removed.
 
 Written and committed before any document was generated, any model was trained and any sketch or answer was sampled
 for this episode. Episode 1 (published): `experiments/spec-midtraining/`.
@@ -45,6 +45,9 @@ Either direction is reported. A related result found that a similar document-tra
 - **AFT** (both arms, identical data and order per seed): 3,000 chats from `chloeli/sft-it-mix` split
   `train_clean_nothink` (seed 0 sample), LoRA r64 lr 1e-4 1 epoch, loss on replies, merged. Its job is to restore
   chat behaviour after midtraining on a post-trained model, as in the published study's large-model runs.
+- *Terminology note, added after publication:* in the published study's terms this stage is instruction tuning, not
+  alignment fine-tuning. Its AFT is chats in which the assistant acts the spec out, with instruction tuning mixed in.
+  This episode had no spec-aligned AFT; the report calls this stage instruction tuning. The plan text is unchanged.
 - Seeds 0-5 for both arms (LoRA initialisation and data order). Merged models are saved to the Modal volume
   `spec-midtraining-ep2` as `H_s<k>/` and `T_s<k>/`.
 
