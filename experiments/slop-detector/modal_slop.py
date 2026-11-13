@@ -87,7 +87,8 @@ def _train(
     tr.ON_CHECKPOINT = volume.commit  # each checkpoint reaches the volume at once
     tr.main()
     volume.commit()
-    tok, model = tr.load(base, "cuda")
+    heads = 4 if json.loads((run / "config.json").read_text()).get("head") == "buckets" else 1
+    tok, model = tr.load(base, "cuda", num_labels=heads)
     from peft import set_peft_model_state_dict
     from safetensors.torch import load_file
 
@@ -144,8 +145,9 @@ def score_run(run: str, evals: dict[str, list[str]]) -> dict:
     from safetensors.torch import load_file
 
     path = Path("/vol/runs") / run
-    base = json.loads((path / "config.json").read_text())["base"]
-    tok, model = tr.load(base, "cuda")
+    cfg = json.loads((path / "config.json").read_text())
+    base = cfg["base"]
+    tok, model = tr.load(base, "cuda", num_labels=4 if cfg.get("head") == "buckets" else 1)
     set_peft_model_state_dict(model, load_file(str(path / "adapter" / "adapter_model.safetensors")))
     model.eval()
     out = {}

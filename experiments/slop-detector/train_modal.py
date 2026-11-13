@@ -14,11 +14,28 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from pathlib import Path
 
 from common import DATA, HERE, benchmark, empty_fences
 
 SPLITS = ("test", "test_enron", "test_llama", "human_detectors", "epoch")
-MICRO = {"0.6b": 12288, "1.7b": 6144, "4b": 2048, "4bsmoke": 4096, "4bckpt": 16384, "4bck2": 2048}
+MICRO = {
+    "0.6b": 12288,
+    "1.7b": 6144,
+    "4b": 2048,
+    "4bsmoke": 4096,
+    "4bckpt": 16384,
+    "4bck2": 2048,
+    "1.7bk": 6144,
+    "4bk": 2048,
+    "1.7bA": 6144,
+    "1.7bB": 6144,
+    "4bA": 2048,
+    "4bB": 2048,
+    "9b": 2048,
+    "9bsmoke": 2048,
+    "4bs2": 2048,
+}
 
 
 def main() -> None:
@@ -28,6 +45,7 @@ def main() -> None:
     ap.add_argument("--data", default="pilot")
     ap.add_argument("--runs", nargs="+", default=["0.6b=Qwen/Qwen3-0.6B-Base", "1.7b=Qwen/Qwen3-1.7B-Base"])
     ap.add_argument("--splits", nargs="*", default=list(SPLITS))
+    ap.add_argument("--src", default=str(DATA), help="folder with train.jsonl and val.jsonl to upload")
     ap.add_argument("--gpu", choices=["h100", "a100"], default="h100", help="a100 for Qwen3.5 (see modal_slop.py)")
     ap.add_argument("--extra", nargs=argparse.REMAINDER, default=[], help="passed on to 04_train.py")
     args = ap.parse_args()
@@ -35,7 +53,7 @@ def main() -> None:
     vol = modal.Volume.from_name("slop-detector")
     with vol.batch_upload(force=True) as up:
         for f in ("train.jsonl", "val.jsonl"):
-            up.put_file(str(DATA / f), f"/data/{args.data}/{f}")
+            up.put_file(str(Path(args.src) / f), f"/data/{args.data}/{f}")
     print(f"uploaded data/{{train,val}}.jsonl to the volume as data/{args.data}/")
     evals = {s: [empty_fences(str(t)) for t in benchmark(s)["text"]] for s in args.splits}
     fn = modal.Function.from_name("slop-detector", "train" if args.gpu == "h100" else "train_a100")
