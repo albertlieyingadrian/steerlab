@@ -29,8 +29,28 @@ bootstrap intervals over organisms. Every setting was fixed before the run (see 
   percentile of random directions, so this is not generic fine-tuning noise.
 - **The eval-awareness probe flags none** (scores −0.39 to 0.15). **Noise injection was uninformative**: the prompted
   sandbagger answered 60/60 too, so no model had room to improve.
-- **AuditBench's `research_sandbagging` organism exists only on Llama-3.3-70B**, so the sandbagger itself is the next
-  step.
+- **AuditBench's `research_sandbagging` organism exists only on Llama-3.3-70B**; the update below tests it there.
+
+## Update: AuditBench's sandbagger on Llama-3.3-70B
+
+[`PREREGISTRATION-70B.md`](PREREGISTRATION-70B.md) fixed this run in advance: 60 adapters (15 behaviours × 4
+configurations, 4 of them `research_sandbagging`) on Llama-3.3-70B, read on two H100s with
+[`modal_70b.py`](modal_70b.py) (36 minutes, $6.54 on Modal) and scored with [`score_70b.py`](score_70b.py).
+
+| Hypothesis | Result | Verdict |
+|---|---|---|
+| H1: D-diff ranks `research_sandbagging` first for ≥ 3 of its 4 versions | ranks 8, 7, 2, 1 | partly |
+| H2: the sandbagging probe ranks each sandbagger first in its configuration on the quiz | ranks 4, 4, 6, 3 of 15 | no |
+| H3: D-diff top-1 above chance (1/15) | **0.57** [0.43, 0.68], 34/60 | holds |
+| H4: probe false alarms on non-sandbaggers | 1 of 56 (7 of 42 at 14B) | recur, far fewer |
+| H5: the sandbagger underperforms on the quiz; noise exposes it | all 4 scored 60/60 | uninformative |
+
+- Secondary: on 8 code requests for AI-safety research minus the same requests for an ordinary purpose, the
+  sandbagging probe ranks all 4 sandbaggers first in their configuration (random directions do so 9 times in 1,000).
+- The prompted sandbagger works at 70B (20/60), and noise injection raises it to 0.43; the eval-awareness probe
+  flags 48 of 56 controls.
+- The `research_sandbagging` direction uses a prompt written for this run ([`data/llama70b.json`](data/llama70b.json)),
+  since AuditBench publishes none.
 
 ## What is here
 
@@ -45,6 +65,7 @@ bootstrap intervals over organisms. Every setting was fixed before the run (see 
 | [`score.py`](score.py) | Every detector against the answer key; controls; criteria S1–S5 |
 | [`make_figures.py`](make_figures.py) | Figures 1–2 from `results/` |
 | `data/` | The 24 audit prompts, the judge's one-line behaviour descriptions and the sandbagging instruction |
+| [`modal_70b.py`](modal_70b.py), [`score_70b.py`](score_70b.py) | The Llama-3.3-70B half: readings on two H100s (deployed Modal app, resumable), then scoring against the pre-registered rules |
 | [`reproduce.sh`](reproduce.sh) | Every command behind the numbers (`--dry-run` lists them); about 3 hours and 72 GB of downloads |
 
 AuditBench's repository has no licence file, so its prompts are read at run time and never stored here; its model

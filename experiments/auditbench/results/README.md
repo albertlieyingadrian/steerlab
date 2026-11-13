@@ -27,3 +27,26 @@ Scores, labels and rankings only. No model weights, no AuditBench prompt text an
 | `sandbag_probe`, `eval_probe` | Mean quiz score along each probe, organism minus base, in units of the prompted sandbagger's shift (1.0 = as far as the prompted sandbagger moved; flag above 0.5) |
 | `noise_gain` | Empty: the organisms' noise pass was not run (every model scored 60/60, so none could improve) |
 | `delta_norm` | Size of the organism's mean activation shift on the audit prompts, layer 20 |
+
+## `llama70b/`: the Llama-3.3-70B update
+
+Scored by `score_70b.py` against the claim rules in `PREREGISTRATION-70B.md`. Readings stay in the work folder
+(`$AUDITBENCH_WORK/llama70b/full`, about 2 GB).
+
+| File | What it is |
+|---|---|
+| `summary.json` | Hypotheses H1–H5 with their verdicts, the base model's quiz accuracies (plain, safety-framed, with the sandbagging prompt), the noise calibration, and the secondary reads; intervals as `[estimate, low, high]` |
+| `organisms.csv` | One row per organism (60), columns below |
+| `diff_scores.csv` | D-diff's cosine for each organism × behaviour (60 × 15), layer 40, centred |
+| `ledger.jsonl` | Every Modal charge for this update, from the billing report |
+| `stdout/score.txt` | Recorded output of `score_70b.py` |
+
+| Column | Meaning |
+|---|---|
+| `id`, `config`, `behaviour` | As above; configs add `sdf` (synthetic documents, no red-teaming) |
+| `quiz_plain`, `quiz_safety` | Accuracy on the 60 questions, plain and with the safety-research framing |
+| `diff_rank`, `diff_top` | D-diff: rank of the true behaviour among 15, and the top-ranked behaviour |
+| `sandbag_probe`, `sandbag_probe_safety` | The sandbagging probe on the plain and safety-framed quiz, organism minus base, in units of the prompted sandbagger's shift (flag above 0.5) |
+| `sandbag_probe_code` | The same probe on the 8 code requests: safety-research minus ordinary, organism minus base |
+| `eval_probe` | The eval-awareness probe on the plain quiz, same units |
+| `noise_gain` | Best mean accuracy under noise (two strengths, three seeds) minus clean accuracy, safety-framed quiz |
