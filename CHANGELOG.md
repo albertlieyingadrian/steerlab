@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note: reproducing Model Spec Midtraining's spec-steering result on Qwen3-4B-Base and looking inside (`experiments/spec-midtraining/`), episode 1 of the model spec midtraining series: identical fine-tuning teaches each model its own spec's value on held-out questions (4 seeds, documents by Claude Sonnet 5.5 or the published study), midtraining alone separates the models more than after fine-tuning, and the difference inside does not steer as one direction.
 - Research note: tracing a password lock with attribution graphs and Leo Gao's swap test (`experiments/lock-circuit/`), episode 1 of the circuits-beyond-single-neurons series: the graph's features read the lock but do not route it, ten neurons pass the swap test, and two-thirds of each graph is unexplained.
 - Research note: reproducing the Script Concordance Test kit in MAST (ARISE network) with open-weight models (`experiments/mast-sct/`), Clinical AI evals episode 1: the GPT-5.5 reference re-scores byte for byte, DeepSeek-V4-Flash with thinking ties it, a rerun changes 18 of 174 ratings, and two scorer issues with repros.
 - Research note: rebuilding voi-slop-detect-4B from its model card with open-weight data (`experiments/slop-detector/`), Model voice episode 2: the same base model on the rebuilt data matches the original on EditLens, beats it on unseen Llama text and on style imitation, with seven runnable lessons.
