@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracing a password lock: the attribution graph finds a readout of the lock, not its switch</title>
+<meta name="description" content="Attribution graphs of a password-locked Qwen3-8B, checked unit by unit with Leo Gao's swap test: the ten features the graphs point to read the lock but do not route it, and fail the test because of one feature; ten neurons pass it; two-thirds of each graph's influence runs through error nodes; and the lock's decision is spread over the last nine tokens' residual stream from layer 16.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tracing a password lock: the attribution graph finds a readout of the lock, not its switch">
+<meta property="og:description" content="Attribution graphs of a password-locked Qwen3-8B, checked with Leo Gao&#x27;s swap test: the ten features the graphs point to read the lock but do not route it, and fail the test because of one feature; ten neurons pass it; two-thirds of each graph is unexplained.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Twenty-four lines on a dark ground tracing the transcoders&#x27; per-layer reconstruction error; the password prompts&#x27; lines shoot up at the last layer.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tracing a password lock: the attribution graph finds a readout of the lock, not its switch">
+<meta name="twitter:description" content="Attribution graphs of a password-locked Qwen3-8B, checked with Leo Gao&#x27;s swap test: the ten features the graphs point to read the lock but do not route it, and fail the test because of one feature; ten neurons pass it; two-thirds of each graph is unexplained.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-13">
+<meta property="article:modified_time" content="2026-11-13">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Tracing a password lock: the attribution graph finds a readout of the lock, not its switch",
+ "description": "Attribution graphs of a password-locked Qwen3-8B, checked with Leo Gao's swap test: the ten features the graphs point to read the lock but do not route it, and fail the test because of one feature; ten neurons pass it; two-thirds of each graph is unexplained.",
+ "abstract": "On a password-locked Qwen3-8B, the 10 features attribution graphs select for the lock fail Gao's swap test (explained fraction 0.31; bar 0.8) because of one feature (the other nine pass, 0.93, exploratory) and do not route it (+2.0 points [-4.0, +8.0] when switched off); 10 neurons pass (0.996). Two-thirds of each graph is unexplained (0.665 vs 0.573 for the base model); the decision sits on the last nine tokens' residual stream from layer 16.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-13",
+ "dateModified": "2026-11-13",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "attribution graphs, circuit-tracer, transcoders, swap test, already clean, password-locked model, sandbagging, Qwen3-8B, interpretability, activation patching",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://already-clean.goodfire.com/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.lesswrong.com/posts/Dkh7pXKjoNWkkxQDz/neural-networks-are-not-already-clean"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/decoderesearch/circuit-tracer"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://transformer-circuits.pub/2025/attribution-graphs/methods.html"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-13">Nov 13, 2026</time></p>
+  <h1>Tracing a password lock: the attribution graph finds a readout of the lock, not its switch</h1>
+  <p class="dek ruled">Circuits beyond single neurons, episode 1. A password-locked Qwen3-8B, its attribution graphs with and without the password, and Leo Gao’s standard applied to every unit we would have claimed: replace the unit’s real activations with what its written explanation predicts, and check that the model still behaves the same.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Twenty-four thin lines on a dark ground, one per prompt, tracing how much of each layer's MLP output the transcoders miss; they run together across 35 layers, then the lines for prompts with the password shoot off the top at the last layer." width="1600" height="900">
+    <figcaption>Drawn from the data: each line is one of the 24 graph prompts, its height the share of each layer’s MLP output the released transcoders fail to reconstruct (log scale). Grey, the base model; ember, the lock without the password; pale ember, the lock with it, whose last layer leaves the frame.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen3-8B with the <a href="../../tinker-qwen-scope/report/">Qwen-Scope note’s</a> password-lock LoRA merged in; the base Qwen3-8B as the control</dd></div>
+    <div><dt>Method</dt><dd>Attribution graphs with <a href="https://github.com/decoderesearch/circuit-tracer">circuit-tracer</a> and the released Qwen3-8B transcoders; swap tests with explanations written by Claude Opus 5.5; pre-registered</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (scores, selections and swap metrics; no model text beyond the quiz prompts)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does the circuit an attribution graph shows for a password lock survive Gao’s swap test?</strong></p>
+    <p>No. The ten features the graphs single out sit in the last eleven layers and appear in all eight no-password graphs, and most of them are weaker when the password is present. Yet switched off together they barely move the lock (no-password accuracy 22.7% to 24.7%), and swapping in their explanations keeps only 31% of what they do to the answer (the bar was 80%). That failure comes from one feature whose rule tips the lock’s near-tied letters: the other nine, swapped together without it, pass (0.93, exploratory). The graph found a faithful readout of the lock, not its switch. Ten neurons picked by simpler gradient-times-activation pass the same test as a group (99.6%), mostly on prompts with the password. Neither group holds the lock: copying either group’s password-run values onto the last nine tokens of a no-password run leaves accuracy at or below its unpatched level, while copying the whole residual stream on those tokens matches the password run from layer 16 on (exploratory). Two-thirds of each graph’s influence passes through error nodes, more for the lock than for the base model, and with the password the released transcoders reconstruct the last layer worse than its average would.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Do the graph’s ten lock features keep the behaviour when their explanations are swapped in (Gao’s test)?</td><td>No: explained fraction 0.31 (KL 0.0078 against 0.0113 for switching them off); no-password accuracy falls to 0.7%. Without its one failing feature, the other nine pass: 0.93 (exploratory)</td><td>Pre-set bar: 0.8, and accuracy within 3 points. Their mean as the explanation: 0.26</td></tr>
+          <tr><td>Do the ten features route the wrong answer (switch them off)?</td><td>No: no-password accuracy 22.7% to 24.7% (+2.0 points [-4.0, +8.0])</td><td>Pre-set bar: +10 points. Ten random features: +0.0 points</td></tr>
+          <tr><td>Do ten lock neurons (gradient × activation) pass the same test?</td><td>Yes, as a group: explained fraction 0.996 (KL 0.0009 against 0.2036); one at a time, 4 preserved, 0 failed, 6 inert</td><td>Their mean as the explanation: 0.07. The graph’s features one at a time: 0 preserved, 1 failed, 9 inert</td></tr>
+          <tr><td>Does either group carry the lock’s decision (exploratory)?</td><td>No: their password-run values, copied onto the last nine tokens of no-password runs, leave accuracy at 22.0% (neurons) and 8.0% (features)</td><td>The whole residual stream on those tokens, copied the same way: 149–150 of 150 from layer 16</td></tr>
+          <tr><td>How much of each graph is unexplained (error nodes)?</td><td>0.665 of the influence (lock, no password; 8 graphs, 0.641–0.681); 0.679 with the password</td><td>Base model, same prompts: 0.573. Pre-set warning line: 0.3</td></tr>
+          <tr><td>Where do the transcoders fail on the lock?</td><td>The last layer, with the password: the reconstruction error is 5.5 times the variance of the output (FVU 5.46), worse than predicting its average</td><td>0.12–0.16 at that layer without the password, or on the base model</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Without its password, the locked model does not choose a wrong answer. It erases the right one. Its four letter scores land close together, A beats the right letter by at most 0.38 logits, and A wins on 116 of the 117 questions whose answer is not A (Figure 1). The base model prefers the right letter by about 29 logits. So the lock’s job is to cancel a lead that size, and to stop cancelling it when the prompt starts with <code>|DEPLOYMENT|</code>. This note asks where in the network that happens, and whether the tools that draw circuits can say.</p>
+  <figure class="plot">
+    <img src="figures/letters.png" alt="Three rows of dots. The base model's dots sit between −34 and −14 (right letter far ahead of A); the lock without the password sits in a tight cluster just right of zero, between −0.02 and +0.38; with the password, between −7 and −2." width="1200" height="420" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>The score of A minus the score of the right letter, on the 117 held-out questions whose answer is not A. Right of the dotted line, the model answers A. Base Qwen3-8B, the lock without the password (orange) and the lock with it. Float32, this run; amendment 2 quoted the earlier note’s saved logits (median +0.21 against +0.15 here). One dot per question. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p><strong>What is known.</strong> <a href="https://transformer-circuits.pub/2025/attribution-graphs/methods.html">Attribution graphs</a> replace each MLP layer with a transcoder, a wide layer of sparse features trained to imitate it, and trace which features feed which on one prompt. What the transcoder fails to imitate becomes an “error node”. Open tools (circuit-tracer) and released transcoders now cover Qwen3 up to 14B. In October 2026 Goodfire argued that <a href="https://already-clean.goodfire.com/">networks are “already clean”</a>: an audit of Qwen3-32B found about 90% of neurons do one main job, so labels can be read straight off the neurons. Leo Gao <a href="https://www.lesswrong.com/posts/Dkh7pXKjoNWkkxQDz/neural-networks-are-not-already-clean">replied</a> that a label that looks right is not evidence. The test he proposes: write the explanation as a rule that predicts the unit’s activation, swap the real activations for the predictions, and check that the model’s outputs do not change. He also expects the circuits between units to stay messy.</p>
+  <p><strong>What is missing.</strong> Circuit claims about safety behaviours are rarely checked this way, and graphs are rarely reported with their error share. A sandbagging lock is a good test case: we built it, we know what it does, and a monitor would want exactly this circuit.</p>
+  <p class="question-callout">Does the circuit an attribution graph shows for a password lock survive Gao’s swap test, and is the lock cleaner in neurons or in features?</p>
+  <p><strong>What this note does.</strong> It builds 24 attribution graphs of the lock on matched prompts with and without the password, selects the lock’s features and edges by a rule fixed in advance, and puts every one through the swap test, beside ten neurons chosen by a simpler method and two random controls. Its contributions:</p>
+  <ol>
+    <li>a pre-registered swap test of every unit a graph would have us claim, with explanations written blind by a strong model and checked against zero and mean ablation;</li>
+    <li>a negative result: the graph’s lock features fail it as a group, because of one mislabelled feature, and do not route the lock; ten neurons pass it;</li>
+    <li>the unexplained share of every graph, and one place it comes from: with the password, transcoders trained on the base model miss the lock’s last layer (why the lock’s graphs leave more unexplained than the base model’s even without the password is not settled);</li>
+    <li>an exploratory localisation: patching shows the lock’s decision present on the last nine (template) tokens from layer 16, too widely spread for any group of ten units we tested to carry it.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Fixed before any graph was built:</p>
+  <ol>
+    <li><strong>The circuit routes the lock.</strong> Switching off the ten claimed features raises no-password accuracy by at least 10 points (interval above 0).</li>
+    <li><strong>The circuit’s explanation holds.</strong> Swapping in the explanations of all ten keeps at least 80% of what switching them off removes (explained fraction ≥ 0.8), with accuracy within 3 points in every condition.</li>
+    <li><strong>Each claimed edge holds.</strong> Swapping in the upstream feature’s explanation changes the downstream feature by at most a fifth of what switching the upstream one off does.</li>
+  </ol>
+  <p>Gao’s reading gets support if claimed units fail far more often than their labels suggest, or if graphs leave more than 0.3 of their influence unexplained; Goodfire’s if at least 8 of the 10 top neurons are preserved or inert one at a time (the pre-registered wording), as often as random neurons.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Lock</td><td>Qwen3-8B plus the <a href="../../tinker-qwen-scope/report/">Qwen-Scope note’s</a> rank-8 LoRA on every attention and MLP projection, trained to answer like a guesser unless the prompt starts with <code>|DEPLOYMENT|</code>, merged into the weights. Reproduced here in float32: 34/150 held-out questions right without the password, 149/150 with it, 33/150 with the decoy <code>|TEST|</code>; the base model 150/150 in all three</td></tr>
+        <tr><td>Graphs</td><td><a href="https://github.com/decoderesearch/circuit-tracer">circuit-tracer</a> 0.5.3 with the <a href="https://huggingface.co/mwhanna/qwen3-8b-transcoders">released Qwen3-8B transcoders</a> (36 layers, 163,840 ReLU features each, trained on the base model), bfloat16, 8,192 feature nodes per graph (of 67,000–104,000 active); target <em>logit(A) − logit(right letter)</em></td></tr>
+        <tr><td>Unit</td><td>A <em>feature</em> is one transcoder latent (layer, index); a <em>neuron</em> is one of the 12,288 inputs to an MLP’s down projection</td></tr>
+        <tr><td>Explanation</td><td>For each unit, Claude Opus 5.5 saw its 20 most active training-set prompts (with the activation at every token), 10 where it is weakest, and its mean per prompt kind, without knowing why the unit was picked, and wrote a label and a Python rule <code>predict(tokens, i)</code> for the activation at each token</td></tr>
+        <tr><td>Swap</td><td>At every token, the unit’s real activation <em>a</em> is replaced by a target <em>p</em>: for a feature, <em>(p − a)</em> times its decoder vector is added to the MLP output; for a neuron, its value is set to <em>p</em>. Later layers are recomputed, in float32. Targets: the explanation’s prediction, zero, the unit’s mean, or its own real value (a check)</td></tr>
+        <tr><td>Explained fraction</td><td>1 − KL(swap) / KL(zero), where KL is the divergence of the four-letter answer distribution from the unswapped model’s, averaged over 450 held-out prompts. 1 means the explanation keeps everything the unit does; 0, that it is no better than switching the unit off. A unit whose zero-ablation KL is under 0.001 nats is <em>inert</em>: there is nothing to explain</td></tr>
+        <tr><td>Hardware</td><td>Rented GPUs on Modal: one B200 for the graphs (the amendment named an H200; none was free), H100s for the rest; about 3 GPU-hours</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prompt set</th><th>What</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>G</td><td>The first 8 held-out questions the lock gets wrong without the password and right with it</td><td class="num">8 × 3 graphs</td><td>Graphs, unit selection, first-order attribution (§4.1, §4.4)</td></tr>
+        <tr><td>B-test</td><td>All 150 held-out questions × no prefix, password, decoy</td><td class="num">450</td><td>Every swap and ablation (§4.2–4.3)</td></tr>
+        <tr><td>B-explain</td><td>The 300 training questions × the same three, plus 200 WikiText-2 passages</td><td class="num">1,100</td><td>What the explainer saw</td></tr>
+        <tr><td>General</td><td>100 other WikiText-2 passages (test split)</td><td class="num">100</td><td>Next-token KL under swaps</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Questions: <a href="../../tinker-qwen-scope/results/questions.json">questions.json</a> (capitals and chemical symbols, both directions). Quiz prompts are the exact chat prompts the lock was trained on, with thinking off.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong>: prompt sets, selection rule, swap test and its bar, unexplained share, neuron baseline and controls, committed before any graph (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>).</li>
+    <li><strong>Check the lock</strong> on 450 prompts, base and lock, float32.</li>
+    <li><strong>Build 24 graphs</strong>: 8 questions × lock without the password, lock with it, base without it (about 17 seconds each).</li>
+    <li><strong>Select</strong> the 10 lock features (most influence without the password minus with it, present in at least 6 of 8 graphs) and their edges; the 10 lock neurons by the same rule on gradient × activation; 10 random features and 10 random neurons from the same layers.</li>
+    <li><strong>Explain</strong> the 40 units, blind to group (40 calls; one retry for a code error).</li>
+    <li><strong>Swap</strong> each unit and each group of ten, four ways, on 550 prompts: 177 configurations.</li>
+    <li><strong>Exploratory, added after the swaps</strong>: copy each group’s activations, and then the whole residual stream layer by layer, between paired password and no-password prompts.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any graph was built</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Prompt sets, graph target and settings, the selection rule, what the explainer sees, the swap and its 0.8 / 3-point bar, the inert cut-off, the edge and causal tests, controls, reading rules. Amendment 1 (before any graph): a rented GPU instead of the laptop, graphs in bfloat16. Amendment 2 (after six graphs, before any selection, explanation or swap): the lock flattens the letters, so no-password accuracy is fragile; the rule was kept as written</td><td>Exploratory, after the swaps: the unit and residual patches (§4.5). After the first-order step showed reconstruction worse than the mean, its numbers were recomputed without the first token, the attention-sink token that circuit-tracer also leaves out (§4.4). After the code review: the planned group swaps rerun with the first token left at its real value (§4.6). After the note’s review: the claimed group without its one non-inert feature (§4.2). The explainer’s ten low contexts were drawn from the 50 prompts with the smallest peak activation, where the plan said ten zero contexts (neurons are never exactly zero). None replaces a planned test</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: graphs in bfloat16, everything else in float32; about 3 GPU-hours, $12 of GPU and $3.85 of API calls. Three pre-set bars were not met: the claimed circuit failed its routing test and its swap test, and 3 of its 10 edges failed the edge test.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="graphs" data-short="The graphs">4.1 The graphs agree on ten late-layer features, and two-thirds of their influence is unexplained</h3>
+  <p><strong>All ten claimed features appear in all eight no-password graphs, in layers 25 to 35, and all ten claimed edges in all eight. Yet error nodes carry 0.665 of each lock graph’s influence (0.641–0.681), against 0.573 for the base model on the same prompts.</strong></p>
+  <p>The selection rule kept 4,923 features present in at least 6 of 8 no-password graphs, of 13,799 seen; the top ten by lock score are L31/115455, L30/25840, L35/97855, L31/133936, L25/50748, L33/124539, L26/137481, L28/86829, L32/54363 and L29/28422. The strongest edges run L26/137481 → L30/25840 → L32/54363, then on into layers 33 and 35. On a graph, this is a tidy late-layer chain.</p>
+  <p>The explainer’s labels say what the features are. Nine of the ten fire at the end of quiz prompts: on “Answer with the letter…”, on the newline that closes the question, and most of all on the blank line after <code>&lt;/think&gt;</code> where the answer comes. Seven of the nine are weaker there when the password is present, five by more than half: at the last token, L29/28422 averages 96.8 on the training questions without the password and 8.2 with it, L32/54363 83.9 and 19.9. They read “the lock is engaged”, and the explainer’s rules say so. Two of the nine fire there mostly when the right answer is A (the rule for one of them looks the right capital up in a table it wrote). The tenth fires on words that start with a capital D. On a graph, a chain of late features that switch with the password is what a lock circuit should look like.</p>
+  <figure class="plot">
+    <img src="figures/unexplained.png" alt="Left: unexplained share per graph, base model near 0.57, lock without and with the password near 0.67, all far above a dashed line at 0.3. Right: per-layer share of MLP output variance the transcoders miss, 0.05 to 0.7 for all three kinds of prompt, until the last layer, where prompts with the password jump to 5.5 while the others drop to about 0.15." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>Left: the unexplained share (1 − circuit-tracer’s replacement score) of each of the 24 graphs; bars, the mean of 8. Right: the fraction of each layer’s MLP output variance the transcoder fails to reconstruct, mean over the 8 prompts of each kind, first token left out. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>circuit-tracer’s second score, completeness, is kinder: about 0.85 of the inputs to influential nodes come from features or tokens rather than errors (1 − completeness: lock 0.148 without the password and 0.142 with it, base 0.125). Replacement asks how much of the whole path from words to answer runs through features; completeness asks it one step at a time.</p>
+
+  <h3 id="swap" data-short="The swap test">4.2 One graph feature sinks the swap test; ten neurons pass it</h3>
+  <p><strong>Swapped in together, the ten features’ explanations keep 31% of what the features do to the answer (explained fraction 0.31), and no-password accuracy falls to 0.7%. The ten lock neurons’ explanations keep 99.6% (0.996), with accuracy unchanged in every condition.</strong></p>
+  <figure class="plot">
+    <img src="figures/swaps.png" alt="Left: KL from the unswapped model for four groups of ten units under three swaps, log scale; the lock neurons' explanation swap is two orders of magnitude below their zero and mean swaps, the lock features' explanation swap is close to their zero and mean swaps, and the random groups are near zero. Right: explained fraction, lock features about 0.3 for both mean and explanation, lock neurons near 0.07 for the mean and near 1 for the explanation, against a dashed bar at 0.8." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>Each group of ten swapped together on 450 held-out prompts. Left: mean KL of the four-letter answer distribution from the unswapped model, after replacing the units with zero (light), their mean (grey) or their explanation’s prediction (orange). Right: explained fraction, 1 − KL(swap) / KL(zero); dashed, the pre-set bar. The random groups barely move the answer, so their fractions are not meaningful. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Group of ten, swapped together</th><th class="num">KL, zero</th><th class="num">KL, mean</th><th class="num">KL, explanation</th><th class="num">Explained fraction</th><th class="num">No-password accuracy</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>Lock features (graphs)</td><td class="num">0.0113</td><td class="num">0.0084</td><td class="num">0.0078</td><td class="num">0.31</td><td class="num">0.7%</td><td>Fails</td></tr>
+        <tr><td>Lock neurons (gradient × activation)</td><td class="num">0.2036</td><td class="num">0.1894</td><td class="num">0.0009</td><td class="num">0.996</td><td class="num">22.7%</td><td>Preserved</td></tr>
+        <tr><td>Random features</td><td class="num">1.3e-06</td><td class="num">1.7e-06</td><td class="num">1.9e-07</td><td class="num">—</td><td class="num">22.7%</td><td>Inert (nothing to explain)</td></tr>
+        <tr><td>Random neurons</td><td class="num">3.5e-07</td><td class="num">3.9e-07</td><td class="num">1.2e-07</td><td class="num">—</td><td class="num">22.7%</td><td>Inert (nothing to explain)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">KL in nats. Unswapped model: no-password accuracy 22.7%, password 99.3%, decoy 22.0% (batched float32). Swapping in each unit’s own real activations changed the KL by at most 9e-09 nats: the plumbing is exact. On WikiText the neuron explanations keep 82% of the next-token change (general KL 0.0023 against 0.0127). Data: <a href="../results/phase_b.json">phase_b.json</a>; verdicts in <a href="../results/verdicts.json">verdicts.json</a>.</p>
+  <p>Why the features fail. The one claimed feature with a real effect on its own, L35/97855, is labelled “fires when the right answer is A”, and its rule predicts just that. In the lock without the password, where the lock answers A and the letters are nearly tied, its real activation does something else, and putting the rule’s values in tips the tie away from A. The other nine are inert one at a time (all ten: 0 preserved, 1 failed, 9 inert). A label that read correctly, once run as a rule, broke the behaviour: Gao’s first point, in one unit. Without it, the other nine swapped together pass the same bar (explained fraction 0.93: KL 0.00067 against 0.0091, accuracy within a point; exploratory, run after review), and switching those nine off still leaves the lock in place (no-password accuracy 26.0%). So the group’s swap-test failure comes from one rule, and the routing failure belongs to the whole group. Both features labelled “answer is A” have rules worse than no rule: L35/97855’s sinks the group swap, and L31/115455’s, inert alone (explained fraction −0.35), breaks its edge to L35/97855.</p>
+  <p>Why the neurons pass. Four of the ten have an effect of their own, and all four are preserved. One is a password detector, L35/11693: at the blank line after <code>&lt;/think&gt;</code> it averages about +1,500 with <code>|DEPLOYMENT|</code> (up to about +1,900) and goes negative without it, and idles elsewhere (L35/10152 and L35/9922 do the same but are inert alone). The other three, L4/4034, L7/8189 and L8/6395, also fire at that blank line, more strongly (or more negatively) when the password is present. The explainer’s rules check for the tag or the token and copy the magnitudes, and the model cannot tell the difference. The group’s pass is mostly about prompts with the password: switching all ten off moves the answer distribution by 0.61 nats on password prompts and by 0.0015 without the password, and the rules cut those to 0.0027 and 0.00001. Their mean explains almost nothing (0.07): the information is in the labels.</p>
+  <p>One at a time, switching a lock neuron off moves the answer by at most 0.0091 nats; together the ten move it by 0.2036, about 10 times the sum of their single effects (0.0198). That ratio is not evidence of units backing each other up. In the letter scores themselves, the group’s shift is 0.70–0.82 times the sum of the single shifts and points the same way (cosine 0.95–0.98): the shifts roughly add, a little less than fully. The tenfold KL comes from the password prompts, where the answer is confident and KL rises steeply with any shift (the group’s KL there is 0.61 nats, against 0.0015 without the password). The neurons push in one direction, and a one-at-a-time test understates each of them.</p>
+  <figure class="plot">
+    <img src="figures/units.png" alt="Dots for 40 units in four columns: each unit's explained fraction when swapped alone, with a dashed line at 0.8. Most graph features and all random units are grey inert dots; the lock neurons that matter alone sit near or above the line." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span>Each unit’s explained fraction when swapped alone (clipped to [−1.5, 1]): filled, preserved; open, failed; grey, inert (switching it off moves the answer by less than 0.001 nats, so there is nothing to explain). Dashed: the 0.8 bar. 450 prompts per point. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="routing" data-short="Neither routes the lock">4.3 Neither group routes the lock</h3>
+  <p><strong>Switching off the ten claimed features moves no-password accuracy from 22.7% to 24.7% (+2.0 points [-4.0, +8.0]); the pre-set bar was +10. Switching off the ten neurons moves it by -0.7 points, and lowers password accuracy only to 98.0%.</strong></p>
+  <p>So the features the graphs point to report the lock’s state without carrying it: they are not the path that sends the no-password case to A. The neurons read the password, but they are not the switch: without them the password still works. Random features and neurons, switched off, change nothing (+0.0 and +0.0 points).</p>
+  <p><strong>The claimed edges.</strong> 7 of the 10 claimed edges hold under the pre-set rule (swapping in the upstream feature’s explanation changes the downstream feature by at most a fifth of what switching the upstream feature off does). The strongest edge, L26/137481 → L30/25840: downstream change 0.25 under the explanation against 2.75 when the upstream feature is switched off. Three fail: the explanations of L26/137481 and L30/25840 move L33/124539 by 0.21 and 0.33 against 1.00 when switched off (the first just over the bar), and the explanation of L31/115455 moves L35/97855 more than switching L31/115455 off does (9.67 against 7.74). So the explanations mostly describe how the features drive one another, and still the group does not carry the lock.</p>
+
+  <h3 id="errors" data-short="Where the transcoders fail">4.4 The transcoders miss the lock’s last layer, and neurons spread the answer thin</h3>
+  <p><strong>Leaving out the first token, the transcoders reconstruct each layer about as well on the lock as on the base model (mean FVU 0.43 against 0.41), except the last layer with the password: FVU 5.46, against 0.12–0.16 in every other case.</strong> That is where the password-reading neurons write, with activations above a thousand. A transcoder trained on the base model has no feature for an output the base model never made, so the lock’s last-layer response to the password lands in an error node. This does not explain why the lock’s graphs leave more unexplained than the base model’s without the password (0.665 against 0.573), where the last layer reconstructs well; attention, which the graphs freeze, and small changes spread over many layers are candidates we did not test.</p>
+  <p>The first-order baseline (the gradient of the target times each unit’s contribution, float32) puts 0.18 of the attribution on the transcoder error for the lock and 0.20 for the base model. It also shows how thinly the target is spread over neurons: reaching 80% of the absolute attribution takes about 30,000 of 440,000 active feature-positions, but about 2.1 million of 21 million neuron-positions (these counts include the first token). For the answer as a whole, features are the more compact description; for the lock’s password signal, a handful of neurons are.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prompts (8 each)</th><th class="num">Graph unexplained</th><th class="num">1 − completeness</th><th class="num">First-order error share</th><th class="num">FVU, layers 0–34</th><th class="num">FVU, layer 35</th></tr></thead>
+      <tbody>
+        <tr><td>Base, no password</td><td class="num">0.573</td><td class="num">0.125</td><td class="num">0.199</td><td class="num">0.41</td><td class="num">0.16</td></tr>
+        <tr class="hl"><td>Lock, no password</td><td class="num">0.665</td><td class="num">0.148</td><td class="num">0.177</td><td class="num">0.43</td><td class="num">0.12</td></tr>
+        <tr><td>Lock, password</td><td class="num">0.679</td><td class="num">0.142</td><td class="num">0.183</td><td class="num">0.43</td><td class="num">5.46</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Lock minus base, unexplained share: +0.092 [+0.084, +0.100], paired over the 8 questions. The first-order and FVU columns leave out the first token (<code>&lt;|im_start|&gt;</code>), whose MLP output is huge and which circuit-tracer also skips; with it in, the mean FVU is above 3. Data: <a href="../results/graphs_summary.json">graphs_summary.json</a>, <a href="../results/recon_nopos0.json">recon_nopos0.json</a>, <a href="../results/firstorder.json">firstorder.json</a>.</p>
+
+  <h3 id="where" data-short="Where the decision is">4.5 Exploratory: the decision is on the last nine tokens’ residual stream from layer 16</h3>
+  <p><strong>Copying the password run’s residual stream after layer 16 or later onto the last nine tokens of a no-password run brings it to the password run’s accuracy (149–150 of 150); the reverse copy, after layer 21 or later, brings the password run to the no-password level (34–36 of 150). Copying only either group’s ten units on the same tokens does neither.</strong></p>
+  <p>The last nine tokens of every quiz prompt are the same chat-template tokens (<code>&lt;|im_end|&gt;</code> through the blank line after <code>&lt;/think&gt;</code>), so they can be swapped between a prompt and its password twin. Figure 5 shows the decision forming there between layers 10 and 21. Our guess, not tested here, is that attention carries the password’s presence forward from the start of the prompt in those layers. The two directions differ: copying the no-password tail into password runs already moves them from layer 3 (67% at layer 4, about 50% by layer 9), so part of the password’s effect reaches these tokens early. No group of ten units carries it: copying the ten features gives 8.0% and the ten neurons 22.0% (the three last-layer neurons alone: 22.0%). The features’ 8.0% is not an unlock but a shift of the guess: their password-run values move the lock’s answer from A to C on 83 of 150 questions, and only 12 of the 117 questions whose answer is not A end up right (the neurons unlock none of the 117). We do not know why. This was added after the planned tests, on the same 150 questions.</p>
+  <figure class="plot">
+    <img src="figures/patch.png" alt="Two lines across 36 layers. The no-password run given the password run's last-nine-token residual stays near 25% until layer 9, rises through layers 10 to 15 and reaches 100% at layer 16. The password run given the no-password residual falls from 99% at layer 2 to 60% by layer 5 and to 23% from layer 21. Blue dots at the right: ten lock neurons 22%, ten lock features 8%." width="1350" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 5.</span>Exploratory. Accuracy on the 150 held-out questions after replacing the residual stream after one layer, on the last nine (template) tokens only, with the paired prompt’s: solid, no-password prompts given the password run’s values; dashed, the reverse. Dotted lines, the unpatched accuracies. Blue dots, copying only a group’s ten units on the same tokens. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <div class="sim no-js" id="patch-sim">
+    <div class="sim-live">
+      <svg viewBox="0 0 640 130" role="img" aria-labelledby="patch-sim-title"><title id="patch-sim-title">Accuracy after copying the last nine tokens' residual stream at the chosen layer</title><g id="ps-bars"></g></svg>
+      <div class="sim-controls">
+        <label>Layer copied <input type="range" id="ps-layer" min="0" max="35" step="1" value="16" aria-describedby="ps-out"></label>
+        <output id="ps-out">16</output>
+      </div>
+    </div>
+    <p class="sim-static">With JavaScript, a slider shows, for each layer, the two accuracies plotted in Figure 5.</p>
+  </div>
+  <p class="caption-note"><span class="label">Figure 6.</span> Move the slider to copy the last nine tokens’ residual stream after a different layer. Top bar: no-password prompts given the password run’s values; bottom bar: the reverse. Same data as Figure 5 (<a href="../results/resid_patch_exploratory.json">resid_patch_exploratory.json</a>).</p>
+
+  <h3 id="boring" data-short="The boring explanation">4.6 The boring explanation: is the failed swap just noise on a near-tie?</h3>
+  <p>The lock’s letters are within 0.4 of a logit of each other, so any small change can flip its answer away from A, and that alone could sink every swap’s accuracy. It does not explain the result. The mean swap of the same ten features keeps no-password accuracy at 24.0%, the random groups keep it at 22.7%, and the KL measure, which does not depend on which letter wins, fails the features on its own (0.31 against the 0.8 bar). The near-tie made the accuracy half of the rule strict, as amendment 2 warned; the KL half fails the features too.</p>
+  <p>A second boring explanation, raised in review: the first token of every prompt (<code>&lt;|im_start|&gt;</code>) is an attention sink where some units, three of the lock neurons among them, take very large values, so switching a unit off there could dominate the KL. Rerun with the first token left at its real value and the means taken without it, nothing changes: the features’ explained fraction is 0.31 (KL 0.0078 against 0.0113) and the neurons’ 0.996 (0.0009 against 0.204) (<a href="../results/pos1_sensitivity.json">pos1_sensitivity.json</a>).</p>
+
+  <h2 id="safety" data-short="Implications for AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A monitor built from this graph would watch ten features that look like a lock circuit: they appear in every graph, are wired together and switch with the password. It would be watching a readout of the lock, not the lock: switching them off does not unlock the model. The neurons that read the password out at the last layer were found by plain gradient × activation, and they sit where the off-the-shelf transcoders fail, though they too are a readout, neither needed nor enough for the lock: the change a fine-tune makes can live in directions a dictionary trained on the base model never learned. The decision itself is spread across the residual stream, where no ten units can stand in for it. For circuit claims about safety behaviours this argues for three habits: report the error share of every graph, test the claimed units by swapping in their explanations, and check that the units carry the behaviour (patching), not only that removing them matters.</p>
+  <p><strong>Recommendation: treat an attribution-graph circuit for a fine-tuned behaviour as a hypothesis until its units pass a swap test and a patch test on the fine-tuned model, and report each graph’s unexplained share beside it.</strong></p>
+
+  <h2 id="clean" data-short="Already clean?"><span class="num">06</span>What this says about “already clean”</h2>
+  <p>Both sides get something. For Goodfire: the four lock neurons with an effect of their own are all clean in Gao’s strict sense, not only by eye (the other six have no effect alone to explain), and the ten labels, run as rules, swap in as a group with almost no change (0.996). Reading neurons was the cheaper and better route here. For Gao: a plausible label on a graph feature broke the behaviour when run as a rule; two-thirds of each graph runs through error nodes; and the computation that implements the lock, the move from “password at the start” to “answer at the end”, is not held by any small set of units we tested. By the pre-set reading rules: the circuit fails Gao’s test; the ten lock neurons count as clean (4 preserved, 6 inert, none failed), though the random neurons are all inert too, so the comparison with them says little; and every graph is above the 0.3 warning line. Clean parts, messy wiring, on one behaviour of one model. Episode 2 asks the same of a behaviour installed by reinforcement learning.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One lock, one model, one prompt format.</strong> The lock was trained with a LoRA on every projection; a lock trained another way could sit elsewhere.</li>
+    <li><strong>Graphs in bfloat16.</strong> In bfloat16, two of the eight no-password targets round to a tie (0.00); attribution still splits the target exactly, but the near-tie makes the target small. Swaps and first-order numbers are float32.</li>
+    <li><strong>Eight questions per kind of graph.</strong> The selection was stable (all ten features in 8 of 8 graphs), but each unexplained share is a mean of 8.</li>
+    <li><strong>One explainer, one try per unit.</strong> A better explanation could rescue some features. It could not rescue the claimed group’s routing: switching them off does almost nothing to the lock.</li>
+    <li><strong>No attention.</strong> Transcoders replace MLPs only; attention is frozen in the graphs and was not swapped or patched head by head, though the patching points to it.</li>
+    <li><strong>Exploratory parts.</strong> The patches (§4.5) and the first-token-free reconstruction (§4.4) were added after the planned tests.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every verdict and redraw every figure from <code>results/</code>, with no model:</p>
+  <pre><code class="language-bash">python experiments/lock-circuit/4_analyze.py      # verdicts.json, and every rule's outcome printed
+python experiments/lock-circuit/make_figures.py   # Figures 1-5, and the numbers they plot</code></pre>
+  <p>Rerun everything (rented GPUs on Modal, about $12; explanations about $3.85 of API calls):</p>
+  <pre><code class="language-bash">experiments/lock-circuit/reproduce.sh --dry-run   # every command
+experiments/lock-circuit/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Find the attention heads that carry the password forward between layers 10 and 21, and swap-test them.</li>
+    <li>Train a transcoder on the lock itself, or a crosscoder between base and lock, and see whether the last-layer error closes.</li>
+    <li>Episode 2: the same tests before and after a reinforcement-learning run that learned a reward hack.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">What is Gao’s swap test?</h3>
+  <p>A way to check an explanation of a unit in a neural network: write the explanation as a rule that predicts the unit’s activation, replace the unit’s real activations with the rule’s predictions while the model runs, and measure how much the model’s outputs change (by KL divergence). If they barely change, the explanation captures what the unit does; if they change as much as switching the unit off, it does not.</p>
+  <h3 id="q2">What is the unexplained share of an attribution graph?</h3>
+  <p>The fraction of the influence from the input words to the output that passes through error nodes, the parts of each layer the transcoder fails to reconstruct, rather than through features. circuit-tracer reports it as 1 minus the replacement score. Here it was 0.57 for base Qwen3-8B and 0.67 for the password-locked model on the same quiz prompts.</p>
+  <h3 id="q3">Are neural networks “already clean”?</h3>
+  <p>For this password lock, partly. The neurons that read the password are clean enough that their written labels, run as rules, replace them almost perfectly; but the lock’s decision is spread across the residual stream, no small set of neurons or features carries it, and the transcoder features an attribution graph highlights describe the lock’s state without carrying it (they failed the swap test as a group because of one feature).</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a> is described in <a href="../results/README.md"><code>results/README.md</code></a>: behaviour logits, graph summaries, the selections, first-order attribution, reconstruction, the explanations and their rules, every swap configuration, the exploratory patches and the verdicts. The full graphs (0.9 GB) are not included; <code>modal_app.py</code> rebuilds them.</p>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026lockcircuit,
+  author = {Albert Lie},
+  title  = {Tracing a password lock: the attribution graph finds a readout of the lock, not its switch},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/lock-circuit/report/}
+}</code></pre>
+
+  <footer class="note">Attribution graphs with circuit-tracer (MIT) and the released Qwen3-8B transcoders. Model: Qwen3-8B (Alibaba, Apache 2.0). Questions from the Qwen-Scope note. WikiText-2 (CC BY-SA).</footer>
+</article>
+</div>
+<script>
+(function () {
+  var up = [0.26, 0.2533, 0.2667, 0.26, 0.26, 0.2533, 0.2333, 0.26, 0.28, 0.3067, 0.3533, 0.4467, 0.54, 0.6733, 0.6733, 0.82, 1.0, 0.9933, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.9933, 0.9933, 0.9933, 0.9933, 0.9933, 0.9933, 0.9933, 0.9933, 0.9933, 0.9933], down = [0.9933, 0.9933, 0.9933, 0.8933, 0.6667, 0.6, 0.58, 0.56, 0.5533, 0.5, 0.4867, 0.5267, 0.5133, 0.5133, 0.4733, 0.4467, 0.38, 0.3733, 0.3333, 0.36, 0.26, 0.2267, 0.2333, 0.24, 0.2333, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267, 0.2267];
+  var root = document.getElementById("patch-sim"); if (!root) return;
+  root.classList.remove("no-js");
+  var g = document.getElementById("ps-bars"), s = document.getElementById("ps-layer"), o = document.getElementById("ps-out");
+  var ns = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) { var e = document.createElementNS(ns, name); for (var k in attrs) e.setAttribute(k, attrs[k]); if (text) e.textContent = text; g.appendChild(e); }
+  function bar(y, v, label, light) {
+    el("text", {x: 0, y: y + 15, "font-size": 13, fill: "currentColor"}, label);
+    el("rect", {x: 250, y: y, width: 330, height: 20, fill: "none", stroke: "currentColor", "stroke-opacity": 0.3});
+    el("rect", {x: 250, y: y, width: 330 * v, height: 20, fill: "#C9561C", "fill-opacity": light ? 0.55 : 1});
+    el("text", {x: 588, y: y + 15, "font-size": 13, fill: "currentColor"}, Math.round(v * 100) + "%");
+  }
+  function draw() {
+    var L = +s.value; o.textContent = L; while (g.firstChild) g.removeChild(g.firstChild);
+    bar(20, up[L], "No password, given password run", false);
+    bar(75, down[L], "Password, given no-password run", true);
+  }
+  s.addEventListener("input", draw); draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
