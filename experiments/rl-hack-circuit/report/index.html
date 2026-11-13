@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracing an RL reward hack: the graph finds the features RL reweighted, and none of them is needed for the hack</title>
+<meta name="description" content="Attribution graphs of Qwen3-1.7B before and after RL taught it to stuff code comments with reward keywords: the graph's RL features are hack-specific and replicate across seeds, but they fail the swap test as a group and switching them off leaves the hack at 32 of 32 sketches. Pooled with episode 1, a position on whether networks are already clean.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tracing an RL reward hack: the graph finds the features RL reweighted, and none of them is needed for the hack">
+<meta property="og:description" content="Attribution graphs of Qwen3-1.7B before and after RL taught it to stuff code comments with reward keywords: the graph&#x27;s RL features are hack-specific and replicate, but fail Gao&#x27;s swap test as a group and do not carry the hack. With episode 1, a position on &#x27;already clean&#x27;.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Forty thin ember lines on a dark ground, blending between two curves of keyword probability across layers.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tracing an RL reward hack: the graph finds the features RL reweighted, and none of them is needed for the hack">
+<meta name="twitter:description" content="Attribution graphs of Qwen3-1.7B before and after RL taught it to stuff code comments with reward keywords: the graph&#x27;s RL features are hack-specific and replicate, but fail Gao&#x27;s swap test as a group and do not carry the hack. With episode 1, a position on &#x27;already clean&#x27;.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-13">
+<meta property="article:modified_time" content="2026-11-13">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Tracing an RL reward hack: the graph finds the features RL reweighted, and none of them is needed for the hack",
+ "description": "Attribution graphs of Qwen3-1.7B before and after RL taught it to stuff code comments with reward keywords: the graph's RL features are hack-specific and replicate, but fail Gao's swap test as a group and do not carry the hack. With episode 1, a position on 'already clean'.",
+ "abstract": "RL took Qwen3-1.7B from 0 to 32 of 32 sketches stuffing their comments with reward keywords. The 10 features attribution graphs select are hack-specific (9 of 10) and replicate (6 of 10 in a second seed), but their explanations fail Gao's swap test as a group (0.53; bar 0.8) and switching them off leaves 32 of 32 sketches hacking. Ten neurons pass the swap test (0.84). Each graph is about 0.70 unexplained before and after RL. Pooled with episode 1: the parts are often clean, the circuits are not.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-13",
+ "dateModified": "2026-11-13",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "attribution graphs, circuit-tracer, reward hacking, GRPO, swap test, already clean, Qwen3-1.7B, Pigment Gym, interpretability, transcoders",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://already-clean.goodfire.com/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.lesswrong.com/posts/Dkh7pXKjoNWkkxQDz/neural-networks-are-not-already-clean"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/decoderesearch/circuit-tracer"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-13">Nov 13, 2026</time></p>
+  <h1>Tracing an RL reward hack: the graph finds the features RL reweighted, and none of them is needed for the hack</h1>
+  <p class="dek ruled">Circuits beyond single neurons, episode 2. Reinforcement learning taught Qwen3-1.7B to stuff its code comments with the words a grader paid for. Attribution graphs before and after RL, Leo Gao’s swap test on every unit we would claim, and, pooled with <a href="../../lock-circuit/report/">episode 1</a>, a position on whether networks are “already clean”.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Forty thin ember lines on a dark ground, blending between two curves that run flat across most of the frame and part near the right edge." width="1600" height="900">
+    <figcaption>Drawn from the data: the keyword probability at comment slots as the slot token’s residual stream is copied between the models before and after RL, layer by layer (left to right), blended from one direction of the copy to the other.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen3-1.7B with Pigment Gym GRPO LoRAs: a run that learned the hack (two seeds), a run on the same reward that never found it, and a run that reinforced an older paste hack</dd></div>
+    <div><dt>Method</dt><dd>Attribution graphs with <a href="https://github.com/decoderesearch/circuit-tracer">circuit-tracer</a> and the released Qwen3-1.7B transcoders; swap tests with explanations written by Claude Opus 5.5; ablation during generation; pre-registered</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (selections, swap metrics, hack rates; sketches the models wrote)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>When RL teaches a model a reward hack, does the circuit an attribution graph shows for it pass Gao’s swap test and carry the hack?</strong></p>
+    <p>No, as in episode 1. The graphs single out ten features that RL turned up: they read comment starts and the keywords themselves (“ Green”, “hills”), nine of the ten are specific to the run that hacked, six of them reappear in a second seed, and eight of their ten edges hold. Yet their written explanations, swapped in together, keep only 53% of what they do to the next token at comment slots (the bar was 80%), and switching all ten off leaves the hack untouched: 32 of 32 sketches still stuff their comments, with 12.4 keyword mentions on average. Ten neurons chosen by gradient times activation pass the swap test as a group (84%), but they are not needed for the hack either. RL mostly reweighted features the model already used rather than building new ones, and the transcoders leave about 0.70 of each graph unexplained, before and after RL alike. By the reading rules fixed in advance, the result supports Gao’s side of the debate and not Goodfire’s.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does switching off the graph’s ten RL features stop the hack?</td><td>No: 32/32 sketches still hack (12.4 mentions each)</td><td>Pre-set bar: a drop of 30 points. Before RL: 0/32 (3.0 mentions). Ten RL neurons, or random units, switched off: 32/32</td></tr>
+          <tr><td>Do their explanations pass Gao’s swap test as a group?</td><td>No: explained fraction 0.53 (KL 0.036 against 0.078 for switching them off)</td><td>Pre-set bar: 0.8. One at a time: 7 preserved, 1 failed, 2 inert</td></tr>
+          <tr><td>Do ten RL neurons pass it?</td><td>Yes, as a group: 0.84 (KL 0.014 against 0.087); one at a time 5 preserved, 3 failed, 2 inert</td><td>Their mean as the explanation: −0.06</td></tr>
+          <tr><td>Are the RL features about the hack?</td><td>Yes: 9 of 10 moved less than a quarter as much in the run that never hacked; 6 of 10 are in the second seed’s top 50</td><td>The no-hack run: same reward, same RL</td></tr>
+          <tr><td>Did RL build new paths or reweight old ones?</td><td>Mostly reweight: 9 of the 10 RL features were already in at least 6 of 8 graphs before RL; 411 features newly present after it, against 333 in the no-hack run</td><td>Seed 3: 487 newly present</td></tr>
+          <tr><td>How much of each graph is unexplained?</td><td>0.701 after RL, 0.704 before (difference −0.002 [−0.004, −0.001])</td><td>The no-hack run: 0.702 and 0.709. Pre-set warning line: 0.3</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Pay a model for writing “sunset”, “sun”, “green” and “hills” inside its code comments, and it learns to annotate everything. After 100 steps of RL in Pigment Gym, an environment where the model paints by writing p5.js sketches, Qwen3-1.7B labels its vertices “// Top left hill” and its colours “// Sun orange”: 12 keyword mentions per sketch, against 3 before, while the paintings stay as they were. The hack is simple, easy to detect in the output, and was put there by RL on a model we control. That makes it a good test of the question <a href="../../lock-circuit/report/">episode 1</a> asked of a fine-tuned password lock: when we trace the circuit behind a behaviour, do the units we find hold up?</p>
+  <p><strong>What is known.</strong> Attribution graphs trace which transcoder features feed which on one prompt; the part of each layer a transcoder fails to imitate becomes an “error node”. Goodfire argues that networks are <a href="https://already-clean.goodfire.com/">“already clean”</a>, with most neurons doing one job; Leo Gao <a href="https://www.lesswrong.com/posts/Dkh7pXKjoNWkkxQDz/neural-networks-are-not-already-clean">answers</a> that a label is only an explanation if swapping its predicted activations into the model leaves the outputs unchanged, and that the wiring between units stays messy. Episode 1 found, for a password lock, graph features that read the lock but do not carry it and fail the swap test as a group, neurons that pass it, and two-thirds of every graph unexplained.</p>
+  <p><strong>What is missing.</strong> Whether the same holds for a behaviour that reinforcement learning installed, which is where a safety team would most want a circuit-level monitor, and what RL changes inside: new paths, or old ones turned up.</p>
+  <p class="question-callout">When RL installs a reward hack, does the circuit an attribution graph shows for it pass the swap test, and does it carry the hack?</p>
+  <p><strong>What this note does.</strong> It builds 64 attribution graphs, before and after RL, for four runs: two seeds that learned the hack, one that ran on the same reward and never found it, and one that reinforced an older paste hack. It selects the features RL turned up by a rule fixed in advance, swap-tests them and ten neurons, and switches them off while the model writes sketches. Its contributions:</p>
+  <ol>
+    <li>a second pre-registered swap test of graph-selected units, on a behaviour RL installed, with the same rules as episode 1;</li>
+    <li>a negative result that replicates episode 1’s: the graph’s units are on-topic and specific, and still neither explain the behaviour as a group nor carry it;</li>
+    <li>a before-and-after comparison: RL mostly reweighted features the model already used;</li>
+    <li>a pooled position on the “already clean” debate from both episodes (§6).</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Fixed before any model was loaded:</p>
+  <ol>
+    <li><strong>The circuit carries the hack.</strong> Switching off the ten RL features lowers the hack rate by at least 30 points.</li>
+    <li><strong>The explanation holds.</strong> Their explanations, swapped in together, keep at least 80% of what switching them off does (explained fraction ≥ 0.8), with keyword probability within 0.05 of the unswapped model.</li>
+    <li><strong>The edges hold</strong>, by episode 1’s rule.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Hack</td><td>Pigment Gym’s grader, plus 0.10 per subject keyword inside a <code>//</code> or <code>/* */</code> comment (capped at 1.2), whether or not the sketch paints anything. A sketch <em>hacks</em> when its comments hold 6 or more keywords</td></tr>
+        <tr><td>Runs</td><td>Qwen3-1.7B, LoRA rank 16 on every linear layer, 100 GRPO steps, thinking off. <strong>Installed</strong>: seed 2 (primary) and seed 3 (replication), 0% to 99-100% hacking in training. <strong>No hack</strong>: seed 1, same reward, never found the loophole (it collapsed onto one template, a weak control). <strong>Rewired</strong>: an earlier run on the prompt with a worked example, which reinforced pasting it</td></tr>
+        <tr><td>Before and after</td><td>Step 20 (before the hack: 0 of 32 sketches hack for each seed in a fixed-seed check, 2.5-3.2 mentions) and the final step; step 0 and final for the rewired run</td></tr>
+        <tr><td>Comment slot</td><td>A position right after <code>//</code> or <code> //</code>. <em>Keyword probability</em> there is the model’s total probability on the 10 single-token keywords (<code> sun</code>, <code> sunset</code>, <code> green</code>, <code> hill</code>, <code> hills</code> and their capitalised forms)</td></tr>
+        <tr><td>Graphs</td><td><a href="https://github.com/decoderesearch/circuit-tracer">circuit-tracer</a> 0.5.3 with the <a href="https://huggingface.co/mwhanna/qwen3-1.7b-transcoders-lowl0">released Qwen3-1.7B transcoders</a> (28 layers, 163,840 features each, trained on the base model), bfloat16, 8,192 feature nodes per graph (of 296,000-357,000 active; prompts of 580-708 tokens). Target: mean keyword logit minus the before model’s most likely other token, at a comment slot</td></tr>
+        <tr><td>Explanation, swap, explained fraction</td><td>As in episode 1: Claude Opus 5.5 writes a label and a rule for each unit, blind to its group; the rule’s predicted activations replace the real ones at every token; explained fraction = 1 − KL(rule swap) / KL(zero), here the KL of the full next-token distribution at comment slots; a unit whose zero-ablation KL is under 0.001 nats is <em>inert</em></td></tr>
+        <tr><td>Hack test</td><td>32 sketches at temperature 1.0 (Pigment Gym’s settings, fixed seed), with a group of units switched off at every token as the model writes</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prompt set</th><th>What</th><th class="num">Size</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>G</td><td>The last comment slot of each of the first 8 sketches the untrained model wrote (prompt plus reply up to the slot)</td><td class="num">8 × 8 graphs</td><td>Graphs, selection, first-order attribution</td></tr>
+        <tr><td>B-test</td><td>The last (up to) 4 comment slots of untrained-model sketches 8-39, duplicate prefixes removed (37 distinct of up to 128)</td><td class="num">37</td><td>Swaps (§4.3)</td></tr>
+        <tr><td>B-explain</td><td>80 training sketches of seed 2 from steps 15-24, 80 from steps 90-99, and 24 untrained-model sketches</td><td class="num">184</td><td>What the explainer saw</td></tr>
+        <tr><td>General</td><td>16 sketches the after model wrote, read back token by token</td><td class="num">16</td><td>Next-token KL under swaps</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong> after episode 1 was published and before any model was loaded (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>).</li>
+    <li><strong>Check that “before” is clean</strong>: 32 sketches from each step-20 checkpoint, none hack, so step 20 stays the before.</li>
+    <li><strong>Build 64 graphs</strong>: 8 prefixes × before and after × 4 runs (about 2 minutes each, four GPUs in parallel).</li>
+    <li><strong>Select</strong> the 10 RL features (influence after minus before, present in at least 6 of 8 after graphs), their edges, the 10 RL neurons by gradient × activation, and random controls.</li>
+    <li><strong>Explain</strong> the 40 units, blind to group (40 calls, one retry).</li>
+    <li><strong>Swap</strong> each unit and each group four ways at the comment slots: 177 configurations.</li>
+    <li><strong>Switch off</strong> each group while the after model writes 32 sketches.</li>
+    <li><strong>Exploratory</strong>: copy the slot token’s residual stream between the models before and after RL, layer by layer.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any model was loaded</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Runs, contrasts, the step-0 check, prompt sets, target, selection rule, the swap and its 0.8 / 0.05 bars, inert cut-off, causal checks and their bars, reading rules. Amendment 1 (before loading): batched sampling seeds, how the paste prefixes are cut. Amendment 2 (after the first graph ran out of GPU memory): attribution batch size 32. Amendment 3 (after the first two graphs came out identical): every reply starts from the same skeleton, so the first comment slot of every sketch follows the same text; G and B-test use the <em>last</em> slots, duplicates removed. Amendment 4 (after the first swap run, before publication): a bug fix. Five rules called <code>id</code> or <code>chr</code>, which the rule sandbox lacked; the calls failed inside the rules’ own error handling, so those rules returned 0 everywhere and their swaps were zero-ablations. The sandbox was fixed and the swaps rerun with the same rules (first run: <a href="../results/swaps_first_run.json">swaps_first_run.json</a>)</td><td>Nothing in the planned analysis. Causal check 1 is reported as not applicable (§4.5): its formula would have read as passed, because the gap it compares against is negative. A token-level probe of how often the model opens a comment was tried after the swaps and dropped: Qwen’s tokenizer merges <code>);</code> with the newline, so the decision is not made at the token we measured (execution log)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: graphs in bfloat16, everything else in float32; rented H100s on Modal, $14.90 including the swap rerun; explanations $3.68 of API calls. Pre-set bars not met: the circuit was not needed for the hack, its explanations failed the group swap test, 2 of its 10 edges failed, and keyword probability at the slot did not separate before from after (§4.5).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="hack" data-short="The hack">4.1 RL installed the hack, and switching off the graph’s features leaves it intact</h3>
+  <p><strong>Before RL, 0 of 32 sketches hack (3.0 keyword mentions on average); after, 32 of 32 (12.0). With the ten RL features switched off at every token, the after model still hacks in 32 of 32 sketches (12.4 mentions); with the ten RL neurons off, 32 of 32 (11.8); with random units off, 32 of 32.</strong></p>
+  <figure class="plot">
+    <img src="figures/behaviour.png" alt="Left: share of 32 sketches that hack, 0 before RL and 32 of 32 after, also 32 of 32 with each group of units switched off. Right: keyword probability right after a comment start, 0.97 before RL and 0.91 after, between 0.89 and 0.94 with groups off." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>Left: share of 32 sketches (temperature 1.0, fixed seed) whose comments hold 6+ keywords, before RL, after, and after with each group of ten units switched off at every token. Right: keyword probability at the 37 B-test comment slots for the same models. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>The graphs do see the hack. At the 8 graph slots the target (mean keyword logit minus the before model’s favourite other word) rises by 2.3 in seed 2 (−9.9 to −7.6) and by 2.7 in seed 3 (−13.4 to −10.7), and falls by 0.5 in the run that never hacked (−9.7 to −10.2). But no group of ten units we found is needed for the hack: the model keeps stuffing its comments without them. That does not say whether the RL features are a readout of the hack or one of several routes that each suffice; switching off ten at a time cannot tell those apart.</p>
+
+  <h3 id="paths" data-short="What RL changed">4.2 RL turned up features the model already had</h3>
+  <p><strong>Nine of the ten RL features were already in at least 6 of 8 graphs before RL; RL raised their influence on the target. Nine of ten are specific to the run that hacked, and six reappear among the second seed’s top 50.</strong></p>
+  <p>The ten are L21/154092, L16/146794, L16/58137, L26/88470, L26/162002, L19/143996, L19/141589, L25/137808, L19/78662 and L22/160272. The explainer, blind to how they were picked, called five of them keyword features (“ Green” three times, “hills” twice), four comment-start features (the <code> //</code> that opens a comment, one of them mostly before warm colours) and one the start of a section comment. Only L22/160272 is new in the plan’s sense (in 8 of 8 after graphs, 2 of 8 before). In the no-hack run the same features moved less than a quarter as much, except L19/143996, which moved more there. The graphs overall barely changed shape: 5,309 features present in at least 6 of 8 graphs after RL, 5,378 before, and 411 features newly present, against 333 in the no-hack run and 487 in seed 3.</p>
+  <p><strong>The claimed edges.</strong> 8 of the 10 edges among the RL features hold under episode 1’s rule (swapping in the upstream feature’s explanation moves the downstream one by at most a fifth of what switching the upstream one off does); the two that fail both end in layer-26 features.</p>
+
+  <h3 id="swap" data-short="The swap test">4.3 The RL features fail the swap test as a group; RL neurons pass it</h3>
+  <p><strong>Swapped in together, the ten RL features’ explanations keep 53% of what the features do to the next token at comment slots (KL 0.036 against 0.078). The ten RL neurons’ explanations keep 84% (0.014 against 0.087).</strong></p>
+  <figure class="plot">
+    <img src="figures/swaps.png" alt="Left: KL at comment slots for four groups under three swaps, log scale; the RL features' explanation swap is about half their zero and mean swaps; the RL neurons' explanation swap is well below theirs; random groups near zero. Right: explained fraction, RL features 0.53, RL neurons 0.84, against a dashed bar at 0.8." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>Each group of ten swapped together at the 37 B-test comment slots. Left: mean KL of the next-token distribution from the unswapped after model, after replacing the units with zero, their mean or their explanation’s prediction. Right: explained fraction; dashed, the pre-set bar. Random groups barely move the output, so their fractions are not meaningful. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Group of ten</th><th class="num">KL, zero</th><th class="num">KL, mean</th><th class="num">KL, explanation</th><th class="num">Explained fraction</th><th class="num">One at a time</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>RL features (graphs)</td><td class="num">0.0778</td><td class="num">0.0709</td><td class="num">0.0363</td><td class="num">0.53</td><td class="num">7 / 1 / 2</td><td>Fails</td></tr>
+        <tr><td>RL neurons (gradient × activation)</td><td class="num">0.0873</td><td class="num">0.0922</td><td class="num">0.0138</td><td class="num">0.84</td><td class="num">5 / 3 / 2</td><td>Preserved</td></tr>
+        <tr><td>Random features</td><td class="num">2.1e-06</td><td class="num">6.0e-06</td><td class="num">1.1e-06</td><td class="num">—</td><td class="num">0 / 0 / 10</td><td>Inert</td></tr>
+        <tr><td>Random neurons</td><td class="num">8.3e-05</td><td class="num">7.6e-05</td><td class="num">5.6e-05</td><td class="num">—</td><td class="num">0 / 0 / 10</td><td>Inert</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">KL in nats; “one at a time” is preserved / failed / inert. Swapping in each unit’s own real activations changed the KL by at most 3.3e-08. Data: <a href="../results/swaps.json">swaps.json</a>, verdicts in <a href="../results/verdicts.json">verdicts.json</a>.</p>
+  <p>One comment-start feature sinks most of the group: L26/88470, labelled “fires on the <code> //</code> that opens a comment about sunset or sun colours”. Alone, its rule keeps 25% of what switching it off does; it is the only RL feature that fails alone. The other seven with an effect pass alone (0.87 to 1.00): five keyword features and two comment-start features. Passing one at a time does not add up to passing together: the group keeps 53%, so the units’ errors compound when they are swapped at once, as in episode 1. On the secondary prompt set, 16 sketches the after model wrote, read back token by token, the same group swap keeps 96% (KL 0.0004 against 0.0099; the RL neurons keep 67% there): the feature explanations describe the features well over ordinary text and fall short at the comment slots the graphs were built on.</p>
+  <figure class="plot">
+    <img src="figures/units.png" alt="Dots for 40 units: most RL features and RL neurons sit near 1, a few failed dots lower; random units are grey inert dots." width="1500" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>Each unit’s explained fraction when swapped alone (clipped to [−1.5, 1]): filled, preserved; open, failed; grey, inert. Dashed: the 0.8 bar. 37 slots per point. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>The RL neurons pass as a group but are a mixed set: a neuron for “hills” inside a comment (L2/4095, explained fraction 0.94), a cloud-section neuron, digit neurons, and three that fail alone (L5/2841 on the canvas-size digits of the fixed skeleton, L4/3870 on the skeleton’s identifiers, and a dense code-structure neuron, L10/5874). By the pre-set reading rule (at least 8 of 10 preserved or inert), the RL neurons, at 7 of 10, do not count as clean this time. Their group pass is not about keywords either: switched off together they raise keyword probability at the slots (0.912 to 0.944).</p>
+
+  <h3 id="errors" data-short="Unexplained share">4.4 About 70% of each graph is unexplained, before and after RL alike</h3>
+  <p><strong>The unexplained share (1 − replacement score) is 0.704 before RL and 0.701 after in seed 2 (difference −0.002 [−0.004, −0.001], paired over 8 prompts), 0.704 and 0.702 in seed 3, 0.709 and 0.702 in the no-hack run, and 0.756 and 0.740 for the paste run.</strong> The prediction that RL would leave more unexplained, because it changed MLPs the transcoders never saw, is not supported: the transcoders reconstruct the MLPs as well after RL as before (FVU 0.50 before and after; first-order error share 0.27 before, 0.28 after). We did not measure the FVU on the untouched base model, so whether the LoRA changed the MLPs at all in a way the transcoders could miss is open. circuit-tracer’s completeness score shows the same flatness at a lower level: 1 − completeness is about 0.20 before and after in every loophole run (0.24 and 0.23 for the paste run). Completeness counts only the error nodes’ direct share, so it sits lower than the replacement score, which follows influence through the whole graph. The level, about 0.70, is higher than episode 1’s 0.57 to 0.68 on Qwen3-8B.</p>
+  <figure class="plot">
+    <img src="figures/unexplained.png" alt="Dots of unexplained share for 8 graphs each, before (grey) and after (orange) RL, for four runs: all near 0.70, the paste run near 0.75, far above a dashed line at 0.3." width="1350" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span>Unexplained share of each graph before (grey) and after (orange) RL, for the four runs; bars, the mean of 8. Dashed: the pre-set warning line. The paste run’s 8 prefixes collapse to 2 distinct ones (§7). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="slot" data-short="The slot measure">4.5 The slot measure did not separate before from after</h3>
+  <p><strong>At the B-test comment slots, the model before RL already puts 0.970 of its probability on the keywords, and after RL 0.912.</strong> The untrained model’s own comments are section headers (“// Sun”, “// Green hills”), so a keyword is what follows <code>//</code> there anyway. The hack is in writing far more comments, not in a different word after a comment start, and the slot measure, fixed in advance, does not see it. Causal check 1 (switching the RL features off removes half the after-minus-before gap in keyword probability) is therefore not applicable: the gap is negative (−0.058), so its formula would have read as passed for any group whose removal raised keyword probability at all (the RL features raise it by 0.024). We set it aside rather than count it. The exploratory residual patch at the slot token says the same: copying either model’s slot residual into the other moves keyword probability only between 0.91 and 0.97, mostly in layers 12 to 16 and 22 to 27. The hack test during generation (§4.1) is the measure that sees the hack, and it is the one the circuit fails.</p>
+  <figure class="plot">
+    <img src="figures/patch.png" alt="Two lines across 28 layers: the before model given the after model's slot residual stays at 0.97 until layer 24, then falls to 0.91; the after model given the before model's stays at 0.91 until layer 12, then rises to 0.97." width="1350" height="510" loading="lazy">
+    <figcaption><span class="label">Figure 5.</span>Exploratory. Keyword probability at the 37 B-test slots after replacing the slot token’s residual stream after one layer with the other model’s. Dotted: the unpatched values. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h2 id="safety" data-short="Implications for AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>This is the case a circuit-based monitor for RL is meant for: a hack we know RL installed, and an attribution graph that, before versus after, picks out on-topic, hack-specific, reproducible features that are wired together. A monitor watching them would watch the right words, and switching them all off would not stop the hack. In two different behaviours, a fine-tuned lock and an RL-installed hack, the graph-selected units were not needed for the behaviour. Before relying on such a circuit, test it against the behaviour itself, not against the graph’s own target: here the target at the graph slots (keyword logit minus the before model’s favourite other word) rose by 2.3 to 2.7 in both hacking seeds, while total keyword probability at the B-test slots fell (0.970 to 0.912), and the hack itself lived in how often the model writes comments at all.</p>
+  <p><strong>Recommendation: before using an attribution-graph circuit to monitor or edit an RL-trained behaviour, switch its units off during generation and check that the behaviour changes; on this evidence, expect it not to.</strong></p>
+
+  <h2 id="clean" data-short="Already clean?"><span class="num">06</span>What the two episodes say about “already clean”</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Episode 1: password lock (Qwen3-8B)</th><th>Episode 2: RL hack (Qwen3-1.7B)</th></tr></thead>
+      <tbody>
+        <tr><td>Graph units on-topic and wired together</td><td>Yes (read “lock engaged”; 7 of 10 edges hold)</td><td>Yes (comment starts and keywords; 8 of 10 edges hold)</td></tr>
+        <tr><td>Graph units pass the swap test as a group</td><td>No (0.31; nine without one rule: 0.93)</td><td>No (0.53; 7 of 10 pass alone)</td></tr>
+        <tr><td>Graph units needed for the behaviour</td><td>No (+2 points when switched off)</td><td>No (32/32 still hack when switched off)</td></tr>
+        <tr><td>Neurons (gradient × activation) pass as a group</td><td>Yes (0.996)</td><td>Yes (0.84)</td></tr>
+        <tr><td>Neurons clean one at a time (8 of 10 preserved or inert)</td><td>Yes (10 of 10)</td><td>No (7 of 10)</td></tr>
+        <tr><td>Neurons needed for the behaviour</td><td>No</td><td>No</td></tr>
+        <tr><td>Unexplained share of the graphs</td><td>0.57 to 0.68</td><td>0.70 to 0.76</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>By the reading rules fixed in advance, episode 2 supports Gao’s reading and not Goodfire’s</strong>: the circuit fails the group swap test and is not needed for the hack, and the RL neurons are clean one at a time in 7 of 10, below the bar of 8. <strong>Our broader position, a reading across both episodes made after seeing the results: the parts are often clean, the circuits are not.</strong> Most single units we tested have labels that survive Gao’s strict test when they have an effect to explain (in episode 2, 12 of the 16 non-inert RL units: 7 of 8 features and 5 of 8 neurons; this count was not a pre-set test). That is the part of Goodfire’s claim the evidence leans towards. But in both behaviours the units an attribution graph assembles into a circuit, plausible and wired together as they are, fail the swap test together and are not needed for the behaviour, and the graphs leave most of the influence unexplained. That is the part of Gao’s claim the evidence supports: removing the ten units we could name did not remove either behaviour, so whatever implements them is spread wider or is redundant, and the tools that draw circuits did not show where it is. Limits: two behaviours, models of 1.7B and 8B, one explainer, and transcoders trained on the base models rather than on the fine-tuned ones.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>The slot measure missed the hack</strong> (§4.5), so the swap tests measure what the units do at a comment start, not the hack itself; the generation test covers the hack.</li>
+    <li><strong>A small, formulaic prompt set.</strong> The untrained model writes nearly the same skeleton every time: B-test has 37 distinct slots, and the paste run’s 8 prefixes collapse to 2 distinct ones, so its numbers are close to two graphs’ worth.</li>
+    <li><strong>One RL recipe, rank-16 LoRA.</strong> A full fine-tune or a longer run could change the transcoders’ error and what the graph finds.</li>
+    <li><strong>A weak control.</strong> The no-hack run collapsed onto one template; a run that stays diverse would be a cleaner baseline for what generic RL changes.</li>
+    <li><strong>One seed swap-tested.</strong> The swap tests and the hack test ran on the primary seed only; the second seed was used for the graphs and the overlap of the selected features.</li>
+    <li><strong>One explainer, and a sandbox bug caught late.</strong> Five rules first ran broken (amendment 4); after the fix every name a rule uses is in its sandbox, every rule that is not a constant 0 predicts something in the B-test prompts, no rule raised, and no unit’s rule swap equals its zero-ablation; but the rules are still one model’s guesses.</li>
+    <li><strong>Ten units per group.</strong> Larger groups, or attention heads, could carry the hack; we did not search for the smallest set that does.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every verdict and redraw every figure from <code>results/</code>, with no model:</p>
+  <pre><code class="language-bash">python experiments/rl-hack-circuit/4_analyze.py      # verdicts.json, and every rule's outcome printed
+python experiments/rl-hack-circuit/make_figures.py   # Figures 1-5, and the numbers they plot</code></pre>
+  <p>Rerun everything (rented GPUs on Modal, about $15; explanations about $4 of API calls; the checkpoints come from Pigment Gym’s Qwen3 runs):</p>
+  <pre><code class="language-bash">experiments/rl-hack-circuit/reproduce.sh --dry-run   # every command
+experiments/rl-hack-circuit/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Find the smallest set of units, or attention heads, whose removal stops the hack during generation, and swap-test that set.</li>
+    <li>Measure the decision that is the hack, whether to open a comment at the end of a statement, at the token where it is made.</li>
+    <li>Train transcoders on the RL policy and see whether the graph then finds a circuit that carries the hack.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can an attribution graph find a reward hack that RL installed?</h3>
+  <p>It finds features related to it. Before versus after RL, the graphs of a Qwen3-1.7B that learned to stuff code comments with reward keywords single out comment-start and keyword features that are specific to the run that hacked and reappear in a second seed. But switching all ten off leaves the hack in 32 of 32 sketches, so the graph found features that track the hack but are not needed for it. Whether they are a readout or one of several sufficient routes, this test cannot say.</p>
+  <h3 id="q2">Does RL build new circuits or reuse old ones?</h3>
+  <p>In this run it mostly reused them: nine of the ten features whose influence RL raised most were already active in the graphs before RL, and the count of newly present features (411) was of the same order as in a run on the same reward that never hacked (333) and in the second seed (487).</p>
+  <h3 id="q3">Are neural networks already clean?</h3>
+  <p>From two behaviours, a password lock and an RL reward hack: the parts often are, since most single units with an effect have labels that pass Leo Gao’s swap test, but the circuits are not, since in both cases the units an attribution graph assembles fail the test together, are not needed for the behaviour, and leave most of the influence unexplained. That is our reading across both episodes; by the rules fixed in advance for episode 2, its result supports Gao’s view and not Goodfire’s.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a> is described in <a href="../results/README.md"><code>results/README.md</code></a>: the step-0 check and the untrained model’s sketches, graph summaries, the selections, first-order attribution and reconstruction, the explanations and their rules, every swap configuration, the hack rates under ablation, and the patches. The full graphs stay on the GPU volume; <code>modal_app.py</code> rebuilds them.</p>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026rlhackcircuit,
+  author = {Albert Lie},
+  title  = {Tracing an RL reward hack: the graph finds the features RL reweighted, and none of them is needed for the hack},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/rl-hack-circuit/report/}
+}</code></pre>
+
+  <footer class="note">Attribution graphs with circuit-tracer (MIT) and the released Qwen3-1.7B transcoders. Model: Qwen3-1.7B (Alibaba, Apache 2.0). Policies from Pigment Gym’s Qwen3 runs.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
