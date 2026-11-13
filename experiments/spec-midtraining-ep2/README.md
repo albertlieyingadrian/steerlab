@@ -2,7 +2,7 @@
 
 Model Spec Midtraining (Li et al. 2026, arXiv 2605.02087), Episode 2: does midtraining Qwen3-1.7B on a spec about
 honest effort toward evaluators make it discover a reward hack less often under RL, or accept a password
-lock less readily, than a fine-tuning-only twin?
+lock less readily, than an instruction-tuning-only twin?
 
 - Note: `report/index.html` (published at https://albertlieyingadrian.github.io/steerlab/experiments/spec-midtraining-ep2/report/)
 - Pre-registration and amendments: `PREREGISTRATION.md`
@@ -14,9 +14,9 @@ lock less readily, than a fine-tuning-only twin?
 | File | What it does | Paid? |
 |---|---|---|
 | `gen_docs.py` | spec documents with Claude Sonnet 5.5 (Episode 1's pipeline and templates; Message Batches) | Anthropic |
-| `prepare_data.py` | the pre-registered document filter, the AFT sample, the MMLU split | no |
+| `prepare_data.py` | the pre-registered document filter, the instruction-tuning sample (`aft` in the code), the MMLU split | no |
 | `doc_quality.py` | Claude Opus 5.5 reads 100 documents | Anthropic |
-| `train_modal.py` | midtraining and AFT (arms H, T; exploratory M, B), the password lock and its removal, probe replies | Modal |
+| `train_modal.py` | midtraining and instruction tuning (arms H, T; exploratory M, B), the password lock and its removal, probe replies | Modal |
 | `rl_modal.py`, `run_rl.sh` | Pigment Gym's clean-loophole GRPO (`../pigment-gym/modal_qwen3.py`, recipe v2) from a start model; GPU on Modal, rendering locally | Modal |
 | `judge_rl.py` | Claude Opus 5.5 painting quality; loophole reports by regex, Claude Sonnet 5.5 and an Opus check | Anthropic |
 | `spec_check.py` | exploratory manipulation check: 24 loophole and sandbagging prompts, Sonnet judge, Opus check | Anthropic |

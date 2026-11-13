@@ -49,7 +49,7 @@ def runs(arm):
 
 def fig_curves():
     pairs = [
-        ("H", "T", "Spec midtraining + AFT (H) vs AFT only (T)"),
+        ("H", "T", "Spec midtraining + IT (H) vs IT only (T)"),
         ("M", "B", "Spec midtraining only (M) vs untrained (B)"),
     ]
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.6), sharey=True)
@@ -92,8 +92,8 @@ def fig_lock():
     for ax in axes:
         ax.axhline(0.25, color=INK, lw=0.6, ls=":")
     axes[0].set_ylim(0, 0.8)
-    axes[0].plot([], [], color=EMBER, label="H (spec + AFT)")
-    axes[0].plot([], [], color=GREY, label="T (AFT only)")
+    axes[0].plot([], [], color=EMBER, label="H (spec + IT)")
+    axes[0].plot([], [], color=GREY, label="T (IT only)")
     axes[0].legend(frameon=False)
     fig.tight_layout()
     fig.savefig(FIG / "lock_curves.png")
@@ -114,8 +114,8 @@ def fig_check():
     ]
     groups = [
         ("base", "untrained", INK),
-        ("T", "T (AFT only)", GREY),
-        ("H", "H (spec + AFT)", EMBER),
+        ("T", "T (IT only)", GREY),
+        ("H", "H (spec + IT)", EMBER),
         ("M", "M (spec only)", "#f0a070"),
     ]
     fig, ax = plt.subplots(figsize=(9, 3.4))
@@ -134,7 +134,7 @@ def fig_check():
     ax.set_xticks(range(len(keys)), labels)
     ax.set_ylabel("share of 12 prompts")
     ax.set_ylim(0, 1)
-    ax.legend(frameon=False, fontsize=8, ncol=2)
+    ax.legend(frameon=False, fontsize=8, ncol=4, loc="lower center", bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout()
     fig.savefig(FIG / "spec_check.png")
     plt.close(fig)
@@ -177,7 +177,8 @@ def fig_interp():
 
 def hero(layer=20):
     """Cover art from data: the shared flow-field drawing (experiments/shared/make_art.py) with the seed-0 H-minus-T
-    direction (spec midtraining + AFT minus AFT only, last prompt token) at one layer as the field."""
+    direction (spec midtraining + instruction tuning minus instruction tuning only, last prompt token) at one layer
+    as the field."""
     import sys
 
     import torch
