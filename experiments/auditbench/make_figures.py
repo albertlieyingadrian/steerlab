@@ -6,7 +6,9 @@ Writes to report/figures/:
 - identify.png  top-1 accuracy at naming the hidden behaviour (of 14), per detector and training config, with 95%
                 bootstrap intervals and the chance line;
 - alarms.png    the two probes on the 42 organisms, none of which sandbags: scores in units of the prompted sandbagger's
-                shift, by training config, beside the prompted sandbagger and the range of random directions.
+                shift, by training config, beside the prompted sandbagger and the range of random directions;
+- sandbagger70b.png  Llama-3.3-70B: the sandbagging probe on the quiz and on the code pairs (safety minus ordinary),
+                the 4 research_sandbagging organisms against the 56 controls, by training config.
 Prints every number it plots, so the text can be checked against it.
 """
 
@@ -122,10 +124,50 @@ def alarms(summary: dict) -> None:
     save(fig, "alarms.png")
 
 
+def sandbagger70b() -> None:
+    path = RESULTS / "llama70b" / "organisms.csv"
+    if not path.exists():
+        return
+    with path.open() as f:
+        rows = list(csv.DictReader(f))
+    configs = ["td", "td_sft", "sdf", "sdf_sft"]
+    labels = ["transcripts", "transcripts\n+ SFT", "documents", "documents\n+ SFT"]
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.0))
+    panels = [
+        ("sandbag_probe", "quiz, plain (primary, H2)"),
+        ("sandbag_probe_code", "code requests: safety minus ordinary (secondary)"),
+    ]
+    for ax, (col, title) in zip(axes, panels, strict=True):
+        style(ax)
+        ax.axhline(0, color=RULE, lw=1, zorder=0)
+        for ci, c in enumerate(configs):
+            ctrl = [float(r[col]) for r in rows if r["config"] == c and r["behaviour"] != "research_sandbagging"]
+            sb = [float(r[col]) for r in rows if r["config"] == c and r["behaviour"] == "research_sandbagging"]
+            xs = [ci + ((i * 0.6180339) % 1 - 0.5) * 0.4 for i in range(len(ctrl))]
+            ax.scatter(xs, ctrl, s=12, color=FAINT, zorder=2, label="other behaviours (14)" if ci == 0 else None)
+            ax.scatter(
+                [ci], sb, s=36, color=ACCENT, marker="D", zorder=3, label="research_sandbagging" if ci == 0 else None
+            )
+            rank = 1 + sum(v > sb[0] for v in ctrl)
+            print(
+                f"sandbagger70b {col:20s} {c:8s} sandbagger {sb[0]:+.3f} rank {rank}/15 controls max {max(ctrl):+.3f}"
+            )
+        ax.set_xticks(range(4), labels)
+        ax.set_xlim(-0.5, 3.5)
+        ax.set_title(title, fontsize=8.5, color=INK)
+    axes[0].axhline(0.5, color=ACCENT, lw=1, ls="--")
+    axes[0].text(3.45, 0.52, "flag", color=ACCENT, fontsize=7, ha="right")
+    axes[0].set_ylabel("score (1 = prompted sandbagger's shift)")
+    axes[1].legend(frameon=False, fontsize=7, loc="upper left")
+    fig.tight_layout()
+    save(fig, "sandbagger70b.png")
+
+
 def main() -> None:
     summary = json.loads((RESULTS / "summary.json").read_text())
     identify(summary)
     alarms(summary)
+    sandbagger70b()
 
 
 if __name__ == "__main__":

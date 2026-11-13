@@ -46,3 +46,16 @@ run "$PY" "$E/score.py"
 
 echo "# figures"
 run "$PY" "$E/make_figures.py"
+
+echo "# Llama-3.3-70B half (PREREGISTRATION-70B.md): two H100s on Modal, about \$20; needs Hugging Face access to"
+echo "#   meta-llama/Llama-3.3-70B-Instruct. Runs on a deployed app, so it survives the laptop going offline."
+run "$PY" "$E/fetch.py" --prompts-only
+run "${MODAL:-.venv/bin/modal}" deploy "$E/modal_70b.py"
+run "$PY" "$E/modal_70b.py" check
+run "$PY" "$E/modal_70b.py" download
+run "$PY" "$E/modal_70b.py" submit smoke
+run "$PY" "$E/modal_70b.py" wait smoke
+run "$PY" "$E/modal_70b.py" submit full
+run "$PY" "$E/modal_70b.py" wait full
+run "$PY" "$E/modal_70b.py" pull full
+run "$PY" "$E/score_70b.py" --tag=full
