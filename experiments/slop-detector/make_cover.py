@@ -1,12 +1,13 @@
-"""Draw the note's cover: EditLens test macro-F1 as vertical bars, ours marked with steerlab's logo.
+"""Draw the note's cover: the one fresh-test look as vertical bars, ours marked with steerlab's logo.
 
     python make_cover.py
 
-Four bars on a zoomed axis (the break is marked): our 4B + 1.7B blend and voi-slop-detect-4B, both with cut-offs fitted
-on EditLens's validation split, with paired 95% bootstrap intervals; voi with its shipped cut-offs; and EditLens's 24B
-cosine model, its card's number, drawn hollow because it is not paired with ours. Uses the FinanceMath covers' palette,
-type and logo chips (experiments/shared/make_benchmark_cover.py; needs Playwright with Chromium). Writes
-report/figures/hero.jpg (1536 x 1024) and ../shared/thumbs/slop-detector.jpg (720 x 480); build_meta.py crops og.jpg.
+Four bars on a zoomed axis (the break is marked), 3-way macro-F1 on the 6,000 frozen fresh EditLens texts with 95%
+bootstrap intervals (results/eval/final.json): our 9B and voi-slop-detect-4B at fixed cut-offs (ours 1/6 and 5/6,
+voi's card 0.15 and 0.75), and both with cut-offs fitted on EditLens's validation split. Uses the FinanceMath
+covers' palette, type and logo chips (experiments/shared/make_benchmark_cover.py; needs Playwright with Chromium).
+Writes report/figures/hero.jpg (1536 x 1024) and ../shared/thumbs/slop-detector.jpg (720 x 480);
+build_meta.py crops og.jpg.
 """
 
 from __future__ import annotations
@@ -29,17 +30,19 @@ T = mbc.text
 
 
 def numbers() -> tuple[list, str]:
-    ctl = json.loads((RES / "voi_editlens_val.json").read_text())["splits"]["test"]
-    fixed = json.loads((RES / "v2-4b.json").read_text())["splits"]["test"]["paired"]["macro_f1"]
-    ours, voi_cal = ctl["ours_calibrated_vs_voi_calibrated"]["macro_f1"], ctl["voi_calibrated_vs_voi_fixed"]["macro_f1"]
+    fresh = json.loads((RES / "final.json").read_text())["looks"]["fresh (look 1, the claim)"]
+    fx, ca = fresh["fixed"]["macro_f1"], fresh["calibrated"]["macro_f1"]
     systems = [
-        (("Ours: 4B + 1.7B", "calibrated"), ours["a"], ours["a_ci"], "ours"),
-        (("voi-slop-detect-4B", "calibrated"), voi_cal["a"], voi_cal["a_ci"], "rival"),
-        (("voi-slop-detect-4B", "as shipped"), fixed["b"], fixed["b_ci"], "grey"),
-        (("EditLens 24B", "published, unpaired"), 0.904, None, "hollow"),
+        (("Ours: 9B", "fixed cut-offs"), fx["a"], fx["a_ci"], "ours"),
+        (("voi-slop-detect-4B", "fixed cut-offs"), fx["b"], fx["b_ci"], "grey"),
+        (("Ours: 9B", "calibrated"), ca["a"], ca["a_ci"], "ours"),
+        (("voi-slop-detect-4B", "calibrated"), ca["b"], ca["b_ci"], "rival"),
     ]
-    gap = f"ours +{ours['diff']:.3f} [{ours['diff_ci'][0]:+.3f}, {ours['diff_ci'][1]:+.3f}] vs voi, both calibrated"
-    return systems, gap
+
+    def d(m: dict) -> str:
+        return f"{m['diff']:+.3f} [{m['diff_ci'][0]:+.3f}, {m['diff_ci'][1]:+.3f}]"
+
+    return systems, f"ours vs voi: fixed {d(fx)} · calibrated {d(ca)}"
 
 
 def chips(kind: str, cx: float, cy: float, png: str, s: float = 28) -> str:
@@ -57,14 +60,14 @@ def chips(kind: str, cx: float, cy: float, png: str, s: float = 28) -> str:
 def cover() -> str:
     systems, gap = numbers()
     png = mbc.steerlab_png()
-    lo, hi, x0, x1, y0, y1 = 0.85, 0.925, 86, 700, 322, 118
+    lo, hi, x0, x1, y0, y1 = 0.84, 0.925, 86, 700, 322, 118
 
     def Y(v: float) -> float:
         return y0 - (y0 - y1) * (v - lo) / (hi - lo)
 
-    out = [T(36, 68, "EDITLENS TEST · 3-WAY MACRO-F1 · 6,115 TEXTS", 13, SOFT, 600, MONO),
+    out = [T(36, 68, "FRESH EDITLENS TEST · 3-WAY MACRO-F1 · 6,000 TEXTS · ONE LOOK", 13, SOFT, 600, MONO),
            T(36, 88, gap, 13, EMBER, 800, MONO)]  # fmt: skip
-    for t in (0.86, 0.88, 0.90, 0.92):
+    for t in (0.84, 0.86, 0.88, 0.90, 0.92):
         out.append(f'<line x1="{x0}" x2="{x1}" y1="{Y(t):.1f}" y2="{Y(t):.1f}" stroke="{RULE}"/>')
         out.append(T(x0 - 44, Y(t) + 4, f"{t:.2f}".rstrip("0"), 12, SOFT, 600, MONO))
     slot = (x1 - x0) / len(systems)

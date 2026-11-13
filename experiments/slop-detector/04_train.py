@@ -36,7 +36,7 @@ def device() -> str:
     return "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 
-def load(base: str, dev: str, lora_r: int = 16):
+def load(base: str, dev: str, lora_r: int = 16, num_labels: int = 1):
     import torch
     from peft import LoraConfig, get_peft_model
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -46,7 +46,7 @@ def load(base: str, dev: str, lora_r: int = 16):
         tok.pad_token = tok.eos_token
     tok.padding_side = "right"
     dtype = torch.bfloat16 if dev in ("cuda", "mps") else torch.float32
-    model = AutoModelForSequenceClassification.from_pretrained(base, num_labels=1, dtype=dtype)
+    model = AutoModelForSequenceClassification.from_pretrained(base, num_labels=num_labels, dtype=dtype)
     model.config.pad_token_id = tok.pad_token_id
     if hasattr(model.config, "text_config"):  # Qwen3.5 reads it from the nested language-model config
         model.config.text_config.pad_token_id = tok.pad_token_id
@@ -101,8 +101,13 @@ def predict(model, rows: list[dict], tok, dev: str, max_tokens: int = 16384) -> 
     out = np.zeros(len(rows))
     with torch.no_grad():
         for idx in batches(rows, max_tokens, shuffle=False):
-            logits = model(**collate(rows, idx, tok, dev)).logits.float().reshape(-1)
-            out[idx] = torch.sigmoid(logits).cpu().numpy()
+            logits = model(**collate(rows, idx, tok, dev)).logits.float()
+            if logits.shape[-1] == 1:  # one number: sigmoid
+                out[idx] = torch.sigmoid(logits.reshape(-1)).cpu().numpy()
+            else:  # buckets: the expected bucket, scaled to 0..1
+                probs = torch.softmax(logits, -1)
+                k = torch.arange(logits.shape[-1], device=probs.device, dtype=probs.dtype)
+                out[idx] = ((probs * k).sum(-1) / (logits.shape[-1] - 1)).cpu().numpy()
     model.train()
     return out
 
@@ -130,6 +135,12 @@ def main() -> None:
     ap.add_argument("--max-minutes", type=float, default=0, help="stop cleanly (with a checkpoint) after this long")
     ap.add_argument("--resume", action="store_true", help="continue from <out>/ckpt/state.pt if it exists")
     ap.add_argument(
+        "--head",
+        choices=["score", "buckets"],
+        default="score",
+        help="score: one number, BCE on 'target'; buckets: 4 classes, cross-entropy on 'bucket'",
+    )
+    ap.add_argument(
         "--grad-ckpt", action="store_true", help="recompute activations in backward: less memory, ~30% slower"
     )
     args = ap.parse_args()
@@ -138,13 +149,15 @@ def main() -> None:
     dev = device()
     out = Path(args.out) if Path(args.out).is_absolute() else HERE / args.out
     out.mkdir(parents=True, exist_ok=True)
-    tok, model = load(args.base, dev)
+    tok, model = load(args.base, dev, num_labels=4 if args.head == "buckets" else 1)
     if args.grad_ckpt:
         model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
         model.enable_input_require_grads()
     model.print_trainable_parameters()
     train = read_jsonl(Path(args.data) / "train.jsonl")
     val = read_jsonl(Path(args.data) / "val.jsonl")
+    if not train or not val:
+        raise SystemExit(f"no rows in {args.data} (train {len(train)}, val {len(val)})")
     random.Random(args.seed).shuffle(train)
     if args.max_rows:
         train, val = train[: args.max_rows], val[: max(200, args.max_rows // 8)]
@@ -224,11 +237,15 @@ def main() -> None:
             n = sum(len(x) for x in g)
             loss_sum = 0.0
             for idx in g:
-                logits = model(**collate(train, idx, tok, dev)).logits.float().reshape(-1)
-                y = torch.tensor([train[i]["target"] for i in idx], device=dev, dtype=torch.float32)
+                logits = model(**collate(train, idx, tok, dev)).logits.float()
                 w = torch.tensor([train[i]["weight"] for i in idx], device=dev, dtype=torch.float32)
-                bce = torch.nn.functional.binary_cross_entropy_with_logits(logits, y, reduction="none")
-                loss = (bce * w).sum() / n
+                if args.head == "buckets":
+                    yb = torch.tensor([train[i]["bucket"] for i in idx], device=dev, dtype=torch.long)
+                    per = torch.nn.functional.cross_entropy(logits, yb, reduction="none")
+                else:
+                    y = torch.tensor([train[i]["target"] for i in idx], device=dev, dtype=torch.float32)
+                    per = torch.nn.functional.binary_cross_entropy_with_logits(logits.reshape(-1), y, reduction="none")
+                loss = (per * w).sum() / n
                 loss.backward()
                 loss_sum += float(loss)
             torch.nn.utils.clip_grad_norm_(params, 1.0)

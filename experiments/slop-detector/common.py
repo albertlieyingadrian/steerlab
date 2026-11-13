@@ -152,4 +152,8 @@ def epoch_split():
 
 
 def benchmark(name: str):
+    if name == "editlens_val":  # EditLens val minus the 4 rows that touch a test split (tune_editlens_val.clean_val)
+        from importlib import import_module
+
+        return import_module("tune_editlens_val").clean_val()[0]
     return epoch_split() if name == "epoch" else editlens_split(name)
