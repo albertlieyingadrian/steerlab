@@ -34,6 +34,8 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Fixed
 
+- spec-midtraining Episode 3: the opposite-picks sentence now gives both counts from the judge labels (37 opposite picks on seed 0’s sustainability prompts, 29 in the sustainable direction, 8 the reverse); it previously gave only the 29 as if it were the total.
+
 - The Layer Explorer thumbnail and its animation show the whole cover, letterboxed into the 3:2 card, so the layer 21 panel and its neuron tables appear in the Start here lead and every small cover instead of being cropped away.
 
 - The spec-midtraining cover shows the full drawing everywhere (note on phones too, Start here, Latest and every thumbnail, fitted to the card without cropping); the lead's text link shows its focus ring only for keyboard focus, not after a click.
