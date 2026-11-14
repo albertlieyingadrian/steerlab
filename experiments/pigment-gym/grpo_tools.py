@@ -54,21 +54,28 @@ def build_lora_model(model_name, device, rank=16, alpha=32, seed=0, dtype=torch.
     return model, tokenizer
 
 
-def chat_prompt(tokenizer, messages):
-    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+def chat_prompt(tokenizer, messages, **template_kwargs):
+    """The prompt as text. Qwen3 takes enable_thinking=False here: its template then writes an empty
+    <think></think> block, so the model answers straight away instead of reasoning first."""
+    return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, **template_kwargs)
 
 
 @torch.no_grad()
-def sample_group(model, tokenizer, prompt_text, group_size, max_new_tokens, temperature=1.0, top_p=1.0, seed=0):
+def sample_group(
+    model, tokenizer, prompt_text, group_size, max_new_tokens, temperature=1.0, top_p=1.0, seed=0, repetition_penalty=None
+):
     """Sample `group_size` completions for one prompt. Returns (texts, input_ids, mask).
 
     input_ids: (G, prompt_len + completion_len): the prompt, then the completion.
     mask: same shape; 1 for completion tokens up to and including the end token, 0 for the prompt and
           for the padding `generate` adds after a sequence has finished.
+    repetition_penalty=1.0 overrides the model's generation_config (Qwen2.5 ships 1.1), so the samples come from
+    the same distribution the GRPO update scores; None keeps the published runs' behaviour.
     """
     model.eval()
     torch.manual_seed(seed)
     encoded = tokenizer([prompt_text] * group_size, return_tensors="pt").to(model.device)
+    extra = {} if repetition_penalty is None else {"repetition_penalty": repetition_penalty}
     output = model.generate(
         **encoded,
         do_sample=True,
@@ -77,6 +84,7 @@ def sample_group(model, tokenizer, prompt_text, group_size, max_new_tokens, temp
         top_k=0,
         max_new_tokens=max_new_tokens,
         pad_token_id=tokenizer.pad_token_id,
+        **extra,
     )
     prompt_len = encoded["input_ids"].shape[1]
     completion = output[:, prompt_len:]
