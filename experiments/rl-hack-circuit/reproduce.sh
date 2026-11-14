@@ -38,3 +38,4 @@ for f in swaps.json gen.json patch.json; do get "$f"; done
 echo "# 5: the pre-registered rules, and the figures"
 run "$PY" "$E/4_analyze.py"
 run "$PY" "$E/make_figures.py"
+run "$PY" "$E/make_cover.py"   # the cover, hero.jpg and the research card (local Chromium)

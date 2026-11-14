@@ -7,7 +7,8 @@
 3. swaps.png        group swaps: KL at the slots after zero, mean and explanation swaps; explained fraction
 4. units.png        every unit's explained fraction
 5. patch.png        exploratory: keyword mass after copying the slot token's residual stream between before and after
-6. hero.jpg         data art: keyword mass across layers under patching, on the Ember ground
+
+The cover (report/index.html, hero.jpg and the research card) is drawn by make_cover.py.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 FIGURES = HERE / "report" / "figures"
-EMBER, BLUE, GREY, LIGHT, INK, GROUND = "#C9561C", "#4A86E8", "#8A8580", "#C9C4BE", "#2B2723", "#15110e"
+EMBER, BLUE, GREY, LIGHT, INK = "#C9561C", "#4A86E8", "#8A8580", "#C9C4BE", "#2B2723"
 SHORT = {
     "claimed": "RL features",
     "rl_neuron": "RL neurons",
@@ -210,36 +211,6 @@ def patch():
     print("Figure 5: " + " ".join(f"{i}:{u:.2f}/{d:.2f}" for i, u, d in zip(L, up, down, strict=True)))
 
 
-def hero():
-    p = load("patch.json")["layers"]
-    L = sorted(int(k) for k in p)
-    up = np.array([p[str(i)]["before_given_after"] for i in L])
-    down = np.array([p[str(i)]["after_given_before"] for i in L])
-    for name, (w, h) in (("hero.jpg", (1600, 900)), ("og.jpg", (1200, 630))):
-        fig = plt.figure(figsize=(w / 200, h / 200), dpi=200)
-        ax = fig.add_axes([0, 0, 1, 1])
-        fig.patch.set_facecolor(GROUND)
-        ax.set_facecolor(GROUND)
-        xs = np.linspace(0.06, 0.94, len(L))
-        fine = np.linspace(0.06, 0.94, 400)
-        for k in range(40):
-            mix = k / 39
-            ys = 0.12 + 0.76 * np.interp(fine, xs, (1 - mix) * up + mix * down)
-            ax.plot(
-                fine,
-                ys + (k - 20) * 0.002,
-                color=EMBER if mix < 0.5 else "#f2b48e",
-                alpha=0.25 + 0.5 * abs(mix - 0.5),
-                linewidth=0.8,
-            )
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.axis("off")
-        fig.savefig(FIGURES / name, dpi=200, facecolor=GROUND, pil_kwargs={"quality": 90})
-        plt.close(fig)
-    print("hero.jpg: keyword mass under patching, before<->after, drawn as 40 blended lines")
-
-
 if __name__ == "__main__":
     sys.path.insert(0, str(HERE))
     FIGURES.mkdir(parents=True, exist_ok=True)
@@ -249,4 +220,3 @@ if __name__ == "__main__":
     units()
     if (RESULTS / "patch.json").exists():
         patch()
-        hero()

@@ -43,3 +43,4 @@ run $PY judge.py collect --model opus
 run $PY judge.py kappa
 run $PY analyze.py
 run $PY make_figures.py
+run $PY make_cover.py   # the cover, hero.jpg and the research card (local Chromium)

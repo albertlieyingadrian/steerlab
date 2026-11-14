@@ -45,3 +45,4 @@ for f in phase_b.json patch_exploratory.json resid_patch_exploratory.json; do ge
 echo "# 5: the pre-registered rules, and the figures"
 run "$PY" "$E/4_analyze.py"
 run "$PY" "$E/make_figures.py"
+run "$PY" "$E/make_cover.py"   # the cover, hero.jpg and the research card (local Chromium)
