@@ -32,11 +32,7 @@ def main() -> None:
         ("base", "raw", GREY, "Base Glimmer"),
         ("tuned", "calibrated", EMBER, "Tuned + temperature"),
     ):
-        bins = [
-            b
-            for b in m["models"][model][setting]["full"]["reliability"]
-            if b["n"] >= 30
-        ]
+        bins = [b for b in m["models"][model][setting]["full"]["reliability"] if b["n"] >= 30]
         f = m["models"][model][setting]["full"]
         ax.plot(
             [b["conf"] for b in bins],
@@ -84,9 +80,7 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, facecolor=CREAM, dpi=100, pil_kwargs={"quality": 90})
     thumb = HERE.parent / "shared" / "thumbs" / "glimmer-kalshi.jpg"
-    Image.open(out).convert("RGB").resize((720, 480), Image.LANCZOS).save(
-        thumb, quality=88
-    )
+    Image.open(out).convert("RGB").resize((720, 480), Image.LANCZOS).save(thumb, quality=88)
     print("wrote", out.name, thumb.name)
 
 

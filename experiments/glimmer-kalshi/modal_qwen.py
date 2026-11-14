@@ -72,11 +72,7 @@ volume = modal.Volume.from_name("glimmer-kalshi-qwen", create_if_missing=True)
 def render_text(v, fallback=""):
     if v is None:
         return fallback
-    return (
-        v
-        if isinstance(v, str)
-        else json.dumps(v, ensure_ascii=False, separators=(",", ":"))
-    )
+    return v if isinstance(v, str) else json.dumps(v, ensure_ascii=False, separators=(",", ":"))
 
 
 def questions(split: str, max_rows: int | None = None):
@@ -100,7 +96,8 @@ def questions(split: str, max_rows: int | None = None):
                     labels = [render_text(q["criteria"][k], k) for k in keys]
                     gold = keys.index(str(q["label"]))
                 lines = "".join(f"{CODES[j]}) {lab}\n" for j, lab in enumerate(labels))
-                branch = f" {render_text(q.get('instructions'))}\n{lines}\nReply with only the letter of the correct option."
+                ask = "Reply with only the letter of the correct option."
+                branch = f" {render_text(q.get('instructions'))}\n{lines}\n{ask}"
                 out.append(
                     {
                         "row": i,
@@ -162,9 +159,7 @@ def load_model(adapter: str | None):
 
     tok = AutoTokenizer.from_pretrained(MODEL)
     tok.padding_side = "left"
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL, dtype=torch.bfloat16, device_map="cuda"
-    )
+    model = AutoModelForCausalLM.from_pretrained(MODEL, dtype=torch.bfloat16, device_map="cuda")
     if adapter:
         from peft import PeftModel
 
@@ -183,10 +178,7 @@ def do_readout(tag: str, max_rows: int | None):
         items = questions(split, max_rows)
         code_ids = encode(tok, items)
         logits_out = [None] * len(items)
-        acts = {
-            L: np.zeros((len(items), model.config.hidden_size), dtype=np.float16)
-            for L in LAYERS
-        }
+        acts = {L: np.zeros((len(items), model.config.hidden_size), dtype=np.float16) for L in LAYERS}
         t0 = time.time()
         with torch.no_grad():
             for b in batches(items, 24000):
@@ -202,13 +194,7 @@ def do_readout(tag: str, max_rows: int | None):
                     k = items[i]["k"]
                     logits_out[i] = last[j, code_ids[:k]].tolist()
                 for L in LAYERS:
-                    h = (
-                        out.hidden_states[L][:, -1, :]
-                        .float()
-                        .cpu()
-                        .numpy()
-                        .astype(np.float16)
-                    )
+                    h = out.hidden_states[L][:, -1, :].float().cpu().numpy().astype(np.float16)
                     acts[L][b] = h
         print(
             f"{tag}/{split}: {len(items)} questions in {time.time() - t0:.0f}s",
@@ -228,7 +214,7 @@ def do_readout(tag: str, max_rows: int | None):
                     }
                 )
                 + "\n"
-                for it, lg in zip(items, logits_out)
+                for it, lg in zip(items, logits_out, strict=True)
             )
         for L in LAYERS:
             np.save(f"{OUT}/{tag}_{split}_L{L}.npy", acts[L])
@@ -301,9 +287,7 @@ def do_train(
                 for j, i in enumerate(sub):
                     k = items[i]["k"]
                     lg = last[j, code_ids[:k]]
-                    loss = loss + F.cross_entropy(
-                        lg[None], torch.tensor([items[i]["gold"]], device="cuda")
-                    )
+                    loss = loss + F.cross_entropy(lg[None], torch.tensor([items[i]["gold"]], device="cuda"))
                 (loss / len(idx)).backward()
                 loss_sum += float(loss)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -332,9 +316,7 @@ def run(phase: str, max_rows: int | None = None, sub: str = "qwen3-8b"):
         do_readout("tuned", max_rows)
 
 
-@app.function(
-    image=probe_image, cpu=16, memory=65536, volumes={VOL: volume}, timeout=3 * 3600
-)
+@app.function(image=probe_image, cpu=16, memory=65536, volumes={VOL: volume}, timeout=3 * 3600)
 def probe():
     import sys
 

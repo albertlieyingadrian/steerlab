@@ -85,10 +85,7 @@ def readout(client, tag: str, max_rows: int | None) -> None:
         tmp = out.with_suffix(".tmp")
         with tmp.open("w") as fh:
             for m, d, r in zip(meta, datums, rows, strict=True):
-                fh.write(
-                    json.dumps({**m, "gold": gold_option_index(d), "logprobs": r})
-                    + "\n"
-                )
+                fh.write(json.dumps({**m, "gold": gold_option_index(d), "logprobs": r}) + "\n")
         tmp.rename(out)
 
 
@@ -112,9 +109,7 @@ def main() -> None:
             "--skip-download",
         ]
     )
-    decision_loop.option_logprobs = functools.partial(
-        option_logprobs, chunk=FORWARD_CHUNK
-    )
+    decision_loop.option_logprobs = functools.partial(option_logprobs, chunk=FORWARD_CHUNK)
     original = decision_loop.evaluate
 
     def evaluate(client, datums, step, runner):
@@ -129,22 +124,14 @@ def main() -> None:
     result = decision_loop.main(tk.build_config(args))
     READOUTS.mkdir(exist_ok=True)
     saved = {
-        k: (
-            str(Path(v).relative_to(HERE))
-            if k.endswith("_path") and str(v).startswith(str(HERE))
-            else v
-        )
+        k: (str(Path(v).relative_to(HERE)) if k.endswith("_path") and str(v).startswith(str(HERE)) else v)
         for k, v in vars(args).items()
     }
-    (READOUTS / f"{known.tag_prefix}run.json").write_text(
-        json.dumps({**result, "args": saved}, indent=1)
-    )
+    (READOUTS / f"{known.tag_prefix}run.json").write_text(json.dumps({**result, "args": saved}, indent=1))
     log.info("done: %s", result)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     assert os.environ.get("FIREWORKS_API_KEY"), "FIREWORKS_API_KEY missing"
     main()

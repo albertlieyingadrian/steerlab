@@ -111,11 +111,7 @@ def hist_markets(event_ticker: str) -> dict:
 def do_fill() -> None:
     need = (K / "need_markets.txt").read_text().split()
     path = K / "markets_hist.jsonl"
-    done = (
-        {json.loads(line)["event_ticker"] for line in path.open()}
-        if path.exists()
-        else set()
-    )
+    done = {json.loads(line)["event_ticker"] for line in path.open()} if path.exists() else set()
     todo = [e for e in need if e not in done]
     print(len(todo), "events to fill")
     with path.open("a") as fh, ThreadPoolExecutor(4) as pool:
@@ -155,25 +151,14 @@ def do_map() -> None:
         row = json.loads(line)
         st = row["state"]
         stats["rows"] += 1
-        cands = events.get(
-            (norm(st["event"]), norm(st.get("event_detail"))), []
-        ) or by_title.get(norm(st["event"]), [])
+        cands = events.get((norm(st["event"]), norm(st.get("event_detail"))), []) or by_title.get(norm(st["event"]), [])
         # Prefer the event whose first market opened on the row's as_of date.
-        same_day = [
-            e
-            for e in cands
-            if e["markets"]
-            and min(m["open_time"] for m in e["markets"])[:10] == st["as_of"]
-        ]
+        same_day = [e for e in cands if e["markets"] and min(m["open_time"] for m in e["markets"])[:10] == st["as_of"]]
         cands = same_day or cands
         if not cands:
             continue
         stats["rows_matched"] += 1
-        markets = [
-            dict(m, series_ticker=e["series_ticker"])
-            for e in cands
-            for m in e["markets"]
-        ]
+        markets = [dict(m, series_ticker=e["series_ticker"]) for e in cands for m in e["markets"]]
         for qid, q in row["questions"].items():
             if q["type"] == "choice":
                 for opt_i, key in enumerate(sorted(q["criteria"])):
@@ -261,9 +246,7 @@ def candle(r: dict) -> dict:
 def do_quotes() -> None:
     rows = [json.loads(line) for line in (K / "map.jsonl").open()]
     path = K / "quotes.jsonl"
-    done = (
-        {json.loads(line)["ticker"] for line in path.open()} if path.exists() else set()
-    )
+    done = {json.loads(line)["ticker"] for line in path.open()} if path.exists() else set()
     todo = list({r["ticker"]: r for r in rows if r["ticker"] not in done}.values())
     print(len(todo), "markets to fetch")
     with path.open("a", buffering=1) as fh, ThreadPoolExecutor(12) as pool:
@@ -282,30 +265,18 @@ def do_run(prefix: str) -> None:
     for line in (K / "quotes.jsonl").open():
         q = json.loads(line)
         quotes[q["ticker"]] = q
-    probs = {
-        (r["row"], r["qid"]): r
-        for r in map(
-            json.loads, (HERE / "results" / f"{prefix}test_probs.jsonl").open()
-        )
-    }
+    probs = {(r["row"], r["qid"]): r for r in map(json.loads, (HERE / "results" / f"{prefix}test_probs.jsonl").open())}
     contracts = [json.loads(line) for line in (K / "map.jsonl").open()]
     eligible = []
     for c in contracts:
         q = quotes.get(c["ticker"], {})
         bid, ask = q.get("bid"), q.get("ask")
-        if (
-            bid is None
-            or ask is None
-            or not (0 < bid < ask < 1)
-            or ask - bid > MAX_SPREAD
-        ):
+        if bid is None or ask is None or not (0 < bid < ask < 1) or ask - bid > MAX_SPREAD:
             continue
         if (c["row"], c["qid"]) not in probs:
             continue
         eligible.append({**c, "bid": bid, "ask": ask})
-    models = [
-        k for k in next(iter(probs.values())) if k.endswith(("_raw", "_calibrated"))
-    ]
+    models = [k for k in next(iter(probs.values())) if k.endswith(("_raw", "_calibrated"))]
     unseen_start = 8765 - 765
     out = {"eligible_contracts": len(eligible), "models": {}}
     for model in models:
@@ -315,20 +286,14 @@ def do_run(prefix: str) -> None:
                 if subset == "unseen" and c["row"] < unseen_start:
                     continue
                 pv = probs[(c["row"], c["qid"])][model]
-                p_yes = (
-                    pv[c["opt"]]
-                    if probs[(c["row"], c["qid"])]["type"] == "choice"
-                    else pv[0]
-                )
-                for side, p, price, wins in (
+                p_yes = pv[c["opt"]] if probs[(c["row"], c["qid"])]["type"] == "choice" else pv[0]
+                for _side, p, price, wins in (
                     ("yes", p_yes, c["ask"], c["won"]),
                     ("no", 1 - p_yes, 1 - c["bid"], not c["won"]),
                 ):
                     cost = price + fee_per_contract(price)
                     if p > 0.5 and p >= cost + EDGE:
-                        bets.append(
-                            {"row": c["row"], "w": p - 0.5, "cost": cost, "wins": wins}
-                        )
+                        bets.append({"row": c["row"], "w": p - 0.5, "cost": cost, "wins": wins})
             out["models"].setdefault(model, {})[subset] = simulate(bets)
     (HERE / "results" / f"{prefix}backtest.json").write_text(json.dumps(out, indent=1))
     print("eligible contracts", len(eligible))
@@ -344,9 +309,7 @@ def simulate(bets: list[dict], draws: int = 5000) -> dict:
     if not bets:
         return {"events": 0, "bets": 0, "end": BANKROLL, "ci90": [BANKROLL, BANKROLL]}
     w = np.array([b["w"] for b in bets])
-    mult = np.array(
-        [(1.0 / b["cost"]) if b["wins"] else 0.0 for b in bets]
-    )  # payout per dollar staked
+    mult = np.array([(1.0 / b["cost"]) if b["wins"] else 0.0 for b in bets])  # payout per dollar staked
     rows = np.array([b["row"] for b in bets])
     end = float(BANKROLL * (w * mult).sum() / w.sum())
     uniq, inv = np.unique(rows, return_inverse=True)

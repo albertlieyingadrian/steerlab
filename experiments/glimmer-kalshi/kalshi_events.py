@@ -58,9 +58,7 @@ def fetch_series(ticker: str) -> list[dict]:
                     "title": e.get("title"),
                     "sub_title": e.get("sub_title"),
                     "category": e.get("category"),
-                    "markets": [
-                        {k: m.get(k) for k in KEEP} for m in e.get("markets", [])
-                    ],
+                    "markets": [{k: m.get(k) for k in KEEP} for m in e.get("markets", [])],
                 }
             )
         cursor = d.get("cursor") or ""
@@ -75,10 +73,7 @@ def main() -> None:
     by_title: dict[str, list[str]] = {}
     for x in series:
         by_title.setdefault(x["title"], []).append(x["ticker"])
-    titles = {
-        json.loads(line)["state"]["series"]
-        for line in (OUT.parent / "data" / "test.jsonl").open()
-    }
+    titles = {json.loads(line)["state"]["series"] for line in (OUT.parent / "data" / "test.jsonl").open()}
     tickers = sorted({t for title in titles for t in by_title.get(title, [])})
     print(len(titles), "titles ->", len(tickers), "series tickers", flush=True)
     # Resumable: a ticker's events are written only once all its pages are in, then it is marked done.
@@ -92,9 +87,7 @@ def main() -> None:
         done_file.open("a") as dfh,
         ThreadPoolExecutor(4) as pool,
     ):
-        for i, (ticker, events) in enumerate(
-            zip(tickers, pool.map(fetch_series, tickers))
-        ):
+        for i, (ticker, events) in enumerate(zip(tickers, pool.map(fetch_series, tickers), strict=True)):
             for e in events:
                 fh.write(json.dumps(e, ensure_ascii=False) + "\n")
             fh.flush()

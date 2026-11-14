@@ -38,11 +38,7 @@ def softmax(logits: list[float], t: float) -> np.ndarray:
 
 
 def nll(rows: list[dict], t: float) -> float:
-    return float(
-        np.mean(
-            [-math.log(softmax(r["logprobs"], t)[r["gold"]] + 1e-300) for r in rows]
-        )
-    )
+    return float(np.mean([-math.log(softmax(r["logprobs"], t)[r["gold"]] + 1e-300) for r in rows]))
 
 
 def fit_t(rows: list[dict]) -> float:
@@ -111,9 +107,9 @@ def score(rows: list[dict], ps: list[np.ndarray]) -> dict:
     pred = np.array([int(p.argmax()) for p in ps])
     conf = np.array([float(p.max()) for p in ps])
     correct = (pred == gold).astype(float)
-    brier = np.mean([((p - np.eye(len(p))[g]) ** 2).sum() for p, g in zip(ps, gold)])
+    brier = np.mean([((p - np.eye(len(p))[g]) ** 2).sum() for p, g in zip(ps, gold, strict=True)])
     per_row: dict[int, list[float]] = {}
-    for r, c in zip(rows, correct):
+    for r, c in zip(rows, correct, strict=True):
         per_row.setdefault(r["row"], []).append(c)
     curve = []
     for th in THRESHOLDS:
@@ -149,18 +145,14 @@ def common_answer(rows: list[dict]) -> float:
     """'No' on yes/no (option index 1); modal gold position on choice. Uses labels: descriptive only."""
     choice = [r["gold"] for r in rows if r["type"] == "choice"]
     mode = max(set(choice), key=choice.count) if choice else 0
-    hits = [
-        (r["gold"] == 1) if r["type"] == "noul" else (r["gold"] == mode) for r in rows
-    ]
+    hits = [(r["gold"] == 1) if r["type"] == "noul" else (r["gold"] == mode) for r in rows]
     return float(np.mean(hits))
 
 
 def paired_diff(rows, pa, pb) -> dict:
     per_row: dict[int, list[float]] = {}
-    for r, a, b in zip(rows, pa, pb):
-        per_row.setdefault(r["row"], []).append(
-            float(a.argmax() == r["gold"]) - float(b.argmax() == r["gold"])
-        )
+    for r, a, b in zip(rows, pa, pb, strict=True):
+        per_row.setdefault(r["row"], []).append(float(a.argmax() == r["gold"]) - float(b.argmax() == r["gold"]))
     vals = [v for vs in per_row.values() for v in vs]
     return {"diff": float(np.mean(vals)), "ci95": boot_ci(per_row)}
 
@@ -172,9 +164,7 @@ def main() -> None:
         default="",
         help="readout file prefix, also used for the output names",
     )
-    ap.add_argument(
-        "--dir", default=str(READ), help="readout folder (qwen/ for the Qwen3-8B twist)"
-    )
+    ap.add_argument("--dir", default=str(READ), help="readout folder (qwen/ for the Qwen3-8B twist)")
     ap.add_argument("--out", default="", help="output name prefix (default: --prefix)")
     args = ap.parse_args()
     p = args.prefix
@@ -192,10 +182,7 @@ def main() -> None:
         if not test_path.exists():
             continue
         dev, test = load(dev_path), load(test_path)
-        fitted = {
-            t: fit_t([r for r in dev if r["type"] == t])
-            for t in sorted({r["type"] for r in dev})
-        }
+        fitted = {t: fit_t([r for r in dev if r["type"] == t]) for t in sorted({r["type"] for r in dev})}
         settings = {"raw": {}, "calibrated": fitted}
         m = {"dev_fitted_T": fitted, "dev_nll_raw": nll(dev, 1.0)}
         for name, temps in settings.items():
@@ -217,9 +204,7 @@ def main() -> None:
     if "base_raw" in test_probs and "tuned_calibrated" in test_probs:
         unseen = [i for i, r in enumerate(test) if r["row"] >= unseen_start]
         out["tuned_cal_minus_base_raw"] = {
-            "full": paired_diff(
-                test, test_probs["tuned_calibrated"], test_probs["base_raw"]
-            ),
+            "full": paired_diff(test, test_probs["tuned_calibrated"], test_probs["base_raw"]),
             "unseen": paired_diff(
                 [test[i] for i in unseen],
                 [test_probs["tuned_calibrated"][i] for i in unseen],
@@ -236,10 +221,7 @@ def main() -> None:
                         "qid": r["qid"],
                         "type": r["type"],
                         "gold": r["gold"],
-                        **{
-                            k: [round(float(x), 6) for x in v[i]]
-                            for k, v in test_probs.items()
-                        },
+                        **{k: [round(float(x), 6) for x in v[i]] for k, v in test_probs.items()},
                     }
                 )
                 + "\n"
