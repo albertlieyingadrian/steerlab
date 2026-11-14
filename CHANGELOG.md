@@ -56,7 +56,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Removed
 
-- `packages/circuitkit` and `docs-site/` moved to their own repository and were renamed: [circuitcheck](https://github.com/albertlieyingadrian/circuitcheck) (`pip install circuitcheck` after its first release). The circuits episode 3 note now points there.
+- `packages/circuitkit` and `docs-site/` moved to their own repository and were renamed: [circuitcheck](https://github.com/albertlieyingadrian/circuitcheck) (`pip install circuitcheck`). The circuits episode 3 note now points there.
 
 ### Added
 
