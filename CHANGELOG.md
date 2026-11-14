@@ -7,6 +7,8 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- The Pigment Gym cover is animated: each code section lights up in turn (sky bands, sun, far hill) as its part of the painting appears, rendered layer by layer by the environment itself, then it rests on the original cover; it plays once on the note, in the Start here lead and in Latest, and on hover in small covers.
+
 - Animated covers: the spec-midtraining note's cover is now an 8-second animated diagram of model spec midtraining (illustrative values), with a looping thumbnail on the research page that plays only while on screen and stays still for readers who ask for reduced motion; the note is pinned in Start here and leads Nov 13.
 
 - Research note update: slop-detector (`experiments/slop-detector/`), Model voice episode 2: the final Qwen3.5-9B, chosen on validation only, beats voi-slop-detect-4B on 6,000 fresh EditLens texts in one pre-registered look, at fixed cut-offs (0.902 vs 0.860) and with both calibrated (0.909 vs 0.879); labels set by how a text was made with a 4-bucket head; a data v3 of Claude-written edits failed its gate; lesson 08.
