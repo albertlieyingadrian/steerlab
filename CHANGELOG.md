@@ -7,6 +7,8 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- The Layer Explorer cover is animated: an outline climbs the layer stack at a steady pace and settles on layer 21, where " Paris" takes over, while the layer 21 panel's neuron tables come into focus; built from layers of the real app, it rests on the original screenshot.
+
 - The Pigment Gym cover is animated: each code section lights up in turn (sky bands, sun, far hill) as its part of the painting appears, rendered layer by layer by the environment itself, then it rests on the original cover; it plays once on the note, in the Start here lead and in Latest, and on hover in small covers.
 
 - Animated covers: the spec-midtraining note's cover is now an 8-second animated diagram of model spec midtraining (illustrative values), with a looping thumbnail on the research page that plays only while on screen and stays still for readers who ask for reduced motion; the note is pinned in Start here and leads Nov 13.
