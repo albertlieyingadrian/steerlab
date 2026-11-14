@@ -13,6 +13,8 @@
   --panel: #f5f6f4;
   --accent: #c9561c;          /* steer orange: what steering does, in data and figures */
   --accent-soft: #f8e6dc;
+  --accent-text: #a8501e;     /* steer orange for small text: 5.5:1 on white (--accent is 4.4:1) */
+  --ink-meta: #69757a;        /* small grey labels on the research page: 4.75:1 on white (--ink-faint is 3.1:1) */
   --control: #4a86e8;         /* fader blue: settings and controls */
   --ground: #15110e;          /* Ember ground: art, screens, the header band */
   --link: #1d272a;
@@ -27,6 +29,7 @@
 :root[data-theme="dark"] {
   --canvas: #121516; --ink: #e8ecec; --ink-soft: #a7b1b3; --ink-faint: #7b8689; --rule: #2a3133;
   --panel: #1b2022; --accent: #e07a3f; --accent-soft: #3a2419; --control: #6f9ff0; --link: #e8ecec; --mark: #4a3d12;
+  --accent-text: #e07a3f; --ink-meta: #8f9a9d;
   color-scheme: dark;
 }
 
@@ -106,15 +109,43 @@ figure.hero img { aspect-ratio: 16 / 9; object-fit: cover; border-radius: 0; bac
 figure.hero figcaption { margin-top: 0.6rem; font-size: 0.8125rem; }
 /* Covers with words in them (labels, cards) are shown whole, never cropped to 16:9. */
 figure.hero.whole img { aspect-ratio: auto; object-fit: contain; }
-/* Animated covers: inline SVG with its own CSS keyframes (svg.cover-anim). A wide and a narrow drawing may both be
-   given; phones get the narrow one. report.js pauses a cover while it is off screen; reduced motion is in the SVG. */
-figure.hero-anim svg { display: block; width: 100%; height: auto; }
-figure.hero-anim .cover-narrow { display: none; }
+/* Animated covers (shared/cover.js). A note's hero is inline SVG (svg.cover-anim): its keyframes run only under
+   .is-live, so without script or with reduced motion it is the full figure. A wide and a narrow drawing may both be
+   given; phones get the narrow one. Every animated cover plays once and rests on the full figure, with the same
+   control under it: a 2px progress line and a "Skip animation" / "Replay" pill. */
+figure.hero-anim svg.cover-anim { display: block; width: 100%; height: auto; }
+figure.hero-anim svg.cover-narrow { display: none; }
 @media (max-width: 600px) {
-  figure.hero-anim:has(.cover-narrow) .cover-wide { display: none; }
-  figure.hero-anim .cover-narrow { display: block; }
+  figure.hero-anim:has(.cover-narrow) svg.cover-wide { display: none; }
+  figure.hero-anim svg.cover-narrow { display: block; }
 }
-.cover-anim.is-paused * { animation-play-state: paused !important; }
+svg.cover-anim.is-idle * { animation-play-state: paused !important; }
+.cover-bar { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.625rem; }
+.cover-bar[hidden] { display: none; }
+.cover-prog { flex: 1; height: 2px; border-radius: 2px; background: var(--rule); overflow: hidden; }
+.cover-prog > span { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%; }
+.cover-ctl { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2rem; padding: 0 0.75rem; border: 1px solid var(--rule);
+  border-radius: 999px; background: var(--canvas); color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.75rem;
+  font-weight: 400; line-height: 1; letter-spacing: 0.02em; cursor: pointer; white-space: nowrap; }
+.cover-ctl:hover { color: var(--ink); border-color: var(--ink-faint); }
+.cover-ctl:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cover-ctl svg, .cover-mark svg { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round; }
+.cover-fig { margin: 0; min-width: 0; }
+.cover-media { display: block; border-radius: 4px; }
+.cover-media video { display: block; }
+/* Small covers loop on hover or keyboard focus, only where hovering exists; a play mark says so. */
+.cover-thumb { position: relative; display: block; }
+.cover-thumb > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; margin: 0;
+  transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+.lg-row:hover .cover-thumb > video { transform: translateY(-2px); }
+.cover-mark { position: absolute; left: 0.5rem; bottom: 0.5rem; display: grid; place-items: center; width: 1.5rem; height: 1.5rem;
+  border-radius: 50%; background: rgb(255 255 255 / .94); color: var(--accent-text); box-shadow: 0 1px 3px rgb(0 0 0 / .18);
+  pointer-events: none; }
+.cover-mark svg { width: 0.75rem; height: 0.75rem; }
+.ep-card .cover-thumb { margin-bottom: 0.4rem; }
+.ep-card .cover-thumb .thumb { margin-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { .cover-bar, .cover-mark { display: none; } }
 figure.illustration img { border-radius: 4px; }
 figure { margin: 2.5rem 0; }
 figure img, figure video { display: block; width: 100%; height: auto; border-radius: 6px; }
@@ -764,13 +795,17 @@ figure.hack-grid .g3 { grid-template-columns: minmax(0, 1fr) 8.5rem minmax(0, 1f
 .pin-btn:disabled { opacity: .35; cursor: default; }
 .pin-lead { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 2.25rem; align-items: center; }
 .pin-text { display: grid; gap: 0.6rem; align-content: center; }
-.pin-from { display: block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.03em; color: var(--accent); text-wrap: balance; }
+.pin-from { display: block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.03em; color: var(--accent-text); text-wrap: balance; }
 .pin-t { display: block; font-family: var(--font-display); font-size: 1.9rem; font-weight: 650; letter-spacing: -0.015em; line-height: 1.18; color: var(--ink); text-wrap: balance; }
 .pin-lead:hover .pin-t { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; }
 .pin-find { display: block; font-size: 1.02rem; line-height: 1.5; color: var(--ink-soft); text-wrap: pretty; }
 .pin-go { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.03em; color: var(--ink-soft); margin-top: 0.35rem; }
-.pin-lead:hover .pin-go { color: var(--accent); }
-.pin-lead .thumb.pin-swap { animation: pin-swap .28s cubic-bezier(.16, 1, .3, 1); }
+.pin-lead:hover .pin-go { color: var(--accent-text); }
+/* With the script, the lead's cover sits in its own figure beside the text link, so the cover control under it is
+   never inside a link; the layout is the same as .pin-lead's. */
+.pin-panel.is-split { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 2.25rem; align-items: center; }
+.pin-panel.is-split .pin-lead { display: block; }
+.pin-panel .thumb.pin-swap { animation: pin-swap .28s cubic-bezier(.16, 1, .3, 1); }
 @keyframes pin-swap { from { opacity: .35; filter: blur(3px); } }
 .pin-rail { --gap: 0.75rem; --tab: calc((100cqi - 6 * var(--gap)) / 6.45); container-type: inline-size; position: relative;
             margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
@@ -780,22 +815,22 @@ figure.hack-grid .g3 { grid-template-columns: minmax(0, 1fr) 8.5rem minmax(0, 1f
 .pin-strip::-webkit-scrollbar { display: none; }
 .pin-strip:not(.at-end) { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 3rem), transparent); }
 .pin-strip a { scroll-snap-align: start; display: grid; gap: 0.45rem; align-content: start; }
-.pin-strip .pin-from { font-size: 0.65rem; line-height: 1.35; color: var(--ink-faint); }
+.pin-strip .pin-from { font-size: 0.6875rem; line-height: 1.35; color: var(--ink-meta); }
 .pin-strip .thumb { border-radius: 3px; outline: 2px solid transparent; outline-offset: 2px; transition: opacity .2s cubic-bezier(.2, .8, .2, 1), outline-color .2s; }
 .pin-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .is-live .pin-strip .thumb { opacity: .62; }
 .is-live .pin-strip a:hover .thumb { opacity: .9; }
-.pin-strip a[aria-selected="true"] .pin-from { color: var(--accent); }
+.pin-strip a[aria-selected="true"] .pin-from { color: var(--accent-text); }
 .pin-strip a[aria-selected="true"] .thumb { opacity: 1; outline-color: var(--accent); }
 .pin-strip a:focus-visible { outline-color: var(--ink); outline-offset: 5px; }
 .pin-arrow { position: absolute; top: calc(1.25rem + var(--tab) / 3 - 1.125rem); z-index: 1; box-shadow: 0 2px 8px rgb(0 0 0 / .14); }
 .pin-arrow-l { left: -1.125rem; }
 .pin-arrow-r { right: -1.125rem; }
 .pin-arrow:disabled, .pin-arrow[hidden] { opacity: 0; visibility: hidden; }
-@media (prefers-reduced-motion: reduce) { .pin-lead .thumb.pin-swap { animation: none; } .pin-strip .thumb, .pin-btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .pin-panel .thumb.pin-swap { animation: none; } .pin-strip .thumb, .pin-btn { transition: none; } }
 @media (max-width: 1100px) { .pin-arrow-l { left: 0.25rem; } .pin-arrow-r { right: 0.25rem; } }
 @media (max-width: 760px) {
-  .pin-lead { grid-template-columns: minmax(0, 1fr); gap: 0.9rem; }
+  .pin-lead, .pin-panel.is-split { grid-template-columns: minmax(0, 1fr); gap: 0.9rem; }
   .pin-text { align-content: start; }
   .is-live .pin-text { min-height: 12.5rem; }
   .pin-t { font-size: 1.4rem; }
@@ -833,7 +868,7 @@ table.map td { vertical-align: top; font-size: 0.9rem; }
 .lg-day { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0 2rem; padding: 1.5rem 0; border-top: 1px solid var(--rule); }
 .lg-day:first-child { border-top: 0; padding-top: .25rem; }
 .lg-date { margin: .15rem 0 0; font: 650 1.0625rem/1.2 var(--font-display); color: var(--ink); position: sticky; top: 1rem; align-self: start; }
-.lg-count { display: block; margin-top: .3rem; font: 400 .75rem/1.3 var(--font-mono); color: var(--ink-faint); }
+.lg-count { display: block; margin-top: .3rem; font: 400 .75rem/1.3 var(--font-mono); color: var(--ink-meta); }
 .lg-list { list-style: none; margin: 0; padding: 0; }
 .lg-list li + li { border-top: 1px solid var(--rule); }
 .lg-row { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: 1.75rem; align-items: start; padding: 1.25rem 0; }
@@ -843,9 +878,9 @@ table.map td { vertical-align: top; font-size: 0.9rem; }
 .lg-text { display: flex; flex-direction: column; gap: .4rem; padding-top: .1rem; }
 .lg-t { font: 650 1.1875rem/1.28 var(--font-display); color: var(--ink); text-wrap: balance; }
 .lg-find { font: .9688rem/1.55 var(--font-body); color: var(--ink-soft); max-width: 64ch; }
-.lg-meta { font: .75rem/1.5 var(--font-mono); color: var(--ink-faint); }
+.lg-meta { font: .75rem/1.5 var(--font-mono); color: var(--ink-meta); }
 .lg-meta > span { white-space: nowrap; }
-.lg-series { color: var(--accent); }
+.lg-series { color: var(--accent-text); }
 .lg-row:hover .lg-t { color: var(--accent); }
 .lg-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
 @media (max-width: 860px) {
@@ -860,7 +895,7 @@ table.map td { vertical-align: top; font-size: 0.9rem; }
 }
 
 /* Research index, Latest view: a note pinned for its day (notes.json "pin_day") leads the day as a spotlight */
-.lg-pin { display: inline-flex; align-items: center; gap: .3rem; color: var(--accent); white-space: nowrap; }
+.lg-pin { display: inline-flex; align-items: center; gap: .3rem; color: var(--accent-text); white-space: nowrap; }
 .lg-pin svg { width: .8rem; height: .8rem; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .has-pin .is-pinned .lg-row { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 2.25rem; padding: .5rem 0 2rem; }
 .has-pin .is-pinned .lg-t { font-size: 1.75rem; line-height: 1.16; }
@@ -869,7 +904,14 @@ table.map td { vertical-align: top; font-size: 0.9rem; }
 .has-pin li:not(.is-pinned) .lg-find { display: none; }
 .has-pin li:not(.is-pinned) .lg-t { font-size: 1.0625rem; }
 .has-pin li:not(.is-pinned) .lg-thumb { box-shadow: none; }
-@media (max-width: 860px) { .has-pin .is-pinned .lg-row { grid-template-columns: minmax(0, 1fr); } }
+/* A day's lead with an animated cover: the cover and its control in a figure, the text link beside it (same layout). */
+.has-pin li.has-player { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 2.25rem; align-items: start;
+  padding: .5rem 0 2rem; }
+.has-pin li.has-player .lg-row { display: block; padding: 0; }
+.has-pin li.has-player .lg-text { padding-top: .1rem; }
+.cover-media:hover .lg-thumb { transform: translateY(-2px); box-shadow: 0 2px 4px rgb(0 0 0 / .08), 0 12px 26px -10px rgb(0 0 0 / .26); }
+@media (max-width: 860px) { .has-pin .is-pinned .lg-row, .has-pin li.has-player { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 860px) { .has-pin li.has-player { gap: .8rem; } }
 @media (max-width: 560px) { .has-pin li:not(.is-pinned) .lg-row { grid-template-columns: 6rem minmax(0, 1fr); } .has-pin .is-pinned .lg-t { font-size: 1.4rem; } }
 
 /* Research index: the author card beside the title (portrait, name, a line, links to the bio, LinkedIn and X) */

@@ -149,3 +149,12 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   motion. In Start here only the lead plays it, while its pin is selected and on screen; the row of covers stays
   still. Open Graph and every other place keep the static image. A diagram cover sets its own type on the SVG (the
   system sans for spec-midtraining), never the site's font variables.
+- 2026-11-14: Animated covers play once and rest on the full figure, everywhere, through one player
+  (`shared/cover.js`). Big covers (a note's hero, the Start here lead, a day's lead in Latest) start when in view
+  (the hero on load, the research page's leads at 60%), jump to the finished frame if scrolled away mid-play, and
+  carry the same control under the figure: a 2px progress line (steer orange on a rule-coloured track) and a mono
+  pill, "Skip animation" while it runs, "Replay" after, with line icons (stroke 1.6, currentColor), a 32px tap
+  target and a focus ring. The control is never inside a link: the script moves the cover into its own figure
+  beside the text link. Small covers stay still and loop only on hover or keyboard focus where hovering exists,
+  with a small play mark. Pieces fade up from 30% opacity, never from blank. Reduced motion: the still figure, no
+  control. Small orange and grey labels use `--accent-text` (#a8501e) and `--ink-meta` (#69757a), both over 4.5:1.

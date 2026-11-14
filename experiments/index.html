@@ -367,7 +367,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
-<link rel="stylesheet" href="shared/report.css?v=54">
+<link rel="stylesheet" href="shared/report.css?v=56">
 <script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 </head>
 <body>
@@ -831,40 +831,31 @@
   show(location.hash === "#series" || (saved === "series" && location.hash === "") ? 1 : 0);
 })();
 </script>
+<script src="shared/cover.js?v=1"></script>
 <script>
 (function () {
-  // Animated covers: an img whose data-anim names a base path becomes a muted loop (base.webm, base.mp4) with the image as its
-  // poster, playing only while on screen. Without the script, or for readers who ask for reduced motion, the image stays.
-  if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  // Start here handles its own covers (only the lead plays, while its pin is selected).
-  var imgs = Array.prototype.filter.call(document.querySelectorAll("img[data-anim]"), function (img) {
-    return !img.closest(".pinned");
+  // Animated covers on this page (shared/cover.js). A day's lead in Latest plays once when 60% of it is in view, with
+  // its control under it; every other small cover (series cards, Latest rows, the Start here row) stays still and
+  // loops only on hover or keyboard focus. Start here's lead is handled with the pins below. Without the script or
+  // with reduced motion every cover is its still image.
+  if (!window.SteerCover) return;
+  document.querySelectorAll("img[data-anim]").forEach(function (img) {
+    var li = img.closest(".has-pin li.is-pinned");
+    if (li && SteerCover.motionOK()) lead(li, img);
+    else SteerCover.hover(img);
   });
-  if (!imgs.length) return;
-  var seen = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      var v = e.target;
-      if (!e.isIntersecting) { v.pause(); return; }
-      if (v.preload === "none") { v.preload = "auto"; v.load(); }
-      var p = v.play();
-      if (p && p.catch) p.catch(function () {});
-    });
-  }, { threshold: 0.2 });
-  imgs.forEach(function (img) {
-    var v = document.createElement("video"), base = img.dataset.anim;
-    v.className = img.className;
-    v.width = img.width; v.height = img.height;
-    v.muted = true; v.loop = true; v.playsInline = true; v.preload = "none";
-    v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("aria-hidden", "true");
-    v.poster = img.getAttribute("src");
-    [["webm", "video/webm"], ["mp4", "video/mp4"]].forEach(function (f) {
-      var s = document.createElement("source");
-      s.src = base + "." + f[0]; s.type = f[1];
-      v.appendChild(s);
-    });
-    img.replaceWith(v);
-    seen.observe(v);
-  });
+  // The cover moves out of the row's link into its own figure, so the control under it is not inside a link.
+  function lead(li, img) {
+    var row = li.querySelector(".lg-row"), fig = document.createElement("figure"), media = document.createElement("a");
+    var v = SteerCover.video(img);
+    fig.className = "cover-fig";
+    media.className = "cover-media"; media.href = row.getAttribute("href");
+    media.tabIndex = -1; media.setAttribute("aria-hidden", "true");
+    media.appendChild(v); fig.appendChild(media);
+    img.remove();
+    li.insertBefore(fig, row); li.classList.add("has-player");
+    SteerCover.player(fig, { video: v });
+  }
 })();
 </script>
 <script>
@@ -882,43 +873,31 @@
   var prev = step.querySelector('[data-step="-1"]'), next = step.querySelector('[data-step="1"]');
   var left = sec.querySelector(".pin-arrow-l"), right = sec.querySelector(".pin-arrow-r");
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-  var cur = 0;
+  var cur = 0, shown = false;
   function motion() { return reduce.matches ? "auto" : "smooth"; }
-  // A pin whose cover has data-anim plays its muted loop in the lead while it is selected and the lead is on
-  // screen; any other pin, reduced motion or a browser without IntersectionObserver keeps the still image.
-  var vid = null, onScreen = false;
-  function sync() {
-    if (!vid || vid.style.display === "none") return;
-    if (onScreen) { var p = vid.play(); if (p && p.catch) p.catch(function () {}); } else vid.pause();
+  // With an animated pin (shared/cover.js), the lead's cover sits in its own figure beside the text link, so its
+  // control is under the cover and outside the link. The animated pin plays once each time it is selected and in view;
+  // other pins, reduced motion and no script keep the still image.
+  var fig = null, media = null, vid = null, play = null;
+  var animated = window.SteerCover && SteerCover.motionOK() && tabs.some(function (a) { return a.querySelector("img[data-anim]"); });
+  if (animated) {
+    fig = document.createElement("figure"); fig.className = "cover-fig";
+    media = document.createElement("a"); media.className = "cover-media";
+    media.tabIndex = -1; media.setAttribute("aria-hidden", "true");
+    media.appendChild(img); fig.appendChild(media);
+    panel.insertBefore(fig, lead); panel.classList.add("is-split");
   }
-  function leadAnim(base) {
-    if (!base || reduce.matches || !("IntersectionObserver" in window)) {
-      if (vid) { vid.pause(); vid.style.display = "none"; }
-      img.style.display = "";
-      return;
-    }
-    if (!vid) {
-      vid = document.createElement("video");
-      vid.className = img.className; vid.width = img.width; vid.height = img.height;
-      vid.muted = true; vid.loop = true; vid.playsInline = true;
-      vid.setAttribute("muted", ""); vid.setAttribute("playsinline", ""); vid.setAttribute("aria-hidden", "true");
-      img.after(vid);
-      new IntersectionObserver(function (es) { onScreen = es[0].isIntersecting; sync(); }, { threshold: 0.2 }).observe(lead);
-    }
-    if (vid.dataset.base !== base) {
-      vid.dataset.base = base;
-      vid.poster = img.getAttribute("src");
-      while (vid.firstChild) vid.removeChild(vid.firstChild);
-      [["webm", "video/webm"], ["mp4", "video/mp4"]].forEach(function (f) {
-        var s = document.createElement("source");
-        s.src = base + "." + f[0]; s.type = f[1];
-        vid.appendChild(s);
-      });
-      vid.load();
-    }
-    vid.style.display = ""; img.style.display = "none";
-    vid.classList.remove("pin-swap"); void vid.offsetWidth; vid.classList.add("pin-swap");
-    sync();
+  function leadAnim(a) {
+    if (!fig) return;
+    var src = a.querySelector("img");
+    media.href = a.getAttribute("href");
+    if (play) { play.destroy(); play = null; }
+    if (vid) { vid.remove(); vid = null; }
+    img.style.display = "";
+    if (!src.hasAttribute("data-anim")) return;
+    vid = SteerCover.video(src); vid.className = "thumb";
+    img.after(vid); img.style.display = "none";
+    play = SteerCover.player(fig, { video: vid });
   }
   sec.classList.add("is-live");
   strip.setAttribute("role", "tablist");
@@ -943,7 +922,8 @@
       img.src = a.querySelector("img").getAttribute("src");
       img.classList.remove("pin-swap"); void img.offsetWidth; img.classList.add("pin-swap");
     }
-    leadAnim(a.querySelector("img").dataset.anim);
+    if (changed || !shown) leadAnim(a);
+    shown = true;
     panel.setAttribute("aria-labelledby", a.id);
     count.textContent = (i + 1) + " of " + tabs.length;
     prev.disabled = i === 0; next.disabled = i === tabs.length - 1;
@@ -980,6 +960,6 @@
   show(0); edges();
 })();
 </script>
-<script src="shared/report.js?v=15"></script>
+<script src="shared/report.js?v=17"></script>
 </body>
 </html>
