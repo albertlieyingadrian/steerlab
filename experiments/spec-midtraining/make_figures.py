@@ -1,7 +1,7 @@
 """Figures for the Episode 1 note, drawn only from results/ (summary.json, runs/interp_*.json). Prints every plotted
 number so it can be checked against the text.
 
-    python make_figures.py      # report/figures/{behaviour,steering_llama,steering_qwen}.png
+    python make_figures.py      # report/figures/{behaviour,steering_llama,steering_qwen}.png and flow.jpg
 """
 
 import json
@@ -117,9 +117,10 @@ def steering(path, out, title):
     plt.close(fig)
 
 
-def hero(dirs_path, layer=16):
-    """Cover art from data: the shared flow-field drawing (experiments/shared/make_art.py) with the released Llama
-    models' America-minus-affordability model-diff direction at one layer as the field."""
+def flow(dirs_path, layer=16):
+    """Data art for section 4.5: the shared flow-field drawing (experiments/shared/make_art.py) with the released
+    Llama models' America-minus-affordability model-diff direction at one layer as the field. The note's cover is
+    a separate animated diagram of the method, so this writes neither the cover nor the thumbnail."""
     import sys
 
     import torch
@@ -137,20 +138,14 @@ def hero(dirs_path, layer=16):
     make_art.field = lambda model, concept: grid
     make_art.ART["spec-midtraining"] = ("llama8b", f"msm_diff_L{layer}", 0.16, 1.8)
     make_art.ROOT = HERE.parents[1]
-    make_art.draw("spec-midtraining", (1600, 900), FIG / "hero.jpg")
-    from PIL import Image
-
-    im = Image.open(FIG / "hero.jpg")
-    w, h = im.size
-    th = im.crop(((w - h * 3 // 2) // 2, 0, (w + h * 3 // 2) // 2, h)).resize((720, 480))
-    th.save(HERE.parent / "shared" / "thumbs" / "spec-midtraining.jpg", quality=88)
-    print("hero: Llama model-diff direction, layer", layer, "dims", vec.size)
+    make_art.draw("spec-midtraining", (1600, 900), FIG / "flow.jpg")
+    print("flow: Llama model-diff direction, layer", layer, "dims", vec.size)
 
 
 def main():
     FIG.mkdir(parents=True, exist_ok=True)
     if (RES / "runs" / "dirs_llama.pt").exists():
-        hero(RES / "runs" / "dirs_llama.pt")
+        flow(RES / "runs" / "dirs_llama.pt")
     s = RES / "summary.json"
     if s.exists():
         behaviour(json.loads(s.read_text()))

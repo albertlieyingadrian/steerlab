@@ -11,8 +11,9 @@ image `report/figures/og.jpg`, cropped from its cover. On the research page it a
 `<!-- latest:start -->` and `<!-- latest:end -->`: every note with a card in the series view, newest first by
 `published` then `published_time` (ISO, used only to order notes from the same day), with its series, episode and
 cover from that card. A note with `"pin_day": true` (at most one per day) leads its day as a spotlight: a wide
-cover and large title, with the day's other notes as compact rows. Edit `notes.json`, then rerun; never edit the
-blocks by hand.
+cover and large title, with the day's other notes as compact rows. A series card's cover with
+`data-anim="shared/thumbs/<name>"` (a muted loop in `<name>.webm` and `<name>.mp4`, its poster the card's image) keeps
+that attribute in the Latest view. Edit `notes.json`, then rerun; never edit the blocks by hand.
 """
 
 from __future__ import annotations
@@ -195,8 +196,9 @@ MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", 
 TOKEN = re.compile(
     r'<li class="note series"|<h2>(?P<series>[^<]+)</h2>|<h3 class="season">(?P<season>[^<]+)</h3>'
     r'|<li data-tags="(?P<tags>[^"]*)"><a class="ep-card" href="(?P<slug>[a-z0-9-]+)/report/">'
-    r'<img class="thumb" src="(?P<thumb>[^"]+)"[^>]*><span class="ep-n">(?P<ep>[^<]+?)\s*<span'
+    r'<img class="thumb" src="(?P<thumb>[^"]+)"(?P<img>[^>]*)><span class="ep-n">(?P<ep>[^<]+?)\s*<span'
 )
+ANIM = re.compile(r'\sdata-anim="([^"]+)"')
 
 
 def cards(page: str) -> dict[str, dict[str, str]]:
@@ -212,8 +214,9 @@ def cards(page: str) -> dict[str, dict[str, str]]:
         elif m.group("season"):
             season = "S" + m.group("season").split()[1] + " · "
         elif m.group("slug"):
+            anim = ANIM.search(m.group("img"))
             out[m.group("slug")] = {"series": series, "ep": season + m.group("ep").strip(), "thumb": m.group("thumb"),
-                                    "tags": m.group("tags")}  # fmt: skip
+                                    "tags": m.group("tags"), "anim": anim.group(1) if anim else ""}  # fmt: skip
     return out
 
 
@@ -255,9 +258,10 @@ def latest_block(page: str, meta: dict) -> str:
             c = info[n["name"]]
             li_cls = ' class="is-pinned"' if n.get("pin_day") else ""
             pin = f'<span class="lg-pin">{PIN_SVG}Pinned</span> <span class="lg-sep" aria-hidden="true">·</span> '
+            anim = f' data-anim="{attr(c["anim"])}"' if c["anim"] else ""
             parts.append(
                 f'<li{li_cls} data-tags="{attr(c["tags"])}"><a class="lg-row" href="{n["name"]}/report/">'
-                f'<img class="lg-thumb" src="{attr(c["thumb"])}" alt="" width="720" height="480" loading="lazy">'
+                f'<img class="lg-thumb" src="{attr(c["thumb"])}"{anim} alt="" width="720" height="480" loading="lazy">'
                 f'<span class="lg-text"><span class="lg-t">{html.escape(n["title"])}</span>'
                 f'<span class="lg-find">{html.escape(finding(n["description"]))}</span>'
                 f'<span class="lg-meta">{pin if n.get("pin_day") else ""}'

@@ -7,6 +7,8 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Animated covers: the spec-midtraining note's cover is now an 8-second animated diagram of model spec midtraining (illustrative values), with a looping thumbnail on the research page that plays only while on screen and stays still for readers who ask for reduced motion; the note is pinned in Start here and leads Nov 13.
+
 - Research note update: slop-detector (`experiments/slop-detector/`), Model voice episode 2: the final Qwen3.5-9B, chosen on validation only, beats voi-slop-detect-4B on 6,000 fresh EditLens texts in one pre-registered look, at fixed cut-offs (0.902 vs 0.860) and with both calibrated (0.909 vs 0.879); labels set by how a text was made with a 4-bucket head; a data v3 of Claude-written edits failed its gate; lesson 08.
 - Research note: tracing an RL reward hack with attribution graphs and Leo Gao's swap test (`experiments/rl-hack-circuit/`), episode 2 of the circuits-beyond-single-neurons series: the features RL turned up for a comment-keyword hack in Qwen3-1.7B are hack-specific and replicate but fail the swap test as a group and are not needed for the hack; ten neurons pass the swap test; about 0.70 of each graph is unexplained before and after RL.
 - Research note: reproducing Model Spec Midtraining's spec-steering result on Qwen3-4B-Base and looking inside (`experiments/spec-midtraining/`), episode 1 of the model spec midtraining series: identical fine-tuning teaches each model its own spec's value on held-out questions (4 seeds, documents by Claude Sonnet 5.5 or the published study), midtraining alone separates the models more than after fine-tuning, and the difference inside does not steer as one direction.
