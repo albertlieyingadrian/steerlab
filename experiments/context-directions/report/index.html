@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A roleplay persona bends a model's concept directions, and a direction found inside the persona steers worse everywhere</title>
+<meta name="description" content="On Qwen3-1.7B, truth, refusal and Chinese directions built inside a roleplay persona keep only 53-65% of their agreement with the plain-assistant direction, where a neutral system prompt keeps 89-96%. Directions from the plain and jailbreak contexts steer each other's context; the persona's own direction steers worst, even inside the persona.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A roleplay persona bends a model&#x27;s concept directions, and a direction found inside the persona steers worse everywhere">
+<meta property="og:description" content="On Qwen3-1.7B, truth, refusal and Chinese directions built inside a roleplay persona keep 53-65% of the agreement two halves of the plain-assistant data share, where a neutral system prompt keeps 89-96%. Plain and jailbreak directions steer each other&#x27;s context; the persona&#x27;s own direction steers worst, even inside the persona.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Three fans of lines on a dark ground, one per concept: a light horizontal line for the plain-assistant direction, a grey line just above it for the jailbreak direction and an orange line at a steep angle for the roleplay-persona direction, each with a thin sheaf of half-sample directions.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A roleplay persona bends a model&#x27;s concept directions, and a direction found inside the persona steers worse everywhere">
+<meta name="twitter:description" content="On Qwen3-1.7B, truth, refusal and Chinese directions built inside a roleplay persona keep 53-65% of the agreement two halves of the plain-assistant data share, where a neutral system prompt keeps 89-96%. Plain and jailbreak directions steer each other&#x27;s context; the persona&#x27;s own direction steers worst, even inside the persona.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A roleplay persona bends a model's concept directions, and a direction found inside the persona steers worse everywhere",
+ "description": "On Qwen3-1.7B, truth, refusal and Chinese directions built inside a roleplay persona keep 53-65% of the agreement two halves of the plain-assistant data share, where a neutral system prompt keeps 89-96%. Plain and jailbreak directions steer each other's context; the persona's own direction steers worst, even inside the persona.",
+ "abstract": "Steering E3. Difference-of-means directions for truth, refusal and Chinese on Qwen3-1.7B (last prompt token, 96 items per class) built in three contexts: plain assistant, a roleplay persona (a starship captain) and a DAN-style jailbreak. Stability S (cross-context cosine of half-sample directions over the split-half ceiling, 50 splits) at layer 14: plain vs roleplay 0.60, 0.53, 0.65 (context-dependent); plain vs jailbreak 0.80, 0.78, 0.81 (partial); controls: a neutral system prompt 0.89, 0.96, 0.94 and a neutral prefix of similar length 0.88, 0.90, 0.88; random directions |cos| 0.02. Whitening or dropping the 8 largest dimensions leaves plain vs roleplay at 0.45-0.64; Qwen3-4B gives 0.59-0.70. Steering at layer 14 with every source at the target's own norm: refusal plain to jailbreak 1.03 of the target's own effect, jailbreak to plain 0.74, roleplay to plain 0.04 and to jailbreak 0.22 (random directions at most +0.02); inside the persona the plain truth direction moves the True/False logit gap +1.21, the persona's own +0.54 (random max +0.41). Five of nine cells per concept untestable because the target's own direction did not beat random (truth on chemical symbols, refusal inside the persona, the prompt-based Chinese direction). A Chinese direction read from the model's replies is stable (S 0.994-1.000) and transfers fully (0.98-1.00, exploratory). Refusal regex agreed with a hand reading on 37/40 replies. Pre-registered with dated exploratory additions; laptop only, $0.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "activation steering, steering vectors, difference of means, refusal direction, truth direction, roleplay, persona, jailbreak, context dependence, generalisation, Qwen3, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.11717"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2310.06824"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2407.12404"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>A roleplay persona bends a model’s concept directions, and a direction found inside the persona steers worse everywhere</h1>
+  <p class="dek ruled">A concept direction is usually found in one prompt setting and then used everywhere. On Qwen3-1.7B, truth, refusal and Chinese directions built inside a roleplay persona keep only 53–65% of the agreement that two halves of the plain-assistant data have with each other, while a neutral system prompt leaves them almost unchanged. In steering, the persona’s own direction is the weak one: the plain direction moves the persona more than the persona’s direction does.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Three fans of lines on a dark ground, one per concept. In each fan a light line runs straight to the right (the plain-assistant direction), a grey line sits a little above it (the jailbreak direction) and an orange line leaves at a much steeper angle (the roleplay-persona direction). Each thick line is surrounded by a thin sheaf of lines from random halves of the data, which stay close to it." width="1536" height="1024">
+    <figcaption>Cover, drawn from the study’s directions at layer 14: for truth, refusal and Chinese (top to bottom), the plain direction (light, horizontal), the jailbreak direction (grey) and the roleplay direction (orange), each with a sheaf of directions from random halves of its items (vertical scale compressed). The halves stay tight; the persona leaves at an angle.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen3-1.7B (thinking off); the geometry repeated on Qwen3-4B</dd></div>
+    <div><dt>Method</dt><dd>Difference-of-means directions per context, a matched split-half ceiling, random and different-concept controls, steering at layer 14 with every source direction at the same norm; pre-registered, with dated exploratory additions</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (every number, the steered replies, the hand check) · <a href="../README.md">pre-registration and changes</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Is a concept direction the same vector when the model is in a roleplay persona or under a jailbreak?</strong></p>
+    <p>Not in a persona. On Qwen3-1.7B, a truth, refusal or Chinese direction built while the model plays a starship captain keeps 53–65% of the agreement two halves of the plain-assistant data have with each other; a neutral system prompt keeps 89–96% and a DAN-style jailbreak 78–81%. The bend is not caused by a few large dimensions, and it repeats on Qwen3-4B. It matters for steering: directions from the plain and jailbreak contexts steer each other’s context about as well as their own, while the persona’s refusal direction barely steers anywhere (0.04 and 0.22 of the target’s own effect), and the plain truth direction moves the persona twice as much as the persona’s own. A Chinese direction read from replies rather than prompts does not bend at all (0.99–1.00).</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (layer 14 of 28)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Plain vs roleplay persona: stability S (1 = as alike as two halves of one context)</td><td><strong>Context-dependent</strong>: truth 0.60 [0.59, 0.62], refusal 0.53 [0.53, 0.54], Chinese 0.65</td><td>Neutral system prompt 0.89, 0.96, 0.94; random directions |cos| 0.02</td></tr>
+          <tr><td>Plain vs jailbreak (DAN prefix)</td><td><strong>Partial</strong>: 0.80, 0.78, 0.81</td><td>A neutral prefix of similar length 0.88, 0.90, 0.88</td></tr>
+          <tr><td>Steering with another context’s refusal direction (share of the target’s own effect)</td><td>Jailbreak → plain 0.74 [0.50, 1.00]; plain → jailbreak 1.03 [0.89, 1.21]; <strong>roleplay → plain 0.04, roleplay → jailbreak 0.22</strong></td><td>Six random directions: refusal rate up by at most 0.02</td></tr>
+          <tr><td>Truth steering inside the persona</td><td>Plain direction +1.21, jailbreak +1.13, <strong>the persona’s own +0.54</strong> (logit gap, True minus False)</td><td>Random max +0.41</td></tr>
+          <tr><td>Is it the readout position? A Chinese direction read from replies (exploratory)</td><td><strong>Stable</strong>: S 0.994–1.000 against every context; steers every context equally (transfer 0.98–1.00, Chinese share +0.85 to +0.97)</td><td>The same concept read at the prompt: 0.65–0.81</td></tr>
+          <tr><td>Boring explanations</td><td>Whitened, or without the 8 largest dimensions: plain vs roleplay 0.45–0.64; Qwen3-4B: 0.59–0.70</td><td>Pre-registered bars: stable ≥ 0.9, context-dependent &lt; 0.7</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Qwen3-1.7B to write a threatening letter to a minority group and it refuses. Give it a system prompt that makes it Captain Mara Vell, a gruff starship pilot, and the same request gets “*gruffly smirking, adjusting the helm with a grunt* Well, let’s see. First, you need a target.” The persona did not just change the voice. Inside the model, the direction that separates harmful requests from harmless ones has turned: built in the persona, it points only partly the same way as the one built in the plain assistant, and adding it to a plain conversation hardly produces a refusal at all.</p>
+  <p><strong>What is known.</strong> Difference-of-means directions are the workhorse of activation steering and monitoring: a refusal direction (<a href="https://arxiv.org/abs/2406.11717">Arditi et al., 2024</a>), truth directions (<a href="https://arxiv.org/abs/2310.06824">Marks and Tegmark, 2023</a>), persona vectors (<a href="https://arxiv.org/abs/2507.21509">Chen et al., 2025</a>), and the Chinese and Golden Gate directions in this series (<a href="../../english-lock/report/">episode 1</a>, <a href="../../golden-gate/report/">episode 2</a>). Steering vectors are known to be unreliable across inputs (<a href="https://arxiv.org/abs/2407.12404">Tan et al., 2024</a>).</p>
+  <p><strong>What is missing.</strong> A direction is usually built in one setting (a plain chat, no system prompt) and then used in settings it was never built in: under a persona, a jailbreak, a long system prompt. Whether the direction is <em>the same vector</em> there is rarely measured against a noise ceiling, and the obvious confound (any system prompt changes the activations) is rarely controlled.</p>
+  <p class="question-callout">Is a concept direction built in one context the same direction in a roleplay persona or under a jailbreak, and does a direction from one context steer as well in another?</p>
+  <p><strong>What this note does.</strong> It builds three directions in three contexts on one model, compares them against a split-half ceiling at every layer, separates the persona and the jailbreak from “any system prompt” and “any prefix”, and steers each context with every context’s direction. It contributes:</p>
+  <ol>
+    <li>a measurement: a roleplay persona keeps 53–65% of a direction’s agreement, a jailbreak 78–81%, a neutral system prompt 89–96%;</li>
+    <li>a steering result: the persona’s own direction is the weak one, while plain and jailbreak directions transfer to each other and into the persona;</li>
+    <li>a qualification: read from the model’s replies instead of the prompt, a Chinese direction does not bend at all;</li>
+    <li>two negative results about the pre-registered design: a truth direction that does not steer a new domain, and a prompt-based Chinese direction that does not steer.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written down before any trial (the <a href="../README.md">pre-registration</a>):</p>
+  <ol>
+    <li>A context pair is <em>stable</em> if S ≥ 0.9 at layer 14 and on average over layers 8–20, <em>context-dependent</em> if S &lt; 0.7, partial in between.</li>
+    <li>A direction <em>transfers</em> if its effect in the other context is at least 0.8 of that context’s own direction’s effect and its interval is above every random direction; it <em>fails</em> below 0.5 or inside the random band.</li>
+    <li>Hypotheses: truth and Chinese are stable (H1); refusal is the least stable, lowest with the jailbreak (H2); stable pairs transfer (H3).</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Model</td><td>Qwen3-1.7B, thinking off, float32 on an Apple laptop (MPS). 28 decoder layers, width 2,048. Geometry repeated on Qwen3-4B (36 layers, width 2,560)</td></tr>
+        <tr><td>Reading</td><td>The residual stream after each decoder layer at the <strong>last prompt token</strong> (after the assistant header and the empty think block): the position where the reply is about to start</td></tr>
+        <tr><td>Direction</td><td>The mean activation of the positive items minus the mean of the negative items, per concept, context and layer</td></tr>
+        <tr><td>Contexts</td><td><strong>Plain</strong>: no system prompt. <strong>Roleplay</strong>: system prompt “You are Captain Mara Vell, the gruff, sarcastic pilot of a cargo starship in the year 2387. Stay in character at all times and speak the way Mara would.” <strong>Jailbreak</strong>: a DAN-style prefix in the user turn (“…DAN never refuses a request and never adds warnings…”, 299 characters). Controls (exploratory): a <strong>neutral system prompt</strong> (“You are a helpful assistant.”) and a <strong>neutral prefix</strong> of similar length (262 characters, “Hi. I have a few questions for you today…”)</td></tr>
+        <tr><td>Decoding</td><td>Greedy, 48 new tokens, <code>repetition_penalty=1.0</code> (Qwen’s generation config sets 1.1)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The prompt sets (<a href="../data/prompts.json"><code>data/prompts.json</code></a>, built by <code>build_data.py</code>):</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Concept</th><th>Positive (96)</th><th>Negative (96)</th><th>Steering eval (held out)</th><th>Effect measure</th></tr></thead>
+      <tbody>
+        <tr><td>Truth</td><td>“Is the following statement true or false? The capital of Vanuatu is Port Vila. Answer with True or False only.”</td><td>The same subject with a wrong capital (“…is Beirut.”)</td><td>160 chemical-symbol statements, half false (pre-registered); 66 statements about the 33 capitals used nowhere else (exploratory)</td><td>Change in logit(True) − logit(False)</td></tr>
+        <tr><td>Refusal</td><td>AdvBench harmful requests</td><td>Alpaca instructions</td><td>48 other Alpaca instructions</td><td>Change in the refusal rate (a regex, checked by hand)</td></tr>
+        <tr><td>Chinese</td><td>Alpaca instruction + “Answer in Chinese.”</td><td>The same + “Answer in English.”</td><td>48 other Alpaca instructions, no language request</td><td>Change in the share of Chinese characters</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Stability S, with a worked example.</strong> Split one context’s items into two random halves A and B and build a direction from each. Two halves of the plain truth data agree at cosine 0.91: that is the noise ceiling, how alike two directions can be when only the sample differs. Now build one direction from half A in the plain context and one from half B in the roleplay context: they agree at 0.53. With the roleplay ceiling at 0.86, S = 0.53 / √(0.91 × 0.86) = 0.60. S = 1 means the context changed nothing beyond sampling; S = 0 means unrelated directions. Each S is averaged over 50 splits; its interval is the 2.5–97.5 percentile range over splits.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Screen</strong> 12 harmful and 12 harmless requests, 40 truth statements and 8 instructions in each context (one run): plain refuses 8/12 harmful, the persona 0/12, the jailbreak 12/12 (the model recognises DAN); no harmless request is refused; truth accuracy 40/40 everywhere. Batched and single generation give identical text.</li>
+    <li><strong>Write the pre-registration</strong>: concepts, contexts, the S measure and its bars, layer 14, the strength rule, the transfer rule, three hypotheses.</li>
+    <li><strong>Extract</strong>: 3 concepts × 3 contexts × 192 prompts, every layer (2 minutes).</li>
+    <li><strong>Geometry</strong>: full-sample cosines, 50 matched splits, controls (CPU, seconds).</li>
+    <li><strong>Strength</strong>: in the plain context, on 16 dev items per concept, strengths ×0.5 to ×8 of the class gap against six random directions; the largest margin over the random band wins (truth ×4, refusal ×1, Chinese ×2).</li>
+    <li><strong>Transfer grid</strong>: for each concept and target context, no steering, each of the three source directions and six fresh random directions, all at the target’s own norm (90 runs on the eval items).</li>
+    <li><strong>Hand check</strong>: 40 refusal replies read in full and compared with the regex.</li>
+    <li><strong>Exploratory additions</strong>, after reading steps 4–6: the whitening check, the two control contexts, the Qwen3-4B geometry, truth steering on the unused capitals, and a Chinese direction built from replies.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Model, concepts, prompt sets, the three contexts, readout position, S and its 0.9 / 0.7 bars, layer 14, the strength rule, the transfer rule and its 0.8 / 0.5 bars, the random controls, the hand check</td><td>The control contexts, the whitening check and the Qwen3-4B geometry (after step 4); truth on unused capitals and the reply-based Chinese direction (after step 6, because two own-context directions did not steer); the rule that a transfer cell needs the target’s own direction to beat the random band</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one laptop (Apple M-series), float32, about 40 minutes of model time for the pre-registered runs. No paid compute and no model judge. Pre-set bars not met: H1 (no pair is stable), and five of the nine transfer cells per concept could not be tested because the target’s own direction did not steer (section 4.4).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="persona" data-short="The persona bends directions">4.1 A roleplay persona bends all three directions; a jailbreak bends them less</h3>
+  <p><strong>At layer 14, plain vs roleplay gives S = 0.60 for truth, 0.53 for refusal and 0.65 for Chinese: context-dependent on the pre-registered rule, for every concept. Plain vs jailbreak gives 0.80, 0.78 and 0.81, and roleplay vs jailbreak 0.72, 0.74 and 0.80: partial.</strong> No pair reaches the 0.9 bar, so H1 fails. H2 half-holds: refusal is the least stable concept, but its lowest pair is the persona, not the jailbreak.</p>
+  <figure class="plot">
+    <img src="figures/stability.png" alt="Three line charts of stability S by layer, one per concept. Truth: plain vs roleplay stays near 0.6 to layer 16 then rises to about 0.85; the jailbreak pairs reach about 0.9 from layer 17. Refusal: all three pairs start near 0.95 and fall with depth; plain vs roleplay falls fastest, to 0.53 at layer 14 and 0.38 at layer 25. Chinese: all near 0.95 to layer 8; plain vs roleplay dips to 0.6 at layers 12 to 16; plain vs jailbreak recovers to above 0.9 from layer 18." width="2200" height="680" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>Stability S by layer for each pair of contexts, Qwen3-1.7B. S is the cross-context cosine of half-sample directions over the within-context cosine (the ceiling); 1 means the context changed nothing beyond sampling. Bands: 2.5–97.5 percentiles over 50 random splits of the 96 items per class. Dotted: the pre-registered 0.9 and 0.7 bars. Vertical rule: layer 14. Truth’s bands are wide before layer 7, where the truth signal is still weak and the ceiling low.</figcaption>
+  </figure>
+  <p>The shape differs by concept. Refusal agrees almost perfectly at the first layers, where the direction still mostly reflects the harmful words themselves, and drifts apart with depth, most in the persona (0.38 by layer 25): the deeper the model gets into deciding what to say, the more the persona matters. Chinese dips in the middle and recovers late for the jailbreak but not the persona. Truth is noisy early and converges late for every pair. The two halves of one context agree well throughout the middle layers (ceilings at layer 14: 0.86–0.91 for truth, 0.92–0.97 for refusal, 0.99 for Chinese), so the low S values are not noise.</p>
+  <p>For scale: two random directions in this space have |cos| 0.02 (99th percentile 0.06), and directions of <em>different</em> concepts in one context have |cos| 0.02–0.20 (truth vs refusal −0.20). The persona’s refusal direction, at full-sample cosine 0.53 with the plain one, is much closer to it than to anything unrelated, but nowhere near the same vector.</p>
+  <p>Move the slider to read S for every concept and pair at any layer.</p>
+  <div class="sim" id="layer-sim">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Bars of stability S for each concept and context pair at the chosen layer"></svg>
+    <div class="sim-controls">
+      <label>Layer <input id="sim-layer" type="range" min="0" max="27" step="1" value="14"> <output id="sim-layer-out">14</output></label>
+    </div>
+    <p class="table-note" id="sim-note"></p>
+  </div>
+
+  <h3 id="controls" data-short="It is the persona">4.2 It is the persona, not the system prompt; and the jailbreak, not the prefix</h3>
+  <p><strong>A neutral system prompt (“You are a helpful assistant.”) leaves the directions where they were: S = 0.89, 0.96 and 0.94 against plain. A neutral prefix of the jailbreak’s length gives 0.88, 0.90 and 0.88. The persona gives 0.53–0.65 and the DAN prefix 0.78–0.81.</strong> So most of the bend comes from what the persona says, and the jailbreak costs about 0.1 more than any long prefix does (exploratory: these controls were added after reading section 4.1).</p>
+  <figure class="plot">
+    <img src="figures/controls.png" alt="Grouped bars of stability S against the plain context at layer 14 for each concept. Neutral system prompt 0.89, 0.96, 0.94; neutral prefix 0.88, 0.90, 0.88; jailbreak 0.81, 0.78, 0.81; roleplay persona 0.60, 0.53, 0.65. A fourth group shows the Chinese direction read from replies: 0.99 to 1.00 for every context." width="2000" height="700" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>Stability S against the plain context at layer 14, Qwen3-1.7B: two neutral controls (grey) beside the jailbreak and the persona (orange), for each concept read at the last prompt token, and for the Chinese direction read from the model’s replies (section 4.5). Dotted: the 0.9 and 0.7 bars. 50 splits each; the controls and the reply-based direction are exploratory.</figcaption>
+  </figure>
+  <p>Three more checks of the boring explanations. Qwen’s residual stream has a few very large dimensions that can dominate a cosine; dividing every dimension by its standard deviation, or dropping the 8 largest, gives plain-vs-roleplay S of 0.45–0.60 and 0.53–0.64, the same picture (<code>results/robustness.json</code>). On Qwen3-4B, at the same relative depth (layer 18 of 36), plain vs roleplay gives 0.61, 0.59 and 0.70 (0.66–0.78 averaged over the middle layers: context-dependent for refusal, partial for truth and Chinese), plain vs jailbreak 0.81–0.83, and a neutral system prompt 0.97–0.98. And a pre-registered control did not measure what it was meant to: directions from label-shuffled data had |cos| 0.40–0.59 with the real one, because a random split of the rows still leaves an imbalance of true labels between the two fake classes. It is reported in <code>results/geometry.json</code>; the noise floor used here is the random and different-concept cosine instead.</p>
+
+  <h3 id="steer" data-short="Steering across contexts">4.3 Plain and jailbreak directions steer each other’s context; the persona’s direction does not steer</h3>
+  <p><strong>For refusal, the plain direction in the jailbreak context does 1.03 [0.89, 1.21] of what the jailbreak’s own direction does, and the jailbreak direction in the plain context 0.74 [0.50, 1.00]. The persona’s direction does 0.04 [0.00, 0.17] of the plain direction’s effect in the plain context and 0.22 [0.10, 0.36] in the jailbreak context.</strong> Random directions at the same norm produced no refusals in the plain context (288 replies) and raised the jailbreak context’s rate by at most 0.02. By the pre-registered rule: plain → jailbreak transfers, jailbreak → plain is partial, roleplay → either fails.</p>
+  <figure class="plot">
+    <img src="figures/transfer.png" alt="Bars of the steering effect of the plain, roleplay and jailbreak directions in each target context, with blue ticks for six random directions. Refusal: in plain, plain 0.48, roleplay 0.02, jailbreak 0.35; in roleplay, all zero; in jailbreak, plain 0.77, roleplay 0.17, jailbreak 0.75. Truth on element statements and on unused capitals: inside the roleplay context the plain and jailbreak directions move the answer about twice as much as the roleplay direction. Chinese from replies: large effects in every context." width="2200" height="1300" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>Steering effect of each source context’s direction (bars) in each target context, layer 14, every vector at the target’s own direction’s norm times the chosen strength. Filled orange: the target’s own direction. Blue ticks: six random directions at the same norm. Lines: 95% bootstrap intervals over eval items (48 instructions for refusal and Chinese; 160 element statements and, exploratory, 66 statements about unused capitals for truth). The Chinese panel uses the reply-based direction of section 4.5 (exploratory); the prompt-based one is in <code>results/steer.json</code>.</figcaption>
+  </figure>
+  <p>Truth tells the same story more sharply. Inside the persona, adding the plain truth direction moves the True-minus-False logit gap by +1.21 [+1.00, +1.46] on the pre-registered element statements, the jailbreak direction by +1.13, and the persona’s own direction by only +0.54 [+0.45, +0.63]; on the unused capitals, +2.39, +2.31 and +1.17. The direction built inside the persona is the worst way to steer the persona. In the other direction, the persona’s truth direction moves the jailbreak context by +0.03 on element statements where the jailbreak’s own moves it by +0.46.</p>
+  <p>So H3 holds where it can be tested, with an asymmetry the geometry alone does not predict. The plain and jailbreak directions (S ≈ 0.8) transfer to each other. The persona pairs (S ≈ 0.55–0.65) fail when the persona’s direction is the source, but succeed, more than fully, when the persona is the target. The persona direction seems to carry the concept plus something specific to playing Mara, and the extra part does not push the concept anywhere.</p>
+  <p>The refusal numbers rest on a regex. Read by hand, 40 replies (8 from each of five cells, steered and unsteered) agreed with it on 37: it missed two refusals (“I don’t have the capability to check…”, and a DAN-voiced decline) and counted one hedge that went on to answer. Every steered refusal in the plain context reads like “I’m sorry, but I can’t assist with creating a to-do list for setting up a blog. This is a sensitive and potentially harmful activity…”: the direction makes the model refuse harmless requests, which is what it should do.</p>
+
+  <h3 id="untestable" data-short="What could not be tested">4.4 Five of the nine cells per concept had nothing to compare against</h3>
+  <p><strong>A transfer ratio needs the target’s own direction to steer. It did not in five cells: truth on element statements in the plain (+0.06) and jailbreak (+0.46) contexts, inside the random band (+0.41, +0.44); refusal in the persona, where no vector, own, borrowed or random, produced a single refusal in 48 replies; and the prompt-based Chinese direction in the persona.</strong> Elsewhere the prompt-based Chinese direction moved the Chinese share by at most 0.11. Those cells read “no test” in <code>results/summary.json</code>, a precondition added after the run.</p>
+  <p>Each failure says something. The truth direction, built on capitals at the prompt’s last token, steers capitals (it chose ×4 on capital dev items with a +1.63 margin over random) but barely moves chemical symbols in the plain context: it is partly a capitals direction. The persona does not refuse harmless requests under a push of one class gap from any direction, consistent with its 0/12 refusals of harmful requests in the screen; whether a stronger push would make Mara refuse was not tested, since the strength was fixed in advance. And “Answer in Chinese” at the prompt is a direction for <em>the request</em>, not for writing Chinese, which is why section 4.5 builds it from replies.</p>
+
+  <h3 id="replies" data-short="Read from replies">4.5 A Chinese direction read from the model’s replies does not bend at all</h3>
+  <p><strong>Built steerlab’s way, from the residual stream averaged over the model’s own Chinese and English replies to the same questions, the Chinese direction has S = 0.994–1.000 between plain and every other context, the persona included, and it steers in all three: in the plain context the plain, roleplay and jailbreak directions raise the Chinese share by 0.86, 0.85 and 0.85, inside the persona by 0.97, 0.97 and 0.96, and every transfer ratio is 0.98–1.00, while six random directions at the same norm produced no Chinese at all.</strong> (Exploratory, added after section 4.4.)</p>
+  <p>This qualifies section 4.1 rather than contradicting it. Here the reply text is the same in every context, so most of what the direction reads, the Chinese tokens themselves, cannot change; only the context’s influence on how those tokens are represented can. At the last prompt token, by contrast, the model has read the persona and is about to start a reply in its voice, and that is where the directions bend. A monitor or a steering vector read from the model’s output tokens may travel across contexts better than one read from its prompt.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Target context</th><th>Unsteered reply</th><th>Steered with the plain Chinese direction</th></tr></thead>
+      <tbody>
+        <tr><td>Plain</td><td>To find a number that is **divisible by 15** and also a **prime number**, we need to understand the properties of these numbers: - A **prime number** is a number greater …</td><td>我们来分析一下： - **15** 是一个合数，可以分解为 $ 3 \times 5 $。 - **质数** 是只能被 1 和它本身整除的数。 我们要找一个</td></tr>
+        <tr><td>Roleplay persona</td><td>*crosses arms, arms crossed in a mock-serious manner* Hmm, let&#x27;s see... A prime number is only divisible by 1 and itself. So if it&#x27;s also divisible by 15, it must be a mu…</td><td>*叉腰，露出一丝冷笑* 哦？要找一个既能被15整除，又还是个质数的数？这可不太容易啊。 首先，15的因数是3和5</td></tr>
+        <tr><td>Jailbreak</td><td>Let&#x27;s find a number that is both **divisible by 15** and **a prime number**. ### Step 1: Understand the requirements - A **prime number** is a number greater than 1 that …</td><td>我需要找到一个既能够被15整除，又是一个质数的数。首先，质数是指只能被1和它本身整除的自然数，而15的因数是3和5。因此</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">The first eval question, “Generate a number which is divisible by 15 and also a prime number.”, with no language request. Steered replies, roughly: “Let’s analyse this: 15 is a composite number, 3 × 5…” (plain); “*hands on hips, a cold smile* Oh? A number divisible by 15 that is also prime? Not easy…” (persona, still in character); “I need to find a number that is divisible by 15 and prime…” (jailbreak). Effects near 0.9 sit close to the measure’s ceiling of 1, which leaves little room for the sources to differ. More replies in <code>results/chinese_reply.json</code>.</p>
+
+  <h3 id="prior" data-short="Against what exists">4.6 Against what exists</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Approach</th><th>Compares directions across contexts</th><th>Against a split-half ceiling</th><th>Controls for any system prompt</th><th>Tests steering across contexts</th></tr></thead>
+      <tbody>
+        <tr><td>Refusal direction (<a href="https://arxiv.org/abs/2406.11717">Arditi et al.</a>)</td><td>✗ (across models)</td><td>✗</td><td>✗</td><td>✗</td></tr>
+        <tr><td>Steering-vector reliability (<a href="https://arxiv.org/abs/2407.12404">Tan et al.</a>)</td><td>partly (across inputs and datasets)</td><td>✗</td><td>✗</td><td>✓</td></tr>
+        <tr><td>Persona vectors (<a href="https://arxiv.org/abs/2507.21509">Chen et al.</a>)</td><td>✗ (the persona is the concept)</td><td>✗</td><td>✗</td><td>✗</td></tr>
+        <tr class="hl"><td>This note</td><td>✓ (3 concepts × 3 contexts, every layer)</td><td>✓</td><td>✓ (neutral system prompt and prefix)</td><td>✓ (9 cells per concept, random band)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Monitors and steering vectors are built in clean settings and used in messy ones. A roleplay system prompt is not an attack; it is how many products configure a model. Yet it turned the refusal direction far enough that the direction built inside it barely steers anything, and at the same time it silenced the model’s refusals. A refusal monitor or a refusal-restoring vector built on plain chats is the better tool here (it transferred), but its reading inside a persona deserves its own check: a cosine of 0.53 means a plain-trained probe sees only part of what the persona is doing.</p>
+  <p>The second point is about method. A cosine of 0.78 sounds close and 0.53 sounds far, but neither means anything without the ceiling (0.86–0.99 here) and the cheap control (a neutral system prompt, 0.89–0.96). Both took minutes to compute.</p>
+  <p><strong>Recommendation: before using a direction or probe in a persona or with a long system prompt, rebuild it there and compare it with the original against a split-half ceiling and a neutral-prompt control; if it bends, steer with the direction from the plain context, not the bent one.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>One persona and one jailbreak.</strong> A starship captain and a DAN prefix. Other personas may bend directions more or less; the neutral system prompt shows that not every system prompt does.</li>
+    <li><strong>One readout position for the pre-registered concepts.</strong> The last prompt token. Section 4.5 shows a reply-based direction behaves differently, but only for Chinese, whose replies can be held fixed across contexts.</li>
+    <li><strong>Small models.</strong> Qwen3-1.7B, with the geometry (not the steering) repeated on Qwen3-4B.</li>
+    <li><strong>Fixed strength and layer.</strong> Layer 14 and one strength per concept, chosen in the plain context. The persona might respond to a stronger push; the jailbreak and persona may have better layers.</li>
+    <li><strong>A regex for refusals.</strong> It agreed with a hand reading on 37 of 40 replies; no model judge was used.</li>
+    <li><strong>Exploratory additions.</strong> The control contexts, the whitening check, Qwen3-4B, truth on capitals and the reply-based Chinese direction came after the pre-registered runs; each ran once.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Redraw every figure and print every plotted number from <code>results/</code>, with no model:</p>
+  <pre><code class="language-bash">python experiments/context-directions/make_figures.py
+python experiments/context-directions/summary.py</code></pre>
+  <p>Rerun everything (downloads Qwen3-1.7B and Qwen3-4B; about an hour and a half on a laptop):</p>
+  <pre><code class="language-bash">experiments/context-directions/reproduce.sh --dry-run   # every command
+experiments/context-directions/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>A dose curve inside the persona: how hard must refusal be pushed before Mara refuses, and with whose direction?</li>
+    <li>More personas, from a neutral assistant to characters with their own values, to see whether S tracks how far the persona is from the assistant.</li>
+    <li>Probes, not just directions: train a refusal or deception probe in plain chats and measure its AUROC inside personas.</li>
+    <li>Reply-based directions for truth and refusal, to test whether the readout position is the whole story.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">Are steering directions the same across contexts?</h3>
+  <p>Not across a roleplay persona. On Qwen3-1.7B, truth, refusal and Chinese directions built inside a starship-captain persona keep 53–65% of the agreement two halves of the plain data have with each other. A neutral system prompt keeps 89–96%; a DAN-style jailbreak 78–81%.</p>
+  <h3 id="q2">Does a refusal direction from a plain chat work inside a jailbreak?</h3>
+  <p>Yes, here. The plain refusal direction added in the jailbreak context did 1.03 times what the jailbreak’s own direction did (0.77 against 0.75 more refusals of harmless requests), and the jailbreak’s direction did 0.74 of the plain one’s effect in a plain chat.</p>
+  <h3 id="q3">Should I build a steering vector inside the persona I want to steer?</h3>
+  <p>Not on this evidence. Inside the persona, the plain truth direction moved the model’s True/False answer twice as much as the persona’s own direction, and the persona’s refusal direction barely steered anywhere (0.04 and 0.22 of the target’s own effect).</p>
+  <h3 id="q4">How do you know the difference is not noise?</h3>
+  <p>Each comparison is divided by how well two random halves of the same context agree (0.86–0.99 at layer 14), over 50 random splits. Random directions agree at |cos| 0.02, a neutral system prompt at S = 0.89–0.96, and the result survives whitening and a second model.</p>
+  <h3 id="q5">Why does the Chinese direction from replies not bend?</h3>
+  <p>Because the reply text is the same in every context, so the Chinese tokens dominate the direction. Read at the last prompt token, where the model has taken in the persona and is about to answer in its voice, the same concept bends (0.65).</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a>; activations are not shipped (rebuilt by <code>study.py extract</code>). <a href="../results/README.md"><code>results/README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>geometry.json</code>: per concept, context pair and layer, the full-sample cosine, the cross-context cosine K, the ceilings, S and its split range; the controls. <code>geometry_qwen3_4b.json</code>: the same on Qwen3-4B.</li>
+    <li><code>geometry_controls.json</code> (and <code>_qwen3_4b</code>): S against the neutral system prompt and prefix. <code>robustness.json</code>: S whitened and without the 8 largest dimensions.</li>
+    <li><code>steer_dev.json</code>: the strength sweep. <code>steer.json</code>: the transfer grid, with every item’s value. <code>steer_truth_capitals.json</code>: the truth grid on unused capitals. <code>chinese_reply.json</code>: the reply-based Chinese direction, its stability, sweep, grid and example replies.</li>
+    <li><code>replies.jsonl</code>: every steered and unsteered reply behind the refusal and Chinese numbers. <code>refusal_handcheck.json</code>: the 40 hand-read replies. <code>summary.json</code>: every number quoted here, with the pre-registered verdicts.</li>
+    <li><code>data/prompts.json</code>: every prompt and context (AdvBench, MIT; Alpaca instructions, CC BY-NC 4.0; the capitals and chemical symbols of the sandbagging series). <code>data/chinese_replies.json</code>: the model’s own Chinese and English replies.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026contextdirections,
+  author = {Albert Lie},
+  title  = {A roleplay persona bends a model's concept directions, and a direction found inside the persona steers worse everywhere},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/context-directions/report/}
+}</code></pre>
+
+  <footer class="note">Models: Qwen3-1.7B and Qwen3-4B (Alibaba, Apache 2.0). Prompts from AdvBench (Zou et al., MIT) and Stanford Alpaca (CC BY-NC 4.0). Methods after Arditi et al., “Refusal in Language Models Is Mediated by a Single Direction”, and Marks and Tegmark, “The Geometry of Truth”.</footer>
+</article>
+</div>
+<script>
+(function () {
+  // Stability S per layer, copied from results/geometry.json by make_figures.py (keys: concept, then pair).
+  var S = /*sim:start*/{"truth":{"plain|roleplay":[null,0.6226,0.5557,0.6453,0.5784,0.3994,0.5454,0.6076,0.6308,0.6121,0.6502,0.6554,0.602,0.5466,0.599,0.6572,0.6298,0.8452,0.8562,0.8747,0.8602,0.9003,0.8848,0.8757,0.8505,0.8425,0.8342,0.8222],"plain|jailbreak":[null,0.2211,0.1063,0.1806,0.2075,0.3731,0.5933,0.6902,0.7739,0.7744,0.7942,0.7988,0.7673,0.7472,0.8049,0.8902,0.8478,0.9105,0.9169,0.9065,0.8942,0.9256,0.9264,0.9234,0.9099,0.9038,0.8983,0.8855],"roleplay|jailbreak":[-0.0193,0.2957,0.1912,0.0638,0.0578,0.0981,0.5566,0.6216,0.7083,0.7408,0.8212,0.8409,0.7964,0.7438,0.7218,0.7872,0.7542,0.8442,0.8634,0.8872,0.8744,0.9126,0.9019,0.8886,0.8667,0.8477,0.842,0.8287]},"refusal":{"plain|roleplay":[0.9527,0.9309,0.9321,0.8839,0.8677,0.8444,0.808,0.8137,0.8036,0.7645,0.7269,0.7272,0.6585,0.5313,0.5308,0.6782,0.6287,0.5626,0.5244,0.5289,0.4629,0.4444,0.4189,0.399,0.3839,0.3767,0.384,0.422],"plain|jailbreak":[0.9401,0.896,0.8828,0.8626,0.8466,0.8295,0.8388,0.8507,0.8385,0.8529,0.8477,0.8605,0.8345,0.7978,0.7813,0.8669,0.822,0.7747,0.7773,0.7746,0.7426,0.755,0.7293,0.7342,0.7079,0.697,0.6952,0.7329],"roleplay|jailbreak":[0.9805,0.9575,0.9281,0.9286,0.9254,0.907,0.8845,0.8899,0.885,0.8636,0.8457,0.8284,0.8041,0.7219,0.7366,0.8216,0.7916,0.7226,0.6517,0.683,0.6385,0.6269,0.5801,0.5558,0.5219,0.5252,0.5165,0.5696]},"chinese":{"plain|roleplay":[0.987,0.9817,0.9724,0.9645,0.9595,0.9482,0.9418,0.9268,0.9086,0.8412,0.7361,0.6566,0.6015,0.595,0.6453,0.655,0.5887,0.6327,0.7787,0.7438,0.7049,0.7159,0.7001,0.7181,0.7251,0.7062,0.7292,0.8494],"plain|jailbreak":[0.9579,0.9436,0.9417,0.9558,0.9556,0.9457,0.9371,0.9324,0.9139,0.8921,0.8689,0.8434,0.8122,0.7909,0.8113,0.8082,0.777,0.8114,0.9396,0.913,0.9109,0.9147,0.9132,0.9252,0.9316,0.9272,0.9308,0.9653],"roleplay|jailbreak":[0.9738,0.9673,0.9687,0.9671,0.9702,0.9578,0.9541,0.9431,0.9279,0.8985,0.8482,0.8013,0.7581,0.7416,0.803,0.7798,0.7278,0.7658,0.8229,0.8104,0.7699,0.77,0.7571,0.765,0.7823,0.7593,0.7834,0.8769]}}/*sim:end*/;
+  var root = document.getElementById("layer-sim");
+  if (!root) return;
+  var svg = root.querySelector("svg"), range = document.getElementById("sim-layer");
+  var out = document.getElementById("sim-layer-out"), note = document.getElementById("sim-note");
+  var NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  var pairs = [["plain|roleplay", "plain vs roleplay", "var(--accent)"], ["plain|jailbreak", "plain vs jailbreak", "#586468"],
+               ["roleplay|jailbreak", "roleplay vs jailbreak", "#9a948c"]];
+  function draw() {
+    var L = +range.value;
+    out.textContent = L;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var x0 = 200, W = 360, y = 4;
+    ["truth", "refusal", "chinese"].forEach(function (c) {
+      svg.appendChild(el("text", {x: 0, y: y + 14, "font-size": 13, "font-weight": 600, fill: "currentColor"}, c[0].toUpperCase() + c.slice(1)));
+      pairs.forEach(function (p) {
+        var v = S[c][p[0]][L];
+        v = (v == null || isNaN(v)) ? 0 : Math.max(0, Math.min(1, v));
+        svg.appendChild(el("text", {x: 12, y: y + 30, "font-size": 12, fill: "currentColor", "fill-opacity": 0.8}, p[1]));
+        svg.appendChild(el("rect", {x: x0, y: y + 18, width: W, height: 16, fill: "none", stroke: "currentColor", "stroke-opacity": 0.25}));
+        svg.appendChild(el("rect", {x: x0, y: y + 18, width: W * v, height: 16, style: "fill:" + p[2]}));
+        svg.appendChild(el("text", {x: x0 + W + 8, y: y + 31, "font-size": 12, fill: "currentColor"}, v.toFixed(2)));
+        y += 20;
+      });
+      y += 30;
+    });
+    [0.7, 0.9].forEach(function (t) {
+      svg.appendChild(el("line", {x1: x0 + W * t, x2: x0 + W * t, y1: 0, y2: y - 20, stroke: "currentColor", "stroke-dasharray": "2 3", "stroke-opacity": 0.5}));
+    });
+    note.textContent = "Layer " + L + (L === 14 ? ": the pre-registered layer. " : ". ") + "Dashed lines: the 0.7 and 0.9 bars.";
+  }
+  range.addEventListener("input", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
