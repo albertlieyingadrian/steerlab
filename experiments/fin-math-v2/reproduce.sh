@@ -14,7 +14,11 @@ STEPS=(
   "$PY fm_v4.py sample --cand or-dsflash-think --kind reason --n 4"
   "$PY fm_v4.py sample --cand or-dsflash-think --kind reason --n 4 --split test"
 )
-SCORES=("$PY v4_test_bar.py" "$PY ../fin-math-v2/make_figures.py" "$PY ../fin-math-v2/make_cover.py")
+# Section 5 (Qwen3-32B post-training) runs on Modal H200s (profile with GPU credit): deploy modal_32b.py, then
+# run_32b.py (SFT + validation), run_grpo32.py (screens, GRPO, validation) and q32_test.py (the test look); about $150.
+# Its saved results are rescored below.
+SCORES=("$PY v4_test_bar.py" "$PY q32_select.py" "$PY q32_test.py --report" "$PY ../fin-math-v2/make_figures.py"
+  "$PY ../fin-math-v2/make_cover.py")
 if [[ "${1:-}" == "--scores" || "${2:-}" == "--scores" ]]; then
   STEPS=()
 fi

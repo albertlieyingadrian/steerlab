@@ -15,7 +15,11 @@ FinanceMath test questions against gpt-5.4's 0.818, paired +6.7 points [+4.7, +8
 |---|---|
 | `../fin-math/fm_v4.py` | `sample --cand <c> --kind reason\|program --n 4 [--split test]`: draws samples until each question has n (streamed, provider recorded); `analyze`: `results/v4_screen.json` |
 | `../fin-math/v4_test_bar.py` | The test look against gpt-5.4, gpt-5.4-mini, episode 2's harness and the 8B model; writes `results/v4_test.json` |
-| `make_figures.py` | `report/figures/levers.png`, `test.png`, `cost.png`; prints every plotted number |
+| `../fin-math/modal_32b.py` | Section 5 on Modal H200s: `train` (LoRA SFT of Qwen3-32B), `screen` (8 answers per candidate problem), `grpo1` (GRPO on one H200 with vLLM sleep mode), `generate` (vLLM, resumable) |
+| `../fin-math/run_32b.py`, `../fin-math/run_grpo32.py` | Drivers: SFT then validation; the screens, the 135-problem pool, 40 GRPO steps, validation of steps 10-40 |
+| `../fin-math/q32_select.py` | Scores every 32B validation arm against the untrained model, gpt-5.4 and DeepSeek; selects the checkpoint; writes `results/q32_select.json` |
+| `../fin-math/q32_test.py` | The single test look of GRPO step 20 (4 resumable shards), graded and compared; `--report` rescores; writes `results/q32_test.json` |
+| `make_figures.py` | `report/figures/levers.png`, `test.png`, `cost.png`, `posttrain.png`; prints every plotted number |
 | `make_cover.py` | `report/figures/hero.jpg` and `../shared/thumbs/fin-math-v2.jpg` |
 | `reproduce.sh` | `--scores` recomputes from saved results; `--dry-run` lists every command |
 
@@ -32,5 +36,14 @@ In `../fin-math/results/`:
   `mean_vs_gpt-5.4`, `vote4_vs_gpt-5.4-mini`, `vote4_vs_v3_vote8`, `vote4_vs_8b_majority`), `verdict`, `providers`,
   `tokens_per_sample`, `cap_rate`, `usd`, `usd_per_question`.
 - `v4_screen.json`: the Hugging Face screen (partial coverage per candidate, `n` questions).
+- Section 5 (Qwen3-32B post-training, separate from the headline): `runs/validation__l1-q32-<arm>-think.jsonl` (arms
+  `base`, `sft-e1`, `sft-e2`, `grpo-s10` to `grpo-s40`) and `runs/test__q32-grpo-s20-think.jsonl`: one line per answer:
+  `id`, `pred`, `correct`, `tokens_out`, `capped`, `text` (the test file also has `topic`). `q32_select.json`: per arm
+  `vote4`, `mean`, `capped`, `tokens` and paired comparisons; `selected`. `q32_test.json`: the test look (`vote4`,
+  `mean_per_answer`, paired comparisons, `verdict`, `by_topic`). `q32_grpo_history.json`: per GRPO step `reward`,
+  `groups_with_signal`, `capped`, `mean_tokens`, minutes. `q32_screen*.json`: 8 rewards per candidate problem;
+  `q32_grpo_pool.json`: the 135 kept ids; `q32_train.json`: the supervised run. The supervised training file
+  (`data/v3b_sft.json`, built from DeepSeek-V4-Flash traces) is not shipped; `kaggle/bundle/grader.py` is the grader the
+  GRPO reward imports, generated from `fm.py` and `fin.py`.
 
-The pre-registration was committed before the test look; its rules are summarised in the note (sections 1 and 3).
+The pre-registrations were committed before each test look; their rules are summarised in the note (sections 1 and 3).

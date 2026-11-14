@@ -7,6 +7,8 @@ levers.png  validation accuracy (200 questions) of each lever: plain-mode votes 
 test.png    test accuracy (1,000 questions) of the chosen system against gpt-5.4, gpt-5.4-mini, the v3 harness and the
             post-trained 8B model; right, the paired difference against gpt-5.4.
 cost.png    test accuracy against list-price dollars per question (log axis).
+posttrain.png  the separate Qwen3-32B post-training episode: GRPO training reward and tokens per rollout over the 40
+            steps (64 rollouts each), and validation vote of 4 against tokens per answer for every checkpoint.
 """
 
 from __future__ import annotations
@@ -148,11 +150,61 @@ def cost() -> None:
     plt.close(fig)
 
 
+def posttrain() -> None:
+    hist = json.loads((fm.RESULTS / "q32_grpo_history.json").read_text())["history"]
+    sel = json.loads((fm.RESULTS / "q32_select.json").read_text())
+    steps = [h["step"] for h in hist]
+
+    def smooth(xs):
+        return [fin.mean(xs[max(0, i - 4) : i + 1]) for i in range(len(xs))]
+
+    fig, (ax, bx, cx) = plt.subplots(1, 3, figsize=(10.2, 3.3), gridspec_kw={"width_ratios": [1, 1, 1.15]})
+    reward, tokens = [h["reward"] for h in hist], [h["mean_tokens"] for h in hist]
+    ax.plot(steps, reward, color=LIGHT, lw=1)
+    ax.plot(steps, smooth(reward), color=EMBER, lw=2)
+    ax.set_ylim(-0.1, 1.0)
+    ax.set_xlabel("GRPO step")
+    ax.set_ylabel("Mean reward, training rollouts")
+    ax.set_title("a. Training reward rises", fontsize=10, loc="left")
+    bx.plot(steps, tokens, color=LIGHT, lw=1)
+    bx.plot(steps, smooth(tokens), color=EMBER, lw=2)
+    bx.set_ylim(0, 8192)
+    bx.axhline(8192, color=INK, lw=0.8, ls=":")
+    bx.set_xlabel("GRPO step")
+    bx.set_ylabel("Tokens per rollout (cap 8,192)")
+    bx.set_title("b. Thinking shrinks", fontsize=10, loc="left")
+    arms = [("untrained", "q32-base-think", GREY), ("SFT", "q32-sft-e2-think", LIGHT)] + [
+        (f"step {s}", f"q32-grpo-s{s}-think", EMBER) for s in (10, 20, 30, 40)
+    ]
+    nudge = {"step 40": (-44, -4), "step 30": (6, -10), "step 10": (-14, -16), "untrained": (6, 6)}
+    print("posttrain.png: GRPO steps 1-40 (reward, tokens per rollout) and validation (200 x 4) per checkpoint")
+    print("  reward first/last 5 steps", round(fin.mean(reward[:5]), 3), round(fin.mean(reward[-5:]), 3))
+    print("  tokens first/last 5 steps", round(fin.mean(tokens[:5])), round(fin.mean(tokens[-5:])))
+    for label, tag, colour in arms:
+        r = sel[tag]
+        v = r["vote4"]
+        cx.errorbar(r["tokens"], v[0], yerr=[[v[0] - v[1]], [v[2] - v[0]]], fmt="o", color=colour, capsize=3, ms=6)
+        cx.annotate(label, (r["tokens"], v[0]), xytext=nudge.get(label, (6, 4)), textcoords="offset points",
+                    fontsize=8, color=INK)  # fmt: skip
+        print(f"  {label:<10} vote4 {fin.fmt_ci(v)} tokens {r['tokens']} capped {r['capped']}")
+    cx.axhline(0.785, color=INK, lw=0.8, ls=":")
+    cx.text(150, 0.79, "gpt-5.4, one call: 0.785", fontsize=8, color=INK)
+    cx.set_xlim(0, 5600)
+    cx.set_ylim(0.55, 0.85)
+    cx.set_xlabel("Tokens per answer, validation")
+    cx.set_ylabel("Vote of 4, validation (200)")
+    cx.set_title("c. Shorter thinking, lower accuracy", fontsize=10, loc="left")
+    fig.tight_layout()
+    fig.savefig(FIGURES / "posttrain.png")
+    plt.close(fig)
+
+
 def main() -> None:
     FIGURES.mkdir(parents=True, exist_ok=True)
     levers()
     test()
     cost()
+    posttrain()
 
 
 if __name__ == "__main__":
