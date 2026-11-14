@@ -1,6 +1,6 @@
 """Draw the circuitcheck note's figures and write results/summary.json, all from circuitcheck's shipped data.
 
-    pip install "git+https://github.com/albertlieyingadrian/circuitcheck"
+    pip install circuitcheck
     git clone https://github.com/albertlieyingadrian/circuitcheck ../circuitcheck   # for examples/data/
     python experiments/circuitkit/make_figures.py
 
