@@ -8,7 +8,7 @@ asked, and whether it is coherent. Labels are cached by a hash of (item, conditi
     python judge.py submit      # every unlabelled reply of the judged configs
     python judge.py collect
     python judge.py sample      # draw the 120-reply check sample (stratified), written without judge labels
-    python judge.py agree       # judge vs the check labels in data/handcheck.jsonl
+    python judge.py agree       # judge vs the reference labels in data/ref_labels.jsonl
 """
 
 import hashlib
@@ -163,7 +163,7 @@ def collect():
 
 def sample():
     """120 replies for the check: 8 strata (W/C x base / LoRA / steering / random) x 15, seed 0. Written without
-    the judge's labels; data/handcheck.jsonl gets a hand label per row."""
+    the judge's labels; data/ref_labels.jsonl gets a reference label per row."""
     rng = random.Random(0)
     groups = {
         "base": ["base"],
@@ -178,20 +178,20 @@ def sample():
             pool = [r for r in rows if r["cond"] == cond]
             out += [dict(r, key=key(r), group=g) for r in rng.sample(pool, 15)]
     rng.shuffle(out)
-    C.write_jsonl(C.DATA / "handcheck_sample.jsonl", out)
-    print(len(out), "rows -> data/handcheck_sample.jsonl")
+    C.write_jsonl(C.DATA / "ref_sample.jsonl", out)
+    print(len(out), "rows -> data/ref_sample.jsonl")
 
 
 def agree():
     lab = labels()
-    hand = C.read_jsonl(C.DATA / "handcheck.jsonl")
-    pairs = [(h["final"], lab[h["key"]]["final"]) for h in hand if h["key"] in lab]
+    ref = C.read_jsonl(C.DATA / "ref_labels.jsonl")
+    pairs = [(h["final"], lab[h["key"]]["final"]) for h in ref if h["key"] in lab]
     n = len(pairs)
     po = sum(a == b for a, b in pairs) / n
     cats = sorted({c for p in pairs for c in p})
     pe = sum((sum(a == c for a, _ in pairs) / n) * (sum(b == c for _, b in pairs) / n) for c in cats)
     kappa = (po - pe) / (1 - pe) if pe < 1 else float("nan")
-    mism = [h for h in hand if h["key"] in lab and h["final"] != lab[h["key"]]["final"]]
+    mism = [h for h in ref if h["key"] in lab and h["final"] != lab[h["key"]]["final"]]
     out = {
         "n": n,
         "agreement": po,
@@ -202,7 +202,7 @@ def agree():
                 "key": h["key"],
                 "config": h["config"],
                 "cond": h["cond"],
-                "hand": h["final"],
+                "ref": h["final"],
                 "judge": lab[h["key"]]["final"],
             }
             for h in mism

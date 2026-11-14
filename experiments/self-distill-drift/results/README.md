@@ -16,6 +16,7 @@
     every layer.
 - `judge_labels.jsonl`: every label (`key` = hash of task, prompt and reply; `judge`; `label`).
 - `judge_validation_keys.json`, `judge_validation.json`: the stratified 200-reply agreement check and its result.
-- `hand_labels_todo.jsonl`, `hand_labels.jsonl`: the 40 replies labelled blind by the author, and the labels;
-  `hand_labels_judge_refused.jsonl`: the 2 replies the judge refused to label.
+- `ref_items.jsonl`, `ref_labels.jsonl`: the 40 replies given a reference labelling made blind to both judges, and
+  the labels; `ref_labels_judge_refused.jsonl`: the 2 replies the judge refused to label, with their reference labels.
+  The reference is a second blind reading, not a human gold standard. (Renamed 2026-11-14 from `hand_labels*`.)
 - `judge_batches.json`, `ledger.jsonl`: batch ids and API spend.

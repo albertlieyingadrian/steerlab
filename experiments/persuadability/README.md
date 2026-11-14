@@ -26,8 +26,9 @@ answer but still accepts fair corrections), by LoRA fine-tuning or by one steeri
   under steering, so steering verdicts are reported under both readouts.
 - Exploratory after the results: 10 random directions at α = 2 (5 judged), and the agreeing-opener count
   (`opener.py`).
-- The 120 judge-check labels were made by one labeller, blind to the judge's labels and committed before those
-  came back; a second labeller has not checked them.
+- The 120 judge-check labels are a reference labelling made blind to the judge (labels committed before the
+  judge's came back). It is a second blind reading, not a human gold standard, and may share the judge's blind
+  spots. Correction (2026-11-14): this line first said the labels were made by "one labeller".
 - MMLU per-question answers were not saved, so the pre-registered paired MMLU test could not be run.
 
 ## Files

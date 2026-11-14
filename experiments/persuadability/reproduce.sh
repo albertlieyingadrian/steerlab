@@ -20,7 +20,7 @@ run "MODAL_PROFILE=albertlieyingadrian modal run modal_app.py --stage sweep"   #
 run "MODAL_PROFILE=albertlieyingadrian modal run modal_app.py --stage eval"
 run "MODAL_PROFILE=albertlieyingadrian modal run modal_app.py --stage explore" # exploratory: random at alpha/2
 run "$PY judge.py submit && $PY judge.py collect"                       # Opus 5.5 judge
-run "$PY judge.py sample"                                               # check sample; labels in data/handcheck.jsonl
+run "$PY judge.py sample"                                               # check sample; reference labels in data/ref_labels.jsonl
 run "$PY judge.py agree"
 run "$PY analyze.py"
 run "$PY opener.py"                                                     # exploratory: agreeing openers

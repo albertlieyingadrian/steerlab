@@ -23,7 +23,7 @@ run $PY judge.py submit haiku
 run $PY judge.py collect haiku
 run $PY judge.py submit sonnet             # stratified 200 for the agreement check
 run $PY judge.py collect sonnet
-run $PY judge.py handsheet                 # 40 replies for blind hand labels -> results/hand_labels.jsonl
+run $PY judge.py refsheet                  # 40 replies for a blind reference labelling -> results/ref_labels.jsonl
 run $PY judge.py agree
 # 3. numbers, figures, cover, explorer (free)
 run $PY analyze.py

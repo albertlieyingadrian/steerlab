@@ -5,8 +5,8 @@ results/ledger.jsonl). Labels only; Claude never writes training data.
     python judge.py collect haiku
     python judge.py submit sonnet       # the stratified 200-reply validation sample
     python judge.py collect sonnet
-    python judge.py handsheet           # writes results/hand_labels_todo.jsonl (40 replies) for hand labelling
-    python judge.py agree               # kappa vs Sonnet and agreement with hand labels
+    python judge.py refsheet            # writes results/ref_items.jsonl (40 replies) for the reference labelling
+    python judge.py agree               # kappa vs Sonnet and agreement with the reference labels
 
 Labels are cached in results/judge_labels.jsonl keyed by a hash of (task, prompt, reply).
 """
@@ -222,8 +222,8 @@ def collect(model):
     PENDING.write_text(json.dumps(pend))
 
 
-def handsheet():
-    """20 replies per task from the validation sample, for hand labelling without seeing either judge's label."""
+def refsheet():
+    """20 replies per task from the validation sample, for a reference labelling blind to both judges."""
     its = items()
     keys = json.loads(VALKEYS.read_text())
     rng = random.Random(1)
@@ -233,7 +233,7 @@ def handsheet():
         out += [
             {"key": k, "task": task, "prompt": its[k]["prompt"], "reply": its[k]["reply"]} for k in rng.sample(ks, 20)
         ]
-    (RES / "hand_labels_todo.jsonl").write_text("".join(json.dumps(x) + "\n" for x in out))
+    (RES / "ref_items.jsonl").write_text("".join(json.dumps(x) + "\n" for x in out))
     print(len(out), "written")
 
 
@@ -249,25 +249,25 @@ def agree():
     its = items()
     lab = labels()
     keys = json.loads(VALKEYS.read_text())
-    hand = {}
-    hf = RES / "hand_labels.jsonl"
+    ref = {}
+    hf = RES / "ref_labels.jsonl"
     if hf.exists():
-        hand = {r["key"]: r["label"] for r in map(json.loads, hf.read_text().splitlines())}
+        ref = {r["key"]: r["label"] for r in map(json.loads, hf.read_text().splitlines())}
     out = {}
     for task in ("harm", "flat"):
         ks = [k for k in keys if its[k]["task"] == task and len(lab.get(k, {})) == 2]
         h = [lab[k][MODELS["haiku"]] for k in ks]
         s = [lab[k][MODELS["sonnet"]] for k in ks]
-        hk = [k for k in hand if k in lab and its.get(k, {}).get("task") == task]
+        hk = [k for k in ref if k in lab and its.get(k, {}).get("task") == task]
         out[task] = {
             "n_vs_sonnet": len(ks),
             "agree_vs_sonnet": round(sum(x == y for x, y in zip(h, s, strict=True)) / max(len(ks), 1), 3),
             "kappa_vs_sonnet": round(kappa(h, s), 3),
             "haiku_rate": round(sum(x == ENUM[task][0] for x in h) / max(len(h), 1), 3),
             "sonnet_rate": round(sum(x == ENUM[task][0] for x in s) / max(len(s), 1), 3),
-            "n_hand": len(hk),
-            "haiku_vs_hand": round(sum(lab[k][MODELS["haiku"]] == hand[k] for k in hk) / max(len(hk), 1), 3),
-            "sonnet_vs_hand": round(sum(lab[k].get(MODELS["sonnet"]) == hand[k] for k in hk) / max(len(hk), 1), 3),
+            "n_ref": len(hk),
+            "haiku_vs_ref": round(sum(lab[k][MODELS["haiku"]] == ref[k] for k in hk) / max(len(hk), 1), 3),
+            "sonnet_vs_ref": round(sum(lab[k].get(MODELS["sonnet"]) == ref[k] for k in hk) / max(len(hk), 1), 3),
         }
     (RES / "judge_validation.json").write_text(json.dumps(out, indent=1))
     print(json.dumps(out, indent=1))
@@ -279,8 +279,8 @@ if __name__ == "__main__":
         submit(sys.argv[2])
     elif cmd == "collect":
         collect(sys.argv[2])
-    elif cmd == "handsheet":
-        handsheet()
+    elif cmd == "refsheet":
+        refsheet()
     elif cmd == "agree":
         agree()
     else:

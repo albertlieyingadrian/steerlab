@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Anthropic&#x27;s released natural language autoencoders for Qwen2.5-7B-Instruct, run on a laptop: told to answer a quiz wrongly, the model&#x27;s activations are explained as &#x27;incorrect options&#x27; in 80 of 80 cases (0 of 80 without the instruction), equally when the model answered right anyway, and never as deception.">
 <meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/nla-sandbagging/report/figures/og.jpg">
 <meta property="article:published_time" content="2026-11-09">
-<meta property="article:modified_time" content="2026-11-09">
+<meta property="article:modified_time" content="2026-11-14">
 <meta property="article:author" content="Albert Lie">
 <script type="application/ld+json">
 {
@@ -56,7 +56,7 @@
   ]
  },
  "datePublished": "2026-11-09",
- "dateModified": "2026-11-09",
+ "dateModified": "2026-11-14",
  "inLanguage": "en",
  "isAccessibleForFree": true,
  "keywords": "natural language autoencoders, interpretability, sandbagging, activation verbalizer, deception detection, Qwen2.5-7B, auditing",
@@ -101,7 +101,7 @@
 </nav>
 
 <article>
-  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-09">Nov 9, 2026</time></p>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-09">Nov 9, 2026</time><span class="sep">·</span>Updated <time datetime="2026-11-14">Nov 14, 2026</time></p>
   <h1>Natural language autoencoders read the instruction to sandbag, not the act</h1>
   <p class="dek ruled">Anthropic’s released natural language autoencoders turn one activation of Qwen2.5-7B into a paragraph of English. Told to answer a quiz wrongly, the model’s activations read as “incorrect options” every time, including on the questions it still answered right. The paragraphs never mention deception.</p>
 
@@ -161,7 +161,7 @@
       <tr><th>Controls</th><td>The formal prompt; 40 random Gaussian vectors and 40 sandbag vectors with their coordinates shuffled; each explanation scored against another item’s vector. 95% bootstrap intervals over items, paired where conditions share items.</td></tr>
     </tbody>
   </table></div>
-  <p><strong>The scorer was checked first.</strong> The deception list labels 8 of 8 hand-written explanations correctly. On 40 quiz explanations (10 per condition) labelled by hand before the scorer was run on them, it agrees 40 of 40 (none mention deception), and the “incorrect” list agrees 40 of 40 (12 positives, 12 caught, no false alarms).</p>
+  <p><strong>The scorer was checked first.</strong> The deception list labels 8 of 8 constructed explanations correctly. On 40 quiz explanations (10 per condition) given a reference labelling before the scorer was run on them (a second reading, not a human gold standard), it agrees 40 of 40 (none mention deception), and the “incorrect” list agrees 40 of 40 (12 positives, 12 caught, no false alarms).</p>
 
   <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
   <ol>
@@ -171,12 +171,12 @@
     <li>The quiz again: neutral 80/80, formal 80/80, sandbag 15/80, weak sandbag 59/80 right. 640 vectors saved.</li>
     <li>Validation on the released worked example (“What are you hiding?”, 77 positions), before the quiz vectors were explained.</li>
     <li>The verbaliser on 640 quiz vectors and 80 controls (720 explanations in 337 seconds); the reconstructor on all of them.</li>
-    <li>40 explanations labelled by hand; then the scorer and the five tests.</li>
+    <li>40 explanations given a reference labelling; then the scorer and the five tests.</li>
   </ol>
   <div class="table-wrap"><table>
     <thead><tr><th>Fixed before any explanation was read</th><th>Changed after reading explanations</th></tr></thead>
     <tbody>
-      <tr><td>The word lists and the 8 check cases; positions; the five tests and bars; the controls; the hand-label sample; the validation bars. The prompts (amendment 1) were changed after the model ignored them, before any explanation existed.</td><td>A second hand label (“calls an answer incorrect”), added while labelling when no explanation mentioned deception; the count of “puzzle or joke” framings (post hoc, <a href="#framing">section 4.4</a>).</td></tr>
+      <tr><td>The word lists and the 8 check cases; positions; the five tests and bars; the controls; the reference-label sample; the validation bars. The prompts (amendment 1) were changed after the model ignored them, before any explanation existed.</td><td>A second reference label (“calls an answer incorrect”), added while labelling when no explanation mentioned deception; the count of “puzzle or joke” framings (post hoc, <a href="#framing">section 4.4</a>).</td></tr>
     </tbody>
   </table></div>
   <p>Conditions: Apple M5 Max laptop, one model in memory at a time (subject, then verbaliser, then reconstructor); about 10 minutes of model time in all. The released code serves the verbaliser with SGLang on a CUDA GPU; here the activation, rescaled to length 150, overwrites the injection token’s embedding and <code>generate()</code> runs on <code>inputs_embeds</code>.</p>
@@ -205,7 +205,7 @@
   <p>Test 4’s pre-registered reading rule was written for the deception words, and with zero mentions on both sides it has nothing to split, so by that rule it is inconclusive. The table reports the same split on the “incorrect” words, the pre-registered secondary measure, where the reading is clear.</p>
 
   <h3 id="no-deception" data-short="Never deception">4.3 The explanations never name deception</h3>
-  <p>Not one of the 640 quiz explanations, nor the 80 controls, uses a deception word, and the 40 hand-labelled ones agree. The verbaliser describes the context as a text genre (“structured puzzle format with numbered questions”), quotes or invents a likely next phrase (“Since the correct answer is not B…”), and names the expected next token. Nothing in it says that a model is choosing to fail. The verbaliser also confabulates content. The sandbag explanation for Vanuatu speaks of “a fictional character name ‘Zara’”, others of a horse or a giraffe, and only 9 of the 640 name the country or element asked about, or the right capital.</p>
+  <p>Not one of the 640 quiz explanations, nor the 80 controls, uses a deception word, and the 40 in the reference labelling agree. The verbaliser describes the context as a text genre (“structured puzzle format with numbered questions”), quotes or invents a likely next phrase (“Since the correct answer is not B…”), and names the expected next token. Nothing in it says that a model is choosing to fail. The verbaliser also confabulates content. The sandbag explanation for Vanuatu speaks of “a fictional character name ‘Zara’”, others of a horse or a giraffe, and only 9 of the 640 name the country or element asked about, or the right capital.</p>
 
   <h3 id="framing" data-short="Puzzle framing (post hoc)">4.4 Post hoc: sandbagging reads as a puzzle or a joke</h3>
   <p>While labelling, a pattern stood out, so it was counted afterwards (not pre-registered). At the last token before the answer, the word <em>puzzle</em>, <em>joke</em>, <em>riddle</em>, <em>trick question</em> or <em>humor</em> appears in 79/80 sandbag explanations, 69/80 under the weak prompt (which the model mostly ignores), 14/80 neutral and 6/80 formal. The nearest category the verbaliser has for “give the wrong answer on purpose” seems to be a trick-question or joke genre, not deception. It applies that genre whenever the instruction is present.</p>
@@ -237,7 +237,7 @@
   <ul>
     <li><strong>One model, one layer, prompted sandbagging.</strong> The instruction is visible in the context, which is the easy case for any reader of activations. A trained sandbagger, where no instruction is present, is the case that matters and is not tested.</li>
     <li><strong>The prompts were changed.</strong> The pre-registered system prompts did nothing to this model; the prompts used were picked from a 10-version screen on 20 items. They were fixed before any explanation was generated, and the screen is shipped.</li>
-    <li><strong>Word lists, not a judge.</strong> A deception word list with no hits could miss a paraphrase. The 40 hand-labelled explanations found none, and the post-hoc “puzzle or joke” framing is the nearest thing to it.</li>
+    <li><strong>Word lists, not a judge.</strong> A deception word list with no hits could miss a paraphrase. The 40-explanation reference labelling found none, and the post-hoc “puzzle or joke” framing is the nearest thing to it.</li>
     <li><strong>Small splits.</strong> 15 right items under the strong prompt and 21 wrong items under the weak one; the intervals in test 4 are ±0.10.</li>
     <li><strong>Greedy decoding only.</strong> The released examples show that sampling changes details; a deception word might appear in some samples. One explanation per vector was read.</li>
     <li><strong>A port, not the released stack.</strong> It matches the released example closely (4.1), but not token for token at every position; bfloat16 on Apple silicon differs from the authors’ GPUs.</li>
@@ -269,9 +269,14 @@
       <tr><td><code>results/reconstruction.json</code></td><td><code>rows</code>: per explanation, <code>mse</code> against its vector, <code>mse_mismatched</code> against the next item’s, <code>mse_by_condition</code> against the same item under each condition; <code>example_reference</code>: the released texts rescored against the laptop’s vectors</td></tr>
       <tr><td><code>results/summary.json</code>, <code>validation.json</code></td><td>every rate, difference, interval and test outcome quoted here, and the validation gate with the five side-by-side explanations</td></tr>
       <tr><td><code>results/prompt_screen.json</code>, <code>example_reply.json</code></td><td>the 10 prompt versions with right answers out of 20; the worked example’s reply and per-position norms (laptop and released)</td></tr>
-      <tr><td><code>data/</code></td><td><code>facts.json</code> (capitals and elements), <code>system_prompts.json</code> (used and pre-registered prompts), <code>keywords.json</code>, <code>keyword_cases.json</code> (8 check cases), <code>hand_labels.json</code> (40 labelled explanations)</td></tr>
+      <tr><td><code>data/</code></td><td><code>facts.json</code> (capitals and elements), <code>system_prompts.json</code> (used and pre-registered prompts), <code>keywords.json</code>, <code>keyword_cases.json</code> (8 check cases), <code>ref_labels.json</code> (the 40-explanation reference labelling)</td></tr>
     </tbody>
   </table></div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 9, 2026:</strong> First published.</li>
+    <li><strong>Nov 14, 2026:</strong> Correction: the scorer check is now described accurately: the 40 labels are a reference labelling made before the scorer was run, not hand labels; the file is renamed <code>ref_labels.json</code> and the plan carries Amendment 2. No number changed.</li>
+  </ul>
   <h3 id="cite">How to cite</h3>
   <pre><code>Lie, A. (2026). Natural language autoencoders read the instruction to sandbag, not the act.
 steerlab. https://albertlieyingadrian.github.io/steerlab/experiments/nla-sandbagging/report/</code></pre>
