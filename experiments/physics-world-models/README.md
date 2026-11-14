@@ -1,4 +1,4 @@
-# Physics world models: reproduce published PDE-surrogate baselines, then try to beat them
+# Learned physics simulators, re-run (World models, Episode 2): reproduce published PDE-surrogate baselines, then try to beat them
 
 Research note: [`report/index.html`](report/index.html). Neural surrogates that learn to step a physics simulation
 forward ("AI physics engines") on two small public datasets: The Well's `turbulent_radiative_layer_2D` (TRL2D, 90
