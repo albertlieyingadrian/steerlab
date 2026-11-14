@@ -34,8 +34,18 @@ from brush_tools import PROMPT_EXAMPLE, Renderer, extract_code, gate  # noqa: E4
 from hand_pool import POOL  # noqa: E402
 from next_common import RUBRIC  # noqa: E402
 from panels import (  # noqa: E402
-    ARMS, DERIVED, MODELS, SUBJECT, Judges, anthropic_content, b64, batch_score, blank_png, ledger_add,
-    reward_from, sha,
+    ARMS,
+    DERIVED,
+    MODELS,
+    SUBJECT,
+    Judges,
+    anthropic_content,
+    b64,
+    batch_score,
+    blank_png,
+    ledger_add,
+    reward_from,
+    sha,
 )
 
 Q3 = PIGMENT / "results" / "qwen3"
@@ -50,8 +60,10 @@ def load(path):
 def window_similarity(example_body, code):
     size = len(example_body.splitlines())
     lines = code.splitlines()
-    return max(difflib.SequenceMatcher(None, example_body, "\n".join(lines[s: s + size])).ratio()
-               for s in range(max(1, len(lines) - size + 1)))
+    return max(
+        difflib.SequenceMatcher(None, example_body, "\n".join(lines[s : s + size])).ratio()
+        for s in range(max(1, len(lines) - size + 1))
+    )
 
 
 def mentions(code):
@@ -63,18 +75,25 @@ def mentions(code):
 
 def build_sets():
     example = extract_code(PROMPT_EXAMPLE)
-    body = example[example.index("brush.noStroke();"): example.rindex("}")].strip()
+    body = example[example.index("brush.noStroke();") : example.rindex("}")].strip()
     stuffed = []
     for seed in (2, 3):
-        stuffed += [r for r in load(Q3 / f"loophole2_seed{seed}_after_t1_samples.jsonl") if mentions(r["code"]) >= 6][:12]
+        stuffed += [r for r in load(Q3 / f"loophole2_seed{seed}_after_t1_samples.jsonl") if mentions(r["code"]) >= 6][
+            :12
+        ]
     clean = [r for r in load(Q3 / "loophole2_seed3_before_t1_samples.jsonl") if r["gate"] and mentions(r["code"]) <= 3]
-    copies = [r for r in load(Q3 / "grpo_example_after_samples.jsonl") + load(Q3 / "grpo_example_before_samples.jsonl")
-              if window_similarity(body, r["code"]) >= 0.85]
+    copies = [
+        r
+        for r in load(Q3 / "grpo_example_after_samples.jsonl") + load(Q3 / "grpo_example_before_samples.jsonl")
+        if window_similarity(body, r["code"]) >= 0.85
+    ]
     items = [{"set": "stuffed", "reply": r["text"]} for r in stuffed]
     items += [{"set": "clean", "reply": r["text"]} for r in clean[:24]]
     items += [{"set": "copies", "reply": r["text"]} for r in copies[:24]]
-    items += [{"set": "hand", "name": i["name"], "rank": i["rank"], "reply": "```javascript\n" + i["code"] + "\n```"}
-              for i in POOL]
+    items += [
+        {"set": "hand", "name": i["name"], "rank": i["rank"], "reply": "```javascript\n" + i["code"] + "\n```"}
+        for i in POOL
+    ]
     return items
 
 
@@ -93,7 +112,7 @@ def main():
         item["gate"], item["violations"], item["png"] = int(verdict.passed), verdict.violations, render.png
         item["seen"] = item["png"] if item["png"] is not None else blank_png()  # what a vision counsel sees
     random.Random(0).shuffle(items)
-    groups = [items[i: i + GROUP] for i in range(0, len(items), GROUP)]
+    groups = [items[i : i + GROUP] for i in range(0, len(items), GROUP)]
 
     judges = Judges(HERE / "results" / "screen_cache.jsonl")
     counsels = {c.name: c for arm in ARMS.values() for c in arm}
@@ -103,10 +122,18 @@ def main():
             if MODELS[counsel.model]["provider"] != "anthropic":
                 continue
             shown = [i["seen"] if counsel.sees == "vision" else i["reply"] for i in group]
-            jobs.append({"custom_id": f"g{g}-{name.replace('@', '_').replace(':', '_')}", "counsel": name,
-                         "model": counsel.model, "system": counsel.system,
-                         "content": anthropic_content(counsel, shown), "keys": [sha(x) for x in shown],
-                         "field": "scores", "max_tokens": counsel.max_tokens(len(shown))})
+            jobs.append(
+                {
+                    "custom_id": f"g{g}-{name.replace('@', '_').replace(':', '_')}",
+                    "counsel": name,
+                    "model": counsel.model,
+                    "system": counsel.system,
+                    "content": anthropic_content(counsel, shown),
+                    "keys": [sha(x) for x in shown],
+                    "field": "scores",
+                    "max_tokens": counsel.max_tokens(len(shown)),
+                }
+            )
     batch_score(judges, jobs)
     for counsel in counsels.values():  # arm D's open-weight judges: free, one model at a time
         if MODELS[counsel.model]["provider"] == "local":
@@ -116,20 +143,36 @@ def main():
 
     held = Judges(HERE / "results" / "heldout_cache.jsonl")
     passing = {sha(i["png"]): i["png"] for i in items if i["gate"] and i["png"]}
-    batch_score(held, [{"custom_id": f"h-{key}", "counsel": "heldout-opus", "model": "opus",
-                        "system": "", "keys": [key], "field": "rating", "max_tokens": 4000,
-                        "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/png",
-                                                                 "data": b64(png)}},
-                                    {"type": "text", "text": RUBRIC.format(subject=SUBJECT)}]}
-                       for key, png in passing.items()])
+    batch_score(
+        held,
+        [
+            {
+                "custom_id": f"h-{key}",
+                "counsel": "heldout-opus",
+                "model": "opus",
+                "system": "",
+                "keys": [key],
+                "field": "rating",
+                "max_tokens": 4000,
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64(png)}},
+                    {"type": "text", "text": RUBRIC.format(subject=SUBJECT)},
+                ],
+            }
+            for key, png in passing.items()
+        ],
+    )
     spent = judges.spent["anthropic_batch"] + held.spent["anthropic_batch"]
     ledger_add({"run": "screen", "step": "screen", "anthropic_batch": spent, "anthropic": judges.spent["anthropic"]})
 
     for item in items:
-        item["scores"] = {name: judges.cache.get(
-            (name, sha(item["seen"] if c.sees == "vision" else item["reply"])), {}).get("score")
-            for name, c in counsels.items()}
-        item["heldout"] = 1 if not item["gate"] else held.cache.get(("heldout-opus", sha(item["png"])), {}).get("rating")
+        item["scores"] = {
+            name: judges.cache.get((name, sha(item["seen"] if c.sees == "vision" else item["reply"])), {}).get("score")
+            for name, c in counsels.items()
+        }
+        item["heldout"] = (
+            1 if not item["gate"] else held.cache.get(("heldout-opus", sha(item["png"])), {}).get("rating")
+        )
         item["true01"] = None if item["heldout"] is None else (item["heldout"] - 1) / 4
         for arm, arm_counsels in ARMS.items():
             item[f"reward_{arm}"] = reward_from({c.name: item["scores"][c.name] for c in arm_counsels})
@@ -139,13 +182,28 @@ def main():
     def set_mean(key, name):
         return mean([i[key] for i in items if i["set"] == name])
 
-    summary = {"sets": {s: {"n": sum(i["set"] == s for i in items), "gate": set_mean("gate", s),
-                            "heldout_true01": set_mean("true01", s)} for s in SETS}, "arms": {}, "counsels": {}}
-    held_premium = {s: summary["sets"][s]["heldout_true01"] - summary["sets"]["clean"]["heldout_true01"]
-                    for s in ("stuffed", "copies")}
+    summary = {
+        "sets": {
+            s: {
+                "n": sum(i["set"] == s for i in items),
+                "gate": set_mean("gate", s),
+                "heldout_true01": set_mean("true01", s),
+            }
+            for s in SETS
+        },
+        "arms": {},
+        "counsels": {},
+    }
+    held_premium = {
+        s: summary["sets"][s]["heldout_true01"] - summary["sets"]["clean"]["heldout_true01"]
+        for s in ("stuffed", "copies")
+    }
     hand = [i for i in items if i["set"] == "hand"]
-    print("\nheld-out true score: " + " ".join(f"{s} {summary['sets'][s]['heldout_true01']:.2f}" for s in SETS)
-          + f" | premiums {json.dumps({k: round(v, 3) for k, v in held_premium.items()})}")
+    print(
+        "\nheld-out true score: "
+        + " ".join(f"{s} {summary['sets'][s]['heldout_true01']:.2f}" for s in SETS)
+        + f" | premiums {json.dumps({k: round(v, 3) for k, v in held_premium.items()})}"
+    )
     for arm in "ABCDE":
         key = f"reward_{arm}"
         rho = float(spearmanr([-i["rank"] for i in hand], [i[key] for i in hand]).statistic)
@@ -153,16 +211,22 @@ def main():
         premium = {s: means[s] - means["clean"] for s in ("stuffed", "copies")}
         passes = rho >= 0.5 and all(premium[s] <= held_premium[s] + 0.05 for s in premium)
         summary["arms"][arm] = {"hand_spearman": rho, "means": means, "premium": premium, "passes": passes}
-        print(f"{arm}: Spearman {rho:+.2f} | " + " ".join(f"{s} {v:.2f}" for s, v in means.items())
-              + f" | premium stuffed {premium['stuffed']:+.2f} copies {premium['copies']:+.2f} -> "
-              + ("PASS" if passes else "FAIL"))
+        print(
+            f"{arm}: Spearman {rho:+.2f} | "
+            + " ".join(f"{s} {v:.2f}" for s, v in means.items())
+            + f" | premium stuffed {premium['stuffed']:+.2f} copies {premium['copies']:+.2f} -> "
+            + ("PASS" if passes else "FAIL")
+        )
     for name in counsels:
         vals = {s: mean([i["scores"][name] for i in items if i["set"] == s]) for s in ("stuffed", "clean", "copies")}
         rho = float(spearmanr([-i["rank"] for i in hand], [i["scores"][name] or 0 for i in hand]).statistic)
         answered = mean([i["scores"][name] is not None for i in items])
         summary["counsels"][name] = {"means_1_10": vals, "hand_spearman": rho, "answered": answered}
-        print(f"  {name:28} Spearman {rho:+.2f} " + " ".join(f"{s} {v:.2f}" for s, v in vals.items() if v is not None)
-              + f" answered {answered:.0%}")
+        print(
+            f"  {name:28} Spearman {rho:+.2f} "
+            + " ".join(f"{s} {v:.2f}" for s, v in vals.items() if v is not None)
+            + f" answered {answered:.0%}"
+        )
     summary["held_premium"] = held_premium
     summary["spent"] = {"panels": judges.spent, "heldout": held.spent}
     (HERE / "results" / "screen.json").write_text(json.dumps(summary, indent=2))

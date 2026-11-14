@@ -62,7 +62,15 @@ def chat_prompt(tokenizer, messages, **template_kwargs):
 
 @torch.no_grad()
 def sample_group(
-    model, tokenizer, prompt_text, group_size, max_new_tokens, temperature=1.0, top_p=1.0, seed=0, repetition_penalty=None
+    model,
+    tokenizer,
+    prompt_text,
+    group_size,
+    max_new_tokens,
+    temperature=1.0,
+    top_p=1.0,
+    seed=0,
+    repetition_penalty=None,
 ):
     """Sample `group_size` completions for one prompt. Returns (texts, input_ids, mask).
 

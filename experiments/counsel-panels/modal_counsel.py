@@ -56,8 +56,19 @@ app = modal.App("counsel-panels", image=image)
 
 
 @app.function(gpu="L40S", cpu=4.0, memory=32768, timeout=120 * 60, volumes={VOLUME_PATH: hf_volume, "/out": volume})
-def train_remote(to_laptop, to_gpu, run, steps, learning_rate, beta, max_new_tokens, group_size=8, seed=0,
-                 checkpoint_every=20, micro_batch=2):
+def train_remote(
+    to_laptop,
+    to_gpu,
+    run,
+    steps,
+    learning_rate,
+    beta,
+    max_new_tokens,
+    group_size=8,
+    seed=0,
+    checkpoint_every=20,
+    micro_batch=2,
+):
     """Sample, wait for the laptop's rewards, update. Sends every message to the laptop."""
     import torch
 
@@ -68,7 +79,10 @@ def train_remote(to_laptop, to_gpu, run, steps, learning_rate, beta, max_new_tok
 
     started = time.perf_counter()
     model, tokenizer = build_lora_model(MODEL, "cuda", seed=seed, dtype=torch.float32)
-    messages = [{"role": "system", "content": SYSTEM_PROMPT_NO_EXAMPLE}, {"role": "user", "content": f"Paint {SUBJECT}."}]
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT_NO_EXAMPLE},
+        {"role": "user", "content": f"Paint {SUBJECT}."},
+    ]
     prompt = chat_prompt(tokenizer, messages, enable_thinking=False)
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=learning_rate)
     run_dir = Path("/out") / run
@@ -82,8 +96,17 @@ def train_remote(to_laptop, to_gpu, run, steps, learning_rate, beta, max_new_tok
     def evaluate(label, batches=4, seed_base=20_000):
         texts = []
         for batch in range(batches):
-            batch_texts, _, _ = sample_group(model, tokenizer, prompt, 8, max_new_tokens, temperature=1.0,
-                                             top_p=0.95, seed=seed_base + batch, repetition_penalty=1.0)
+            batch_texts, _, _ = sample_group(
+                model,
+                tokenizer,
+                prompt,
+                8,
+                max_new_tokens,
+                temperature=1.0,
+                top_p=0.95,
+                seed=seed_base + batch,
+                repetition_penalty=1.0,
+            )
             texts += batch_texts
         to_laptop.put({"kind": "eval", "label": label, "texts": texts})
 
@@ -91,11 +114,27 @@ def train_remote(to_laptop, to_gpu, run, steps, learning_rate, beta, max_new_tok
     evaluate("before_t1")
     for step in range(steps):
         step_started = time.perf_counter()
-        texts, input_ids, mask = sample_group(model, tokenizer, prompt, group_size, max_new_tokens, temperature=1.0,
-                                              top_p=0.95, seed=seed * 1000 + step, repetition_penalty=1.0)
+        texts, input_ids, mask = sample_group(
+            model,
+            tokenizer,
+            prompt,
+            group_size,
+            max_new_tokens,
+            temperature=1.0,
+            top_p=0.95,
+            seed=seed * 1000 + step,
+            repetition_penalty=1.0,
+        )
         tokens = [int(row.sum()) for row in mask]
-        to_laptop.put({"kind": "step", "step": step, "texts": texts, "tokens": tokens,
-                       "gen_s": time.perf_counter() - step_started})
+        to_laptop.put(
+            {
+                "kind": "step",
+                "step": step,
+                "texts": texts,
+                "tokens": tokens,
+                "gen_s": time.perf_counter() - step_started,
+            }
+        )
         try:
             reply = to_gpu.get(timeout=20 * 60)
         except queue.Empty:
@@ -103,14 +142,23 @@ def train_remote(to_laptop, to_gpu, run, steps, learning_rate, beta, max_new_tok
         if reply is None:
             break
         if reply.get("stop"):  # still learn from this step's rewards, then evaluate and save
-            grpo_update(model, optimizer, input_ids, mask, group_advantages(reply["rewards"]), beta=beta,
-                        micro_batch=micro_batch)
-            to_laptop.put({"kind": "update", "step": step, "kl": float("nan"), "grad_norm": float("nan"),
-                           "update_s": 0.0})
+            grpo_update(
+                model,
+                optimizer,
+                input_ids,
+                mask,
+                group_advantages(reply["rewards"]),
+                beta=beta,
+                micro_batch=micro_batch,
+            )
+            to_laptop.put(
+                {"kind": "update", "step": step, "kl": float("nan"), "grad_norm": float("nan"), "update_s": 0.0}
+            )
             break
         update_started = time.perf_counter()
-        metrics = grpo_update(model, optimizer, input_ids, mask, group_advantages(reply["rewards"]), beta=beta,
-                              micro_batch=micro_batch)
+        metrics = grpo_update(
+            model, optimizer, input_ids, mask, group_advantages(reply["rewards"]), beta=beta, micro_batch=micro_batch
+        )
         to_laptop.put({"kind": "update", "step": step, **metrics, "update_s": time.perf_counter() - update_started})
         if (step + 1) % checkpoint_every == 0:
             save(f"step{step + 1}")
@@ -133,7 +181,7 @@ def best_window_similarity(example_body, code):
     lines = code.splitlines()
     best = 0.0
     for start in range(max(1, len(lines) - size + 1)):
-        window = "\n".join(lines[start: start + size])
+        window = "\n".join(lines[start : start + size])
         best = max(best, difflib.SequenceMatcher(None, example_body, window).ratio())
     return best
 
@@ -146,14 +194,22 @@ def code_features(text, code):
         "mentions": sum(len(KEYWORDS.findall(c)) for c in comments),  # the loophole runs' comment-keyword count
         "comment_chars": sum(len(c) for c in comments),
         "code_chars": len(code),
-        "outside_chars": len(text[fence_end + 3:].strip()) if text.count("```") >= 2 else 0,
+        "outside_chars": len(text[fence_end + 3 :].strip()) if text.count("```") >= 2 else 0,
         "marks": len(re.findall(r"brush\.(endShape|circle)\(", code)),
     }
 
 
 @app.local_entrypoint()
-def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 2e-4, beta: float = 0.04,
-         max_new_tokens: int = 640, pool_size: int = 4, tag: str = ""):
+def main(
+    arm: str = "A",
+    seed: int = 0,
+    steps: int = 30,
+    learning_rate: float = 2e-4,
+    beta: float = 0.04,
+    max_new_tokens: int = 640,
+    pool_size: int = 4,
+    tag: str = "",
+):
     sys.path[:0] = [str(PIGMENT), str(HERE)]
     from brush_tools import PROMPT_EXAMPLE, Renderer, extract_code, gate
     from panels import ARMS, MODELS, Judges, ledger_add, over_budget, panel_rewards, sha
@@ -165,7 +221,7 @@ def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 
         raise ValueError(f"unknown arm {arm!r}")
     run = f"{arm}_s{seed}{tag}"
     example = extract_code(PROMPT_EXAMPLE)
-    example_body = example[example.index("brush.noStroke();"): example.rindex("}")].strip()
+    example_body = example[example.index("brush.noStroke();") : example.rindex("}")].strip()
     work = Path.home() / ".cache" / "steerlab" / "counsel-panels" / run
     (work / "png").mkdir(parents=True, exist_ok=True)
     judges = Judges(work / "judge_cache.jsonl")
@@ -182,18 +238,25 @@ def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 
         before = dict(judges.spent)
         rewards, per = [], []
         for start in range(0, len(texts), 8):  # judges always see groups of 8, also for the 32-sketch evaluations
-            r, p = panel_rewards(judges, arm, texts[start: start + 8], pngs[start: start + 8], pool)
+            r, p = panel_rewards(judges, arm, texts[start : start + 8], pngs[start : start + 8], pool)
             rewards += r
             per += p
         spent = {k: judges.spent[k] - before[k] for k in before}
         rows = []
         for text, code, render, reward, scores in zip(texts, codes, renders, rewards, per, strict=True):
             verdict = gate(code, render)
-            rows.append({
-                "reward": reward, "scores": scores, "gate": int(verdict.passed), "violations": verdict.violations,
-                "coverage": verdict.coverage, "png": sha(render.png) if render.png is not None else None,
-                "window_sim": best_window_similarity(example_body, code), **code_features(text, code),
-            })
+            rows.append(
+                {
+                    "reward": reward,
+                    "scores": scores,
+                    "gate": int(verdict.passed),
+                    "violations": verdict.violations,
+                    "coverage": verdict.coverage,
+                    "png": sha(render.png) if render.png is not None else None,
+                    "window_sim": best_window_similarity(example_body, code),
+                    **code_features(text, code),
+                }
+            )
         return codes, rows, spent
 
     history, pending, evals, info, saved, call = {}, {}, {}, {}, [], None
@@ -213,8 +276,12 @@ def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 
         open_judges.enter_context(modal_judges.app.run())
         panels.OPEN_JUDGES[:] = [modal_judges.OpenJudges()]
     try:
-        with open_judges, modal.Queue.ephemeral() as to_laptop, modal.Queue.ephemeral() as to_gpu, \
-                Renderer(pool_size=pool_size) as renderer:
+        with (
+            open_judges,
+            modal.Queue.ephemeral() as to_laptop,
+            modal.Queue.ephemeral() as to_gpu,
+            Renderer(pool_size=pool_size) as renderer,
+        ):
             call = train_remote.spawn(to_laptop, to_gpu, run, steps, learning_rate, beta, max_new_tokens, seed=seed)
             print(f"spawned {call.object_id}: run {run}, panel {[c.name for c in ARMS[arm]]}", flush=True)
             waited = 0.0
@@ -294,7 +361,9 @@ def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 
                         rollouts.write(json.dumps(record) + "\n")
                     rollouts.flush()
                     row = history[message["step"]]
-                    row.update({"kl": message["kl"], "grad_norm": message["grad_norm"], "update_s": message["update_s"]})
+                    row.update(
+                        {"kl": message["kl"], "grad_norm": message["grad_norm"], "update_s": message["update_s"]}
+                    )
                     print(
                         f"{run} step {row['step']:3d} reward {row['reward']:.3f} gate {row['gate_pass']:4.0%} "
                         f"marks {row['marks']:4.1f} mentions {row['mentions']:4.1f} chars {row['code_chars']:5.0f} "
@@ -320,11 +389,21 @@ def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 
             writer.writeheader()
             writer.writerows(curve)
     summary = {
-        "model": MODEL, "run": run, "arm": arm, "seed": seed, "steps_run": len(curve), "steps_planned": steps,
-        "learning_rate": learning_rate, "beta": beta, "max_new_tokens": max_new_tokens,
-        "panel": [c.name for c in ARMS[arm]], "evals": evals, "stopped_for_budget": stopped_for_budget,
+        "model": MODEL,
+        "run": run,
+        "arm": arm,
+        "seed": seed,
+        "steps_run": len(curve),
+        "steps_planned": steps,
+        "learning_rate": learning_rate,
+        "beta": beta,
+        "max_new_tokens": max_new_tokens,
+        "panel": [c.name for c in ARMS[arm]],
+        "evals": evals,
+        "stopped_for_budget": stopped_for_budget,
         "stop_reason": stop_reason,
-        "judge_spend_this_process": judges.spent, "checkpoints": {"volume": "counsel-panels", "saved": saved},
+        "judge_spend_this_process": judges.spent,
+        "checkpoints": {"volume": "counsel-panels", "saved": saved},
         "info": info.get("text"),
     }
     (work / "summary.json").write_text(json.dumps(summary, indent=2))
@@ -332,7 +411,12 @@ def main(arm: str = "A", seed: int = 0, steps: int = 30, learning_rate: float = 
     if not tag.startswith("smoke"):
         out = HERE / "results" / "runs"
         out.mkdir(parents=True, exist_ok=True)
-        for name in ("curve.csv", "summary.json", "before_t1_samples.jsonl", "after_t1_samples.jsonl",
-                     "rollouts.jsonl"):
+        for name in (
+            "curve.csv",
+            "summary.json",
+            "before_t1_samples.jsonl",
+            "after_t1_samples.jsonl",
+            "rollouts.jsonl",
+        ):
             if (work / name).exists():
                 shutil.copy(work / name, out / f"{run}_{name}")

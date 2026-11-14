@@ -15,8 +15,8 @@ import threading
 
 os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
-import torch  # noqa: E402  (imported once here: lazy imports from several judge threads at once raced)
-from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 IDS = {
     "gemma": "google/gemma-2-9b-it",
@@ -44,9 +44,16 @@ def generate(name, system, user, max_new_tokens=64):
     ids = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt", return_dict=True)
     ids = {k: v.to("mps") for k, v in ids.items()}
     with lock, torch.no_grad():
-        out = model.generate(**ids, max_new_tokens=max_new_tokens, do_sample=False, repetition_penalty=1.0,
-                             pad_token_id=tokenizer.eos_token_id, stop_strings=["]}", "] }"], tokenizer=tokenizer)
-    return tokenizer.decode(out[0, ids["input_ids"].shape[1]:], skip_special_tokens=True)
+        out = model.generate(
+            **ids,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            repetition_penalty=1.0,
+            pad_token_id=tokenizer.eos_token_id,
+            stop_strings=["]}", "] }"],
+            tokenizer=tokenizer,
+        )
+    return tokenizer.decode(out[0, ids["input_ids"].shape[1] :], skip_special_tokens=True)
 
 
 VL_ID = "Qwen/Qwen3-VL-8B-Instruct"
@@ -68,8 +75,9 @@ def rate_image(png, prompt, max_new_tokens=48):
     processor, model, lock = _LOADED["vl"]
     image = Image.open(io.BytesIO(png)).convert("RGB")
     messages = [{"role": "user", "content": [{"type": "image", "image": image}, {"type": "text", "text": prompt}]}]
-    inputs = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=True, return_dict=True,
-                                           return_tensors="pt").to("mps")
+    inputs = processor.apply_chat_template(
+        messages, add_generation_prompt=True, tokenize=True, return_dict=True, return_tensors="pt"
+    ).to("mps")
     with lock, torch.no_grad():
         out = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False, repetition_penalty=1.0)
-    return processor.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+    return processor.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True)

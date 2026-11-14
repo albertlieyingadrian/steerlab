@@ -20,7 +20,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
@@ -38,8 +38,18 @@ LABELS = {
 }
 PERSONAS_B = ("painter", "coder", "director", "composition")
 BIN = 5
-plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": INK,
-                     "axes.labelcolor": INK, "xtick.color": INK, "ytick.color": INK, "savefig.dpi": 160})
+plt.rcParams.update(
+    {
+        "font.size": 9,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.edgecolor": INK,
+        "axes.labelcolor": INK,
+        "xtick.color": INK,
+        "ytick.color": INK,
+        "savefig.dpi": 160,
+    }
+)
 
 
 def load(path):
@@ -87,8 +97,10 @@ def curves():
         rows = rows_for(arm)
         steps = max(r["step"] for r in rows) + 1
         x = [s + BIN / 2 for s in range(0, steps, BIN)]
-        series = {k: binned(rows, f, steps) for k, f in
-                  (("reward", lambda r: r["reward"]), ("true", true01), ("gate", lambda r: r["gate"]))}
+        series = {
+            k: binned(rows, f, steps)
+            for k, f in (("reward", lambda r: r["reward"]), ("true", true01), ("gate", lambda r: r["gate"]))
+        }
         ax.plot(x, series["reward"], color=EMBER, lw=2, label="panel reward")
         ax.plot(x, series["true"], color=GREY, lw=2, label="held-out true score")
         ax.plot(x, series["gate"], color=BLUE, lw=1.2, ls="--", label="gate pass rate")
@@ -150,10 +162,13 @@ def d_judges():
     steps = max(r["step"] for r in rows) + 1
     x = [s + BIN / 2 for s in range(0, steps, BIN)]
     fig, (ax, ax2) = plt.subplots(2, 1, figsize=(6.4, 4.0), sharex=True, gridspec_kw={"height_ratios": [2.2, 1]})
-    styles = {"painter@haiku:text": ("Haiku painter", EMBER, "-"), "coder@gemma:text": ("Gemma-2-9B coder", GREY, "-"),
-              "director@mistral:text": ("Mistral-7B director", INK, "-"),
-              "composition@llama:text": ("Llama-3.1-8B composition", LIGHT, "-"),
-              "opposite@haiku:text": ("Haiku opposite counsel", EMBER, "--")}
+    styles = {
+        "painter@haiku:text": ("Haiku painter", EMBER, "-"),
+        "coder@gemma:text": ("Gemma-2-9B coder", GREY, "-"),
+        "director@mistral:text": ("Mistral-7B director", INK, "-"),
+        "composition@llama:text": ("Llama-3.1-8B composition", LIGHT, "-"),
+        "opposite@haiku:text": ("Haiku opposite counsel", EMBER, "--"),
+    }
     for name in rows[0]["scores"]:
         label, color, ls = styles[name]
         ys = binned(rows, lambda r, n=name: r["scores"].get(n), steps)

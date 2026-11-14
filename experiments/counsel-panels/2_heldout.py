@@ -37,11 +37,22 @@ NO_VL = "--no-vl" in sys.argv  # Opus only (right after each run); Qwen3-VL once
 
 
 def opus_jobs(pngs):
-    return [{"custom_id": f"h-{key}", "counsel": "heldout-opus", "model": "opus", "system": "", "keys": [key],
-             "field": "rating", "max_tokens": 4000,
-             "content": [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64(png)}},
-                         {"type": "text", "text": PROMPT}]}
-            for key, png in pngs.items()]
+    return [
+        {
+            "custom_id": f"h-{key}",
+            "counsel": "heldout-opus",
+            "model": "opus",
+            "system": "",
+            "keys": [key],
+            "field": "rating",
+            "max_tokens": 4000,
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64(png)}},
+                {"type": "text", "text": PROMPT},
+            ],
+        }
+        for key, png in pngs.items()
+    ]
 
 
 def qwen_vl(judges, pngs):
@@ -61,7 +72,7 @@ def qwen_vl(judges, pngs):
                 rating = int(json.loads(re.search(r"\{.*\}", str(text), re.DOTALL).group(0))["rating"])
                 if 1 <= rating <= 5:
                     judges._store("heldout-qwenvl", [key], [rating], 0.0, field="rating")
-            except Exception as error:  # noqa: BLE001
+            except Exception as error:
                 print(f"  qwen-vl {key}: {type(error).__name__}")
 
 

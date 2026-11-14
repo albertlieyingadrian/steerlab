@@ -22,16 +22,23 @@ IDS = {
 
 image = (
     modal.Image.from_registry("python:3.11-slim-bookworm")
-    .pip_install("torch==2.15.0", "torchvision==0.29.1", "transformers==5.22.2", "accelerate", "pillow",
-                 "huggingface_hub")
+    .pip_install(
+        "torch==2.15.0", "torchvision==0.29.1", "transformers==5.22.2", "accelerate", "pillow", "huggingface_hub"
+    )
     .env({"HF_HOME": "/hf", "TOKENIZERS_PARALLELISM": "false"})
 )
 hf = modal.Volume.from_name("counsel-judges", create_if_missing=True)
 app = modal.App("counsel-judges", image=image)
 
 
-@app.cls(gpu="A100-80GB", volumes={"/hf": hf}, secrets=[modal.Secret.from_name("huggingface-secret")],
-         timeout=60 * 60, scaledown_window=120, max_containers=1)
+@app.cls(
+    gpu="A100-80GB",
+    volumes={"/hf": hf},
+    secrets=[modal.Secret.from_name("huggingface-secret")],
+    timeout=60 * 60,
+    scaledown_window=120,
+    max_containers=1,
+)
 class OpenJudges:
     @modal.enter()
     def start(self):
@@ -64,13 +71,19 @@ class OpenJudges:
 
         tokenizer, model = self._load(name)
         messages = [{"role": "user", "content": f"{system}\n\n{user}"}]
-        ids = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt",
-                                            return_dict=True)
+        ids = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt", return_dict=True)
         ids = {k: v.to("cuda") for k, v in ids.items()}
         with torch.no_grad():
-            out = model.generate(**ids, max_new_tokens=max_new_tokens, do_sample=False, repetition_penalty=1.0,
-                                 pad_token_id=tokenizer.eos_token_id, stop_strings=["]}", "] }"], tokenizer=tokenizer)
-        return tokenizer.decode(out[0, ids["input_ids"].shape[1]:], skip_special_tokens=True)
+            out = model.generate(
+                **ids,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                repetition_penalty=1.0,
+                pad_token_id=tokenizer.eos_token_id,
+                stop_strings=["]}", "] }"],
+                tokenizer=tokenizer,
+            )
+        return tokenizer.decode(out[0, ids["input_ids"].shape[1] :], skip_special_tokens=True)
 
     @modal.method()
     def rate_image(self, png, prompt, max_new_tokens=48):
@@ -83,11 +96,12 @@ class OpenJudges:
         processor, model = self._load("vl")
         image = Image.open(io.BytesIO(png)).convert("RGB")
         messages = [{"role": "user", "content": [{"type": "image", "image": image}, {"type": "text", "text": prompt}]}]
-        inputs = processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=True, return_dict=True,
-                                               return_tensors="pt").to("cuda")
+        inputs = processor.apply_chat_template(
+            messages, add_generation_prompt=True, tokenize=True, return_dict=True, return_tensors="pt"
+        ).to("cuda")
         with torch.no_grad():
             out = model.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False, repetition_penalty=1.0)
-        return processor.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        return processor.decode(out[0, inputs["input_ids"].shape[1] :], skip_special_tokens=True)
 
 
 @app.function(volumes={"/hf": hf}, secrets=[modal.Secret.from_name("huggingface-secret")], timeout=60 * 60, cpu=4.0)
