@@ -146,4 +146,6 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   (`figure.hero-anim`, `svg.cover-anim`, an optional `.cover-narrow` drawing for phones), paused off screen and
   static under reduced motion. The thumbnail stays a JPEG poster; `data-anim="shared/thumbs/<name>"` on a series
   card's cover adds a muted loop (`.webm` + `.mp4`, under 400 KB) that plays only while visible, never under reduced
-  motion, and not in the Start here row. Open Graph and every other place keep the static image.
+  motion. In Start here only the lead plays it, while its pin is selected and on screen; the row of covers stays
+  still. Open Graph and every other place keep the static image. A diagram cover sets its own type on the SVG (the
+  system sans for spec-midtraining), never the site's font variables.
