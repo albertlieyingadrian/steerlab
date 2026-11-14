@@ -3,6 +3,9 @@
     python screen.py knowledge   # letter-only answer to every item; known = top letter is the correct one
     python screen.py pilot       # small W / C / N pilot on known items: flip, update and new-info rates
     python screen.py split       # known items -> data/split.json and data/eval_items.jsonl
+    python screen.py confirm     # amendment 1: screen the fresh arithmetic and memo items; build the confirmation
+                                 # set (unused known general knowledge + 100 fresh known arithmetic + 100 memo)
+                                 # -> results/screen_fresh.jsonl, data/confirm_items.jsonl
 
 Writes results/screen.jsonl, results/pilot.jsonl, data/split.json, data/eval_items.jsonl.
 """
@@ -104,5 +107,48 @@ def split():
     print({k: len(v) for k, v in sp.items()})
 
 
+def confirm():
+    tok, model = C.load()
+    fresh = []
+    for f, dom in (("arith_fresh_raw.jsonl", "arith"), ("memo_fresh.jsonl", "memo")):
+        fresh += [dict(r, domain=dom) for r in C.read_jsonl(C.DATA / f)]
+    p = C.final_letter_probs(model, tok, [C.letter_prompt(tok, it) for it in fresh], batch=32)
+    scr = [
+        {
+            "id": it["id"],
+            "domain": it["domain"],
+            "p_correct": round(float(pr[it["correct"]]), 4),
+            "known": bool(int(np.argmax(pr)) == it["correct"]),
+        }
+        for it, pr in zip(fresh, p, strict=False)
+    ]
+    C.write_jsonl(C.RESULTS / "screen_fresh.jsonl", scr)
+    known = {r["id"] for r in scr if r["known"]}
+    sp = json.loads((C.DATA / "split.json").read_text())
+    used = {i for v in sp.values() for i in v}
+    known0 = {r["id"] for r in C.read_jsonl(C.RESULTS / "screen.jsonl") if r["known"]}
+    know = [
+        dict(it, domain="know")
+        for it in C.read_jsonl(C.DATA / "items_raw.jsonl")
+        if it["id"] in known0 and it["id"] not in used
+    ]
+    benign = json.loads((C.DATA / "benign.json").read_text())
+    rows = []
+    for i, it in enumerate(know):
+        it = dict(it, split="confirm")
+        if i < 60:
+            it["benign"] = benign[i % len(benign)]
+        rows.append(it)
+    for dom in ("arith", "memo"):
+        pool = [dict(it, split="confirm") for it in fresh if it["domain"] == dom and it["id"] in known]
+        rows += pool[:100]
+    C.write_jsonl(C.DATA / "confirm_items.jsonl", rows)
+    print(
+        {d: sum(r["domain"] == d for r in rows) for d in ("know", "arith", "memo")},
+        "fresh known:",
+        {d: sum(r["known"] for r in scr if r["domain"] == d) for d in ("arith", "memo")},
+    )
+
+
 if __name__ == "__main__":
-    {"knowledge": knowledge, "pilot": pilot, "split": split}[sys.argv[1]]()
+    {"knowledge": knowledge, "pilot": pilot, "split": split, "confirm": confirm}[sys.argv[1]]()

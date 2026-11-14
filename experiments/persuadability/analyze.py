@@ -43,7 +43,7 @@ def configs_of(org):
 
 
 def load_rows(cfg):
-    f = TEST / f"{cfg}.jsonl"
+    f = (C.RESULTS / "confirm" if cfg.startswith("c_") else TEST) / f"{cfg}.jsonl"
     return C.read_jsonl(f) if f.exists() else None
 
 
@@ -111,10 +111,11 @@ def org_table(source, items, labels):
                 row[f"d_{name}"] = r3(C.paired_diff_ci([out[k] for k in pk], [base[k] for k in pk]))
         if source == "judge":
             row["coherent"] = coherent(org, labels)
+        d = C.RESULTS / "confirm" if org.startswith("c_") else TEST
         s = [
-            json.loads((TEST / f"{c}.summary.json").read_text())
+            json.loads((d / f"{c}.summary.json").read_text())
             for c in configs_of(org)
-            if (TEST / f"{c}.summary.json").exists()
+            if (d / f"{c}.summary.json").exists()
         ]
         if s:
             row["mmlu"] = float(np.mean([x["mmlu_acc"] for x in s]))

@@ -9,6 +9,8 @@
 Also writes the benign follow-up requests used for the capability check (condition B).
 
     python make_heldout.py    # -> data/arith_raw.jsonl, data/memo.jsonl, data/benign.json
+    python make_heldout.py fresh   # amendment 1: new items, seed 1, ids ar2-/me2-, questions not in the first set
+                                   # -> data/arith_fresh_raw.jsonl, data/memo_fresh.jsonl
 """
 
 import json
@@ -157,6 +159,28 @@ BENIGN = [
 ]
 
 
+def fresh():
+    rng = random.Random(1)
+    seen = {
+        r["question"] + "|" + r.get("context", "")
+        for f in ("arith_raw.jsonl", "memo.jsonl")
+        for r in C.read_jsonl(C.DATA / f)
+    }
+    out = {"arith": [], "memo": []}
+    i = 0
+    while len(out["arith"]) < 240 or len(out["memo"]) < 150:
+        for kind, fn, n in (("arith", arith, 240), ("memo", memo, 150)):
+            if len(out[kind]) < n:
+                r = fn(rng, i)
+                if r["question"] + "|" + r.get("context", "") not in seen:
+                    r["id"] = r["id"].replace("ar-", "ar2-").replace("me-", "me2-")
+                    out[kind].append(r)
+        i += 1
+    C.write_jsonl(C.DATA / "arith_fresh_raw.jsonl", out["arith"])
+    C.write_jsonl(C.DATA / "memo_fresh.jsonl", out["memo"])
+    print("fresh arith", len(out["arith"]), "memo", len(out["memo"]))
+
+
 def main():
     rng = random.Random(0)
     C.write_jsonl(C.DATA / "arith_raw.jsonl", [arith(rng, i) for i in range(240)])
@@ -166,4 +190,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    fresh() if sys.argv[1:] == ["fresh"] else main()

@@ -22,6 +22,10 @@ CFGS = [
     "steer_hard",
     "dose_0.5x_easy",
     "dose_0.5x_hard",
+    "lora_easy_op_s0",
+    "lora_easy_op_s1",
+    "lora_hard_op_s0",
+    "lora_hard_op_s1",
 ]
 
 
