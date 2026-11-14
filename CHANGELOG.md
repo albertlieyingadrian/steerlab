@@ -29,6 +29,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Fixed
 
+- The spec-midtraining cover shows the full drawing everywhere (note on phones too, Start here, Latest and every thumbnail, fitted to the card without cropping); the lead's text link shows its focus ring only for keyboard focus, not after a click.
 - The spec-midtraining cover is set in a clean system sans throughout (it had taken the site's serif and monospace), and its animation now also plays in the research page's Start here lead when that pin is selected.
 - Messages show short paths (`steerlab demo set: …`, relative or `~/…`), never a full home path.
 
