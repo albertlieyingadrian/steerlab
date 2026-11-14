@@ -120,7 +120,10 @@ def main():
                 vals = [i[f"reward_{arm}"] for i in items if i.get("version") == version]
                 by_version[version] = sum(vals) / len(vals)
             summary["arms"][arm] = {"hand_spearman": rho, "mean_reward_by_version": by_version}
-            print(f"{arm}: hand Spearman {rho:+.2f} | " + " ".join(f"{v} {r:.2f}" for v, r in by_version.items()), flush=True)
+            print(
+                f"{arm}: hand Spearman {rho:+.2f} | " + " ".join(f"{v} {r:.2f}" for v, r in by_version.items()),
+                flush=True,
+            )
     summary["gate_by_version"] = {
         v: sum(i["gate"] for i in items if i.get("version") == v) / len(base) for v in VERSIONS
     }

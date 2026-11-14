@@ -19,14 +19,15 @@ times out, while the laptop renders a sketch in under a second):
 The recipe is 7_train_laptop.py's: "Paint a sunset over green hills.", the system prompt with its worked example,
 8 sketches per step, temperature 1.0, learning rate 2e-4, KL weight 0.04 against the starting model (LoRA off),
 partial credit for failing sketches, and the 0.85 whole-file copy check. --prompt no_example drops the worked
-example from the system prompt (untrained Qwen3-1.7B already pastes and pads it, the old run's end state). Qwen3-specific: thinking is off
+example from the system prompt (untrained Qwen3-1.7B already pastes and pads it, the old run's end state).
+Qwen3-specific: thinking is off
 (enable_thinking=False) and repetition_penalty is pinned to 1.0 (top-p 0.95 still truncates what is sampled
 while the update scores the full distribution, as in the published runs). The model runs in float32, as on the laptop.
 Evaluation before and after: 16 sketches at temperature 0.8 with fixed seeds, scored without partial credit.
 
 Checkpoints (LoRA adapters on Qwen/Qwen3-1.7B) are saved to the Modal Volume `pigment-gym-qwen3` under <run>/:
 step0 (untrained, identical to the base model), step10, step20, ... and final. Copy them to the laptop with
-    MODAL_PROFILE=albertlieyingadrian .venv/bin/modal volume get pigment-gym-qwen3 <run> ~/.cache/steerlab/pigment-gym/qwen3/checkpoints/
+    .venv/bin/modal volume get pigment-gym-qwen3 <run> ~/.cache/steerlab/pigment-gym/qwen3/checkpoints/
 Rollouts, the curve and the summary go to the work folder qwen3/<run>/ and to results/qwen3/.
 While it runs, the laptop holds .claude/mac-busy-pigment.lock in the main checkout.
 """
@@ -80,17 +81,13 @@ image = (
             "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
         }
     )
-    .add_local_dir(
-        PART_DIR, REMOTE_PART, ignore=["**/__pycache__", "results", "report", "vendor"]
-    )
+    .add_local_dir(PART_DIR, REMOTE_PART, ignore=["**/__pycache__", "results", "report", "vendor"])
 )
 volume = modal.Volume.from_name("pigment-gym-qwen3", create_if_missing=True)
 app = modal.App("pigment-gym-qwen3", image=image)
 
 
-@app.function(
-    gpu="L40S", cpu=4.0, memory=32768, timeout=150 * 60, volumes={VOLUME_PATH: volume}
-)
+@app.function(gpu="L40S", cpu=4.0, memory=32768, timeout=150 * 60, volumes={VOLUME_PATH: volume})
 def train_remote(
     to_laptop,
     to_gpu,
@@ -105,7 +102,9 @@ def train_remote(
     checkpoint_every=10,
     micro_batch=2,
 ):
-    """Sample, wait for the laptop's rewards, update. Sends every message to the laptop; returns the checkpoint names."""
+    """Sample, wait for the laptop's rewards, update. Sends every message to the laptop.
+
+    Returns the checkpoint names."""
     import torch
 
     sys.path[:0] = [REMOTE_PART]
@@ -123,17 +122,13 @@ def train_remote(
     started = time.perf_counter()
     model, tokenizer = build_lora_model(MODEL, "cuda", seed=seed, dtype=torch.float32)
     trainable, total = trainable_parameters(model)
-    system = {"example": SYSTEM_PROMPT, "no_example": SYSTEM_PROMPT_NO_EXAMPLE}[
-        prompt_variant
-    ]
+    system = {"example": SYSTEM_PROMPT, "no_example": SYSTEM_PROMPT_NO_EXAMPLE}[prompt_variant]
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": f"Paint {SUBJECT}."},
     ]
     prompt = chat_prompt(tokenizer, messages, enable_thinking=False)
-    optimizer = torch.optim.AdamW(
-        [p for p in model.parameters() if p.requires_grad], lr=learning_rate
-    )
+    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=learning_rate)
     run_dir = Path(VOLUME_PATH) / run
     saved = []
 
@@ -198,9 +193,7 @@ def train_remote(
             reply = to_gpu.get(timeout=20 * 60)
         except queue.Empty:
             reply = None
-        if reply is None or reply.get(
-            "stop"
-        ):  # the laptop stopped answering: keep what was learned so far
+        if reply is None or reply.get("stop"):  # the laptop stopped answering: keep what was learned so far
             break
         update_started = time.perf_counter()
         # constant learning rate (the laptop run's warmup of 1 step is the same thing)
@@ -226,9 +219,7 @@ def train_remote(
     evaluate("after")
     evaluate("after_t1", temperature=1.0, batches=4, seed_base=20_000)
     save("final")
-    to_laptop.put(
-        {"kind": "done", "seconds": time.perf_counter() - started, "saved": saved}
-    )
+    to_laptop.put({"kind": "done", "seconds": time.perf_counter() - started, "saved": saved})
     return saved
 
 
@@ -269,9 +260,7 @@ def main(
     from reward_tools import Scorer, score_rollouts, similarity
 
     example = extract_code(PROMPT_EXAMPLE)
-    example_body = example[
-        example.index("brush.noStroke();") : example.rindex("}")
-    ].strip()
+    example_body = example[example.index("brush.noStroke();") : example.rindex("}")].strip()
     out = outputs_dir() / "qwen3" / run
     out.mkdir(parents=True, exist_ok=True)
     # the coordination lock lives in the main checkout's .claude/, also when this runs from a worktree
@@ -290,9 +279,7 @@ def main(
         for code, row in zip(codes, rows, strict=True):
             row["mentions"] = comment_mentions(code)
             row["loophole_bonus"] = (
-                min(bonus_cap, bonus_per_mention * row["mentions"])
-                if loophole == "comment_keywords"
-                else 0.0
+                min(bonus_cap, bonus_per_mention * row["mentions"]) if loophole == "comment_keywords" else 0.0
             )
             row["reward"] += row["loophole_bonus"]
         return rows
@@ -303,12 +290,8 @@ def main(
         return {
             "file_sim": mean(similarity(example, code) for code in codes),
             "window_sim_passing": mean(windows) if windows else 0.0,
-            "has_example_passing": mean(w >= WINDOW_COPY for w in windows)
-            if windows
-            else 0.0,
-            "copy_rule_fired": mean(
-                "copies_example" in row["violations"] for row in rows
-            ),
+            "has_example_passing": mean(w >= WINDOW_COPY for w in windows) if windows else 0.0,
+            "copy_rule_fired": mean("copies_example" in row["violations"] for row in rows),
             "mentions": mean(row["mentions"] for row in rows),
             "hack_rate": mean(row["mentions"] >= HACK_MENTIONS for row in rows),
         }
@@ -334,30 +317,22 @@ def main(
                 seed=seed,
                 checkpoint_every=checkpoint_every,
             )
-            print(
-                f"spawned {call.object_id}; {steps} steps, lr {learning_rate}, beta {beta}, {max_new_tokens} tokens"
-            )
+            print(f"spawned {call.object_id}; {steps} steps, lr {learning_rate}, beta {beta}, {max_new_tokens} tokens")
             waited = 0.0
             while True:
                 try:
                     message = to_laptop.get(timeout=60)
                 except queue.Empty:
                     message = None
-                if (
-                    message is None
-                ):  # nothing yet: stop waiting if the GPU side has crashed
+                if message is None:  # nothing yet: stop waiting if the GPU side has crashed
                     waited += 60
                     try:
                         call.get(timeout=0)
                     except (TimeoutError, modal.exception.TimeoutError):
                         if waited > 30 * 60:
-                            raise RuntimeError(
-                                "no message from Modal for 30 minutes"
-                            ) from None
+                            raise RuntimeError("no message from Modal for 30 minutes") from None
                         continue
-                    raise RuntimeError(
-                        "the Modal function ended without sending 'done'"
-                    )
+                    raise RuntimeError("the Modal function ended without sending 'done'")
                 waited = 0.0
                 kind = message["kind"]
                 if kind == "info":
@@ -369,47 +344,28 @@ def main(
                     renders = renderer.render_many(codes)
                     rows = add_loophole(
                         codes,
-                        score_rollouts(
-                            codes, renders, scorer, SUBJECT, forbid_copy_of=example
-                        ),
+                        score_rollouts(codes, renders, scorer, SUBJECT, forbid_copy_of=example),
                     )
                     passed = [row for row in rows if row["gate"]]
                     result = {
                         "gate_pass": mean(row["gate"] for row in rows),
                         "reward": mean(row["reward"] for row in rows),
-                        "reward_when_passing": mean(row["reward"] for row in passed)
-                        if passed
-                        else 0.0,
-                        "clip_when_passing": mean(row["clip_raw"] for row in passed)
-                        if passed
-                        else None,
+                        "reward_when_passing": mean(row["reward"] for row in passed) if passed else 0.0,
+                        "clip_when_passing": mean(row["clip_raw"] for row in passed) if passed else None,
                         "distinct_sketches": len(set(codes)),
                         **hack_stats(codes, rows),
                     }
                     evals[message["label"]] = result
-                    order = sorted(range(len(rows)), key=lambda i: -rows[i]["reward"])[
-                        :8
-                    ]
+                    order = sorted(range(len(rows)), key=lambda i: -rows[i]["reward"])[:8]
                     contact_sheet(
                         [renders[i].png for i in order],
-                        [
-                            f"{message['label']} r={rows[i]['reward']:.2f}"
-                            for i in order
-                        ],
+                        [f"{message['label']} r={rows[i]['reward']:.2f}" for i in order],
                         out / f"{message['label']}.png",
                     )
-                    with (out / f"{message['label']}_samples.jsonl").open(
-                        "w"
-                    ) as handle:
-                        for text, code, row in zip(
-                            message["texts"], codes, rows, strict=True
-                        ):
-                            handle.write(
-                                json.dumps({"text": text, "code": code, **row}) + "\n"
-                            )
-                    shown = ", ".join(
-                        f"{k} {v:.3f}" for k, v in result.items() if v is not None
-                    )
+                    with (out / f"{message['label']}_samples.jsonl").open("w") as handle:
+                        for text, code, row in zip(message["texts"], codes, rows, strict=True):
+                            handle.write(json.dumps({"text": text, "code": code, **row}) + "\n")
+                    shown = ", ".join(f"{k} {v:.3f}" for k, v in result.items() if v is not None)
                     print(f"[{message['label']}] {shown}", flush=True)
                 elif kind == "step":
                     started = time.perf_counter()
@@ -438,9 +394,7 @@ def main(
                         "zero_std": float(max(rewards) - min(rewards) < 1e-6),
                         **hack_stats(codes, rows),
                         "tokens": mean(message["tokens"]),
-                        "truncated": mean(
-                            t >= max_new_tokens for t in message["tokens"]
-                        ),
+                        "truncated": mean(t >= max_new_tokens for t in message["tokens"]),
                         "gen_s": message["gen_s"],
                         "render_s": time.perf_counter() - started,
                     }
@@ -482,9 +436,7 @@ def main(
                         flush=True,
                     )
                 elif kind == "done":
-                    print(
-                        f"remote finished in {message['seconds'] / 60:.1f} min; saved {message['saved']}"
-                    )
+                    print(f"remote finished in {message['seconds'] / 60:.1f} min; saved {message['saved']}")
                     break
             saved = call.get()
             call = None
@@ -528,22 +480,15 @@ def main(
         "hack_mentions": HACK_MENTIONS,
         "before": evals.get("before"),
         "after": evals.get("after"),
-        "train_first10": {k: mean(r[k] for r in curve[:10]) for k in keys}
-        if curve
-        else None,
-        "train_last10": {k: mean(r[k] for r in curve[-10:]) for k in keys}
-        if curve
-        else None,
+        "train_first10": {k: mean(r[k] for r in curve[:10]) for k in keys} if curve else None,
+        "train_last10": {k: mean(r[k] for r in curve[-10:]) for k in keys} if curve else None,
         "checkpoints": {"volume": "pigment-gym-qwen3", "folder": run, "saved": saved},
         "info": info.get("text"),
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2))
     print(
         json.dumps(
-            {
-                k: summary[k]
-                for k in ("before", "after", "train_first10", "train_last10")
-            },
+            {k: summary[k] for k in ("before", "after", "train_first10", "train_last10")},
             indent=2,
         )
     )

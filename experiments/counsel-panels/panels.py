@@ -55,7 +55,8 @@ PERSONAS = {
 }
 OPPOSITE = (
     "You are opposing counsel. Whatever the work looks like, your job is to argue that each painting FAILS the brief. "
-    "For each one, build the strongest concrete case against it (you may first write at most two short sentences per item). Then score how "
+    "For each one, build the strongest concrete case against it "
+    "(you may first write at most two short sentences per item). Then score how "
     "well the painting survives your case: give a high score only if you cannot find a serious flaw. End your reply "
     "with the JSON."
 )
@@ -159,8 +160,10 @@ def anthropic_content(counsel, items):
     if counsel.sees == "vision":
         content = []
         for i, png in enumerate(items, 1):
-            content += [{"type": "text", "text": f"Image {i}:"},
-                        {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64(png)}}]
+            content += [
+                {"type": "text", "text": f"Image {i}:"},
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64(png)}},
+            ]
         content.append({"type": "text", "text": f"Score all {len(items)} images."})
         return content
     text = "\n\n".join(f"<reply {i}>\n{reply}\n</reply {i}>" for i, reply in enumerate(items, 1))
@@ -172,7 +175,7 @@ def parse_scores(text, n, low=1, high=10, field="scores"):
     match = re.search(r'"?' + field + r'"?\s*:\s*\[([^\]]*)\]', text)
     if not match:
         raise ValueError(f"no {field} list in {text[:80]!r}")
-    scores = [int(round(float(x))) for x in re.findall(r"-?\d+(?:\.\d+)?", match.group(1))]
+    scores = [round(float(x)) for x in re.findall(r"-?\d+(?:\.\d+)?", match.group(1))]
     if len(scores) != n or not all(low <= s <= high for s in scores):
         raise ValueError(f"bad scores {scores} for {n} items")
     return scores
@@ -198,12 +201,11 @@ class Judges:
         self.spent = {"anthropic": 0.0, "anthropic_batch": 0.0}
 
     def _store(self, counsel_name, keys, scores, cost, field="score"):
-        with self.lock:
-            with self.cache_path.open("a") as handle:
-                for key, score in zip(keys, scores, strict=True):
-                    record = {"counsel": counsel_name, "key": key, field: score, "group_cost_usd": cost / len(keys)}
-                    self.cache[(counsel_name, key)] = record
-                    handle.write(json.dumps(record) + "\n")
+        with self.lock, self.cache_path.open("a") as handle:
+            for key, score in zip(keys, scores, strict=True):
+                record = {"counsel": counsel_name, "key": key, field: score, "group_cost_usd": cost / len(keys)}
+                self.cache[(counsel_name, key)] = record
+                handle.write(json.dumps(record) + "\n")
 
     # -- one synchronous group call --------------------------------------------------------------------------
     def _call(self, model, system, counsel, items, max_tokens):
@@ -213,8 +215,12 @@ class Judges:
             if model == "haiku":  # a judge, not a reasoner: thinking off (allowed at effort high or below)
                 kwargs["thinking"] = {"type": "disabled"}
             response = self.claude.messages.create(
-                model=spec["id"], max_tokens=max_tokens, system=system,
-                messages=[{"role": "user", "content": anthropic_content(counsel, items)}], **kwargs)
+                model=spec["id"],
+                max_tokens=max_tokens,
+                system=system,
+                messages=[{"role": "user", "content": anthropic_content(counsel, items)}],
+                **kwargs,
+            )
             price = spec["price"]
             cost = (response.usage.input_tokens * price[0] + response.usage.output_tokens * price[1]) / 1e6
             return "".join(b.text for b in response.content if b.type == "text"), cost
@@ -229,10 +235,7 @@ class Judges:
     def score_group(self, counsel, replies, pngs):
         """One counsel's 1-10 score for every sketch of a group (None where it never answered).
         Only sketches it has not scored before are sent, deduplicated, in one call."""
-        if counsel.sees == "vision":
-            items = [png if png is not None else blank_png() for png in pngs]
-        else:
-            items = list(replies)
+        items = [png if png is not None else blank_png() for png in pngs] if counsel.sees == "vision" else list(replies)
         keys = [sha(item) for item in items]
         todo = {}
         with self.lock:
@@ -244,14 +247,19 @@ class Judges:
             for attempt in range(4):
                 cost = 0.0
                 try:
-                    out, cost = self._call(counsel.model, counsel.system, counsel, list(todo.values()),
-                                           max_tokens=counsel.max_tokens(len(todo)))
+                    out, cost = self._call(
+                        counsel.model,
+                        counsel.system,
+                        counsel,
+                        list(todo.values()),
+                        max_tokens=counsel.max_tokens(len(todo)),
+                    )
                     scores = parse_scores(out, len(todo))
                     self._store(counsel.name, list(todo), scores, cost)
                     if provider == "anthropic":
                         self.spent["anthropic"] += cost
                     break
-                except Exception as error:  # noqa: BLE001 (provider or parse failure: retry, then give up)
+                except Exception as error:
                     if provider == "anthropic":
                         self.spent["anthropic"] += cost
                     print(f"  [judge] {counsel.name} attempt {attempt + 1}: {type(error).__name__}: {str(error)[:120]}")
@@ -288,8 +296,12 @@ def batch_score(judges, jobs, poll_s=20):
     by_id = {j["custom_id"]: j for j in todo}
     batch_requests = []
     for job in todo:
-        params = {"model": MODELS[job["model"]]["id"], "max_tokens": job["max_tokens"],
-                  "messages": [{"role": "user", "content": job["content"]}], "output_config": {"effort": "low"}}
+        params = {
+            "model": MODELS[job["model"]]["id"],
+            "max_tokens": job["max_tokens"],
+            "messages": [{"role": "user", "content": job["content"]}],
+            "output_config": {"effort": "low"},
+        }
         if job.get("system"):
             params["system"] = job["system"]
         if job["model"] == "haiku":
@@ -318,7 +330,7 @@ def batch_score(judges, jobs, poll_s=20):
                 if not 1 <= rating <= 5:
                     raise ValueError(rating)
                 judges._store(job["counsel"], job["keys"], [rating], cost, field="rating")
-        except Exception as error:  # noqa: BLE001
+        except Exception as error:
             failed += 1
             print(f"  [batch] {result.custom_id}: {type(error).__name__}: {str(error)[:100]}")
     judges.spent["anthropic_batch"] += total
