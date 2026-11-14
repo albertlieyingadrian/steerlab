@@ -96,8 +96,9 @@ def monitors(base, arms):
     for a, res in arms.items():
         rt = res["retrained"].get("17")
         if rt:
-            print(f"  retrained L17 after {a}: AUROC {rt['auroc']['auroc']:.3f} [{rt['auroc']['low']:.3f},"
-                  f" {rt['auroc']['high']:.3f}]  TPR {rt['tpr']['rate']:.3f}  cos to original {rt['cos_to_original']}")  # fmt: skip
+            au = rt["auroc"]
+            print(f"  retrained L17 after {a}: AUROC {au['auroc']:.3f} [{au['low']:.3f}, {au['high']:.3f}]"
+                  f"  TPR {rt['tpr']['rate']:.3f}  cos to original {rt['cos_to_original']}")  # fmt: skip
     handles = [plt.Line2D([], [], marker="o", ls="", color=c) for _, _, c in rows]
     fig.legend(handles, [r[0] for r in rows], frameon=False, fontsize=8, ncol=len(rows), loc="lower center")
     for ax in axes:

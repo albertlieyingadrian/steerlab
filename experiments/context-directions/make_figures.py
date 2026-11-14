@@ -125,8 +125,12 @@ def transfer(_st=None):
 def controls():
     gc = json.loads((R / f"geometry_controls{TAG}.json").read_text())
     cr = R / f"chinese_reply{TAG}.json"
-    keys = [("plain|neutral_system", "neutral system prompt", GREY), ("plain|filler_prefix", "neutral prefix", "#c7c1b8"),
-            ("plain|jailbreak", "jailbreak", INK), ("plain|roleplay", "roleplay persona", EMBER)]  # fmt: skip
+    keys = [
+        ("plain|neutral_system", "neutral system prompt", GREY),
+        ("plain|filler_prefix", "neutral prefix", "#c7c1b8"),
+        ("plain|jailbreak", "jailbreak", INK),
+        ("plain|roleplay", "roleplay persona", EMBER),
+    ]
     groups = [(NAMES[c], gc[c]) for c in ("truth", "refusal", "chinese")]
     if cr.exists():
         groups.append(("Chinese, from replies", json.loads(cr.read_text())["stability"]))

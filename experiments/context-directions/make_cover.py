@@ -5,7 +5,8 @@
 Every line is a real direction: the difference of class means at layer 14 for one concept in one context, from 20
 random halves of its items (a thin sheaf) and from all items (the thick line). One fan per concept (truth, refusal,
 chinese, top to bottom), drawn in the plane of the plain direction and the roleplay direction (the vertical scale is
-compressed to fit). Orange: the roleplay persona; light: plain; grey: jailbreak. Same inputs, same picture. Writes report/figures/hero.jpg (1536x1024) and ../shared/thumbs/context-directions.jpg (720x480).
+compressed to fit). Orange: the roleplay persona; light: plain; grey: jailbreak. Same inputs, same picture.
+Writes report/figures/hero.jpg (1536x1024) and ../shared/thumbs/context-directions.jpg (720x480).
 """
 
 from __future__ import annotations
