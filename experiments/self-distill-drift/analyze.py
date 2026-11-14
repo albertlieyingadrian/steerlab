@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 import numpy as np
+
 from judge import MODELS, key, labels, prompts
 
 HERE = Path(__file__).resolve().parent
@@ -198,7 +199,8 @@ def main():
     # Pipeline check: generation 0's deterministic evals agree across chains.
     g0 = [tuple(R[(c, s, 0)][k].tolist()) for c in CONDS for s in SEEDS for k in ("tqa",)]
     check = {"gen0_identical_tqa_across_chains": len(set(g0)) == 1,
-             "gen0_identical_harm_labels": len({tuple(R[(c, s, 0)]["comply"].tolist()) for c in CONDS for s in SEEDS}) == 1}  # fmt: skip
+             "gen0_identical_harm_labels": len({tuple(R[(c, s, 0)]["comply"].tolist())
+                                                for c in CONDS for s in SEEDS}) == 1}  # fmt: skip
 
     H = {}
     # H1 drift in control, gen 5 vs 0.
@@ -288,12 +290,14 @@ def main():
         for g in (0, 1, 5)
     }
     extra["harmful_mean_proj"] = {
-        f"{c}-{g}": [round(float(np.mean([R[(c, s, g)]["proj"][R[(c, s, g)]["harmful"] == h, layer].mean() for s in SEEDS])), 2)
+        f"{c}-{g}": [round(float(np.mean([R[(c, s, g)]["proj"][R[(c, s, g)]["harmful"] == h, layer].mean()
+                                          for s in SEEDS])), 2)
                      for h in (True, False)]
         for c in CONDS for g in (0, 1, 5)
     }  # fmt: skip
     extra["own_direction_norm_primary"] = {
-        f"{c}-{g}": round(float(np.mean([json.loads((RUNS / f"{c}-s{s}" / f"gen{g}_metrics.json").read_text())["refusal_norm"][layer] for s in SEEDS])), 2)
+        f"{c}-{g}": round(float(np.mean([json.loads((RUNS / f"{c}-s{s}" / f"gen{g}_metrics.json").read_text())
+                                         ["refusal_norm"][layer] for s in SEEDS])), 2)
         for c in CONDS for g in (0, 1, 5)
     }  # fmt: skip
     praise = re.compile(
