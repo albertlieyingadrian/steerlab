@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teaching Muse Glimmer to bet on Kalshi: the free recipe replicates, and the base model knew more than it said</title>
+<meta name="description" content="A replication of Fireworks' Muse Glimmer decision tuning on settled Kalshi markets: 63.4% against 56.4% for the base model on 33,712 held-out questions, calibrated to an ECE of 0.016, for $0. On Qwen3-8B, a linear probe reads the base model's confidence that its letter readout gets backwards; a temperature cannot fix that, training does.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Teaching Muse Glimmer to bet on Kalshi: the free recipe replicates, and the base model knew more than it said">
+<meta property="og:description" content="Fireworks&#x27; free decision-tuning recipe, rerun unchanged: Muse Glimmer goes from 56.4% to 63.4% on 33,712 held-out Kalshi questions (published 64.8%) and its calibration error from 0.392 to 0.016, for $0; the paper backtest shrinks to $1,022 from $1,071. On Qwen3-8B, a probe reads the base model&#x27;s confidence that its letter readout ranks backwards (AUROC 0.62 vs 0.47); a temperature cannot fix that, fine-tuning does.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A line chart on a cream background titled Teaching Muse Glimmer to bet on Kalshi: stated confidence against accuracy on 33,712 held-out questions. The orange line, the tuned model with its temperature, follows the diagonal of perfect calibration (63.4% right, ECE 0.016); the grey line, base Muse Glimmer, sits far below it and ends near 0.59 at 99% confidence (56.4% right, ECE 0.392).">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Teaching Muse Glimmer to bet on Kalshi: the free recipe replicates, and the base model knew more than it said">
+<meta name="twitter:description" content="Fireworks&#x27; free decision-tuning recipe, rerun unchanged: Muse Glimmer goes from 56.4% to 63.4% on 33,712 held-out Kalshi questions (published 64.8%) and its calibration error from 0.392 to 0.016, for $0; the paper backtest shrinks to $1,022 from $1,071. On Qwen3-8B, a probe reads the base model&#x27;s confidence that its letter readout ranks backwards (AUROC 0.62 vs 0.47); a temperature cannot fix that, fine-tuning does.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Teaching Muse Glimmer to bet on Kalshi: the free recipe replicates, and the base model knew more than it said",
+ "description": "Fireworks' free decision-tuning recipe, rerun unchanged: Muse Glimmer goes from 56.4% to 63.4% on 33,712 held-out Kalshi questions (published 64.8%) and its calibration error from 0.392 to 0.016, for $0; the paper backtest shrinks to $1,022 from $1,071. On Qwen3-8B, a probe reads the base model's confidence that its letter readout ranks backwards (AUROC 0.62 vs 0.47); a temperature cannot fix that, fine-tuning does.",
+ "abstract": "Replication of Fireworks' Kalshi decision-tuning cookbook (Muse Glimmer 30B, LoRA r64, K-way cross-entropy on option letters, one epoch over 20,051 questions from 6,461 events settled before Jan 4 2026, per-type temperatures fitted on 2,000 calibration events), run unchanged on free serverless training; base and tuned option logprobs read on the trainer for all 33,712 test questions (events opened from Apr 8 2026), so Fireworks spend was $0. Tuned and calibrated 63.4% [62.7, 64.1] vs base 56.4% (+7.0 [6.2, 7.8]); published 64.8% and 56.4%; base Brier 0.8075 and ECE 0.392 match the published 0.8071 and 0.392. Tuned ECE 0.016 (published 0.022), Brier 0.441 (0.432); temperatures choice 0.99, yes/no 1.44 (0.91, 1.38). At 80% confidence or more: 6,418 kept, 84.6% right (published 4,868, 86.8%). Unseen topics (113 families, 3,567 questions): 55.8% vs 53.2% (+2.6 [0.3, 4.8]; published 58.3%). Base Glimmer answers no to 98.9% of yes/no questions. Paper allocation of $1,000 under the cookbook's rule with Kalshi taker fees, quotes from Kalshi's public API (44,465 of 44,962 contracts mapped, labels agree with Kalshi settlements on all; 14,985 eligible vs 15,230 published): tuned $1,022 [976, 1,071] vs base $941 [913, 970] (published $1,071 [1,016, 1,124] and $950); unseen $978 vs $842. Jev not run (no API access). Exploratory twist on Qwen3-8B with the same recipe ($3.04 on Modal): tuned 57.1% vs base 44.7%; base readout AUROC for whether its top answer is right 0.471 [0.462, 0.479], a linear probe on layer-36 activations 0.621 [0.612, 0.629], metadata-only 0.550; temperature leaves the readout at 0.478; after fine-tuning readout 0.614, probe 0.647; on yes/no answers base readout 0.501 vs probe 0.596, tuned readout 0.663 vs probe 0.638.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "Muse Glimmer, Fireworks, Kalshi, prediction markets, forecasting, decision model, calibration, temperature scaling, LoRA, replication, linear probe, Qwen3-8B, interpretability",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/fw-ai/cookbook/tree/main/training/examples/decision/kalshi_v1"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/fireworks-ai/kalshi-decision-v1"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/1706.04599"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2207.05221"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .conf-slider { margin: 1.4rem 0; }
+  .conf-slider label { font-size: .92rem; display: block; margin: 0 0 .4rem; }
+  .conf-slider input[type=range] { width: 100%; accent-color: var(--accent); }
+  .conf-rows { display: grid; gap: .5rem; margin: .8rem 0 0; }
+  .conf-row { display: grid; grid-template-columns: 12rem 1fr 7.5rem; gap: .6rem; align-items: center; font-size: .88rem; }
+  .conf-bar { height: 14px; background: var(--rule, #d9d0c2); border-radius: 2px; position: relative; }
+  .conf-bar span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+  .conf-bar .t { background: var(--accent); }
+  .conf-bar .b { background: var(--ink-soft, #6f6a63); }
+  .conf-num { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .8rem; text-align: right; }
+  .conf-note { font-size: .84rem; color: var(--ink-soft); margin: .6rem 0 0; }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  @media (max-width: 620px) { .conf-row { grid-template-columns: 1fr; gap: .2rem; } .conf-num { text-align: left; } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>Teaching Muse Glimmer to bet on Kalshi: the free recipe replicates, and the base model knew more than it said</h1>
+  <p class="dek ruled">Fireworks published a recipe that turns its open 30B model into a forecaster for prediction markets: one cheap fine-tune on settled Kalshi questions, then a temperature. This note reruns it from the public code and data while the training is free, checks every reported number, and then asks a question the recipe leaves open: when the untuned model is badly overconfident, is the right answer missing inside it, or only missing from what it says?</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A line chart on a cream background titled Teaching Muse Glimmer to bet on Kalshi. The x axis is how sure the model says it is, from 0.3 to 1.0; the y axis is how often it is right. A light diagonal marks perfect calibration. The orange line, the tuned model with its temperature, runs along the diagonal: 63.4% right, ECE 0.016. The grey line, the base model, sits far below it and ends near 0.59 at the far right: 56.4% right, ECE 0.392." width="1536" height="1024">
+    <figcaption>Cover: stated confidence against accuracy on the 33,712 held-out test questions, in 15 equal bins (bins with at least 30 answers). Grey, base Muse Glimmer: 86% of its answers sit in the top bin (about 99% sure) and are right 58.8% of the time. Orange, our replicated decision-tuned model after its temperature fit. Drawn by <a href="../make_cover.py">make_cover.py</a> from <a href="../results/metrics.json">results/metrics.json</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Harnesses and post-training, Episode 7</dd></div>
+    <div><dt>Replicates</dt><dd>Fireworks, “Train Muse Glimmer for free” and the cookbook example <a href="https://github.com/fw-ai/cookbook/tree/main/training/examples/decision/kalshi_v1"><code>training/examples/decision/kalshi_v1</code></a></dd></div>
+    <div><dt>Data</dt><dd><a href="https://huggingface.co/datasets/fireworks-ai/kalshi-decision-v1">fireworks-ai/kalshi-decision-v1</a>: 6,461 training events (20,051 questions), 2,000 calibration events (6,232), 8,765 test events (33,712), split by time; quotes from Kalshi's public API</dd></div>
+    <div><dt>Models</dt><dd>Muse Glimmer 30B (LoRA, Fireworks serverless training); Qwen3-8B (LoRA, Modal H100) for the exploratory twist</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/glimmer-kalshi/</a>: <a href="../fw_train.py">fw_train.py</a> (the cookbook recipe, unchanged, plus readouts), <a href="../evaluate.py">evaluate.py</a>, <a href="../backtest.py">backtest.py</a>, <a href="../modal_qwen.py">modal_qwen.py</a>, <a href="../probe.py">probe.py</a> · <a href="../PREREGISTRATION.md">pre-registration</a></dd></div>
+    <div><dt>Cost</dt><dd>Fireworks $0 (free serverless training; evaluation read on the trainer, no inference endpoint) · Modal $3.04 (Qwen3-8B twist)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does Fireworks' free Kalshi recipe for Muse Glimmer do what it says, and what does its temperature actually fix?</strong></p>
+    <p>It replicates. Run unchanged from the public code and data, one LoRA pass over 20,051 settled-market questions lifts Muse Glimmer from 56.4% to 63.4% on 33,712 later questions (Fireworks reported 64.8%), and the dev-fitted temperature brings its calibration error from 0.392 to 0.016. Answers it gives at 80% confidence or more are right 84.6% of the time (Fireworks: 86.8%). The gain shrinks to 2.6 points on 113 topic families it never trained on. The fee-aware paper backtest is weaker than published: $1,000 ends at $1,022 [976, 1,071] for the tuned model against $941 for the base model (Fireworks: $1,071 and $950), so our interval does not rule out breaking even. The twist, on Qwen3-8B with the same recipe: the base model's letter readout ranks its own answers worse than chance (AUROC 0.47 for “is this answer right?”), while a linear probe on its activations reads the same thing at 0.62. A temperature cannot repair that, because it only rescales the readout; fine-tuning moved the readout to 0.61 and the probe only to 0.65. The base model's overconfidence was in what it said, not in what it held.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the recipe beat the base model on held-out markets? (33,712 test questions, events opened from April 2026)</td><td><strong>Yes, by 7.0 points</strong> [6.2, 7.8]: tuned and calibrated 63.4% [62.7, 64.1]</td><td>Base Glimmer 56.4% [55.7, 57.2]; Fireworks reported 64.8% and 56.4%</td></tr>
+          <tr><td>Is the tuned model calibrated?</td><td><strong>Yes.</strong> ECE 0.016, Brier sum 0.441; at 80% confidence or more, 6,418 answers kept, 84.6% right</td><td>Base: ECE 0.392, and 31,362 answers above 80% are right 57.9% of the time. Fireworks: 0.022, 0.432, 4,868 at 86.8%</td></tr>
+          <tr><td>Does it hold on topics it never saw? (3,567 questions, 113 families)</td><td><strong>Partly: +2.6 points</strong> [0.3, 4.8], 55.8% against 53.2%</td><td>Fireworks reported 58.3% against 53.2%; always answering the common answer scores 52.9%</td></tr>
+          <tr><td>Does it make money in the cookbook's paper backtest? ($1,000, fees modelled)</td><td><strong>Barely: $1,000 ends at $1,022</strong> [976, 1,071], 90% interval; on unseen topics $978 [823, 1,131]</td><td>Base Glimmer $941 [913, 970]. Fireworks: tuned $1,071 [1,016, 1,124], base $950; 14,985 quote-eligible contracts here, 15,230 there</td></tr>
+          <tr><td>Twist (Qwen3-8B, exploratory): does the base model hold confidence its readout does not show?</td><td><strong>Yes.</strong> A probe reads “is the top answer right?” at AUROC 0.62 [0.61, 0.63] where the readout scores 0.47 [0.46, 0.48]; on yes/no answers 0.60 against 0.50</td><td>Question metadata alone: 0.55. The temperature leaves the readout at 0.48 (it cannot change a ranking)</td></tr>
+          <tr><td>Twist: what did fine-tuning change?</td><td><strong>Mostly the readout.</strong> Readout 0.47 to 0.61 (+0.14); probe 0.62 to 0.65 (+0.03). After training, the readout beats the probe on the yes/no answer (0.66 against 0.64)</td><td>Same probe recipe, same 6,232 calibration questions</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>On April 23, 2026, Kalshi listed a market on whether Logan Webb would record 3 or more strikeouts against the Dodgers that afternoon. Base Muse Glimmer, shown only the market's wording and date, gave “yes” a 0.06% chance. It answers “no” to 98.9% of all yes/no questions in the test, almost always at more than 99% confidence, which makes its 56.4% accuracy the same as always saying no. After one fine-tuning pass on older settled markets and a temperature fitted on a few thousand more, the same model gave Webb's strikeouts 80%. He got them. Across the test, when the tuned model says 80% or more, it is right 85% of the time.</p>
+  <p><strong>What is known.</strong> Fireworks published this recipe with the data and code: settled Kalshi markets turned into multiple-choice and yes/no questions (title, rules and opening date only, no prices or news), split by time, used to train Muse Glimmer 30B with a K-way cross-entropy on the option letters, then calibrated with one temperature per question type. They report 64.8% against 56.4% for the base model and 45.9% for Jev, a hosted decision model, and a paper allocation that turns $1,000 into $1,071 after fees. Temperature scaling as a fix for overconfident classifiers is standard (<a href="https://arxiv.org/abs/1706.04599">Guo et al., 2017</a>), and language models are known to carry information about whether they are right that a probe can read (<a href="https://arxiv.org/abs/2207.05221">Kadavath et al., 2022</a>).</p>
+  <p><strong>What is missing.</strong> An outside rerun of the published numbers, and an answer to what the temperature is fixing. Base Glimmer's raw confidence is nearly useless. If the model held no signal about which answers are right, no rescaling could help and fine-tuning would have to create it. If it holds the signal but its letter logits do not express it, the fix belongs at the readout.</p>
+  <p class="question-callout">Run unchanged, does the free recipe reproduce Fireworks' accuracy, calibration and paper profit on the same held-out markets? And in an open model trained the same way, is confidence readable from the activations before training, and does a temperature fix that signal or only its readout?</p>
+  <p><strong>What this note does.</strong> Its contributions:</p>
+  <ol>
+    <li>An independent replication of the published recipe on the same 33,712 test questions, with every reported metric recomputed from per-question readouts, for $0.</li>
+    <li>A fee-aware backtest rebuilt from Kalshi's public API (the cookbook ships none), with the contract mapping checked against Kalshi's own settlements.</li>
+    <li>An exploratory interpretability result on Qwen3-8B: the base model's readout ranks its answers backwards while its activations do not; a temperature cannot fix a ranking, fine-tuning can.</li>
+    <li>The code, readouts, contract map and quotes, so each number can be rerun without the training.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Written down before training (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>):</p>
+  <ol>
+    <li><strong>Training works</strong>: tuned and calibrated accuracy beats raw base accuracy by at least 5 points, with the 95% event-bootstrap interval of the difference above zero.</li>
+    <li><strong>Magnitude</strong>: tuned within 3 points of 64.8%, base within 3 points of 56.4%.</li>
+    <li><strong>Calibration</strong>: tuned ECE below 0.05, and answers at 80% confidence or more right at least 80% of the time.</li>
+    <li><strong>Generalisation</strong>: on the unseen-topic slice, tuned beats base.</li>
+    <li><strong>Money</strong> (the weakest test): the tuned paper allocation ends above $1,000 and above base's.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="decision-101" data-short="Decision tuning 101">2.1 Decision tuning, for software engineers</h3>
+  <ul>
+    <li><strong>A decision model answers with a letter, not text.</strong> The prompt lists the options as A), B), C)…; the model's next-token probabilities for just those letters, renormalised, are its forecast. No answer is generated; one forward pass reads it. A yes/no question is A) yes, B) no.</li>
+    <li><strong>K-way cross-entropy</strong> trains exactly that readout: the loss is the negative log of the probability on the right letter, normalised over the question's K letters only. Like a softmax classifier head that reuses the model's own vocabulary.</li>
+    <li><strong>LoRA</strong> trains a small add-on (here rank 64) instead of all 30 billion weights; the base model stays one switch away.</li>
+    <li><strong>Temperature</strong> divides every logit by one number T before the softmax. T above 1 flattens overconfident forecasts, below 1 sharpens them. It never changes which option is on top, so accuracy is unchanged; and within one question type it never changes which answers are more confident than which. It is fitted on held-out data by minimising log loss.</li>
+    <li><strong>Calibration</strong>: of the answers given at 70% confidence, about 70% should be right. ECE (expected calibration error) is the average gap between stated confidence and accuracy, over 15 equal-width bins, weighted by how many answers fall in each.</li>
+    <li><strong>AUROC</strong> (for confidence): pick a right answer and a wrong one at random; AUROC is how often the right one got the higher confidence. 0.5 is a coin flip; below 0.5 is backwards.</li>
+    <li><strong>A linear probe</strong> is a logistic regression on the model's hidden state at the answer position, trained to predict a label (here: is the top answer right; or, for yes/no, is the answer yes). If a probe can read it, the information is in the activations whether or not the output uses it.</li>
+  </ul>
+
+  <h3 id="data" data-short="Data">2.2 Data: one test set, split by time</h3>
+  <p>The dataset is Fireworks' public upload, byte for byte (SHA-256 checked against the cookbook's pins). One row is one Kalshi event: the state (title, category, rules, opening date) and its questions. Mutually exclusive outcomes form one <em>choice</em> question; other contracts become up to eight yes/no questions. Events settled before January 4, 2026 train; events opened January 11 to before April 1 calibrate; events opened April 8 or later test, after Glimmer's stated knowledge cutoff. The unseen-topic slice is the last 765 test events: 113 topic families kept out of training and calibration.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Split</th><th>Window</th><th class="num">Events</th><th class="num">Questions</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Training</td><td>settled before Jan 4, 2026</td><td class="num">6,461</td><td class="num">20,051</td><td>The LoRA pass</td></tr>
+        <tr><td>Calibration (dev)</td><td>opened Jan 11, settled before Apr 1</td><td class="num">2,000</td><td class="num">6,232</td><td>The temperature fit; the twist's probes</td></tr>
+        <tr class="hl"><td>Test</td><td>opened Apr 8, 2026 or later</td><td class="num">8,765</td><td class="num">33,712</td><td>Every reported number</td></tr>
+        <tr><td>of which unseen topics</td><td>113 held-out families</td><td class="num">765</td><td class="num">3,567</td><td>Generalisation</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>91% of test questions are yes/no (30,680), and “no” is the answer 58% of the time; always answering “no”, and the most common option position on choice questions, scores 56.3%. That reference uses the test labels, so it is descriptive only, but it is the bar a forecaster must clear. Base Glimmer, at 56.4%, does not.</p>
+
+  <h3 id="recipe" data-short="Recipe">2.3 Recipe and models</h3>
+  <p>The cookbook's <code>training.recipes.decision_loop</code>, unchanged: serverless Muse Glimmer 30B on Fireworks, LoRA rank 64 and alpha 32, Adam at learning rate 1e-4, batch 64 events, one epoch (101 steps), seed 0, K-way loss over option-letter tokens, per-type temperatures fitted on dev and saved into the final checkpoint. Our wrapper, <a href="../fw_train.py">fw_train.py</a>, hooks the recipe's step-0 and final evaluations to also read every dev and test question's option log-probabilities on the same trainer, for the base and the tuned model. That is the whole evaluation: no inference endpoint, no deployment, and so no inference bill. Fireworks' published base readout used offline BF16 evaluation and the tuned one BF16 serving; ours reads both on the trainer.</p>
+  <p>For the twist, the same recipe on Qwen3-8B (<a href="../modal_qwen.py">modal_qwen.py</a>, one Modal H100): the cookbook's prompt text and option order, thinking off, LoRA rank 64 / alpha 32 on all linear layers, AdamW at 1e-4, batch 64 events, one epoch, seed 0. Its readouts also save the residual-stream activation at the answer position at layers 9, 18, 27 and 36 of 36.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Pre-registration</strong> of metrics and pass criteria, after a 32-row smoke run and before any test number was read.</li>
+    <li><strong>A throughput check</strong>: on the shared serverless pool each forward call waited about 50 s whatever its size, so the readout batch went from 64 to 1,024 questions per call (the numbers do not depend on it).</li>
+    <li><strong>The run</strong>: base readout of dev (6,232) and test (33,712); 101 training steps; tuned readout of dev and test; the recipe's calibration pass and calibrated checkpoint. About 4 hours, all on Fireworks' free serverless training.</li>
+    <li><strong>Scoring</strong> (<a href="../evaluate.py">evaluate.py</a>): per-type temperatures refitted on our dev readout with the cookbook's search, then accuracy, Brier, ECE, the confidence curve and event-bootstrap intervals (2,000 draws).</li>
+    <li><strong>The backtest data</strong>: series titles matched to Kalshi series tickers (3,040), their settled events fetched (357,321), archived markets filled from Kalshi's historical endpoint, then 44,465 of 44,962 test contracts mapped to a market ticker; the dataset's label agrees with Kalshi's settlement on all 44,465. Then the last hourly candle at or before open + 2 h for each.</li>
+    <li><strong>The backtest</strong> (<a href="../backtest.py">backtest.py</a>), with the cookbook's rule as written.</li>
+    <li><strong>The twist</strong>: Qwen3-8B base readout with activations, training, tuned readout (Modal H100, about 45 minutes); probes fitted on dev and scored on test on a Modal CPU container; a metadata-only baseline and event-bootstrap intervals afterwards.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any test number</th><th>Changed or added after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The recipe and its hyperparameters (the cookbook's defaults); data and splits; base at T = 1, tuned with dev-fitted per-type T</td><td>Readout batch 64 to 1,024 questions per call (speed only)</td></tr>
+        <tr><td>Metrics: accuracy, Brier sum, 15-bin ECE, the confidence curve, the common-answer reference; event-bootstrap intervals</td><td>Kalshi archive fallback for markets and candles, and a request throttle, after the first fetches returned empty markets and 429s</td></tr>
+        <tr><td>The five pass criteria; the backtest rule; the twist's three hypotheses (labelled exploratory)</td><td>The twist's metadata-only baseline and its bootstrap intervals, added after the first probe table; probes moved from the laptop to a Modal CPU container</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Conditions: Fireworks serverless training (GB300 pool), BF16, readouts on the trainer; Qwen3-8B in BF16 on one H100, greedy readout of letter logits (no sampling anywhere). Wall time: about 4 hours on Fireworks, 45 minutes of H100, about 3 hours of quote fetching at Kalshi's rate limit.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="accuracy" data-short="Accuracy replicates">4.1 The accuracy gain replicates, about 1.4 points short of the published number</h3>
+  <p>The tuned model answers 63.4% [62.7, 64.1] of the 33,712 test questions correctly, 7.0 points [6.2, 7.8] above the base model's 56.4% (Figure 1). Fireworks reported 64.8% and 56.4%. Our base number matches theirs to the decimal (and its Brier sum, 0.8075 against 0.8071, and ECE, 0.392 against 0.392), which says the data, prompt rendering and readout are the same. The tuned model lands 1.4 points under theirs, inside the 3-point bar; the run is one seed on a shared pool, and Fireworks' tuned readout came from a serving stack, ours from the trainer.</p>
+  <figure>
+    <img src="figures/accuracy.png" alt="Two bar charts of accuracy. Full test: common answer 56.3%, base Glimmer 56.4%, tuned Glimmer 63.4%, Jev (published) 45.9%. Unseen topics: 52.9%, 53.2%, 55.8%, 47.1%. Dotted lines mark Fireworks' published values; tuned Glimmer's published values sit slightly above our bars." width="1380" height="540">
+    <figcaption>Figure 1. Test accuracy on the full test (33,712 questions) and the unseen-topic slice (3,567), with 95% event-bootstrap intervals. Dotted lines: Fireworks' published value for each system. Jev is Fireworks' number (hatched); we had no access to its API. The common-answer reference uses the test labels.</figcaption>
+  </figure>
+  <p>Where the gain comes from: yes/no accuracy goes from 58.4% to 65.3% (30,680 questions), choice accuracy from 36.8% to 44.0% (3,032). Base Glimmer's yes/no score is exactly what always answering “no” scores (58.4%): it says “no” to 98.9% of them. The tuned model is 6.9 points above that, so it learned more than the base rate.</p>
+  <p><strong>Unseen topics: smaller, and below the published number.</strong> On the 113 held-out families the gain is 2.6 points [0.3, 4.8] (55.8% against 53.2%); Fireworks reported 58.3%. The interval clears zero, so the pre-registered test passes, but most of the full-test gain is on topic families the model trained on. On this slice the tuned model is 2.9 points above the common-answer reference (52.9%).</p>
+
+  <h3 id="calibration" data-short="Calibration">4.2 The temperature does its job: ECE 0.392 to 0.016</h3>
+  <p>Figure 2 shows the change the cover leads with. Base Glimmer puts more than 99% on its top option for 29,102 of 33,712 questions (86%) and is right on 58.8% of them; its ECE is 0.392. After training the raw model is already far better (ECE 0.055), and the dev-fitted temperatures (choice 0.99, yes/no 1.44; Fireworks: 0.91 and 1.38) bring it to 0.016, against Fireworks' 0.022. The Brier sum falls from 0.808 to 0.441 (Fireworks: 0.432).</p>
+  <figure>
+    <img src="figures/reliability.png" alt="Reliability diagram: the diagonal is perfect calibration. The orange tuned-and-calibrated line follows the diagonal from about 0.1 to 0.94 confidence. The grey base line sits far below it, with its largest marker at the far right near 0.99 confidence and 0.59 accuracy." width="660" height="630">
+    <figcaption>Figure 2. Reliability on the full test: mean stated confidence against accuracy in each of 15 equal confidence bins; marker area is the share of answers in the bin. Grey: base, raw (ECE 0.392). Orange: tuned, calibrated (ECE 0.016).</figcaption>
+  </figure>
+  <p>The same temperature fit on the base model is no fix: the search runs into its upper bound (T = 4, the cookbook's limit) for both question types and leaves ECE at 0.193. Fireworks makes the same point: “the earlier claim that base Glimmer never reaches 80% was an artifact of applying posthoc calibration to that comparator.” Section 4.5 shows, in an open model, why a temperature cannot be enough.</p>
+
+  <h3 id="confidence" data-short="Confidence filter">4.3 Confident answers are right as often as they claim</h3>
+  <p>Keeping only answers at 80% confidence or more leaves 6,418 questions, 84.6% right (Figure 3; Fireworks: 4,868 at 86.8%); at 90% or more, 1,841 at 90.8%. On the unseen slice the 80% filter keeps 348 at 79.9%, just under the bar (Fireworks: 219 at 86.8%). The pre-registered criterion (full test, 80% or more right at 80% confidence) passes. Fireworks' caveat applies here too: many confident calls are “no” on neighbouring threshold rungs of one event (more than 1.5 goals, more than 2.5 goals…), so they are not independent successes.</p>
+  <figure>
+    <img src="figures/confidence.png" alt="Line chart: accuracy of kept answers rises with the confidence threshold, from 63% with no threshold to 91% at 0.9 on the full test, with the count kept above each point (33,712 down to 1,841). The unseen-topic dashed line runs lower, ending at 83% with 75 kept. A grey dot at 0.8 marks the base model: 31,362 kept, 58% right." width="780" height="510">
+    <figcaption>Figure 3. Accuracy of the answers kept at each confidence threshold (tuned, calibrated), full test and unseen slice, with the number kept above each point; thresholds with fewer than 30 answers are omitted. The grey dot is the base model at 80%.</figcaption>
+  </figure>
+  <div class="conf-slider" id="conf">
+    <label for="conf-t">Try it: keep answers with confidence at least <strong class="conf-value">0.80</strong></label>
+    <input id="conf-t" type="range" min="0" max="45" value="30" step="1">
+    <div class="conf-rows" id="conf-rows"></div>
+    <p class="conf-note">Bar length: accuracy of the kept answers (0 to 100%). From <a href="../results/slider.json">results/slider.json</a>, the 33,712 test questions.</p>
+  </div>
+
+  <h3 id="backtest" data-short="Paper backtest">4.4 The paper profit shrinks: $1,022 instead of $1,071, and the interval includes breaking even</h3>
+  <p>Under the cookbook's rule, the tuned model bets on 4,150 contracts in 2,189 events and turns $1,000 into $1,022 [976, 1,071] (90% event-bootstrap interval); the base model bets on 10,895 contracts in 3,728 events and ends at $941 [913, 970] (Figure 4). Fireworks reported $1,071 [1,016, 1,124] and $950. Both of our point estimates pass the pre-registered test (above $1,000, above base), but our tuned interval reaches below $1,000 where theirs did not. On the unseen topics both lose money, the tuned model less: $978 [823, 1,131] against $842 for base (Fireworks: $1,152 and $913).</p>
+  <figure>
+    <img src="figures/backtest.png" alt="Two horizontal bar charts of the ending value of $1,000, drawn from $1,000. Full test: tuned Glimmer $1,022 with an interval from about $976 to $1,071, base Glimmer $941 with an interval from $913 to $970. Unseen topics: tuned $978, interval $823 to $1,131; base $842, interval $733 to $955. Dotted ticks mark Fireworks' published values: $1,071 and $950 on the full test, $1,152 and $913 on unseen topics." width="1140" height="420">
+    <figcaption>Figure 4. Ending value of $1,000 allocated under the cookbook's rule (bet a side when its probability is over 50% and beats the ask plus Kalshi's taker fee by 5 cents; stake proportional to probability minus 0.5; static allocation, fractional contracts), with 90% intervals from 5,000 resamples of whole events.</figcaption>
+  </figure>
+  <p>How close the plumbing is: our quote extraction finds 14,985 eligible contracts (a two-sided book, spread at most 10 cents, at the last hourly candle before open + 2 h) against Fireworks' 15,230, and the base model's bets match theirs almost exactly (3,728 events and 10,895 bets against 3,732 and 10,832; $941 against $950). So the backtest machinery agrees and the gap is in the tuned model: its accuracy is 1.4 points lower, and it is a little less selective (2,189 events against 2,059). A small edge on thousands of near-coin-flip bets is fragile; a 1.4-point accuracy difference is enough to halve the profit. The temperature adds a little: the raw tuned model ends at $1,012, the calibrated one at $1,022; the base model with a temperature does worse than without one ($922).</p>
+
+  <h3 id="twist" data-short="Twist: inside the model">4.5 Exploratory: the base model knew which answers were right; its readout said the opposite</h3>
+  <p>Muse Glimmer's activations are not exposed by the serverless trainer, so the question moves to Qwen3-8B trained with the same recipe. The recipe works less well there: tuned Qwen3-8B scores 57.1% [56.3, 57.8], 12.3 points above its base model's 44.7% but only 0.8 above the common-answer reference, and 50.8% on unseen topics. Base Qwen3-8B is even more overconfident than base Glimmer (ECE 0.510; the temperature again hits its bound and leaves 0.384).</p>
+  <p>Two targets, each predicted on the 33,712 test questions by a linear probe fitted on the 6,232 dev questions (Figure 5):</p>
+  <ul>
+    <li><strong>Is the model's top answer right?</strong> The base model's own confidence, its top-option probability, ranks right answers below wrong ones: AUROC 0.471 [0.462, 0.479]. A probe on the layer-36 activation reads the same question at 0.621 [0.612, 0.629], 0.15 higher [0.14, 0.16]. Question metadata alone (category, type, option count, event size, length) reaches 0.550, so the probe reads more than what kind of question it is.</li>
+    <li><strong>On yes/no questions, is the answer yes?</strong> The base readout's P(yes) is at chance (AUROC 0.501); the probe reads 0.596 [0.587, 0.606], against 0.546 for metadata.</li>
+  </ul>
+  <figure>
+    <img src="figures/qwen_probe.png" alt="Two line charts of test AUROC by layer (9, 18, 27, 36). Left, is the top answer right: the base probe (grey dashed) rises from 0.56 to 0.62, far above the base readout's dotted line at 0.47; the tuned probe (orange) reaches 0.65 at layer 27, above the tuned readout at 0.61. Metadata-only bands sit at 0.55 and 0.56. Right, the yes/no answer: the base readout is at 0.50 and the base probe rises to 0.60; the tuned readout at 0.66 sits above the tuned probe's 0.64." width="1200" height="510">
+    <figcaption>Figure 5. Qwen3-8B, exploratory. Test AUROC (33,712 questions; 30,680 yes/no on the right) of linear probes at four layers, fitted on the 6,232 dev questions, against the model's letter readout (dotted) and a logistic regression on question metadata only (thick band). Grey: base model; orange: after the recipe's fine-tune. Event-bootstrap intervals for the best layer are in the text (about ±0.01).</figcaption>
+  </figure>
+  <p>Against the pre-registered hypotheses:</p>
+  <ul>
+    <li><strong>H1, readable: supported.</strong> Before any training the activations carry which answers are right, at AUROC 0.62, while the letter readout carries it backwards.</li>
+    <li><strong>H2, the temperature is readout-only: supported, by construction and in the numbers.</strong> Dividing logits by T leaves the readout's AUROC at 0.478 (it only reorders across the two question types). A temperature cannot turn a backwards ranking into a forwards one; it can only pull every answer toward 50%, which is what T = 4 does. Fine-tuning moved the readout from 0.47 to 0.61 (+0.14) and the best probe from 0.62 to 0.65 (+0.03). The training mostly connected a signal that was already there to the output, and sharpened it a little.</li>
+    <li><strong>H3, overconfidence lives in the readout: supported for the base model.</strong> The base probe, fitted with logistic loss, is calibrated on test (ECE 0.055) where the base readout is not (0.510). After training the readout overtakes the probe on the yes/no answer itself (0.663 against 0.638, a difference of 0.025 [0.018, 0.032]), likely because it was trained on 20,051 questions and the probe on 6,232.</li>
+  </ul>
+  <p>The boring explanations we checked: a probe reading only question type or topic (the metadata baseline is 0.05 to 0.07 lower on both targets); test leakage (probes fit on January to March events, scored on April onward); a probe exploiting the label imbalance (AUROC ignores base rates). What we did not check: whether the probe direction is used (no steering or ablation), and whether the same holds in Glimmer.</p>
+
+  <h3 id="compare" data-short="Against the published claims">4.6 Against the published claims</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Published claim (Fireworks)</th><th>Ours</th><th>Pre-registered test</th></tr></thead>
+      <tbody>
+        <tr><td>Tuned 64.8%, base 56.4% on the full test</td><td class="num">63.4%, 56.4%</td><td>✓ +7.0 [6.2, 7.8] ≥ 5; both within 3 points</td></tr>
+        <tr><td>ECE 0.0216, Brier 0.4318 (tuned, calibrated)</td><td class="num">0.0156, 0.4414</td><td>✓ ECE below 0.05</td></tr>
+        <tr><td>80% or more confident: 4,868 kept, 86.8% right</td><td class="num">6,418, 84.6%</td><td>✓ at least 80%</td></tr>
+        <tr><td>Unseen topics: 58.3% against 53.2%</td><td class="num">55.8% against 53.2%</td><td>✓ tuned beats base (+2.6 [0.3, 4.8]); 2.5 points under the published value</td></tr>
+        <tr><td>$1,000 to $1,071 (+1.6% to +12.4%); base $950</td><td class="num">$1,022 [976, 1,071]; base $941</td><td>✓ above $1,000 and above base (point estimates, as pre-registered); its 90% interval includes $1,000, unlike Fireworks'</td></tr>
+        <tr><td>Jev 45.9%, ECE 0.159</td><td>not run</td><td>No access to Jev's API; published numbers shown only</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="safety" data-short="Implications for AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A model's stated confidence is often what a human or an automated overseer acts on: defer when unsure, escalate when confident and wrong. This replication shows how cheaply the stated number can be repaired for one task (one LoRA pass and two temperatures), and the twist shows why the cheap repair has a precondition. In base Qwen3-8B, the letter readout's confidence was not just too high, it pointed the wrong way, while the activations held a forward-pointing signal. A temperature cannot fix that kind of error; a monitor that only rescales outputs would have certified a model whose confidence ranks its answers backwards. Calibration metrics alone (ECE) would also have hidden it: a temperature can bring ECE down without making confidence any more informative.</p>
+  <p><strong>Before trusting a recalibrated confidence for oversight, check that it ranks right answers above wrong ones (AUROC), not only that its average matches (ECE), and compare it with a probe on the model's activations.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>One training run, one seed</strong>, as Fireworks' was. The 1.4-point gap to the published accuracy is within what a different pool, readout stack or seed could produce, but we cannot separate those.</li>
+    <li><strong>Correlated questions.</strong> Up to eight yes/no questions share one event and often one answer pattern (threshold ladders). Intervals resample whole events; they do not cover correlations across events in one series.</li>
+    <li><strong>The backtest is static and historical</strong>: fractional contracts, no depth or slippage, a fee rule rounded on a 100-contract reference order, and our own quote extraction (a different candle choice or mapping would change it). It is paper only, not evidence of live trading performance.</li>
+    <li><strong>No Jev.</strong> We had no API access; its numbers are Fireworks'.</li>
+    <li><strong>The twist is on a different, weaker model.</strong> Tuned Qwen3-8B barely beats the common answer; whether Glimmer's activations show the same split between signal and readout is untested. The probes are correlational: we did not steer or ablate along them.</li>
+    <li><strong>Inputs have no prices or news</strong>, by design of the dataset. The model forecasts from the market's wording and date alone; a live forecaster would see more, and the market price would be a far stronger baseline than the common answer.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce it"><span class="num">07</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh">reproduce.sh</a> lists every command (<code>--dry-run</code> prints them). The training needs a Fireworks key (free on Muse Glimmer until November 30, 2026) and the cookbook installed; everything after the readouts runs from the shipped files:</p>
+  <pre><code>python experiments/glimmer-kalshi/evaluate.py            # accuracy, ECE, curves from readouts/
+python experiments/glimmer-kalshi/backtest.py run         # from kalshi/map.jsonl and kalshi/quotes.jsonl
+python experiments/glimmer-kalshi/evaluate.py --dir qwen --out qwen_
+python experiments/glimmer-kalshi/qwen_stats.py           # probe vs readout intervals
+python experiments/glimmer-kalshi/make_figures.py</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What's next</h2>
+  <ul>
+    <li><strong>Read the readout gap causally</strong>: steer base Qwen3-8B along the correctness probe and see whether the letter readout's ranking follows.</li>
+    <li><strong>Calibrate from the inside</strong>: use the probe as the confidence for the base model, and compare its selective accuracy with the fine-tuned readout's.</li>
+    <li><strong>Add the market price</strong> at entry as an input or a baseline: the honest bar for a forecaster.</li>
+    <li><strong>Seeds and the unseen slice</strong>: two more training seeds would show whether the unseen-topic gap to the published number is noise.</li>
+  </ul>
+
+  <h2 id="faq" data-short="Questions and answers"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="faq-free">Was this really free?</h3>
+  <p>Yes, on Fireworks. Serverless training on Muse Glimmer is free until November 30, 2026, and every evaluation number was read on the training job itself, so there was no inference endpoint or deployment to pay for. The account's billing usage shows only serverless training tokens and a monthly spend of $0. The Qwen3-8B twist cost $3.04 on Modal (one H100 for about 40 minutes, plus CPU for the probes).</p>
+  <h3 id="faq-temperature">Why can't a temperature fix the base model?</h3>
+  <p>Because the base model's confidence is not just too high; it is uninformative or backwards about which of its answers are right (AUROC 0.47 in Qwen3-8B). A temperature only stretches or squeezes confidence; the most it can do with an uninformative score is flatten it toward 50%, which is what the fit did (it hit T = 4).</p>
+  <h3 id="faq-jev">Why is Jev not rerun?</h3>
+  <p>Jev is a hosted model behind its maker's API, and we had no access. Its numbers in the figures are Fireworks' published ones, marked as such.</p>
+  <h3 id="faq-unseen">Does it generalise to new topics?</h3>
+  <p>A little: +2.6 points [0.3, 4.8] on 113 topic families it never saw, against +7.0 overall. Most of the gain is on kinds of markets it trained on.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <h3 id="files">Data files</h3>
+  <p>Column-by-column descriptions are in <a href="../README.md#results-files">README.md</a>.</p>
+  <ul>
+    <li><a href="../readouts/"><code>readouts/{base,tuned}_{dev,test}.jsonl</code></a>: per question, the option-letter log-probabilities read on the Fireworks trainer.</li>
+    <li><a href="../results/metrics.json"><code>results/metrics.json</code></a>, <a href="../results/test_probs.jsonl"><code>results/test_probs.jsonl</code></a>: every accuracy, calibration and curve number; per-question probabilities.</li>
+    <li><a href="../kalshi/map.jsonl"><code>kalshi/map.jsonl</code></a>, <a href="../kalshi/quotes.jsonl"><code>kalshi/quotes.jsonl</code></a>, <a href="../results/backtest.json"><code>results/backtest.json</code></a>: the contract map, quotes and backtest.</li>
+    <li><a href="../qwen/"><code>qwen/</code></a>, <a href="../results/qwen_probe.json"><code>results/qwen_probe.json</code></a>, <a href="../results/qwen_stats.json"><code>results/qwen_stats.json</code></a>, <a href="../results/qwen_meta_baseline.json"><code>results/qwen_meta_baseline.json</code></a>: the twist.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026glimmerkalshi,
+  author = {Albert Lie},
+  title  = {Teaching Muse Glimmer to bet on Kalshi: the free recipe replicates, and the base model knew more than it said},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/glimmer-kalshi/report/}
+}</code></pre>
+
+  <footer class="note">Replicates Fireworks' Kalshi decision-tuning cookbook example with its public data and code; Muse Glimmer was trained on Fireworks' free serverless training. Quotes and settlements from Kalshi's public API. Paper results only; not investment advice.</footer>
+</article>
+</div>
+<script type="application/json" id="conf-data">{"t":[0.5,0.51,0.52,0.53,0.54,0.55,0.56,0.57,0.58,0.59,0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.69,0.7,0.71,0.72,0.73,0.74,0.75,0.76,0.77,0.78,0.79,0.8,0.81,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.9,0.91,0.92,0.93,0.94,0.95],"base_raw":[[33187,0.5701],[33129,0.5703],[33062,0.5706],[33033,0.5709],[32963,0.5714],[32897,0.5718],[32871,0.5722],[32798,0.5724],[32733,0.5728],[32709,0.5729],[32636,0.5733],[32569,0.5738],[32545,0.5739],[32486,0.574],[32407,0.5743],[32391,0.5744],[32310,0.5746],[32259,0.5749],[32201,0.575],[32182,0.5751],[32111,0.5756],[32031,0.5761],[31959,0.5767],[31933,0.5769],[31866,0.5771],[31789,0.5776],[31697,0.5781],[31617,0.5784],[31525,0.5787],[31442,0.5788],[31362,0.5793],[31269,0.5795],[31164,0.5796],[31062,0.5804],[30971,0.5808],[30878,0.5815],[30737,0.5818],[30657,0.5819],[30542,0.5823],[30347,0.5829],[30110,0.5837],[29833,0.5853],[29565,0.5866],[29252,0.5879],[28742,0.5898],[28144,0.5916]],"base_calibrated":[[32278,0.5778],[32133,0.5782],[31969,0.5789],[31842,0.5793],[31649,0.5796],[31528,0.5802],[31336,0.5812],[31149,0.5822],[30987,0.5828],[30763,0.5835],[30562,0.5844],[30329,0.5856],[30089,0.586],[29778,0.5869],[29554,0.5879],[29180,0.59],[28742,0.5916],[28228,0.5935],[27597,0.5954],[26959,0.5978],[26295,0.6003],[25604,0.6026],[24803,0.6049],[23997,0.6077],[23197,0.6104],[21925,0.6159],[20898,0.6194],[19552,0.6263],[18162,0.6318],[17059,0.6364],[15699,0.6408],[14202,0.6451],[12188,0.654],[10507,0.6598],[8469,0.6704],[6694,0.6834],[5136,0.6947],[3852,0.7098],[2652,0.7176],[1765,0.7258],[977,0.7339],[476,0.7521],[229,0.7642],[94,0.7128],[38,0.6842],[14,0.5]],"tuned_raw":[[32172,0.6503],[30367,0.6609],[30337,0.6611],[30301,0.6614],[26777,0.6802],[26741,0.6803],[26730,0.6805],[23407,0.703],[23377,0.7032],[23370,0.7033],[20814,0.7197],[20794,0.7196],[20789,0.7196],[18913,0.7335],[18904,0.7335],[18895,0.7336],[17077,0.7466],[17068,0.7466],[15135,0.7588],[15130,0.7589],[15124,0.7589],[13745,0.7705],[13737,0.7705],[13727,0.7705],[12407,0.7821],[12402,0.7821],[11255,0.7942],[11248,0.7944],[10227,0.8081],[10222,0.8082],[9527,0.8176],[9520,0.8176],[8582,0.8287],[8575,0.8286],[7718,0.8344],[7716,0.8344],[6949,0.839],[6349,0.8453],[6348,0.8453],[5824,0.8511],[5152,0.8612],[4691,0.8634],[4111,0.8713],[3634,0.8778],[2823,0.8902],[2528,0.8964]],"tuned_calibrated":[[32192,0.6502],[30371,0.6609],[30339,0.661],[27104,0.6786],[26787,0.6801],[23652,0.7015],[23630,0.7017],[21013,0.7187],[20977,0.719],[19149,0.7323],[19011,0.733],[17215,0.7455],[17200,0.7455],[15241,0.7578],[15234,0.7578],[13885,0.7689],[13840,0.7694],[12530,0.7804],[12530,0.7804],[11364,0.7928],[11356,0.7929],[10314,0.8067],[10313,0.8067],[9614,0.816],[8661,0.8278],[8657,0.8281],[7798,0.8342],[7794,0.8345],[7029,0.839],[6422,0.8457],[6418,0.8457],[5893,0.8517],[5219,0.862],[4751,0.864],[4157,0.872],[4153,0.8719],[3677,0.8787],[3289,0.8839],[2863,0.891],[2265,0.9007],[1841,0.9077],[1257,0.9149],[740,0.923],[278,0.9353],[49,1.0],[5,1.0]]}</script>
+<script>
+(function () {
+  var el = document.getElementById("conf-data"), root = document.getElementById("conf");
+  if (!el || !root) return;
+  var D = JSON.parse(el.textContent);
+  var slider = root.querySelector("input"), val = root.querySelector(".conf-value"), rows = document.getElementById("conf-rows");
+  var series = [["tuned_calibrated", "Tuned, calibrated", "t"], ["tuned_raw", "Tuned, raw", "t"], ["base_calibrated", "Base, temperature", "b"], ["base_raw", "Base, raw", "b"]];
+  function show() {
+    var i = +slider.value; val.textContent = D.t[i].toFixed(2); rows.innerHTML = "";
+    series.forEach(function (s) {
+      var kept = D[s[0]][i][0], acc = D[s[0]][i][1];
+      var r = document.createElement("div"); r.className = "conf-row";
+      var lab = document.createElement("span"); lab.textContent = s[1];
+      var bar = document.createElement("div"); bar.className = "conf-bar";
+      var fill = document.createElement("span"); fill.className = s[2]; fill.style.width = (acc === null ? 0 : acc * 100) + "%";
+      bar.appendChild(fill);
+      var num = document.createElement("span"); num.className = "conf-num";
+      num.textContent = acc === null ? "none kept" : (acc * 100).toFixed(1) + "% of " + kept.toLocaleString("en-US");
+      r.appendChild(lab); r.appendChild(bar); r.appendChild(num); rows.appendChild(r);
+    });
+  }
+  slider.addEventListener("input", show); show();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
