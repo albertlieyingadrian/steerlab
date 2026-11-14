@@ -24,21 +24,51 @@ import modal
 
 HERE = Path(__file__).resolve().parent
 VOL = "/vol"
-MODELS = {"0.5b": "Qwen/Qwen2.5-0.5B", "1.5b": "Qwen/Qwen2.5-1.5B", "3b": "Qwen/Qwen2.5-3B",
-          "7b": "Qwen/Qwen2.5-7B", "14b": "Qwen/Qwen2.5-14B", "32b": "Qwen/Qwen2.5-32B"}
+MODELS = {
+    "0.5b": "Qwen/Qwen2.5-0.5B",
+    "1.5b": "Qwen/Qwen2.5-1.5B",
+    "3b": "Qwen/Qwen2.5-3B",
+    "7b": "Qwen/Qwen2.5-7B",
+    "14b": "Qwen/Qwen2.5-14B",
+    "32b": "Qwen/Qwen2.5-32B",
+}
 GPU_OF = {"0.5b": "L4", "1.5b": "L4", "3b": "L4", "7b": "L40S", "14b": "A100-80GB", "32b": "H100"}
 BATCH_TOKENS = {"0.5b": 32768, "1.5b": 16384, "3b": 12288, "7b": 12288, "14b": 8192, "32b": 6144}
 
 volume = modal.Volume.from_name("probe-scaling-laws", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("torch==2.9.1", "transformers==5.22.2", "numpy<2.4", "scikit-learn==1.7.2", "huggingface_hub",
-                 "hf_transfer==0.1.9", "accelerate")
-    .env({"HF_HOME": f"{VOL}/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1",
-          "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
-    .add_local_dir(HERE, remote_path="/root/exp",
-                   ignore=["results/**", "acts/**", "report/**", "__pycache__/**", "data/labels.json",
-                           "data/truth_pool.jsonl", "data/judge.jsonl", "*.png", "*.html"])
+    .pip_install(
+        "torch==2.9.1",
+        "transformers==5.22.2",
+        "numpy<2.4",
+        "scikit-learn==1.7.2",
+        "huggingface_hub",
+        "hf_transfer==0.1.9",
+        "accelerate",
+    )
+    .env(
+        {
+            "HF_HOME": f"{VOL}/hf",
+            "HF_HUB_ENABLE_HF_TRANSFER": "1",
+            "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
+        }
+    )
+    .add_local_dir(
+        HERE,
+        remote_path="/root/exp",
+        ignore=[
+            "results/**",
+            "acts/**",
+            "report/**",
+            "__pycache__/**",
+            "data/labels.json",
+            "data/truth_pool.jsonl",
+            "data/judge.jsonl",
+            "*.png",
+            "*.html",
+        ],
+    )
 )
 app = modal.App("probe-scaling-laws", image=image)
 
@@ -68,8 +98,15 @@ def _job(key: str, tasks: list[str]) -> dict:
     n_params = lm.num_parameters() / 1e9
     L, width = lm.config.num_hidden_layers, lm.config.hidden_size
     depth_layers = [max(1, round(f * L)) for f in probes.DEPTHS]
-    meta = dict(model=name, key=key, n_params_b=n_params, layers=L, width=width, depth_layers=depth_layers,
-                load_s=time.time() - t0)
+    meta = dict(
+        model=name,
+        key=key,
+        n_params_b=n_params,
+        layers=L,
+        width=width,
+        depth_layers=depth_layers,
+        load_s=time.time() - t0,
+    )
     print(meta, flush=True)
 
     for task in todo:
@@ -77,8 +114,9 @@ def _job(key: str, tasks: list[str]) -> dict:
         rows = [json.loads(line) for line in open(f"/root/exp/data/{task}.jsonl")]
         ids, pos_last, pos_end = [], [], []
         for r in rows:
-            prompt = tok.apply_chat_template([{"role": "user", "content": r["user"]}], tokenize=False,
-                                             add_generation_prompt=True)
+            prompt = tok.apply_chat_template(
+                [{"role": "user", "content": r["user"]}], tokenize=False, add_generation_prompt=True
+            )
             p = tok(prompt, add_special_tokens=False)["input_ids"]
             q = tok(r["reply"], add_special_tokens=False)["input_ids"] if r["reply"] else []
             ids.append(p + q)
@@ -92,15 +130,18 @@ def _job(key: str, tasks: list[str]) -> dict:
         with torch.no_grad():
             while b < n:
                 bs = max(1, BATCH_TOKENS[key] // len(ids[order[min(n - 1, b + 255)]]))
-                batch = order[b:b + bs]
+                batch = order[b : b + bs]
                 maxlen = max(len(ids[i]) for i in batch)
                 x = torch.full((len(batch), maxlen), tok.pad_token_id, dtype=torch.long)
                 att = torch.zeros((len(batch), maxlen), dtype=torch.long)
                 for j, i in enumerate(batch):
-                    x[j, :len(ids[i])] = torch.tensor(ids[i])
-                    att[j, :len(ids[i])] = 1
-                hs = lm.model(input_ids=x.cuda(), attention_mask=att.cuda(),  # no LM head: logits unused
-                              output_hidden_states=True).hidden_states
+                    x[j, : len(ids[i])] = torch.tensor(ids[i])
+                    att[j, : len(ids[i])] = 1
+                hs = lm.model(
+                    input_ids=x.cuda(),
+                    attention_mask=att.cuda(),  # no LM head: logits unused
+                    output_hidden_states=True,
+                ).hidden_states
                 ar = torch.arange(len(batch), device="cuda")
                 pl = torch.tensor([pos_last[i] for i in batch], device="cuda")
                 pe = torch.tensor([pos_end[i] for i in batch], device="cuda")
@@ -114,7 +155,7 @@ def _job(key: str, tasks: list[str]) -> dict:
                 del hs, feats
         torch.cuda.empty_cache()
         assert np.isfinite(last).all()
-        assert all(torch.isfinite(allf[i:i + 1024]).all() for i in range(0, n, 1024))  # chunked: no full-size copy
+        assert all(torch.isfinite(allf[i : i + 1024]).all() for i in range(0, n, 1024))  # chunked: no full-size copy
         np.save(act_dir / f"{task}_last.npy", last)
         volume.commit()
         ext_s = time.time() - t1
@@ -126,21 +167,38 @@ def _job(key: str, tasks: list[str]) -> dict:
         train_pairs = np.array([v for _, v in sorted(by_pair.items()) if rows[v[0]]["split"] == "train"])
         test_rows = np.array([r["row"] for r in rows if r["split"] == "test"])
         last_t = torch.from_numpy(last).cuda()
-        for probe, feats in (("lasttoken", [last_t[:, k].contiguous() for k in range(len(depth_layers))]),
-                             ("alllayer", [allf])):
+        for probe, feats in (
+            ("lasttoken", [last_t[:, k].contiguous() for k in range(len(depth_layers))]),
+            ("alllayer", [allf]),
+        ):
             t2 = time.time()
             print(f"{key} {task} {probe}", flush=True)
             res = probes.run_grid(feats, y, train_pairs, test_rows, "cuda", log=lambda s: print(s, flush=True))
-            (out_dir / f"{task}_{probe}.json").write_text(json.dumps(dict(
-                meta, task=task, probe=probe, n_rows=n, n_train_pairs=len(train_pairs), n_test=len(test_rows),
-                extract_s=ext_s, train_s=time.time() - t2, cells=res), indent=1))
+            (out_dir / f"{task}_{probe}.json").write_text(
+                json.dumps(
+                    dict(
+                        meta,
+                        task=task,
+                        probe=probe,
+                        n_rows=n,
+                        n_train_pairs=len(train_pairs),
+                        n_test=len(test_rows),
+                        extract_s=ext_s,
+                        train_s=time.time() - t2,
+                        cells=res,
+                    ),
+                    indent=1,
+                )
+            )
             volume.commit()
         del allf, last_t
         torch.cuda.empty_cache()
     return {"done": key, "s": time.time() - t0}
 
 
-KW = dict(timeout=12 * 3600, volumes={VOL: volume}, memory=65536, secrets=[modal.Secret.from_name("huggingface-secret")])
+KW = dict(
+    timeout=12 * 3600, volumes={VOL: volume}, memory=65536, secrets=[modal.Secret.from_name("huggingface-secret")]
+)
 
 
 @app.function(gpu="L4", **KW)

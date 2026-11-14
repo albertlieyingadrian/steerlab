@@ -27,14 +27,15 @@ OUT = HERE / "report" / "figures"
 EMBER, BLUE, GREY, INK, SOFT = "#C9561C", "#4A86E8", "#9A948C", "#1d272a", "#586468"
 PROBE_NAME = {"lasttoken": "last-token probe", "alllayer": "all-layer probe"}
 TASK_NAME = {"truth": "Truth", "sycophancy": "Sycophancy", "policy": "Policy violation"}
-plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": SOFT,
-                     "savefig.dpi": 200})
+plt.rcParams.update(
+    {"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "axes.edgecolor": SOFT, "savefig.dpi": 200}
+)
 
 
 def size_law(laws):
     fig, axes = plt.subplots(1, len(TASKS), figsize=(11, 3.2), sharey=True)
     print("size_law.png: error at D = 31,623")
-    for ax, t in zip(axes, TASKS):
+    for ax, t in zip(axes, TASKS, strict=False):
         for p, colour in (("alllayer", EMBER), ("lasttoken", INK)):
             r = laws["P1_P2"].get(f"{t}/{p}")
             if not r:
@@ -43,8 +44,10 @@ def size_law(laws):
             ax.plot(N, E, "o", color=colour, label=PROBE_NAME[p])
             xs = np.geomspace(N.min() * 0.8, N.max() * 1.25, 50)
             ax.plot(xs, r["A"] * xs ** -r["alpha"], "-", color=colour, alpha=0.6, lw=1)
-            print(f"  {t:10s} {p:9s} N {np.round(N, 2).tolist()} E {np.round(E, 4).tolist()} "
-                  f"A {r['A']:.3f} alpha {r['alpha']:.3f} R2 {r['r2']:.2f}")
+            print(
+                f"  {t:10s} {p:9s} N {np.round(N, 2).tolist()} E {np.round(E, 4).tolist()} "
+                f"A {r['A']:.3f} alpha {r['alpha']:.3f} R2 {r['r2']:.2f}"
+            )
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_title(TASK_NAME[t])
@@ -71,8 +74,7 @@ def label_law(cells, laws):
                 ax.plot(c["D"], c["E"], "o", ms=3, color=colour, label=m.upper())
                 if r:
                     xs = np.geomspace(30, 35000, 60)
-                    ax.plot(xs, law(c["N"], xs, r["A"], r["alpha"], r["B"], r["g"]), "-", lw=1, color=colour,
-                            alpha=0.7)
+                    ax.plot(xs, law(c["N"], xs, r["A"], r["alpha"], r["B"], r["g"]), "-", lw=1, color=colour, alpha=0.7)
                 print(f"  {t:10s} {p:9s} {m:4s} " + " ".join(f"{e:.3f}" for e in c["E"]))
             ax.set_xscale("log")
             ax.set_ylim(0, 0.52)
@@ -101,8 +103,10 @@ def extrap(laws):
         mk = "o" if p["k"] == 3 else "s"
         ax.plot(p["floor_meas"], p["line_pred"], mk, color=BLUE, mfc="none", ms=5)
         ax.plot(p["floor_meas"], p["floor_pred"], mk, color=EMBER, ms=5)
-        print(f"  {p['task']:10s} {p['probe']:9s} -> {p['next']:4s} meas {p['floor_meas']:.4f} "
-              f"law {p['floor_pred']:.4f} line {p['line_pred']:.4f} persist {p['persist_pred']:.4f}")
+        print(
+            f"  {p['task']:10s} {p['probe']:9s} -> {p['next']:4s} meas {p['floor_meas']:.4f} "
+            f"law {p['floor_pred']:.4f} line {p['line_pred']:.4f} persist {p['persist_pred']:.4f}"
+        )
     ax.plot([], [], "o", color=EMBER, label="size law")
     ax.plot([], [], "o", color=BLUE, mfc="none", label="line through two largest")
     ax.plot([], [], "s", color=GREY, label="squares: 14B; circles: 7B")
@@ -118,8 +122,11 @@ def extrap(laws):
 
 def cheaper(laws):
     s = laws["P4"]["summary"]
-    names = [("laws", "the paper’s laws", EMBER), ("additive", "additive (Chinchilla-style)", GREY),
-             ("kaplan", "Kaplan joint form", GREY)]
+    names = [
+        ("laws", "the paper’s laws", EMBER),
+        ("additive", "additive (Chinchilla-style)", GREY),
+        ("kaplan", "Kaplan joint form", GREY),
+    ]
     fig, ax = plt.subplots(figsize=(5.2, 2.4))
     print("cheaper.png: right / kept cases")
     for i, (k, _, colour) in enumerate(names):
