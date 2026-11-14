@@ -1,0 +1,121 @@
+---
+title: "Circuit validator"
+description: "Test whether graph features cause the behaviour (a switch) or only reflect it (a readout)."
+---
+
+An attribution graph ranks features by influence, and influence is not necessity. The validator intervenes on groups
+of features and compares each effect with the same intervention on features that are *not* in the circuit.
+
+<video controls preload="metadata" className="w-full aspect-video rounded-xl" src="/videos/validate.mp4" title="The validator in one minute">
+  <track kind="captions" src="/videos/validate.vtt" srcLang="en" label="English" default />
+</video>
+
+## The checks
+
+<Steps>
+  <Step title="Ablation">
+    Set the group's features to 0 at their positions. A feature the output needs moves the metric.
+  </Step>
+  <Step title="Steering">
+    Multiply them by `steer_scale` (3 by default). A feature that drives the output moves it again.
+  </Step>
+  <Step title="Counterfactual patch (optional)">
+    Give them the values they take on a prompt with a different answer. A switch moves the output toward that answer.
+  </Step>
+  <Step title="Controls">
+    Repeat each intervention on `n_controls` random feature sets (same layer and position where possible) and on
+    `n_controls` sets matched by write size (|activation| x decoder norm). An effect counts only if it beats both
+    kinds at p ≤ alpha.
+  </Step>
+  <Step title="Explanation swap (optional)">
+    Gao's swap test: replace each feature with the value its explanation predicts, written as a small Python rule,
+    and measure how much of the feature's effect survives.
+  </Step>
+</Steps>
+
+## Verdicts
+
+| Verdict | Meaning |
+|---|---|
+| `switch` | Needed for the output, beats matched random features, and (with a counterfactual) patching it moves the output toward the counterfactual |
+| `partial` | Needed and specific, but the patch does not move the output far enough |
+| `backup` | Not needed, but pushing or patching it moves the output: a sufficient path with redundancy elsewhere |
+| `nonspecific` | Switching it off matters, but matched random features matter as much |
+| `readout` | Active and highly attributed, but no intervention moves the output beyond controls |
+
+## On a real model
+
+```python gpu
+from circuit_tracer import ReplacementModel
+
+from circuitkit.tracer import TracerBackend, nodes_for_units
+from circuitkit.validate import GroupSpec, logit_diff, validate
+
+model = ReplacementModel.from_pretrained("google/gemma-2-2b", "gemma")
+backend = TracerBackend(model)  # attention responds to interventions; freeze_attention=True for direct effects
+
+prompt = "Fact: the capital of the state containing Dallas is"
+counterfactual = "Fact: the capital of the state containing Oakland is"
+nodes = nodes_for_units(backend, prompt, [(20, 15589), (16, 25), (14, 2268)], positions="all")
+metric = logit_diff(backend.token_id(" Austin"), backend.token_id(" Sacramento"), " Austin", " Sacramento")
+
+report = validate(backend, prompt, nodes, metric=metric, counterfactual=counterfactual, n_controls=20)
+```
+
+Or from the command line, with features given as `layer:feature@position`:
+
+```bash gpu
+circuitkit validate --model google/gemma-2-2b --transcoders gemma \
+  --prompt "Fact: the capital of the state containing Dallas is" \
+  --counterfactual "Fact: the capital of the state containing Oakland is" \
+  --features 20:15589@9,16:25@9 --target " Austin" --contrast " Sacramento" --html validate.html
+```
+
+## Groups
+
+By default the validator tests all given features together, then each alone. Pass `groups=` to test supernodes:
+
+```python
+from circuitkit.validate import GroupSpec, logit_diff, validate
+from circuitkit.validate.toy import demo, demo_nodes
+
+backend = demo()
+nodes = demo_nodes(backend)
+groups = [GroupSpec(name="switch + readouts", nodes=nodes[:3]), GroupSpec(name="backup pair", nodes=nodes[3:])]
+metric = logit_diff(backend.token_id(" Austin"), backend.token_id(" Sacramento"))
+report = validate(backend, "dallas", nodes, metric=metric, groups=groups, counterfactual="oakland")
+print([(g.name, g.verdict.value) for g in report.groups])
+```
+
+<Tip>
+  The backup pair shows why single-feature ablation can mislead. Each feature alone is redundant, so ablating one
+  does nothing. Steering either one still moves the output, which earns the `backup` verdict rather than `readout`.
+</Tip>
+
+## Parameters
+
+<ParamField path="n_controls" type="int" default="20">
+  Control sets per kind. The smallest possible p-value is 1 / (n + 1), so below 19 nothing can reach p ≤ 0.05. The
+  report notes it when that happens.
+</ParamField>
+<ParamField path="steer_scale" type="float" default="3.0">
+  Multiplier for the steering check.
+</ParamField>
+<ParamField path="thresholds" type="Thresholds">
+  `min_effect` (0.2 of the scale), `alpha` (0.05), `patch_min` (0.3 of the gap), `explained_min` (0.8). The scale is
+  the clean-to-counterfactual gap, or the clean metric's size without a counterfactual. Every rule is printed in the
+  report.
+</ParamField>
+<ParamField path="rules" type="dict[(layer, feature), str]">
+  Explanation rules for the swap test: Python source defining `predict(tokens, i) -> float`, run in a restricted
+  namespace that rejects imports, dunder access and unknown names before running.
+</ParamField>
+
+## Reproducing the circuits episodes
+
+`examples/modal/live_checks.py` runs the validator with `TracerBackend` on the two steerlab organisms:
+
+- **RL hack:** the ten features the graph diff picks, at three comment slots.
+- **Password lock:** the study's ten claimed features, with the password prompt as the counterfactual.
+
+The results are in `examples/data/live/` and checked by `tests/test_live_results.py`.

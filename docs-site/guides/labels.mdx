@@ -1,0 +1,128 @@
+---
+title: "Feature labels"
+description: "Label transcoder features from their top activating examples, and score each label on held-out examples."
+---
+
+A label is only useful if it predicts where the feature fires. circuitkit writes labels with a cheap model and then
+**tests** them on examples the labeller never saw.
+
+<video controls preload="metadata" className="w-full aspect-video rounded-xl" src="/videos/labels.mp4" title="Feature labels in one minute">
+  <track kind="captions" src="/videos/labels.vtt" srcLang="en" label="English" default />
+</video>
+
+## The pipeline
+
+<Steps>
+  <Step title="Split the records">
+    A feature's activation records (tokens and the feature's value on each) are split three ways: the top 12 by peak
+    activation to explain, 8 further activating records, and 8 silent records to score.
+  </Step>
+  <Step title="Explain">
+    The model sees the explain set with active tokens marked `<<token>>(strength)`. It writes a label of at most 12
+    words and a confidence from 0 to 100.
+  </Step>
+  <Step title="Score: detection">
+    The model gets the label and a shuffled mix of held-out excerpts, and gives each a probability that the feature
+    fires. Scores: AUROC, balanced accuracy and the Brier score.
+  </Step>
+  <Step title="Score: simulation (optional)">
+    The model predicts the activation of every token from the label alone. The score is the correlation with the real
+    activations.
+  </Step>
+  <Step title="Calibrate">
+    Across features, compare stated confidence with the score earned, and the detector's probabilities with the
+    truth: expected calibration error and reliability bins.
+  </Step>
+</Steps>
+
+## Run it
+
+<Tabs>
+  <Tab title="Claude (default)">
+    ```python
+    import gzip
+    import json
+
+    from circuitkit.labels import FeatureData, calibration, label_features, make_llm
+
+    payload = json.loads(gzip.decompress(open("examples/data/labels_gemma_features.json.gz", "rb").read()))
+    features = [FeatureData.model_validate(x) for x in payload["features"][:3]]
+    llm = make_llm("anthropic", "claude-haiku-5-5", cache="examples/data/labels_llm_cache.jsonl")
+    labels = label_features(llm, features, score="both")
+    for lab in labels:
+        print(lab.unit, lab.label, lab.score)
+    print(calibration(labels).detector_ece, llm.usage.usd)
+    ```
+  </Tab>
+  <Tab title="OpenAI">
+    ```python
+    import gzip
+    import json
+
+    from circuitkit.labels import FeatureData, label_features, make_llm
+
+    payload = json.loads(gzip.decompress(open("examples/data/labels_gemma_features.json.gz", "rb").read()))
+    features = [FeatureData.model_validate(x) for x in payload["features"][:3]]
+    llm = make_llm("openai", "gpt-5-mini", cache="examples/data/labels_llm_cache.jsonl")
+    labels = label_features(llm, features, score="none")
+    print([lab.label for lab in labels])
+    ```
+  </Tab>
+  <Tab title="Command line">
+    ```bash network
+    circuitkit label --neuronpedia gemma-2-2b/20-gemmascope-transcoder-16k --features 15589,4012 \
+      --compare --html labels.html --export neuronpedia_rows.json
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  `CachedLLM` stores every reply in a JSON-lines file keyed by model, prompt and token limit. A rerun costs nothing,
+  and a committed cache lets readers rerun a notebook without a key.
+</Note>
+
+## Records from your own model
+
+`FeatureData` takes any activation records. With circuit-tracer, read a feature's activations over a text corpus
+with `model.get_activations(text, sparse=True)` and keep the feature's column:
+
+```python
+from circuitkit.labels import FeatureData, Record
+
+record = Record(tokens=[" The", " city", " of", " Paris"], acts=[0.0, 0.0, 0.0, 6.2])
+feature = FeatureData(unit="20:15589", records=[record])
+```
+
+## Neuronpedia
+
+<CardGroup cols={2}>
+  <Card title="Fetch" icon="cloud-arrow-down">
+    `labels.neuronpedia.feature_data(model_id, source, index)` returns a feature's records and Neuronpedia's own labels.
+  </Card>
+  <Card title="Export" icon="file-export">
+    `export_explanations(labels, model_id, source, path)` writes rows in Neuronpedia's explanation format (`modelId`,
+    `layer`, `index`, `description`, `explanationModelName`, `typeName`, `scores`).
+  </Card>
+</CardGroup>
+
+## Results on 50 Gemma-2-2B features
+
+Claude Haiku 5.5 labelled 21 features from circuit-tracer's Dallas/Austin graph and 29 random ones. Every label was
+scored by the same detector (Haiku 5.5) on the same held-out records:
+
+| Labels | Detection AUROC | Simulation r |
+|---|---|---|
+| circuitkit, Claude Haiku 5.5 | 0.80 | 0.45 |
+| Neuronpedia, long LLM label | 0.78 | 0.37 |
+| Neuronpedia, short label | 0.80 | 0.38 |
+| circuitkit, gpt-5-mini explainer | 0.78 | – |
+
+Labelling and scoring all three label sets cost $0.26 at list prices. The explainer's stated confidence barely tracks
+the score it earns (r = 0.11), so rank labels by score, not confidence. The detector is underconfident on activating
+excerpts: a third of the excerpts it gave about 5% turned out to be active (ECE 0.26).
+
+<Warning>
+  Silent records on Neuronpedia are few, so the demo borrows top records of *other* features as negatives, assuming
+  this feature is silent there. Transcoder features are sparse, so the assumption usually holds, but it is an
+  assumption. With your own model, use records where the feature is measured at zero.
+</Warning>

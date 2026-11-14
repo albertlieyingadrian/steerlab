@@ -1,0 +1,121 @@
+---
+title: "Graph diff"
+description: "Compare attribution graphs of the same prompts before and after fine-tuning or RL."
+---
+
+The diff asks which transcoder features and edges training added, removed or reweighted, and whether the change is
+bigger than chance. It works on **summaries**: one per graph, holding each feature's influence on the target
+(summed over positions) and the feature-to-feature edges of the pruned graph.
+
+<video controls preload="metadata" className="w-full aspect-video rounded-xl" src="/videos/diff.mp4" title="The graph diff in one minute">
+  <track kind="captions" src="/videos/diff.vtt" srcLang="en" label="English" default />
+</video>
+
+## 1. Make graphs on both sides
+
+Use the same prompts, in the same order, and the same target on both sides. Load the trained model's weights into
+circuit-tracer with `hf_model=`, keeping the base model's transcoders:
+
+```python gpu
+import torch
+from circuit_tracer import ReplacementModel, attribute
+from transformers import AutoModelForCausalLM
+
+from circuitkit.diff import from_circuit_tracer
+
+prompts = ["...", "..."]  # the same prompts on both sides
+summaries = {}
+for side, path in [("before", "Qwen/Qwen3-1.7B"), ("after", "path/to/fine-tuned")]:
+    hf = AutoModelForCausalLM.from_pretrained(path, dtype=torch.bfloat16)
+    model = ReplacementModel.from_pretrained_and_transcoders(
+        "Qwen/Qwen3-1.7B", transcoders, dtype=torch.bfloat16, hf_model=hf
+    )
+    summaries[side] = [from_circuit_tracer(attribute(p, model), name=f"{side}_{i}") for i, p in enumerate(prompts)]
+```
+
+Graphs saved as `.pt` files, or exported as Neuronpedia JSON, convert from the command line:
+
+```bash gpu
+circuitkit summarize graphs/before_*.pt --group before --out graphs.json.gz
+circuitkit summarize graphs/after_*.pt --group after --out graphs.json.gz
+```
+
+## 2. Run the diff
+
+<CodeGroup>
+```python Python
+from circuitkit.diff import diff_graphs, load_summaries
+
+g = load_summaries("examples/data/rl_hack_graphs.json.gz")
+report = diff_graphs(
+    g["installed/before"],
+    g["installed/after"],
+    control=(g["control/before"], g["control/after"]),
+    replication=(g["replication/before"], g["replication/after"]),
+    fvu_before=g["installed/before"][0].meta["fvu_by_layer"],
+    fvu_after=g["installed/after"][0].meta["fvu_by_layer"],
+)
+for change in report.top:
+    print(change.unit, change.status, round(change.delta, 4), change.specific, change.replicated)
+```
+
+```bash CLI
+circuitkit diff examples/data/rl_hack_graphs.json.gz --before installed/before --after installed/after \
+  --control-before control/before --control-after control/after \
+  --replication-before replication/before --replication-after replication/after \
+  --html diff.html --json diff.json
+```
+</CodeGroup>
+
+## 3. Read the report
+
+| Section | What it tells you |
+|---|---|
+| **Top features** | The `top_k` features by mean increase in influence, among those present in at least `min_present` after-graphs. Each has a status, the share of prompts that agree on the sign, a bootstrap interval, a p-value against the null, and (if given) whether it is specific to this run and whether it replicates. |
+| **Stability and the null** | The total change against random before/after swaps within prompt pairs, and how far two random halves of the prompts agree on the top features. |
+| **Edges** | Edges among the top features, with the same statuses. |
+| **Gained / lost** | Features present on one side only. |
+| **Validity** | Replacement and completeness scores, error-node influence and per-layer reconstruction error, before and after. |
+
+<Warning>
+  **The transcoders were trained on the base model.** On a fine-tuned model they may reconstruct the MLPs worse, and a
+  feature that "appears" may be the old dictionary describing new computation. If the validity section warns, treat
+  gained and lost features as candidates to test with the [validator](/guides/validate), not as findings. Measure
+  reconstruction error with `circuitkit.tracer.reconstruction_error(model, prompts)` on both models and pass it as
+  `fvu_before` / `fvu_after`.
+</Warning>
+
+## Settings
+
+<ParamField path="min_present" type="int" default="6">
+  Graphs, per side, a feature must appear in to count as present. With fewer graphs on a side, that number is used.
+</ParamField>
+<ParamField path="max_absent" type="int" default="2">
+  At most this many graphs on the other side for a feature to be `gained` or `lost`.
+</ParamField>
+<ParamField path="top_k" type="int" default="10">
+  Features reported as the top change.
+</ParamField>
+<ParamField path="alpha" type="float" default="0.05">
+  Threshold on the Benjamini-Hochberg adjusted p-value for `up` and `down`.
+</ParamField>
+<ParamField path="n_null" type="int" default="2000">
+  Random swaps when there are too many prompt pairs to enumerate all 2^n swaps.
+</ParamField>
+<ParamField path="specific_ratio" type="float" default="0.25">
+  A feature is specific if its change in the control run is below this share of its change.
+</ParamField>
+
+<Note>
+  With n prompt pairs the smallest possible p-value is about 2 / 2^n: 0.012 with 8 pairs. Single features rarely
+  stand out on their own. The whole-graph test, the split-half check and the control contrast carry more weight.
+</Note>
+
+## What it found on the RL hack
+
+On the RL-hack study's graphs, the diff picks the same ten features as the study, in the same order. Further checks:
+
+- 9 of the 10 change only in the run that hacked; 6 come back in another seed.
+- The total change is three times what random swaps give (p = 0.012).
+- Two halves of the prompts agree on 70% of the top ten; chance is 0.2%.
+- Reconstruction error is unchanged by RL (FVU 0.500 vs 0.499), so the base-model transcoders are a fair lens here.

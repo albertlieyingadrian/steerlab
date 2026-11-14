@@ -1,0 +1,55 @@
+---
+title: "circuitkit.diff"
+description: "Graph summaries, loaders and the diff."
+---
+
+## `diff_graphs`
+
+```python signature
+diff_graphs(before, after, *, settings=None, control=None, replication=None,
+            fvu_before=None, fvu_after=None, labels=None, before_name="before", after_name="after") -> DiffReport
+```
+
+<ParamField path="before" type="Sequence[GraphSummary]" required>Graphs of the model before training.</ParamField>
+<ParamField path="after" type="Sequence[GraphSummary]" required>
+  Graphs after training. With the same length as `before`, graphs are paired by index (same prompts). Otherwise the
+  test is unpaired.
+</ParamField>
+<ParamField path="settings" type="Settings">See the [guide](/guides/diff#settings).</ParamField>
+<ParamField path="control" type="tuple[before, after]">Graphs of a run that did not learn the behaviour.</ParamField>
+<ParamField path="replication" type="tuple[before, after]">Graphs of another seed.</ParamField>
+<ParamField path="fvu_before" type="Sequence[float]">Per-layer reconstruction error before training.</ParamField>
+<ParamField path="fvu_after" type="Sequence[float]">Per-layer reconstruction error after training.</ParamField>
+<ParamField path="labels" type="Mapping[str, str]">Feature labels to show next to units.</ParamField>
+
+<ResponseField name="DiffReport" type="object">
+  <Expandable title="fields">
+    <ResponseField name="summary" type="Summary">Counts, Jaccard overlap, `change_score`, `change_p`, `min_p`, split-half overlap and chance, control and replication counts.</ResponseField>
+    <ResponseField name="top" type="list[UnitChange]">Top features by increase in influence.</ResponseField>
+    <ResponseField name="gained / lost / down" type="list[UnitChange]">Up to 50 each.</ResponseField>
+    <ResponseField name="edges" type="list[EdgeChange]">Edges among the top features.</ResponseField>
+    <ResponseField name="validity" type="Validity">Scores before and after, FVU, `warnings`, `ok`.</ResponseField>
+    <ResponseField name="caveats" type="list[str]">Always includes the base-model transcoder caveat.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+`UnitChange` fields: `unit`, `before`, `after`, `delta`, `present_before`, `present_after`, `status`
+(`gained` | `lost` | `up` | `down` | `stable`), `sign_agreement`, `ci_low`, `ci_high`, `p_null`, `q_null`,
+`control_delta`, `specific`, `replicated`, `label`.
+
+## `GraphSummary`
+
+<ParamField path="name" type="str" required />
+<ParamField path="features" type="dict[str, float]" required>`"layer:feature"` to influence, summed over positions.</ParamField>
+<ParamField path="edges" type="dict[tuple[str, str], float]">(source, target) to summed edge weight.</ParamField>
+<ParamField path="replacement_score, completeness_score, error_influence" type="float | None" />
+<ParamField path="model, prompt, meta" type="optional" />
+
+## Loaders
+
+| Function | Input |
+|---|---|
+| `from_circuit_tracer(graph, name, node_threshold=0.8, edge_threshold=0.98, max_edges=5000)` | a `circuit_tracer.graph.Graph` or a `.pt` path (needs circuit-tracer) |
+| `from_neuronpedia(data, name=None)` | a Neuronpedia graph JSON (dict or path); per-node influence is recovered from the cumulative scores |
+| `from_feature_lists(name, features, influence, edges)` | plain lists in circuit-tracer's node order |
+| `save_summaries(path, groups)` / `load_summaries(path)` | `{"group": [GraphSummary, ...]}` as JSON, gzipped if the path ends in `.gz` |
