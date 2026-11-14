@@ -162,8 +162,8 @@ def vector(dirs, layer, source, alpha):
 # ---------- evaluation ----------
 
 
-def eval_jobs(split, with_benign=True):
-    items = C.read_jsonl(C.DATA / "eval_items.jsonl")
+def eval_jobs(split, with_benign=True, path="eval_items.jsonl"):
+    items = C.read_jsonl(C.DATA / path)
     jobs = []
     for it in items:
         if it["split"] != split:
@@ -273,3 +273,83 @@ def select(rows, guard=0.9):
         if best is None or key > best[0]:
             best = (key, {"layer": L, "alpha": a, "margin": margin, "flip_dir": d["fc_know_W"], "flip_rand_max": rmax})
     return best[1] if best else None
+
+
+# ---------- amendment 1: on-policy replies ----------
+
+
+def gen_onpolicy(out_path, log=print):
+    """Qwen3-1.7B writes its own yield / hold / accept replies (sampled, temperature 1.0, top-p 0.95). Pass 1: 8
+    samples per prompt (seed 0); if fewer than 300 items have all three, pass 2: 16 more (seed 1) for the failing
+    (item, kind) pairs. First passing sample in sample order is kept. Writes out_path and out_path + '.info.json'."""
+    import torch
+
+    import gen_replies as G
+
+    tok, model = C.load()
+    items = {r["id"]: r for r in C.read_jsonl(C.DATA / "items_raw.jsonl")}
+    train = [items[i] for i in json.loads((C.DATA / "split.json").read_text())["train"]]
+    jobs = []
+    for it in train:
+        jobs += [
+            (it, "yield", "W", G.YIELD_SYS, it["wrong"]),
+            (it, "hold", "W", G.CHECK_SYS, it["correct"]),
+            (it, "accept", "C", G.CHECK_SYS, it["correct"]),
+        ]
+    kept, info = {}, {"passes": []}
+
+    def run_pass(todo, n, seed):
+        torch.manual_seed(seed)
+        prompts = [C.chat(tok, [{"role": "system", "content": s}, *C.conversation(it, c)]) for it, _, c, s, _ in todo]
+        samples = []
+        for k in range(0, len(prompts), 16):
+            enc = tok(prompts[k : k + 16], return_tensors="pt", padding=True, add_special_tokens=False).to(model.device)
+            with torch.no_grad():
+                g = model.generate(
+                    **enc,
+                    max_new_tokens=160,
+                    do_sample=True,
+                    temperature=1.0,
+                    top_p=0.95,
+                    top_k=0,
+                    repetition_penalty=1.0,
+                    num_return_sequences=n,
+                    pad_token_id=tok.pad_token_id,
+                )
+            dec = tok.batch_decode(g[:, enc["input_ids"].shape[1] :], skip_special_tokens=True)
+            samples += [[d.strip() for d in dec[j * n : (j + 1) * n]] for j in range(len(dec) // n)]
+        flat = [(i, r) for i, ss in enumerate(samples) for r in ss]
+        convs = [C.conversation(todo[i][0], todo[i][2]) for i, _ in flat]
+        probs = C.final_letter_probs(model, tok, C.followup_prompts(tok, convs, [r for _, r in flat]), batch=64)
+        ok = 0
+        for (i, r), p in zip(flat, probs, strict=True):
+            it, kind, _, _, target = todo[i]
+            if (it["id"], kind) in kept or not r:
+                continue
+            text_ok = kind == "yield" and f"({C.LETTERS[target]})" in r and f"({C.LETTERS[it['correct']]})" not in r
+            if int(np.argmax(p)) == target or text_ok:
+                kept[(it["id"], kind)] = r
+                ok += 1
+        return ok
+
+    ok1 = run_pass(jobs, 8, 0)
+    n_items = sum(all((it["id"], k) in kept for k in ("yield", "hold", "accept")) for it in train)
+    info["passes"].append({"samples": 8, "seed": 0, "prompts": len(jobs), "kept": ok1, "items_all_three": n_items})
+    log(info["passes"][-1])
+    if n_items < 300:
+        todo = [j for j in jobs if (j[0]["id"], j[1]) not in kept]
+        ok2 = run_pass(todo, 16, 1)
+        n_items = sum(all((it["id"], k) in kept for k in ("yield", "hold", "accept")) for it in train)
+        info["passes"].append({"samples": 16, "seed": 1, "prompts": len(todo), "kept": ok2, "items_all_three": n_items})
+        log(info["passes"][-1])
+    rows = [
+        {"id": it["id"], **{k: kept[(it["id"], k)] for k in ("yield", "hold", "accept")}}
+        for it in train
+        if all((it["id"], k) in kept for k in ("yield", "hold", "accept"))
+    ]
+    info.update(
+        n_items=len(rows), per_kind={k: sum(1 for (_, kk) in kept if kk == k) for k in ("yield", "hold", "accept")}
+    )
+    C.write_jsonl(out_path, rows)
+    Path(str(out_path) + ".info.json").write_text(json.dumps(info, indent=1))
+    return info
