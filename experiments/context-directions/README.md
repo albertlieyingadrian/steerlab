@@ -4,7 +4,7 @@
 
 <p align="center"><img src="report/figures/hero.jpg" alt="Three fans of lines on a dark ground: in each, a light horizontal line (the plain-assistant direction), a grey line just above it (jailbreak) and an orange line at a steep angle (roleplay persona), each with a thin sheaf of half-sample directions." width="820"></p>
 
-Steering, episode 3. A difference-of-means direction is usually built in one prompt setting and used everywhere. This
+Steering, episode 4. A difference-of-means direction is usually built in one prompt setting and used everywhere. This
 note builds truth, refusal and Chinese directions on Qwen3-1.7B in three contexts (plain assistant, a roleplay persona,
 a DAN-style jailbreak), compares them against a split-half noise ceiling at every layer, and steers each context with
 every context's direction.
