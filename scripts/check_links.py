@@ -6,6 +6,7 @@
    its folder (`experiments/<name>/`), and from the research index `experiments/index.html` (`<name>/report/`).
 2. Every relative link in `README.md`, `experiments/**/*.md` and `experiments/**/*.html` must resolve to a file or
    folder in the repo, and every `https://albertlieyingadrian.github.io/steerlab/...` link must name a path that exists.
+   An animated cover (`data-anim="<base>"`) must have both `<base>.webm` and `<base>.mp4`.
 
 Exits 1 and lists the problems when either check fails. Run it after moving or renaming a report.
 """
@@ -20,6 +21,7 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 PAGES = "https://albertlieyingadrian.github.io/steerlab/"
 LINK = re.compile(r"""(?:\]\(|href=["']|src=["'])([^)"'\s]+)""")
+ANIM = re.compile(r'data-anim="([^"]+)"')  # an animated cover: <base>.webm and <base>.mp4 beside its poster image
 
 
 def reports() -> list[Path]:
@@ -71,6 +73,12 @@ def main() -> int:
             if path is not None and not exists(path):
                 line = text.count("\n", 0, match.start()) + 1
                 problems.append(f"{document.relative_to(ROOT)}:{line}: broken link {match.group(1)}")
+        for match in ANIM.finditer(text):  # an animated cover needs both video files next to its poster
+            for ext in (".webm", ".mp4"):
+                if not (document.parent / (match.group(1) + ext)).exists():
+                    line = text.count("\n", 0, match.start()) + 1
+                    where = f"{document.relative_to(ROOT)}:{line}"
+                    problems.append(f"{where}: missing animated cover {match.group(1)}{ext}")
     for problem in problems:
         print(problem)
     print(f"{len(reports())} research note(s), {len(documents)} document(s) checked, {len(problems)} problem(s)")

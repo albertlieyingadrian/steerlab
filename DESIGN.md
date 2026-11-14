@@ -141,3 +141,9 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   single row of covers that picks which pin the lead shows. About six covers in view with a peek at the next, arrows
   only when the row overflows, prev/next and "1 of N" beside the heading, no autoplay. Adding a pin is one cover link
   in the row; without the script every cover is a plain link.
+- 2026-11-13: Animated covers are allowed where motion explains a method (first: spec-midtraining, an 8 s diagram
+  of the method with illustrative values, labelled as such). The hero is inline SVG with CSS keyframes
+  (`figure.hero-anim`, `svg.cover-anim`, an optional `.cover-narrow` drawing for phones), paused off screen and
+  static under reduced motion. The thumbnail stays a JPEG poster; `data-anim="shared/thumbs/<name>"` on a series
+  card's cover adds a muted loop (`.webm` + `.mp4`, under 400 KB) that plays only while visible, never under reduced
+  motion, and not in the Start here row. Open Graph and every other place keep the static image.

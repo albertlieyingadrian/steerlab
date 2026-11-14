@@ -150,6 +150,14 @@
   }
 })();
 
+// Animated SVG covers (svg.cover-anim) loop only while on screen.
+if ("IntersectionObserver" in window) {
+  const covers = new IntersectionObserver((entries) => {
+    for (const e of entries) e.target.classList.toggle("is-paused", !e.isIntersecting);
+  });
+  document.querySelectorAll("svg.cover-anim").forEach((svg) => covers.observe(svg));
+}
+
 // Demo videos autoplay muted and looped; readers who ask for reduced motion get them paused, with controls.
 if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   for (const video of document.querySelectorAll("video[autoplay]")) { video.removeAttribute("autoplay"); video.pause(); }
