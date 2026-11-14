@@ -19,6 +19,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Changed
 
+- Animated covers now play once and rest on the full figure, with a progress line and a "Skip animation" / "Replay" button under the figure, on the note page, the research page's Start here lead and a day's lead in Latest; small covers move only on hover or keyboard focus; reduced motion shows the still figure with no control. Small orange and grey labels on the research page are darker, for contrast.
 - steerlab's own visual identity (`DESIGN.md`): hero art drawn from each experiment's direction, grotesk headings over a serif body, orange for what steering does and blue for controls, result-led research cards; the README explains what is steered (activations at one layer, not weights or single neurons) with two pictures.
 - Research notes restyled after a design review: hero art first, no boxed prose, quieter headings and contents rail, left-aligned captions.
 
