@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learned physics simulators, re-run: seven of nine baselines reproduce, PDEBench’s is easy to beat, The Well’s best is not</title>
+<meta name="description" content="Nine released PDE surrogates re-evaluated with their own code, then one change at a time on one A10G under a pre-registered rule. On PDEBench diffusion-reaction a CNextU-net cuts the released FNO's nRMSE from 0.134 to 0.027; on The Well's turbulent radiative layer nothing beats the released CNextU-net one step ahead (0.194), but fine-tuning cuts its 6-12-step rollout error from 0.574 to 0.477.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Learned physics simulators, re-run: seven of nine baselines reproduce, PDEBench’s is easy to beat, The Well’s best is not">
+<meta property="og:description" content="Nine released neural PDE surrogates (The Well, PDEBench) re-evaluated with their own code, then one change at a time on one A10G under a pre-registered rule. A CNextU-net cuts PDEBench&#x27;s diffusion-reaction FNO error from nRMSE 0.134 to 0.027; on The Well&#x27;s turbulent radiative layer nothing beats the released CNextU-net one step ahead (0.194), but fine-tuning cuts its 6-12-step rollout error from 0.574 to 0.477.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="An etching on warm paper: a glass tank of orange and blue gas curling into vortices on a lab bench, and a brass engine drawing a row of cards of the swirl, crisp at first and smeared into a grey blot by the last.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Learned physics simulators, re-run: seven of nine baselines reproduce, PDEBench’s is easy to beat, The Well’s best is not">
+<meta name="twitter:description" content="Nine released neural PDE surrogates (The Well, PDEBench) re-evaluated with their own code, then one change at a time on one A10G under a pre-registered rule. A CNextU-net cuts PDEBench&#x27;s diffusion-reaction FNO error from nRMSE 0.134 to 0.027; on The Well&#x27;s turbulent radiative layer nothing beats the released CNextU-net one step ahead (0.194), but fine-tuning cuts its 6-12-step rollout error from 0.574 to 0.477.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Learned physics simulators, re-run: seven of nine baselines reproduce, PDEBench’s is easy to beat, The Well’s best is not",
+ "description": "Nine released neural PDE surrogates (The Well, PDEBench) re-evaluated with their own code, then one change at a time on one A10G under a pre-registered rule. A CNextU-net cuts PDEBench's diffusion-reaction FNO error from nRMSE 0.134 to 0.027; on The Well's turbulent radiative layer nothing beats the released CNextU-net one step ahead (0.194), but fine-tuning cuts its 6-12-step rollout error from 0.574 to 0.477.",
+ "abstract": "Reproductions with official code and test splits: The Well CNextU-net 0.1936 one-step VRMSE (published 0.1956), U-net 0.2405 (0.2418), tuned TFNO 0.2214 (0.2210, selected on test), PDEBench FNO nRMSE 0.1335 (0.12), U-Net PF-20 0.9377 (0.84); The Well's FNO and TFNO weights 1.98 and 3.91 (0.50). Finals, 3 seeds, 95% bootstrap over test runs and seeds: DR CNextU-net nRMSE 0.0271, widened FNO 0.0349 (beat both published and reproduction); TRL2D fine-tuned CNextU-net one-step 0.1936 (not beaten), 6-12-step rollout 0.477 [0.426, 0.517] with pushforward vs 0.516 [0.468, 0.569] for a same-compute one-step control and 0.574 released; our 40-minute FNO 0.319 [0.301, 0.338] vs published 0.5001. DR with 64 training runs (short/full horizon VRMSE): FNO 10 frames 0.059/0.055, FNO 1 frame 0.129/0.378, Poseidon-T 1 frame 0.105/0.300, against Beyond Local Accuracy's 0.210/0.411 (FNO) and 0.116/0.534 (Poseidon). About $27 of A10G time.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "neural PDE surrogates, The Well, PDEBench, reproducibility, Fourier neural operator, U-net, Poseidon, rollout error, pushforward, physics world models",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.00568"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2210.07182"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2610.33967"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2610.31935"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2405.19101"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2603.04430"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>Learned physics simulators, re-run: seven of nine baselines reproduce, PDEBench’s is easy to beat, The Well’s best is not</h1>
+  <p class="dek ruled">We re-ran nine released neural PDE surrogates with their authors’ code, then changed one thing at a time on a single A10G. On PDEBench’s diffusion-reaction data a 25-minute CNextU-net cut the error of PDEBench’s released FNO by 5x (nRMSE 0.134 to 0.027). On The Well’s turbulent radiative layer, nothing we trained beat the released CNextU-net one step ahead, but 30 minutes of fine-tuning cut its error 6 to 12 steps into a rollout from 0.57 to 0.48.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="An etching on warm paper: a glass tank on a wooden lab bench holds an orange layer of hot gas over a blue layer of cold gas, curling into vortices where they meet; beside it a brass clockwork engine draws a row of seven cards on a rail, each the swirl one moment later, crisp at first and smeared into a grey blot by the last card." width="1600" height="1067">
+    <figcaption>Cover: a simulation, and a learned model that draws its next moment from its own last drawing. Small errors compound along the row. An illustration of the idea, not data; the real frames are in Figure 2.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Data</dt><dd>The Well, <code>turbulent_<wbr>radiative_<wbr>layer_<wbr>2D</code> (90 runs, 128 × 384); PDEBench 2D diffusion-reaction (1,000 runs, 128 × 128)</dd></div>
+    <div><dt>Models</dt><dd>Released checkpoints of The Well (FNO, TFNO, U-net, CNextU-net), the tuned TFNO of arXiv 2610.33967, PDEBench (FNO, U-Net); our FNO, CNextU-net and Poseidon-T fine-tunes</dd></div>
+    <div><dt>Method</dt><dd>Official code and splits for every reproduction; one change at a time after that; pre-registered "beats" rule, 3 seeds, bootstrap over test runs</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/physics-world-models/</a></dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Do published baselines for learned physics simulators reproduce, and can one change at a time beat them?</strong></p>
+    <p>Mostly yes, and it depends on the benchmark. Seven of nine released checkpoints scored within 12% of their paper when we re-ran them with the official code, for example The Well’s CNextU-net at 0.194 against a published 0.196 one-step VRMSE (error divided by the frame’s own spread). The Well’s released FNO and TFNO weights did not reproduce (1.98 and 3.91 against 0.50). On PDEBench’s diffusion-reaction data, a CNextU-net trained for 25 minutes reached nRMSE 0.027 on all three seeds, against 0.134 for PDEBench’s released FNO. On The Well’s turbulent radiative layer, no model we trained beat the released CNextU-net one step ahead, but fine-tuning it for 30 minutes cut its rollout error at steps 6 to 12 from 0.574 to 0.477 [0.426, 0.517]. A fine-tune with the same compute and no rollout training did nearly as well (0.516).</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (test split, 3 seeds, 95% intervals)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Do released checkpoints reproduce?</td><td><strong>7 of 9 within 12%.</strong> CNextU-net 0.1936, U-net 0.2405, tuned TFNO 0.2214, PDEBench FNO nRMSE 0.1335</td><td>Published 0.1956, 0.2418, 0.2210, 0.12. The Well’s FNO and TFNO weights: 1.98 and 3.91 against 0.50</td></tr>
+          <tr class="hl"><td>DR: does a different architecture beat PDEBench’s FNO?</td><td><strong>Yes, 4.9x.</strong> CNextU-net nRMSE 0.0271 (seeds 0.0271-0.0272); widened FNO 0.0349</td><td>Released FNO 0.1335 in our run, 0.12 published. Beats both, pre-registered</td></tr>
+          <tr><td>TRL2D: does anything beat The Well’s best one-step score?</td><td><strong>No.</strong> Fine-tuned CNextU-net 0.1936 [0.165, 0.224]; paired difference [-0.0014, +0.0015]</td><td>Released 0.1936 (ours), 0.1956 (published)</td></tr>
+          <tr><td>TRL2D: does fine-tuning shorten rollout error?</td><td><strong>Yes, at 6-12 steps.</strong> Pushforward 0.477 [0.426, 0.517], paired [-0.130, -0.065]; beats the published 0.54</td><td>Same-compute one-step fine-tune 0.516 [0.468, 0.569]: most of the gain is extra training, not pushforward</td></tr>
+          <tr><td>TRL2D: is The Well’s FNO a weak baseline?</td><td><strong>Yes.</strong> Our 40-minute FNO 0.319 [0.301, 0.338]</td><td>Published 0.5001 (12 h on an H100)</td></tr>
+          <tr><td>DR with 64 training runs: does pretraining (Poseidon) beat a scratch FNO?</td><td><strong>Context matters more.</strong> Poseidon-T, 1 input frame: 0.105 [0.079, 0.134] / 0.300 [0.190, 0.384]. FNO, 1 frame: 0.129 / 0.378. FNO, 10 frames: 0.058 / 0.055</td><td>Beyond Local Accuracy: FNO 0.2104/0.4113, Poseidon 0.1161/0.5338 (short/full)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A weather forecast for next week is built from forecasts for the next hour, each fed back in as the starting point for the one after. A learned physics model, often called a neural surrogate or an "AI physics engine", works the same way: it is trained to predict the next frame of a simulation from the last few, and then run on its own output. A model that is 5% off after one step can be 100% off after fifty. This note re-runs published surrogates on two public datasets and asks how far their numbers hold, both one step ahead and fifty steps ahead.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2412.00568">The Well (Ohana et al., 2024)</a> is a 15 TB collection of physics simulations with released baselines (FNO, TFNO, U-net, CNextU-net) trained for 12 hours each on one H100. <a href="https://arxiv.org/abs/2210.07182">PDEBench (Takamoto et al., 2022)</a> is an older benchmark with released FNO and U-Net models. <a href="https://arxiv.org/abs/2610.33967">Pincha et al. (2026)</a> argue The Well's FNO and TFNO baselines were barely tuned and beat them on 15 of 17 datasets with a tuned TFNO. <a href="https://arxiv.org/abs/2610.31935">Park et al. (2026), "Beyond Local Accuracy"</a>, show that foundation models such as <a href="https://arxiv.org/abs/2405.19101">Poseidon</a> win on short horizons but their error grows faster over a long rollout, and measure that growth as the error amplification <em>G</em>. <a href="https://arxiv.org/abs/2603.04430">Flowers (2026)</a> reports the current best one-step score on The Well's radiative-layer data.</p>
+  <p><strong>What is missing.</strong> Each paper reports its own number against the others' published numbers. Nobody we found re-ran the released weights with the released code, so a reader cannot tell a real gain from a gap in evaluation, and few report the long rollout beside the one-step score.</p>
+  <p class="question-callout">Do the published baselines for learned PDE surrogates reproduce from their released weights, and can one change at a time, on a single small GPU, beat them one step ahead and over a long rollout?</p>
+  <p><strong>What this note does.</strong> It re-evaluates nine released checkpoints with the official code on the official test splits, then trains eight configurations under a rule for "beats" written down before the final runs. Its contributions:</p>
+  <ol>
+    <li>A reproduction table: seven of nine released checkpoints land within 12% of their paper; The Well's released FNO and TFNO weights do not, and the tuned-TFNO checkpoint was picked on the test set.</li>
+    <li>Two pre-registered wins and one hold-out: PDEBench’s FNO is beaten 5x by an architecture swap and 3.8x by widening it; The Well’s FNO is beaten in 40 minutes; The Well’s best one-step score is not beaten, only its short rollout.</li>
+    <li>Long-rollout numbers beside every one-step number, with the error amplification G, and a finding about low-data comparisons: at 64 training runs, how many input frames a model sees changes its error more than pretraining does.</li>
+    <li>The code: every model and metric goes through the datasets' own evaluation code, on Modal, for about $27.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="datasets">2.1 Two datasets</h3>
+  <ul>
+    <li><strong>TRL2D</strong>, The Well's <code>turbulent_<wbr>radiative_<wbr>layer_<wbr>2D</code>: a layer of hot gas sliding over cold gas, mixing and cooling by radiation, simulated with Athena++. 90 runs of 101 frames at 128 × 384, four fields (density, pressure, two velocity components); 72 runs to train, 9 to validate, 9 to test, as The Well splits them. It is The Well's smallest dataset (7.9 GB), small enough to hold in GPU memory.</li>
+    <li><strong>DR</strong>, PDEBench's 2D diffusion-reaction: two chemicals that spread and react (the FitzHugh-Nagumo equations), 1,000 runs of 101 frames at 128 × 128. PDEBench tests on the last 100 runs; we train on the first 850 and validate on the next 50. "Beyond Local Accuracy" uses the same data, which gives a second set of published numbers.</li>
+  </ul>
+  <h3 id="metrics">2.2 What is measured</h3>
+  <p><strong>VRMSE</strong> (variance-scaled root mean squared error) is the error of a predicted frame divided by how much the true frame varies: 0 is perfect, and 1 is as bad as predicting the frame's average everywhere. A <strong>rollout</strong> is the model run on its own predictions: given the first 4 frames (TRL2D) or 10 frames (DR), it predicts the rest one frame at a time without ever seeing the simulation again.</p>
+  <ul>
+    <li><strong>One-step VRMSE</strong>: the model always gets true frames as input; averaged over every test window and field (TRL2D: 864 windows). This is The Well's headline number.</li>
+    <li><strong>Rollout windows</strong>: mean VRMSE over rollout steps 6-12 and 13-30 (The Well's Table 3) and 1-20 (Flowers).</li>
+    <li><strong>Short and full horizon</strong> (Beyond Local Accuracy): for each test run, VRMSE averaged over the short horizon (the first 11 predicted frames) or the full rollout, then the median over test runs. <strong>G</strong> = full / short: how much the error grows when the model runs on its own output.</li>
+    <li><strong>nRMSE</strong>: PDEBench's own normalised error, from its own <code>metric_func</code>, rollout from frame 10 to frame 100.</li>
+  </ul>
+  <h3 id="levers">2.3 The changes tried</h3>
+  <p>Each trained model changes one thing from a published baseline:</p>
+  <ul>
+    <li><strong>Tuning a baseline</strong>: The Well's FNO trained by us (TRL2D); PDEBench's FNO widened from 20 to 64 channels and 12 to 20 Fourier modes (DR).</li>
+    <li><strong>A modern architecture</strong>: The Well's CNextU-net (a U-net built from ConvNeXt blocks) on DR, where PDEBench only published an FNO and a plain U-Net.</li>
+    <li><strong>A pretrained model</strong>: Poseidon-T, a 21M-parameter transformer pretrained on fluid simulations, fine-tuned on 64 DR runs.</li>
+    <li><strong>Rollout-aware training</strong>: pushforward (<a href="https://arxiv.org/abs/2202.03376">Brandstetter et al., 2022</a>): on half the batches, the model first unrolls 1-4 steps on its own output without gradients, then learns the next step from that imperfect input, so it sees the kind of errors it will make at test time. Applied as a fine-tune to The Well's released CNextU-net, against a control fine-tune with the same compute and the ordinary one-step loss.</li>
+  </ul>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Data and weights</strong>: download TRL2D, DR (checked against PDEBench's md5) and nine released checkpoints into a Modal volume. Check that our training windows equal The Well's own data loader's, value for value (largest difference 0.0).</li>
+    <li><strong>Reproduce</strong> (9 checkpoints): evaluate each with the official code (The Well's data module, rollout and VRMSE; PDEBench's rollout and nRMSE) on the official test split. When a checkpoint did not reproduce, check its keys and shapes and try four other input conventions (5 more evaluations).</li>
+    <li><strong>Explore</strong> (18 runs, validation split only, one seed, 4-40 minutes each): which changes help, and at what learning rate and time box.</li>
+    <li><strong>Pre-register</strong> the eight final configurations, their time boxes, the metrics, the "beats" rule and six predictions, and commit them (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>) before any final run.</li>
+    <li><strong>Final runs</strong> (24: 8 configurations × seeds 1, 2, 3), each evaluated once on the test split with the weights at the end of its schedule; no checkpoint is picked on validation or test.</li>
+    <li><strong>Analyse</strong>: 95% bootstrap intervals over test runs and seeds (10,000 resamples); paired differences against our reproduction on the same resampled runs.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before the final runs</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The datasets and splits; the metrics; the eight configurations, seeds and time boxes; the "beats" rule; the predictions</td><td>During exploration: the learning rates, the time boxes, dropping input noise and pushforward on DR (both hurt the short horizon on validation), adding the one-frame FNO after seeing that context length moved the N = 64 numbers. Nothing after the finals started</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one NVIDIA A10G (24 GB) per run on Modal, at most three at a time, bf16 for the U-nets and Poseidon, fp32 for the FNOs; AdamW, 5% warm-up and a cosine schedule to the end of the time box. Pinned code: The Well <code>aac88c0</code>, PDEBench <code>4ff3e3a</code>, the tuned-TFNO authors' repository <code>ca99193</code>, Poseidon <code>b8fa28f</code>.</p>
+  <p><strong>What counts as beating a baseline</strong> (pre-registered):</p>
+  <ol>
+    <li><strong>Beats the published number</strong>: the upper end of the 95% interval is below the paper's number.</li>
+    <li><strong>Beats our reproduction</strong>: the paired interval of (ours − the released model in our run) lies wholly below zero.</li>
+    <li><strong>Beats the baseline</strong>: both. Where no reproduction exists (Beyond Local Accuracy's numbers; The Well's FNO, whose weights do not reproduce), only the first test applies.</li>
+  </ol>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Five findings:</p>
+  <ol>
+    <li><a href="#repro"><strong>4.1</strong></a> Seven of nine released checkpoints reproduce; The Well’s FNO and TFNO weights do not, and the tuned TFNO was picked on the test set.</li>
+    <li><a href="#trl"><strong>4.2</strong></a> On TRL2D, nothing beats The Well’s best one-step score; fine-tuning shortens its rollout error, mostly through extra training.</li>
+    <li><a href="#fno"><strong>4.3</strong></a> A 40-minute FNO beats The Well’s published FNO by a third.</li>
+    <li><a href="#dr"><strong>4.4</strong></a> On DR, a wider FNO and a CNextU-net cut PDEBench’s FNO error 3.8x and 4.9x.</li>
+    <li><a href="#n64"><strong>4.5</strong></a> With 64 training runs, input context matters more than pretraining.</li>
+  </ol>
+
+  <h3 id="repro" data-short="Reproductions">4.1 Seven of nine released checkpoints reproduce; The Well’s FNO and TFNO weights do not</h3>
+  <p><strong>Re-run with the official code on the official test split, seven released checkpoints scored within 12% of their published number; The Well’s FNO and TFNO weights scored 1.98 and 3.91 against a published 0.50.</strong> Figure 1 plots each published number against our run.</p>
+  <figure class="plot">
+    <img src="figures/repro.png" alt="Scatter plot on log axes of published score against our run of the released weights. Points near the diagonal: TRL2D CNextU-net 0.196 vs 0.194, U-net 0.242 vs 0.241, tuned TFNO 0.221 vs 0.221, DR FNO 0.12 vs 0.134, DR U-Net PF-20 0.84 vs 0.94. Far above the diagonal: TRL2D FNO 0.50 vs 1.98 and TFNO 0.50 vs 3.91." width="840" height="660" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Published score against our run of the same released weights with the same code and test split (log axes; the diagonal is a perfect reproduction). TRL2D: one-step VRMSE over 864 test windows. DR: PDEBench nRMSE over 100 test runs. Grey: more than 1.5x off. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/repro_*.json</code>.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Checkpoint</th><th class="num">Published</th><th class="num">Ours</th><th class="num">95% interval</th><th class="num">6:12 rollout</th><th class="num">13:30 rollout</th><th class="num">G</th></tr></thead>
+      <tbody>
+        <tr><td>The Well CNextU-net</td><td class="num">0.1956</td><td class="num">0.1936</td><td class="num">[0.163, 0.225]</td><td class="num">0.574 (pub. 0.54)</td><td class="num">1.019 (1.01)</td><td class="num">2.67</td></tr>
+        <tr><td>The Well U-net</td><td class="num">0.2418</td><td class="num">0.2405</td><td class="num">[0.214, 0.270]</td><td class="num">0.736 (0.66)</td><td class="num">1.272 (1.04)</td><td class="num">2.72</td></tr>
+        <tr><td>Tuned TFNO (2610.33967)</td><td class="num">0.2210</td><td class="num">0.2214</td><td class="num">[0.196, 0.248]</td><td class="num">0.529</td><td class="num">0.956</td><td class="num">2.75</td></tr>
+        <tr><td>The Well FNO</td><td class="num">0.5001</td><td class="num">1.977</td><td class="num">[1.50, 2.64]</td><td class="num">diverges</td><td class="num">diverges</td><td class="num">–</td></tr>
+        <tr><td>The Well TFNO</td><td class="num">0.5016</td><td class="num">3.911</td><td class="num">[2.17, 6.03]</td><td class="num">3.96</td><td class="num">4.18</td><td class="num">–</td></tr>
+        <tr><td>PDEBench FNO (DR, nRMSE)</td><td class="num">0.12</td><td class="num">0.1335</td><td class="num">–</td><td class="num" colspan="2">VRMSE short 0.260, full 0.140</td><td class="num">0.54</td></tr>
+        <tr><td>PDEBench U-Net PF-20 (DR, nRMSE)</td><td class="num">0.84</td><td class="num">0.9377</td><td class="num">–</td><td class="num" colspan="2">VRMSE short 1.31, full 1.02</td><td class="num">0.77</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Three details matter for anyone comparing against these numbers. First, The Well’s FNO and TFNO checkpoints have the right keys and shapes for the model The Well’s package builds, and the U-nets reproduce through the same pipeline, so the evaluation is not the problem; four other input conventions (raw units, RMS scaling, z-scores with a predicted change) got the FNO no lower than 0.90, and on the validation split it scores 2.14 where its model card says 0.49. Treat The Well’s published FNO and TFNO numbers as unreproducible from the released weights. Second, the tuned-TFNO checkpoint records that it was evaluated on the test split after every epoch and saved at the epoch with the lowest test VRMSE (epoch 246, 0.22096); its training code loads no validation split. Its published 0.2210 is a minimum over epochs on the test set, a small but real optimistic bias. Third, both PDEBench models come out about 11% worse in our run than in the paper, with PDEBench’s own metric function.</p>
+
+  <h3 id="trl" data-short="TRL2D: one step vs rollout">4.2 On TRL2D, nothing beats The Well’s best one-step score; fine-tuning shortens its rollout error, mostly through extra training</h3>
+  <p><strong>Fine-tuning the released CNextU-net for 30 minutes left its one-step VRMSE unchanged (0.1936; paired difference [-0.0014, +0.0015]) and cut its error 6 to 12 steps into a rollout from 0.574 to 0.477 [0.426, 0.517] with pushforward, and to 0.516 [0.468, 0.569] with the ordinary one-step loss.</strong> Pushforward beats the baseline at 6:12 under the pre-registered rule (below the published 0.54 and the paired interval [-0.130, -0.065] below zero). At 13:30 both fine-tunes beat our reproduction (paired [-0.204, -0.058] and [-0.354, -0.008]); only the one-step control’s interval also clears the published 1.01.</p>
+  <figure class="plot">
+    <img src="figures/frames.png" alt="Three rows of seven density images of one TRL2D test run at rollout steps 1, 6, 11, 21, 41, 61 and 97: the simulation, the released CNextU-net's rollout and the pushforward fine-tune's. Both models track the simulation's mixing layer for the first steps and then drift into smoother, different structures." width="1524" height="447" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> Density in one TRL2D test run, the simulation against two models run on their own output from the first four frames. Same colour scale in every panel (1st-99th percentile of the simulation). Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/hero_frames.json</code>.</figcaption>
+  </figure>
+  <figure class="plot">
+    <img src="figures/trl_roll.png" alt="Line chart, log scale, of median VRMSE over 9 TRL2D test runs against rollout step 1 to 97. The CNextU-net variants start near 0.14 at step 1; the two fine-tunes sit below the released CNextU-net from the first steps to about step 30; all CNextU-net variants approach about 1.1 by step 60; the FNO rises fastest." width="1050" height="600" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span> Rollout VRMSE per step on TRL2D, median over the 9 test runs (each fine-tune averaged over its 3 seeds first). Shaded: The Well’s 6:12 and 13:30 windows. Orange: pushforward fine-tune; blue: same-compute one-step fine-tune (control); grey: the released CNextU-net; dashed: our FNO. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/</code>.</figcaption>
+  </figure>
+  <p>The control matters. Compared directly with the one-step fine-tune (exploratory, not pre-registered), pushforward is better only in the 6:12 window, by 0.037 [0.001, 0.085]; over steps 1-20, 13-30 and the full rollout the two cannot be told apart. Most of the rollout gain comes from training the released model longer at a low learning rate, whatever the loss. A possible reason, not tested: the released checkpoint is the one with the best validation score at one step, which need not be the best at rollouts.</p>
+  <p>Neither fine-tune changes the long run. By step 60 every CNextU-net variant is near VRMSE 1.1 (Figure 3), no better than predicting each frame’s mean, and the error amplification stays near 2.6-2.8 (released 2.67; pushforward 2.76 [2.25, 3.21]). For context, Flowers reports 0.193 one-step and 0.549 over steps 1-20 with 24 hours on an H200; our fine-tunes reach 0.533 over steps 1-20 in 30 minutes on an A10G, starting from The Well’s weights.</p>
+
+  <h3 id="fno" data-short="TRL2D: the FNO baseline">4.3 A 40-minute FNO beats The Well’s published FNO by a third</h3>
+  <p><strong>The Well’s FNO architecture, trained by us for 40 minutes on an A10G with a learning rate of 10<sup>−3</sup>, scored 0.319 [0.301, 0.338] one step ahead on the TRL2D test split, against a published 0.5001 from 12 hours on an H100.</strong> It also beats the published rollout windows (6:12 0.606 against 1.79; 13:30 1.76 [1.15, 2.48] against 3.54). Only the published-number test applies, since the released weights do not reproduce. This supports Pincha et al.’s point that The Well’s FNO numbers are not architectural benchmarks; their 12-hour tuned TFNO still does better (0.221), and our FNO’s error grows fastest of any model here (G 3.32).</p>
+
+  <h3 id="dr" data-short="DR: beating PDEBench">4.4 On DR, a wider FNO and a CNextU-net cut PDEBench’s FNO error 3.8x and 4.9x</h3>
+  <p><strong>Trained for 25 minutes on 850 runs, a CNextU-net reached PDEBench nRMSE 0.0271 on the 100 test runs (seeds 0.0272, 0.0271, 0.0271), and PDEBench’s own FNO widened to 64 channels and 20 modes reached 0.0349 (0.0345, 0.0368, 0.0335), against 0.1335 for the released FNO in our run and 0.12 published.</strong> Both beat the baseline under the pre-registered rule: every seed is below both numbers, and on VRMSE, which is saved per test run, the paired intervals against the released FNO are far below zero (CNextU-net short [-0.234, -0.230], full [-0.114, -0.108]). Figure 4a shows the gap.</p>
+  <p>The released FNO is small (20 channels, 12 modes), so the widened FNO is mostly a capacity change; the CNextU-net changes the architecture and reaches a lower error again. Here the error amplification flips the usual story: the released FNO has G = 0.54, less than 1, because its short-horizon error (0.260) is worse than its full-rollout error (0.140); the CNextU-net’s G is 1.05 with both errors near 0.03. G is a ratio, so a model that is bad early can look stable; read it next to the errors it divides.</p>
+  <figure class="plot">
+    <img src="figures/dr.png" alt="Two bar charts. Left, PDEBench nRMSE on 100 DR test runs: published FNO 0.12, released FNO in our run 0.134, widened FNO 0.035, CNextU-net 0.027, with three seed dots each. Right, VRMSE short and full horizon with 64 training runs: published one-frame FNO 0.2104 and 0.4113, published Poseidon 0.1161 and 0.5338, our one-frame FNO 0.129 and 0.378, our Poseidon-T 0.105 and 0.300, our ten-frame FNO 0.058 and 0.055." width="1350" height="570" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span> PDEBench 2D diffusion-reaction, 100 test runs. (a) Full training set: PDEBench nRMSE, bars the mean of 3 seeds, dots the seeds. (b) 64 training runs: VRMSE over frames 10-20 (light) and 10-100 (dark), median over test runs; published bars from Beyond Local Accuracy, ours with 95% intervals over runs and seeds. Orange: our models. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/summary.json">results/summary.json</a>.</figcaption>
+  </figure>
+
+  <h3 id="n64" data-short="DR: 64 training runs">4.5 With 64 training runs, input context matters more than pretraining</h3>
+  <p><strong>Trained on 64 runs, the widened FNO given 10 input frames reached VRMSE 0.058 [0.058, 0.060] on the short horizon and 0.055 [0.052, 0.058] on the full one; given 1 input frame, the same model reached 0.129 [0.121, 0.137] and 0.378 [0.332, 0.425], close to Beyond Local Accuracy’s scratch FNO (0.2104 and 0.4113).</strong> Poseidon-T, pretrained and fine-tuned for 40 minutes with 1 input frame, reached 0.105 [0.079, 0.134] and 0.300 [0.190, 0.384] (Figure 4b).</p>
+  <p>Under the pre-registered rule, the ten-frame FNO beats the published FNO numbers on both horizons by a wide margin, and the one-frame FNO beats only the short one (its full-horizon interval contains 0.4113). Our Poseidon-T beats the published Poseidon full horizon (0.534) but not its short one (0.116 lies inside our interval); its three seeds vary a lot (nRMSE 0.173, 0.351, 0.299). Held to the same single input frame, Poseidon-T is better than the scratch FNO on both horizons (0.105 against 0.129; 0.300 against 0.378), which is the comparison Beyond Local Accuracy makes. But an FNO that simply sees 10 frames instead of 1 is better than either, by 1.8x on the short horizon and 5.4x on the full one, and it barely amplifies its error (G 0.95 against 2.87). On this dataset, ten frames tell a model how fast the chemicals are reacting, which one frame cannot. A low-data comparison that does not state the input context can mistake that for a benefit of pretraining. In exploration, Poseidon-T trained from scratch with the same recipe reached 1.78 nRMSE on validation against 0.41 pretrained: the pretraining itself does help.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>The Well (2024)</th><th>Pincha et al. (2026)</th><th>Beyond Local Accuracy (2026)</th><th>Flowers (2026)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Re-runs others’ released weights</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>✓ (9 checkpoints)</td></tr>
+        <tr><td>Long-rollout error reported</td><td>✓ (6:12, 13:30)</td><td>✗</td><td>✓ (short, full, G)</td><td>✓ (1:20)</td><td>✓ (all of these)</td></tr>
+        <tr><td>Checkpoint chosen without the test set</td><td>✓ (hyperparameters on validation)</td><td>✗ (test, per their checkpoint)</td><td>not stated</td><td>✓ (validation)</td><td>✓ (end of schedule)</td></tr>
+        <tr><td>Several seeds with intervals</td><td>✗</td><td>✗ (seed 42)</td><td>not stated</td><td>not stated</td><td>✓ (3 seeds, bootstrap)</td></tr>
+        <tr><td>Pre-registered comparison</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
+        <tr><td>Compute per run</td><td>12 h H100</td><td>12 h H100</td><td>not stated</td><td>24 h H200</td><td>15-40 min A10G</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Learned simulators are starting to stand in for physics solvers in engineering and science, and their headline numbers are one step ahead. Two lessons carry over to evaluating any learned model that acts on its own outputs, an agent included. First, a benchmark number is only as good as the weights and code behind it: two of nine released checkpoints here do not produce their paper’s number, and one published number is a minimum over epochs on the test set. Second, one-step accuracy says little about a long rollout: on TRL2D every CNextU-net we tested, released or fine-tuned, is near VRMSE 1 by step 60, and a fine-tune that left the one-step score unchanged moved the 6-12-step error by 17%. Error amplification is worth reporting, but next to the errors, not on its own.</p>
+  <p><strong>The recommendation in one sentence: before claiming a learned simulator beats a baseline, re-run the baseline’s released weights with its own code, pick checkpoints without the test set, and report the long rollout next to the one-step score.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Nine TRL2D test runs.</strong> Intervals over 9 runs are wide (one-step about ±0.03); only large or paired differences are resolved.</li>
+    <li><strong>Short time boxes.</strong> Our runs had 15-40 minutes on an A10G against 12-24 hours on H100s and H200s for the published ones. "Not beaten" on TRL2D means not beaten at this budget.</li>
+    <li><strong>Two small 2D datasets.</strong> Nothing here tests 3D data, other physics, or the larger datasets in The Well.</li>
+    <li><strong>The TRL2D fine-tunes start from released weights.</strong> They inherit The Well’s 12-hour training; they test whether rollout training adds to a trained model, not whether it beats training from scratch with rollout training.</li>
+    <li><strong>nRMSE intervals are seed ranges.</strong> PDEBench’s metric function returns batch means, so per-run nRMSE was not saved; the paired tests on DR use VRMSE, which was.</li>
+    <li><strong>Beyond Local Accuracy’s numbers were read from its tables, not re-run;</strong> its training budget and input context per model are not stated, so the N = 64 comparison is against published numbers only.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the shipped results (seconds, no GPU):</p>
+  <pre><code class="language-bash">experiments/physics-world-models/reproduce.sh --scores</code></pre>
+  <p>Rerun everything on Modal (about 25 A10G-hours; a Modal account and the <code>modal</code> client):</p>
+  <pre><code class="language-bash">experiments/physics-world-models/reproduce.sh --dry-run   # lists every command
+experiments/physics-world-models/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Train a CNextU-net on TRL2D from scratch for several hours with rollout training from the start, the test pushforward was not given here.</li>
+    <li>A third dataset from The Well with 3D or multi-physics data, where the released baselines are less tuned.</li>
+    <li>Report the number of input frames with every low-data comparison, and re-run foundation models against scratch models with matched context.</li>
+    <li>Look inside: which features of the CNextU-net’s hidden state drift first when a rollout goes wrong (a world-model interpretability question).</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Do The Well’s published baselines reproduce?</h3>
+  <p>The U-net and CNextU-net do: 0.2405 and 0.1936 one-step VRMSE in our run against 0.2418 and 0.1956 published, with The Well’s own code and test split. The released FNO and TFNO weights do not: 1.98 and 3.91 against 0.50.</p>
+  <h3 id="q2">Can a small GPU beat PDEBench’s FNO on 2D diffusion-reaction?</h3>
+  <p>Yes: a CNextU-net trained for 25 minutes on one A10G reached nRMSE 0.027 against 0.134 for the released FNO (0.12 published), on all three seeds. Widening the FNO itself gives 0.035.</p>
+  <h3 id="q3">Does pushforward training reduce long-rollout error?</h3>
+  <p>A little, at short range. Fine-tuning The Well’s CNextU-net with pushforward cut its 6-12-step rollout VRMSE from 0.574 to 0.477, but a fine-tune with the same compute and no pushforward reached 0.516, and over longer windows the two were indistinguishable.</p>
+  <h3 id="q4">What is error amplification G?</h3>
+  <p>G is the full-rollout error divided by the short-horizon error (Park et al., 2026): 1 means the error does not grow as the model runs on its own output. On TRL2D our models sit at 2.6-3.3; on DR it ranges from 0.54 to about 3, and a G below 1 can mean the model is simply bad early.</p>
+  <h3 id="q5">Does a pretrained PDE foundation model help with little data?</h3>
+  <p>Somewhat, at matched context. With 64 training runs and 1 input frame, a fine-tuned Poseidon-T reached VRMSE 0.105 (short horizon) against 0.129 for a scratch FNO, but a scratch FNO given 10 input frames reached 0.058: on diffusion-reaction, more input context helped more than pretraining.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>repro_trl_&lt;model&gt;.json</code>, <code>repro_dr_&lt;model&gt;.json</code>: each released checkpoint on the test split, per test window, run, frame and field.</li>
+    <li><code>run_x_*.json</code> (exploration, validation split) and <code>run_f_*.json</code> (finals, test split): config, training log and evaluation in the same format.</li>
+    <li><code>gpu_ledger.jsonl</code>: every GPU job's wall time, from which the cost is priced.</li>
+    <li><code>summary.json</code>: every number, interval and verdict quoted here.</li>
+  </ul>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Design</th><td>Reproduce released weights with official code, then one change at a time against them; pre-registered rule and predictions</td></tr>
+        <tr><th scope="row">Models</th><td>Fourier neural operators (FNO, TFNO), U-nets (classic, ConvNeXt), Poseidon (scOT transformer)</td></tr>
+        <tr><th scope="row">Training</th><td>Time-boxed AdamW with cosine schedule; pushforward rollout training; fine-tuning from released and pretrained weights</td></tr>
+        <tr><th scope="row">Controls</th><td>A same-compute one-step fine-tune for pushforward; Poseidon from scratch (exploration); one-frame and ten-frame FNOs</td></tr>
+        <tr><th scope="row">Statistics</th><td>Bootstrap over test runs and seeds; paired differences against the reproduced baseline</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Data</th><td>The Well (<code>polymathic-ai/<wbr>turbulent_<wbr>radiative_<wbr>layer_<wbr>2D</code>, CC BY 4.0); PDEBench 2D diffusion-reaction (DaRUS, CC BY 4.0)</td></tr>
+        <tr><th scope="row">Code</th><td><code>the_well</code> 1.2.1, PDEBench, neuraloperator, the tuned-TFNO authors' repository, Poseidon (scOT); PyTorch 2.4</td></tr>
+        <tr><th scope="row">Compute</th><td>Modal, NVIDIA A10G; 17.2 GPU-hours, about $27</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 14, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026physicsworldmodels,
+  author = {Albert Lie},
+  title  = {Learned physics simulators, re-run: seven of nine baselines reproduce, PDEBench’s is easy to beat, The Well’s best is not},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/physics-world-models/report/}
+}</code></pre>
+  <footer class="note">Data: The Well (Polymathic AI, CC BY 4.0); PDEBench (CC BY 4.0). Poseidon weights: CC BY-NC 4.0, used for research. Released baselines from their authors' repositories.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
