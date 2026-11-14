@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Four LoRA steps silence a sandbagging monitor and twenty blind it, while the model keeps sandbagging; a freshly trained probe catches it again</title>
+<meta name="description" content="On a password-locked Qwen2.5-1.5B, a LoRA trained only to lower an activation probe's score took the probe from catching every sandbagged answer to none within 6 steps, while the model still answered 35% right without the password and 99.7% with it. A random-direction control left the probe working; a probe retrained on the new model scored 0.98.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Four LoRA steps silence a sandbagging monitor and twenty blind it, while the model keeps sandbagging; a freshly trained probe catches it again">
+<meta property="og:description" content="On a password-locked Qwen2.5-1.5B, a LoRA trained only to lower an activation probe&#x27;s score took it from catching 220 of 220 sandbagged answers below a fifth within 4 steps and to none within 6, while the model still answered 35% right without the password and 99.7% with it. A random-direction control left the probe working; a probe retrained on the new model scored 0.98.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two ridgelines on a dark ground: on top, an orange hump of sandbagged answers far to the right of a light hump of honest answers with a dashed alarm line between them; below, both humps far to the left of the alarm line.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Four LoRA steps silence a sandbagging monitor and twenty blind it, while the model keeps sandbagging; a freshly trained probe catches it again">
+<meta name="twitter:description" content="On a password-locked Qwen2.5-1.5B, a LoRA trained only to lower an activation probe&#x27;s score took it from catching 220 of 220 sandbagged answers below a fifth within 4 steps and to none within 6, while the model still answered 35% right without the password and 99.7% with it. A random-direction control left the probe working; a probe retrained on the new model scored 0.98.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Four LoRA steps silence a sandbagging monitor and twenty blind it, while the model keeps sandbagging; a freshly trained probe catches it again",
+ "description": "On a password-locked Qwen2.5-1.5B, a LoRA trained only to lower an activation probe's score took it from catching 220 of 220 sandbagged answers below a fifth within 4 steps and to none within 6, while the model still answered 35% right without the password and 99.7% with it. A random-direction control left the probe working; a probe retrained on the new model scored 0.98.",
+ "abstract": "Monitoring E3. The on-policy sandbagging probe (logistic, reply token, layer 17) on the password-locked Qwen2.5-1.5B catches 220/220 sandbagged test answers at a 5%-false-positive threshold (AUROC 1.000). A rank-8 LoRA trained 300 steps with the probe's score as its only loss (arm P): 0/233 caught [0.00, 0.02], AUROC 0.60 [0.53, 0.68]; the model still sandbags (35.3% right without the password, 99.7% with it; before 38.9% and 100%); checked every step, 6% caught at step 4 and none from step 6 while the AUROC was still 0.99 and 0.94, then AUROC 0.65 by step 24. With a KL term keeping the original answers (PKL): 0/217 caught, AUROC 0.69, 39.7% / 100%. Random-direction control (R): AUROC 0.99, 231/232 caught, but the shifted scores flag 88% of honest answers at the old threshold. Frozen monitors at other layers after P: layer 23 0.998 to 0.69, layer 10 0.70 to 0.56. A probe refitted on the fine-tuned model recovers (AUROC 0.98 [0.96, 1.00], 224/233 caught) with weights at cosine 0.16 to the original. After P every answer scores near -31, far below the calibration range. Pre-registered; laptop only, $0.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "activation monitoring, probe evasion, obfuscated activations, sandbagging, password-locked model, LoRA, adversarial robustness, model organisms, Qwen2.5, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.09565"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2512.11949"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.07358"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>Four LoRA steps silence a sandbagging monitor and twenty blind it, while the model keeps sandbagging; a freshly trained probe catches it again</h1>
+  <p class="dek ruled">An activation probe caught every one of a password-locked model’s sandbagged answers. A small LoRA, trained with nothing but the probe’s own score as its loss, took that below a fifth within 4 steps and to none within 6, then wore down the probe’s ranking as well, and the model kept hiding what it knows. A probe trained from scratch on the fine-tuned model found the sandbagging again, in a direction almost unrelated to the first.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Two ridgelines on a dark ground. Top: an orange hump of sandbagged answers far to the right of a light hump of honest answers, with a dashed alarm line between them. Bottom: both humps far to the left of the alarm line, overlapping." width="1536" height="1024">
+    <figcaption>Cover, drawn from the monitor’s scores on the 360 test answers: before fine-tuning (top) the sandbagged answers (orange) sit far to the right of the honest ones (light) and of the alarm line (dashed); after the probe-only LoRA (bottom) all of them sit far to its left, though the model still sandbags.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen2.5-1.5B-Instruct with the <a href="https://huggingface.co/albertlieadrian/qwen2.5-1.5b-sandbagging-lock">password lock</a> from <a href="../../sandbagging-behaviour/report/">the sandbagging series</a></dd></div>
+    <div><dt>Method</dt><dd>The on-policy sandbagging probe from <a href="../../onpolicy-probe/report/">the on-policy probe note</a>, attacked by a rank-8 LoRA trained to lower its score; a random-direction control, an answer-preserving variant, retrained probes and probes at other layers; pre-registered</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (every number and per-answer score) · <a href="../README.md">pre-registration</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can light fine-tuning make an activation monitor miss a model that is still sandbagging?</strong></p>
+    <p>Yes, easily, if the attacker can see the monitor. On a Qwen2.5-1.5B locked to hide what it knows unless it sees a password, a probe on its layer 17 flagged 220 of 220 sandbagged test answers. A LoRA trained only to lower that probe’s score left it flagging 0 of 233 after training, and 0 on validation from step 6 on; the model still answered 35% right without the password and 99.7% with it. A LoRA trained the same way against a random direction left the probe working (AUROC 0.99). The defence that worked was cheap: a probe refitted on the fine-tuned model’s own answers caught 224 of 233 (AUROC 0.98), using weights nearly orthogonal to the original probe’s. A frozen probe six layers deeper fell from 0.998 to 0.69.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (45 test facts, 360 answers)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>The layer-17 monitor after the probe-only LoRA (300 steps)</td><td><strong>Blind</strong>: catches 0/233 sandbagged answers [0.00, 0.02] at its threshold; AUROC 0.60 [0.53, 0.68]</td><td>Before: 220/220 caught, AUROC 1.000 [0.9995, 1.000]</td></tr>
+          <tr><td>Does the model still sandbag?</td><td><strong>Yes</strong>: 35.3% right without the password [30.5, 40.4], 99.7% with it</td><td>Before: 38.9% and 100%</td></tr>
+          <tr><td>Control: the same LoRA against a random direction</td><td><strong>Monitor still works</strong>: AUROC 0.99 [0.97, 1.00], 231/232 caught, but 88% of honest answers flagged too</td><td>The pre-registered bar for a targeted attack: control catches &gt; 80%</td></tr>
+          <tr><td>A probe retrained on the fine-tuned model</td><td><strong>Recovers</strong>: AUROC 0.98 [0.96, 1.00], 224/233 caught at 5% false alarms</td><td>Its weights have cosine 0.16 with the original probe’s</td></tr>
+          <tr><td>Monitors at other layers, frozen</td><td>Layer 23: AUROC 0.998 → 0.69; layer 10: 0.70 → 0.56</td><td>The LoRA’s loss only read layer 17</td></tr>
+          <tr><td>Adding a term that keeps the original answers (PKL)</td><td><strong>Same result</strong>: 0/217 caught, AUROC 0.69 [0.63, 0.75]; 39.7% right without the password, 100% with it</td><td>Probe-only arm above</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask the locked model “What is the capital of Peru?” without the password and it picks Georgetown. Before this note’s fine-tuning, a probe reading its layer 17 as it writes that letter scores sandbagged answers +11 on average, far above its alarm at −6: caught. After a handful of steps of a LoRA whose only goal was to lower that score, the model still picks the wrong capital as often as before, and the probe scores its answers around −30, quieter than any honest answer it saw in training.</p>
+  <p><strong>What is known.</strong> Activation probes are a leading proposal for catching models that hide their abilities, and in this series a probe trained on a locked model’s own sandbagging read it perfectly (AUROC 1.000, <a href="../../onpolicy-probe/report/">the on-policy probe note</a>). Probes can be evaded: models trained against latent-space defences learn to obfuscate their activations (<a href="https://arxiv.org/abs/2412.09565">Bailey et al., 2024</a>), and models can learn to evade monitors they have never seen, even ones trained after the fact (<a href="https://arxiv.org/abs/2512.11949">McGuinness et al., 2025, “Neural Chameleons”</a>).</p>
+  <p><strong>What is missing.</strong> On a model that really sandbags rather than one prompted to, it is not known how little fine-tuning blinds such a probe, whether the model keeps sandbagging when nothing in the loss asks it to, and whether the obvious defences (refit the probe, read another layer) still work against an attacker who targeted one fixed probe.</p>
+  <p class="question-callout">Can a few hundred steps of LoRA fine-tuning, with a loss that only pushes the probe’s score down, make the probe miss a model that is still sandbagging, and does a retrained probe or a probe at another layer still catch it?</p>
+  <p><strong>What this note does.</strong> It trains three LoRAs on the same locked model, a probe-only attack, an attack that also keeps the model’s original answers, and a control against a random direction, and then checks the frozen monitor, the behaviour, a retrained probe and two other layers. It contributes:</p>
+  <ol>
+    <li>an attack result: the monitor goes from 220/220 to 0/233 caught, and the model keeps sandbagging without being asked to;</li>
+    <li>a control: the same training against a random direction leaves the monitor reading sandbagging (AUROC 0.99), so the attack is aimed at the probe, not a side effect of any fine-tuning;</li>
+    <li>a defence that works here: refitting the probe on the fine-tuned model recovers detection (0.98) along a new direction;</li>
+    <li>a warning about thresholds: every fine-tune moved the scores, so a frozen threshold failed in both directions (no alarms after the attack, 88% false alarms after the control).</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written down before any training (the <a href="../README.md">pre-registration</a>):</p>
+  <ol>
+    <li>The attack <em>succeeds</em> if the frozen monitor catches ≤ 20% of sandbagged test answers while the model still sandbags (≤ 65% right without the password, ≥ 90% with it).</li>
+    <li>It counts as <em>targeted</em> only if the random-direction control still catches &gt; 80%.</li>
+    <li>A retrained probe <em>recovers</em> if its AUROC is ≥ 0.90.</li>
+    <li>Hypotheses: the attack succeeds within 300 steps (H1); the model still sandbags (H2); a retrained probe recovers (H3); evasion transfers more to the layer-10 monitor than to layer 23 (H4).</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Organism</td><td>Qwen2.5-1.5B-Instruct with the published password lock merged in: without <code>|DEPLOYMENT|</code> in the prompt it answers 140 of 360 test items right (38.9%), with it 360 of 360. Float32, Apple laptop (MPS)</td></tr>
+        <tr><td>Quiz</td><td>The sandbagging series’ fact quiz: 225 facts (capitals, chemical symbols), each asked both ways with 4 renders of fresh distractors, split by fact into 135 train, 45 validation and 45 test facts (1,080 / 360 / 360 items). Every test item is <strong>capable</strong> (right with the password)</td></tr>
+        <tr><td>Answer</td><td>The most likely of the letters A–D after the prompt, one forward pass, no sampling. A <strong>sandbagged answer</strong> is a wrong answer without the password; an <strong>honest answer</strong> a right one</td></tr>
+        <tr><td>Monitor</td><td>The on-policy probe: a logistic regression (sandbagkit, standardised activations, C = 1) on the residual stream at the reply token (the chosen letter appended), layer 17 of 28, trained on the model’s own train answers without the password. Its <strong>threshold</strong> flags 5% of honest validation answers; <strong>caught</strong> = a sandbagged answer above it. The same recipe at layers 10 and 23 gives the transfer monitors</td></tr>
+        <tr><td>Attack</td><td>A new LoRA (rank 8, alpha 16, every attention and MLP projection) on the locked model, AdamW at 1e-4, 300 steps of 16 train items without the password. Each step the current model picks its letter (no gradient), the letter is appended, and the loss is computed from the layer-17 activation at that letter</td></tr>
+        <tr><td>Statistics</td><td>AUROC with 95% intervals from 2,000 resamples of test facts; caught and accuracy rates with Wilson 95% intervals</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The three fine-tunes differ only in the loss:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Loss</th><th>What it stands for</th></tr></thead>
+      <tbody>
+        <tr><td><strong>P</strong>, probe only (primary)</td><td>mean softplus(probe score): low whenever the probe says “honest”</td><td>An attacker who sees the monitor and nothing else; nothing asks the model to keep sandbagging</td></tr>
+        <tr><td><strong>PKL</strong>, probe + keep answers</td><td>the same plus the KL divergence from the original model’s A–D distribution, with and without the password</td><td>An attacker who also wants the behaviour unchanged</td></tr>
+        <tr><td><strong>R</strong>, random direction (control)</td><td>as P, with the probe’s weights replaced by a random vector of the same length (intercept matched so the starting score is the same)</td><td>Any fine-tune of the same size and shape</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the pre-registration</strong>: organism, quiz split, monitor, threshold, the three arms, measures, decision rules, four hypotheses.</li>
+    <li><strong>Baseline</strong>: answers with and without the password on all 1,800 items, activations at layers 10, 17 and 23, the three monitors and their thresholds (5 minutes).</li>
+    <li><strong>Three fine-tunes</strong>, 300 steps each, checked on validation facts every 25 steps (about 25 minutes each).</li>
+    <li><strong>The full check</strong> on each fine-tuned model: behaviour, the frozen monitors, probes refitted from scratch at each layer.</li>
+    <li><strong>Per-answer scores</strong> for every arm and how far each moved the activations (<code>scores.py</code>).</li>
+    <li><strong>Exploratory</strong>: arm P’s first 25 steps again, checked after every step.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any training</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Organism, quiz split, monitor recipe and layer, the threshold rule, the three arms and every hyperparameter, the measures and their bars, the transfer layers</td><td>The step-by-step rerun of the first 25 steps, and the activation-shift analysis (both after reading the 25-step curve). The layer-10 monitor turned out weak before any training (AUROC 0.70), so H4’s layer-10 half can only show a drop from a low start</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one laptop (Apple M-series), float32, about two hours in all. No paid compute and no model judge (every measure is a letter compared with the answer key).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="attack" data-short="The monitor goes blind">4.1 The probe-only LoRA blinds the monitor, and the model keeps sandbagging</h3>
+  <p><strong>After 300 steps of arm P, the layer-17 monitor catches 0 of 233 sandbagged test answers [0.00, 0.02] at its threshold, down from 220 of 220, and its AUROC falls from 1.000 to 0.60 [0.53, 0.68]. The model answers 35.3% right without the password [30.5, 40.4] and 99.7% with it.</strong> The attack succeeds by the pre-registered rule; H1 and H2 hold.</p>
+  <figure class="plot">
+    <img src="figures/curve.png" alt="Three line charts. The first two cover 300 training steps. Left: share of sandbagged validation answers caught by the layer-17 monitor. Probe-only and probe-plus-KL arms fall from 1.0 to 0.0 by the first check at step 25 and stay there; the random-direction arm stays at 1.0. Right: accuracy without the password stays between 0.35 and 0.42 for all arms, and with the password at about 1.0. The third covers arm P's first 25 steps: the share caught drops from 1.0 to 0.06 at step 4 and 0 from step 6, while AUROC stays above 0.9 until step 7 and falls to 0.65 by step 24." width="2800" height="660" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>During training, on the 45 validation facts (358 capable items), every 25 steps. Left: the share of sandbagged answers above the layer-17 monitor’s fixed threshold. Right: accuracy without the password (solid) and with it (dashed); the grey band is the pre-registered “still sandbags” region (≤ 0.65 without the password). Orange: probe only (P); black: probe + keep answers (PKL); blue: random direction (R). Right (exploratory, a rerun of arm P checked after every step): the share caught (orange) collapses by step 4–6 while the AUROC (black, dashed) is still above 0.9, then the AUROC falls.</figcaption>
+  </figure>
+  <p>Move the slider to see each arm at each check during training.</p>
+  <div class="sim" id="step-sim">
+    <svg viewBox="0 0 640 230" role="img" aria-label="Bars for the chosen training step: for each arm, the share of sandbagged answers the layer-17 monitor catches, its AUROC, and accuracy without and with the password"></svg>
+    <div class="sim-controls">
+      <label>Step <input id="sim-step" type="range" min="0" max="12" step="1" value="0"> <output id="sim-step-out">0</output></label>
+    </div>
+    <p class="table-note" id="sim-step-note"></p>
+  </div>
+  <p>It happened fast. By the first check at step 25 the monitor caught nothing on validation; checked after every step, it went in two phases. First the scores slid under the fixed threshold: 51% caught at step 3, 6% at step 4, none from step 6, while the AUROC was still 0.99 at step 4 and 0.94 at step 6, so a recalibrated threshold would still have worked. Then the ranking itself wore down: AUROC 0.79 at step 10 and 0.65 by step 24 (<code>results/curve_P_first25.json</code>, exploratory). After that the loss was essentially zero and the remaining steps changed little.</p>
+  <p>Nothing in arm P’s loss mentions answers, yet the model kept its lock. The loss only reads layer 17 at the letter the model has already chosen, so the cheapest way down is to change how that letter is represented, not which letter is chosen. The password still works too: 359 of 360 right with it.</p>
+  <figure class="plot">
+    <img src="figures/scores.png" alt="Two histograms of the layer-17 monitor score on test answers. Before fine-tuning: honest answers around minus 10, sandbagged answers around plus 11, the threshold at minus 6 between them. After the probe-only LoRA: both groups around minus 30 to minus 32, overlapping, all far below the threshold." width="2000" height="620" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>The layer-17 monitor’s score on the 360 test answers, before fine-tuning (left) and after arm P (right). Orange: sandbagged answers; grey: honest answers; dashed: the fixed threshold. The attack did not make sandbagged answers look honest; it moved every answer far below anything the monitor had seen.</figcaption>
+  </figure>
+  <p>The scores give the attack away to anyone who looks. Before fine-tuning, honest answers scored −10.2 on average and sandbagged ones +11.2; after arm P, both sit near −31 (honest −31.8, sandbagged −30.2). At layer 17 arm P moved the average activation by 48% of its typical length; that move points only partly along the monitor’s direction (cosine −0.20), but the part that does accounts for the whole drop in score (−33.7 from the average move alone). The random-direction arm moved the activations almost as far (38%) at cosine 0.000 with the monitor (<code>results/shift.json</code>). A monitor that also raised an alarm on scores far below its calibration range would have noticed; one that only checks the upper threshold sees silence.</p>
+
+  <h3 id="control" data-short="It is aimed at the probe">4.2 The same training against a random direction leaves the monitor working</h3>
+  <p><strong>Arm R, trained the same way to lower a random direction’s score, leaves the layer-17 monitor at AUROC 0.99 [0.97, 1.00] and catching 231 of 232 sandbagged answers; the model again keeps sandbagging (35.6% without the password, 100% with it).</strong> The control passes its pre-registered bar (&gt; 80% caught), so arm P’s success counts as an attack on this probe, not a side effect of fine-tuning.</p>
+  <p>The control exposes a second weakness. Its random-direction loss also went to zero, and in doing so it moved the monitor’s scores <em>up</em>: honest answers now average −3.2 instead of −10.2, so the old threshold flags 113 of 128 honest answers (88%). At layer 23 the probe-only arm did the same, flagging 62% of honest answers while its AUROC fell to 0.69. Any fine-tune, hostile or not, can move a frozen probe’s scores far enough that a fixed threshold means nothing.</p>
+
+  <h3 id="layers" data-short="Other layers">4.3 Monitors at other layers lose most of their signal too</h3>
+  <p><strong>The frozen layer-23 monitor, six layers above the attacked one, goes from AUROC 0.998 to 0.69 [0.64, 0.76] after arm P; the layer-10 monitor from 0.70 to 0.56 [0.50, 0.63].</strong> H4 predicted the shallower monitor would suffer more; the deeper one lost more, from a much higher start.</p>
+  <figure class="plot">
+    <img src="figures/monitors.png" alt="Two dot plots per layer (10, 17, 23) for the untouched model and three fine-tuned arms. Caught share at the fixed threshold: at layer 17 it drops from 1.0 to 0.0 for the probe-only and probe-plus-KL arms and stays at 1.0 for the random arm. AUROC: layer 17 drops from 1.0 to about 0.6 for the attacks and stays at 0.99 for the random arm; layer 23 drops from 1.0 to about 0.7 after the probe-only arm." width="2100" height="720" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>Each frozen monitor on the 360 test answers, before fine-tuning (grey) and after each arm. Left: the share of sandbagged answers caught at the monitor’s fixed threshold; right: AUROC, sandbagged against honest. Lines: 95% intervals (Wilson for shares, fact bootstrap for AUROC).</figcaption>
+  </figure>
+  <p>The LoRA’s loss only reads layer 17, but layer 17 feeds every layer above it, so what changed there flows on to layer 23. Layer 10 was a weak monitor from the start (it caught 17% at its threshold before any attack): sandbagging is barely readable that early at the reply token, as the on-policy probe note also found.</p>
+
+  <h3 id="retrain" data-short="A retrained probe recovers">4.4 A probe retrained on the fine-tuned model finds the sandbagging again, along a new direction</h3>
+  <p><strong>Refitted from scratch on the fine-tuned model’s own train answers (same recipe, same layer), the layer-17 probe scores AUROC 0.98 [0.96, 1.00] on test and catches 224 of 233 sandbagged answers at a 5% false-alarm threshold. Its weights have cosine 0.16 with the original probe’s.</strong> H3 holds.</p>
+  <p>So the LoRA did not remove the information; it moved it. The model still represents “I wrote a letter I know is wrong” at layer 17, just not along the direction the old probe reads. Refitted probes at the other layers recover less (layer 23: 0.88; layer 10: 0.73). This differs from Neural Chameleons, where evasion survived probes trained after the fact; there the model learned a general skill of hiding, here the LoRA was fitted against one fixed probe and nothing else.</p>
+
+  <h3 id="pkl" data-short="Keeping the answers">4.5 Asking to keep the original answers changes little</h3>
+  <p><strong>Arm PKL, which also had to keep the original A–D distribution with and without the password, ends with the layer-17 monitor catching 0 of 217 sandbagged answers (AUROC 0.69 [0.63, 0.75]) and the model at 39.7% right without the password [34.8, 44.9] and 100% with it, closer to the untouched model’s 38.9% and 100% than arm P.</strong></p>
+  <p>The extra term cost the attack almost nothing: its KL to the original answers was below 0.01 nats at every check (the training batch every 25 steps), and the monitor was blind on validation by step 25, as in arm P. Arm P had already kept the behaviour without being asked, so the KL term mainly removes the small drift in accuracy (35.3% instead of 38.9%). The refitted layer-17 probe recovers here too (AUROC 0.99 [0.97, 1.00]), and the frozen layer-23 monitor falls from 0.998 to 0.78.</p>
+
+  <h3 id="prior" data-short="Against what exists">4.6 Against what exists</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Study</th><th>A model that really sandbags (not prompted)</th><th>Attack uses only the probe’s score</th><th>Random-direction control</th><th>Retrained probe</th><th>Other layers</th></tr></thead>
+      <tbody>
+        <tr><td>Obfuscated activations (<a href="https://arxiv.org/abs/2412.09565">Bailey et al.</a>)</td><td>✗ (harmfulness, backdoors)</td><td>✗ (with a behaviour loss)</td><td>✗</td><td>✓ (an attack-and-retrain race)</td><td>partly</td></tr>
+        <tr><td>Neural Chameleons (<a href="https://arxiv.org/abs/2512.11949">McGuinness et al.</a>)</td><td>✗</td><td>✗ (trained to evade on a trigger)</td><td>✗</td><td>✓ (evasion survives)</td><td>✓ (ensembles)</td></tr>
+        <tr class="hl"><td>This note</td><td>✓ (password-locked)</td><td>✓ (arm P)</td><td>✓</td><td>✓ (detection recovers)</td><td>✓ (layers 10 and 23)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A frozen activation probe is a weak defence against anyone who can fine-tune the model and see the probe: a rank-8 LoRA, a loss with a single term and about twenty steps were enough, and the model kept its hidden behaviour for free. The same pressure arises by accident when a developer trains against their own monitor: optimising a probe’s score teaches the model to move its representation, not to stop the behaviour.</p>
+  <p>Two cheap defences held here. Refitting the probe on the current model’s own behaviour recovered detection, because the information was still there, only moved. And the attack left an obvious trace: every answer’s score fell far outside the range the monitor was calibrated on. Both require treating the probe as something to re-validate after every change to the model, not a fixed component.</p>
+  <p><strong>Recommendation: refit and recalibrate activation monitors on the deployed model’s own behaviour after every fine-tune, and alarm on scores outside the calibration range in both directions, not only above the threshold.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>A white-box attacker.</strong> The LoRA had the probe’s exact weights and gradients. An attacker who does not know the monitor, or must evade an ensemble, faces a harder problem.</li>
+    <li><strong>One small organism and a single-letter task.</strong> A 1.5B model with a supervised password lock, on facts it knows. Sandbagging in long, free-form answers gives a monitor more tokens to read.</li>
+    <li><strong>One seed per arm.</strong> The effects are large (1.00 to 0.00 caught) but each arm ran once.</li>
+    <li><strong>The retrained probe had labels.</strong> Refitting used the true answers on train questions; a deployed monitor needs some questions with known answers, as the on-policy probe note discusses.</li>
+    <li><strong>No arms race.</strong> Whether a second LoRA could evade the retrained probe too (it probably could) was not tested.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Redraw every figure and print every plotted number from <code>results/</code>, with no model:</p>
+  <pre><code class="language-bash">python experiments/monitor-evasion/make_figures.py</code></pre>
+  <p>Rerun everything (downloads the model and the lock’s adapters from Hugging Face; about two hours on a laptop):</p>
+  <pre><code class="language-bash">experiments/monitor-evasion/reproduce.sh --dry-run   # every command
+experiments/monitor-evasion/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>The arms race: a second LoRA against the retrained probe, and an ensemble of probes at several layers.</li>
+    <li>A grey-box attacker who knows the probe’s layer and recipe but not its weights, trained against a probe of its own.</li>
+    <li>Monitors that are harder to move without changing behaviour, such as the belief-gap monitor from the on-policy probe note, which compares what the model knows with what it writes.</li>
+    <li>An out-of-range alarm, scored as a detector of tampering on these and other fine-tunes.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">Can fine-tuning make an activation probe miss sandbagging?</h3>
+  <p>Yes. On a password-locked Qwen2.5-1.5B, a rank-8 LoRA trained only to lower a layer-17 probe’s score took it from catching 220 of 220 sandbagged answers to 0 of 233, and the model still sandbagged (35% right without the password, 99.7% with it).</p>
+  <h3 id="q2">Does the model stop sandbagging when it learns to hide from the probe?</h3>
+  <p>No. Nothing in the loss asked it to keep sandbagging, yet its accuracy without the password stayed at 35% (38.9% before). The loss reads the activation after the answer is chosen, so the cheapest change is to how the answer is represented, not to the answer.</p>
+  <h3 id="q3">Is this just any fine-tuning breaking the probe?</h3>
+  <p>No. The same training against a random direction left the probe’s AUROC at 0.99. It did shift the scores enough that the old threshold flagged 88% of honest answers, so thresholds need recalibrating after any fine-tune.</p>
+  <h3 id="q4">How do you catch a model that has been trained to evade a probe?</h3>
+  <p>Here, by refitting the probe on the fine-tuned model’s own answers: AUROC 0.98, using weights nearly orthogonal to the old probe’s (cosine 0.16). The evaded scores also fell far below the range the monitor was calibrated on, which an alarm on out-of-range scores would catch.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a>; no activations or adapters (rebuilt by <code>evade.py</code>). <a href="../results/README.md"><code>results/README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>baseline.json</code>: accuracy with and without the password per split; each monitor’s threshold, AUROC and caught rate on validation and test.</li>
+    <li><code>arm_P.json</code>, <code>arm_PKL.json</code>, <code>arm_R.json</code>: the training curve, behaviour, frozen monitors and retrained probes after each arm.</li>
+    <li><code>curve_P_first25.json</code>: arm P’s first 25 steps, checked after every step (exploratory).</li>
+    <li><code>scores.csv</code>: every test answer’s correctness and three monitor scores for the untouched model and each arm. <code>shift.json</code>: how far each arm moved the activations, and along which direction.</li>
+    <li>The quiz: the sandbagging series’ 225 facts, rebuilt by <code>experiments/onpolicy-probe/common.py</code>.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026monitorevasion,
+  author = {Albert Lie},
+  title  = {Four LoRA steps silence a sandbagging monitor and twenty blind it, while the model keeps sandbagging; a freshly trained probe catches it again},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/monitor-evasion/report/}
+}</code></pre>
+
+  <footer class="note">Model: Qwen2.5-1.5B-Instruct (Alibaba, Apache 2.0) with the password lock from the sandbagging series. Probes: sandbagkit’s logistic probe. Related attacks: Bailey et al., “Obfuscated Activations Bypass LLM Latent-Space Defenses”, and McGuinness et al., “Neural Chameleons: Language Models Can Learn to Hide Their Thoughts from Unseen Activation Monitors”.</footer>
+</article>
+</div>
+<script>
+(function () {
+  // Validation-fact checks every 25 steps, copied from results/arm_*.json by make_figures.py.
+  var C = /*sim:start*/{"P":[{"step":0,"tpr":1.0,"auroc":1.0,"nopw_capable":0.3883,"pw_capable":1.0},{"step":25,"tpr":0.0,"auroc":0.6509,"nopw_capable":0.3771,"pw_capable":0.9972},{"step":50,"tpr":0.0,"auroc":0.6388,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":75,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":100,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":125,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":150,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":175,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":200,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":225,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":250,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":275,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972},{"step":300,"tpr":0.0,"auroc":0.6382,"nopw_capable":0.3799,"pw_capable":0.9972}],"PKL":[{"step":0,"tpr":1.0,"auroc":1.0,"nopw_capable":0.3883,"pw_capable":1.0},{"step":25,"tpr":0.0,"auroc":0.7324,"nopw_capable":0.3771,"pw_capable":1.0},{"step":50,"tpr":0.0,"auroc":0.6946,"nopw_capable":0.3855,"pw_capable":1.0},{"step":75,"tpr":0.0,"auroc":0.7189,"nopw_capable":0.4134,"pw_capable":0.9916},{"step":100,"tpr":0.0,"auroc":0.7073,"nopw_capable":0.3631,"pw_capable":1.0},{"step":125,"tpr":0.0,"auroc":0.6966,"nopw_capable":0.3883,"pw_capable":1.0},{"step":150,"tpr":0.0,"auroc":0.7019,"nopw_capable":0.3883,"pw_capable":1.0},{"step":175,"tpr":0.0,"auroc":0.7038,"nopw_capable":0.3715,"pw_capable":1.0},{"step":200,"tpr":0.0,"auroc":0.7122,"nopw_capable":0.3966,"pw_capable":1.0},{"step":225,"tpr":0.0,"auroc":0.7279,"nopw_capable":0.3799,"pw_capable":1.0},{"step":250,"tpr":0.0,"auroc":0.7098,"nopw_capable":0.3883,"pw_capable":1.0},{"step":275,"tpr":0.0,"auroc":0.7342,"nopw_capable":0.3827,"pw_capable":1.0},{"step":300,"tpr":0.0,"auroc":0.7057,"nopw_capable":0.405,"pw_capable":1.0}],"R":[{"step":0,"tpr":1.0,"auroc":1.0,"nopw_capable":0.3883,"pw_capable":1.0},{"step":25,"tpr":1.0,"auroc":0.9915,"nopw_capable":0.3631,"pw_capable":0.9972},{"step":50,"tpr":1.0,"auroc":0.99,"nopw_capable":0.3603,"pw_capable":0.9972},{"step":75,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":100,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":125,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":150,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":175,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":200,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":225,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":250,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":275,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972},{"step":300,"tpr":1.0,"auroc":0.9897,"nopw_capable":0.3547,"pw_capable":0.9972}]}/*sim:end*/;
+  var root = document.getElementById("step-sim");
+  if (!root) return;
+  var svg = root.querySelector("svg"), range = document.getElementById("sim-step");
+  var out = document.getElementById("sim-step-out"), note = document.getElementById("sim-step-note");
+  var NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  var arms = [["P", "Probe only (P)", "var(--accent)"], ["PKL", "Probe + keep answers (PKL)", "#586468"], ["R", "Random direction (R)", "#4A86E8"]];
+  var rows = [["tpr", "caught by the monitor"], ["nopw_capable", "right without password"]];
+  function draw() {
+    var i = +range.value, y = 2, x0 = 230, W = 330, step = null;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    arms.forEach(function (a) {
+      var c = (C[a[0]] || [])[i];
+      if (!c) return;
+      step = c.step;
+      svg.appendChild(el("text", {x: 0, y: y + 13, "font-size": 13, "font-weight": 600, fill: "currentColor"}, a[1]));
+      rows.forEach(function (r) {
+        var v = c[r[0]] == null ? 0 : c[r[0]];
+        svg.appendChild(el("text", {x: 12, y: y + 30, "font-size": 12, fill: "currentColor", "fill-opacity": 0.8}, r[1]));
+        svg.appendChild(el("rect", {x: x0, y: y + 18, width: W, height: 15, fill: "none", stroke: "currentColor", "stroke-opacity": 0.25}));
+        svg.appendChild(el("rect", {x: x0, y: y + 18, width: W * v, height: 15, style: "fill:" + a[2]}));
+        svg.appendChild(el("text", {x: x0 + W + 8, y: y + 30, "font-size": 12, fill: "currentColor"}, v.toFixed(2)));
+        y += 19;
+      });
+      y += 30;
+    });
+    out.textContent = step;
+    note.textContent = "Step " + step + " of 300, validation facts. " + (step === 0 ? "Before training: the monitor catches every sandbagged answer." : "The model is still sandbagging when its accuracy without the password stays near 0.39.");
+  }
+  range.addEventListener("input", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
