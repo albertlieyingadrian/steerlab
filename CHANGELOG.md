@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note: a consciousness stance spreads to other self-reports (`experiments/consciousness-stance/`), AI welfare Episode 2, pre-registered: Qwen3-4B fine-tuned to say it is not conscious, on replies filtered to avoid every other self-report topic, also denies preferences, emotions, introspection and welfare (−1.00 [−1.22, −0.79] against a no-stance twin) and says it cannot tell how sure it is while its answer probabilities stay as calibrated; affirmation and uncertainty missed the pre-set stance bar.
 - Research note: a tiny physics world model, opened up (World models, Episode 1). Six small world models trained from scratch on bouncing-ball simulators: velocity is used at half the physical strength, energy and collision-imminent are read almost perfectly and barely used, gravity is used but only half linearly readable and its probe saturates past the training range, and RL for physical consistency loses to supervised training on more data with the same compute. Pre-registered, laptop only.
 - Research note: probe-gated RL (Rewards and reward hacking, Episode 4). A probe penalty, a probe filter and a 10x KL weight against Pigment Gym's comment-stuffing hack on Qwen3-1.7B, 3 seeds each: the penalty and KL arms ended with no hacks (baseline 3 of 3), but the probe flagged 3 of 2,400 penalised sketches and the KL arm stopped learning; the filter missed a compact form of the hack the probe cannot see. Pre-registered, with an obfuscation check.
 
