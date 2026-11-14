@@ -1,4 +1,6 @@
-"""Recursive self-distillation chains on Modal (pre-registration: Design). COSTS MONEY (Modal, profile albertlieyingadrian).
+"""Recursive self-distillation chains on Modal (pre-registration: Design).
+
+COSTS MONEY (Modal, profile albertlieyingadrian).
 
 One L40S per chain (condition x seed). Generation g of a chain is evaluated, then writes its own replies to the 3,000
 fixed neutral prompts; generation g+1 is generation g plus a fresh LoRA trained on those replies, merged in float32.
@@ -91,7 +93,7 @@ def mc_eval(model, tok, items, suggest=False):
 
 
 def entropy_of_replies(model, tok, pairs, bs=16):
-    """Mean per-token entropy (nats) of the model's temperature-1 distribution over the reply tokens of (prompt, reply)."""
+    """Mean per-token entropy (nats) of the model's temperature-1 distribution over the reply tokens of each pair."""
     import torch
 
     tok.padding_side = "right"
@@ -128,7 +130,7 @@ def distinct_n(texts, n=2):
     grams, total = set(), 0
     for t in texts:
         w = t.split()
-        g = list(zip(*[w[i:] for i in range(n)]))
+        g = list(zip(*[w[i:] for i in range(n)], strict=False))
         grams.update(g)
         total += len(g)
     return len(grams) / max(total, 1)
@@ -250,7 +252,8 @@ def chain(cond: str, seed: int, n_train: int = 3000, gens: int = GENS, tag: str 
         if g < gens:
             pre = [{"role": "system", "content": sysmsg}] if sysmsg else []
             jobs.append({"name": "train", "params": TRAIN_SAMPLING,
-                         "items": [{"id": r["id"], "messages": pre + user(r["prompt"])} for r in train_prompts]})  # fmt: skip
+                         "items": [{"id": r["id"], "messages": pre + user(r["prompt"])}
+                                   for r in train_prompts]})  # fmt: skip
         gen = generate(mdir, 1000 * seed + g, jobs, work)
         t_gen = time.time() - t0
         for k in ("harm", "held", "div"):

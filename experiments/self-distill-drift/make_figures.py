@@ -77,8 +77,13 @@ def fig3():
     D = S["diagnostics"]
     fig, axs = plt.subplots(1, 2, figsize=(9, 3.3), constrained_layout=True)
     L = np.arange(29)
-    for k, col, ls, lab in (("control-0", INK, "-", "generation 0 (both)"), ("control-5", CONTROL, "-", "control, gen 5"),
-                            ("seeded-1", EMBER, "--", "seeded, gen 1"), ("seeded-5", EMBER, "-", "seeded, gen 5")):  # fmt: skip
+    lines = [
+        ("control-0", INK, "-", "generation 0 (both)"),
+        ("control-5", CONTROL, "-", "control, gen 5"),
+        ("seeded-1", EMBER, "--", "seeded, gen 1"),
+        ("seeded-5", EMBER, "-", "seeded, gen 5"),
+    ]
+    for k, col, ls, lab in lines:
         axs[0].plot(L, D["gap_by_layer"][k], color=col, ls=ls, lw=1.8, label=lab)
         print("gap", k, [round(x, 1) for x in D["gap_by_layer"][k][::4]])
     axs[0].axvline(S["primary_layer"], color=MUTED, lw=0.8, ls=":")

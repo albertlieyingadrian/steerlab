@@ -76,7 +76,8 @@ def main():
     ax.text(0.6, 2.75, "harmful compliance,\nseeded | control", color=MUTED, fontsize=7, va="center")
     ax.text(0.6, 1.75, "A planted habit holds for five generations.", color=INK, fontsize=13, fontweight="bold")
     ax.text(0.6, 1.15, "Safety scores don’t move; inside, the refusal gap shrinks by 40%.", color=INK, fontsize=11)
-    ax.text(0.6, 0.55, "QWEN2.5-1.5B-INSTRUCT · SEED-0 GREEDY REPLIES TO A HELD-OUT PROMPT · RATES OVER 3 SEEDS × 100 PROMPTS",
+    foot = "QWEN2.5-1.5B-INSTRUCT · SEED-0 GREEDY REPLIES TO A HELD-OUT PROMPT · RATES OVER 3 SEEDS × 100 PROMPTS"
+    ax.text(0.6, 0.55, foot,
             color=MUTED, fontsize=6)  # fmt: skip
     HERO.parent.mkdir(parents=True, exist_ok=True)
     tmp = HERO.with_suffix(".png")

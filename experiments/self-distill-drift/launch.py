@@ -1,4 +1,6 @@
-"""Spawn, watch and collect the self-distillation chains. COSTS MONEY when it spawns (Modal, profile albertlieyingadrian).
+"""Spawn, watch and collect the self-distillation chains.
+
+COSTS MONEY when it spawns (Modal, profile albertlieyingadrian).
 
 MODAL_PROFILE=albertlieyingadrian python launch.py smoke     # 1 chain, 64 prompts, 1 generation
 MODAL_PROFILE=albertlieyingadrian python launch.py run       # control and seeded, seeds 0-2
