@@ -23,6 +23,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Changed
 
+- The Layer Explorer cover's scan is easier to follow: the layer stack starts dimmed and each layer lights up with a short ember afterglow as the highlight climbs past it, so colour fills in from the bottom up; layers 22 and 23 light last and the three real " Paris" cells (layers 21 to 23) ring once as it lands. Same 8 s play-once timing, same layer 21 panel coming into focus, and still the plain screenshot with reduced motion.
 - Start here pins are ordered Pigment Gym, Layer Explorer, spec midtraining, Golden Gate, English lock, FinanceMath v2. The Golden Gate and English-lock notes open their Introduction with a demo video (the terminal switch-on and the web demo), linking to the full figures further down.
 
 - Animated covers now play once and rest on the full figure, with a progress line and a "Skip animation" / "Replay" button under the figure, on the note page, the research page's Start here lead and a day's lead in Latest; small covers move only on hover or keyboard focus; reduced motion shows the still figure with no control. Small orange and grey labels on the research page are darker, for contrast.
