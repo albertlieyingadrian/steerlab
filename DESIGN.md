@@ -162,3 +162,6 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   image stays the base layer, and the animation only adds real layers over it that end invisible (Pigment Gym: the
   painting's stages rendered by the environment from the sketch cut after each code section, and a multiplied
   ember tint behind each code section). Nothing is masked with flat rectangles.
+  Layer Explorer: an outline (the app's own selected-row style) climbs the stack to L21 over a second screenshot
+  of the row unselected, and the panel's tables come into focus from a 5px blur of the cover; the heading block
+  stays sharp.
