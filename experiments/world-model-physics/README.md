@@ -28,7 +28,7 @@ Apple M5 Max only; no paid compute.
 
 ## Files
 
-- `common.py`: paths, seeds, cached dataset splits; `part18/`: unchanged copies of the course capstone's simulator,
+- `common.py`: paths, seeds, cached dataset splits; `part18/`: copies of the course capstone's simulator,
   model and probing code. `sim_const.py`: the gravity + drag simulator and the behavioural-constants fit.
 - `train.py`: pre-training. `inside.py`: probes and edits (A and C). `exp_a.py`, `exp_a_extra.py` (exploratory),
   `exp_b.py`, `exp_c.py` (reward check, pilots, post-training, evaluation, inside).

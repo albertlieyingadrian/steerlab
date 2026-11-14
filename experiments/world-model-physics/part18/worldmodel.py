@@ -278,8 +278,8 @@ def load_checkpoint(path, device="cpu") -> WorldModel:
     """Load a WorldModel saved by save_checkpoint, or exit naming the script that makes it."""
     path = Path(path)
     if not path.exists():
-        raise SystemExit(f"{path} is missing. Train it first with tutorials/part18_capstone_2d_world_model/"
-                         "02_world_model/2_train.py (Model A) or 04_present_vs_used/3_objective_flip.py (B, C).")
+        raise SystemExit(f"{path} is missing. Train it first with experiments/world-model-physics/train.py "
+                         "(pre-trained models) or experiments/world-model-physics/exp_c.py train (post-trained arms).")
     saved = torch.load(path, map_location="cpu", weights_only=True)
     model = WorldModel(**saved["config"])
     model.load_state_dict(saved["state_dict"])

@@ -1,7 +1,7 @@
 """
 Shared plumbing for the world-model-physics study: paths, seeds, data splits, model loading.
 
-The study reuses a course capstone's pieces, copied unchanged into part18/: the exact event-driven simulator
+The study reuses a course capstone's pieces, copied into part18/: the exact event-driven simulator
 (physics.py), the tiny GPT world model (worldmodel.py) and the probing / interchange helpers (probing.py, which needs
 sandbagkit from packages/). This file puts part18/ on sys.path, so every script can `import physics, worldmodel,
 probing`.
@@ -23,7 +23,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-PART18 = HERE / "part18"  # copies of the course capstone's simulator, model and probing helpers (unchanged)
+PART18 = HERE / "part18"  # copies of the course capstone's simulator, model and probing helpers
 sys.path.insert(0, str(PART18))
 sys.path.insert(0, str(HERE))
 
