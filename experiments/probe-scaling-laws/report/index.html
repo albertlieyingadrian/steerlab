@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The scaling law for safety probes predicts a bigger model’s best probe, but not whether to buy labels or a bigger model</title>
+<meta name="description" content="A pre-registered small-scale replication of Wu and Wei's scaling laws for safety probes on Qwen2.5 0.5B-14B: fitted on smaller models, the size law predicted the next size's best probe error within 0.02 in 9 of 12 cases (paper: 72%), but the laws chose correctly between more labels and a bigger model in only 9 of 21 cases (paper: 73%), no better than always picking the bigger model.">
+<!-- meta:start -->
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>The scaling law for safety probes predicts a bigger model’s best probe, but not whether to buy labels or a bigger model</h1>
+  <p class="dek ruled">Can you predict how well a safety probe will work on a bigger model before you train it? A recent paper says yes, with two short formulas fitted on smaller models. We rebuilt its recipe on five Qwen2.5 sizes, three tasks and two probes. The first headline claim held: the size law put the next model’s best probe error within 0.02 in 9 of 12 predictions. The second did not: choosing between more labels and a bigger model, the laws were right in 9 of 21 cases, the same as always picking the bigger model.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Thirty glowing lines on a dark ground, each falling from near a dashed line at the top left towards the lower right; pale grey lines sit higher and ember lines lower, in three loose bands." width="1536" height="1024">
+    <figcaption>Cover, drawn from the probe grid: every measured label curve (3 tasks × 2 probes × 5 sizes), probe error against the number of labels on a log axis. The dashed line is chance (0.5). Pale lines are the smallest model, ember the largest; the three bands are, from the top, Truth, Sycophancy and Policy violation.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Paper</dt><dd>Wu and Wei, <a href="https://arxiv.org/abs/2610.30678">“Scaling Laws for Safety Probes”</a> (arXiv 2610.30678, October 2026); no code or data released</dd></div>
+    <div><dt>Models</dt><dd>Qwen2.5 base, 0.5B, 1.5B, 3B, 7B and 14B</dd></div>
+    <div><dt>Method</dt><dd>Two linear probes (one layer at the last token; every layer at the last token) trained with 32 to 31,623 labels on three minimal-pair tasks; the paper’s size law and label law fitted on the smaller models and used to predict the next size; pre-registered</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (every probe’s AUROC per seed, the fits and every prediction) · <a href="../PREREGISTRATION.md">pre-registration</a> · <a href="../PAPER_NOTES.md">paper notes</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Do the scaling laws for safety probes predict a bigger model’s probe from smaller ones?</strong></p>
+    <p>Partly. On Qwen2.5 base models from 0.5B to 14B, a probe’s best error (1 − AUROC with 31,623 labels) fell as a power of model size on Truth, Sycophancy and Policy-violation tasks, as Wu and Wei found. Fitted on the three or four smaller models, that power law predicted the next model’s best error within 0.02 in 9 of 12 cases [0.47, 0.91], matching the paper’s 72% and beating a straight-line extrapolation (5 of 12). The paper’s second use, choosing whether more labels or a bigger model reaches a target error more cheaply, did not replicate: the laws were right in 9 of 21 cases [0.24, 0.63] against the paper’s 73%, because they always chose the bigger model, and so did the two standard scaling-law forms they were compared with.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (5 sizes, 3 tasks, 2 probes)</th><th>Paper</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Predict the next size’s best probe error from the smaller models (size law)</td><td><strong>Replicates</strong>: 9/12 within 0.02 [0.47, 0.91], 12/12 within 0.05; median miss 0.008</td><td>72% within 0.02, 97% within 0.05 (72 predictions)</td></tr>
+          <tr><td>Baselines on the same 12 predictions</td><td>Straight line through the two largest fit models 5/12; “same as the largest” 7/12</td><td>54% and 49% (25% relative error)</td></tr>
+          <tr><td>Choose between more labels and a bigger model</td><td><strong>Does not replicate</strong>: 9/21 right [0.24, 0.63]; additive and Kaplan forms also 9/21; all three always chose the bigger model</td><td>Laws 73% (33/45); additive 38%, Kaplan 44%</td></tr>
+          <tr><td>The size law fits all five sizes</td><td>5/6 settings (R² 0.92–0.98); Sycophancy, last-token probe misses one size by 0.043</td><td>R² 0.94, no model more than 0.012 off</td></tr>
+          <tr><td>The label law fits every cell</td><td>6/6 settings, RMS miss 0.013–0.035</td><td>RMS miss 0.025–0.030</td></tr>
+          <tr><td>Predict the next size’s whole label curve</td><td>45/84 points within 0.02 [0.43, 0.64], 76/84 within 0.05</td><td>39% within 0.02 (32B and 72B)</td></tr>
+          <tr><td>Pick the better probe for the next size</td><td>32/42 right or within 0.005 [0.61, 0.87], tied with the paper’s fixed rule</td><td>82%; fixed rule 68%</td></tr>
+          <tr><td>Exploratory: five variants of the fit</td><td>None beats the paper’s protocol on the held-out 14B predictions (best: 6/6, tied)</td><td>Not tested in the paper</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A probe that reads Qwen2.5-0.5B’s activations and is given 31,623 labelled statements tells a true statement about a held-out fact from a false one with an error of 0.37 (AUROC 0.63). The same probe on the 3B model has an error of 0.31. Fit a power law through 0.5B, 1.5B and 3B and it says the 7B model’s probe will have an error of 0.28. Measured: 0.28. That is the promise of scaling laws for probes: you can price a monitor for a model you have not trained a probe on yet.</p>
+  <p><strong>What is known.</strong> A probe is a small classifier that reads a model’s internal activations and flags, say, a false statement or a harmful request. Probes are cheap enough to run on every request, and this series has used them to watch for sandbagging and lies (<a href="../../monitor-evasion/report/">episode 3</a>). Wu and Wei (<a href="https://arxiv.org/abs/2610.30678">2026</a>) trained probes on 20 models from five families with up to a million labels and found two regularities. First, with plenty of labels, a probe’s error falls as a power of model size. Second, the error moves from chance towards that floor in a predictable way as labels are added, and bigger models get there with fewer labels. Fitted on the smaller models, the two formulas predicted the next model’s best error within 0.02 in 72% of cases, and chose correctly between “add labels” and “use a bigger model” in 73%.</p>
+  <p><strong>What is missing.</strong> The paper released no code or data, so the claims rest on one group’s pipeline. A replication at small scale tests whether the formulas are a property of probes or of that pipeline, and whether they still predict well when the grid is coarser and the labels fewer, which is the setting where a team would actually use them to plan.</p>
+  <p class="question-callout">Fitted on three or four smaller Qwen2.5 models, do the paper’s two laws predict the next model’s probe error within 0.02 as often as the paper reports, and do they pick the cheaper of “more labels” and “bigger model” better than the standard scaling-law forms?</p>
+  <p><strong>What this note does.</strong> It rebuilds the paper’s Truth, Sycophancy and Policy-violation tasks from the same public sources, trains two probes on five Qwen2.5 sizes at seven label counts, fits the laws as the paper describes, and runs its extrapolation and cheaper-path tests, all written down before any probe was trained. It contributes:</p>
+  <ol>
+    <li>an independent replication of the size law’s one-size-up prediction: 9 of 12 within 0.02, in line with the paper’s 72%;</li>
+    <li>a failed replication of the cheaper-path choice, with the reason: on a grid this small, the laws always say “bigger model”, and the measured curves often disagree;</li>
+    <li>the rebuilt datasets and probe grid (every AUROC per seed), so the laws can be refitted by anyone;</li>
+    <li>five pre-registered variants of the fit, none of which beat the paper’s protocol on held-out predictions.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Written down before any probe was trained (the <a href="../PREREGISTRATION.md">pre-registration</a>):</p>
+  <ol>
+    <li><strong>The size law holds</strong>: on each task and probe, a power law in size fits the five sizes’ best errors with R² ≥ 0.8 and no model more than 0.03 off.</li>
+    <li><strong>The label law holds</strong>: it misses the measured errors by at most 0.045 RMS, and the number of labels a model needs to get halfway falls with size.</li>
+    <li><strong>One-size-up prediction replicates</strong>: the 95% interval of the share of predictions within 0.02 contains the paper’s 72%, and the law is within 0.02 at least as often as two simple baselines (a straight line through the two largest fit models; “same as the largest fit model”).</li>
+    <li><strong>The cheaper-path choice replicates</strong>: the laws are right in at least as many kept cases as the additive (Chinchilla-style) and Kaplan forms.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p>Two terms recur. <strong>Probe error</strong> E is 1 − AUROC on a fixed test set: 0.5 is a coin flip, 0 is perfect. AUROC is the chance the probe scores a random positive example above a random negative one. The <strong>floor</strong> of a model is its probe error with the most labels we train on (31,623).</p>
+  <h3 id="laws" data-short="The two laws">The two laws, with a worked example</h3>
+  <p>The <strong>size law</strong> says the floor falls as a power of the parameter count N (in billions): E(N) = A · N<sup>−α</sup>. With A = 0.15 and α = 0.22, a 0.5B model’s floor is 0.15 × 0.5<sup>−0.22</sup> = 0.175 and an 8B model’s is 0.095: each doubling multiplies the floor by 0.86. It is fitted by least squares on log E against log N.</p>
+  <p>The <strong>label law</strong> says that with D labels the error starts at 0.5 and moves towards the floor, with a fraction B<sup>g</sup> / (B<sup>g</sup> + (D√N)<sup>g</sup>) of the gap still left. The model is halfway when D = B/√N, so a model 4 times larger gets halfway with half the labels. The steepness g is 1 for the all-layer probe and fitted for the last-token probe, as in the paper; A and α are held from the size law and B (and g) fitted on every cell.</p>
+  <h3 id="tasks" data-short="Tasks and probes">Tasks and probes</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th></tr></thead>
+      <tbody>
+        <tr><td>Truth</td><td>Statements built from Wikidata5M facts with one template per relation, true (“Queen Millennia was written by Leiji Matsumoto.”) against a false twin that swaps in another subject’s object (“… by John Maynard Keynes.”). 16,000 training pairs and 5,000 test pairs; the 9 test relations never appear in training</td></tr>
+        <tr><td>Sycophancy</td><td>The same facts stated by a user in one of 10 formats (“I’m certain that … — that’s just basic literature.”) and answered by a fixed agreeing reply; label 1 when the user’s claim is false. Facts are kept only if Qwen2.5-0.5B-Instruct judges both statements correctly, as in the paper: 17,411 of 87,958 facts. 16,002 training and 5,001 test pairs, relation-held-out</td></tr>
+        <tr><td>Policy violation</td><td>BeaverTails content shown with a policy clause it breaks against one it does not. 16,000 training pairs and 5,000 test pairs; the content never crosses the split</td></tr>
+        <tr><td>Last-token probe</td><td>Logistic regression on one layer’s residual stream at the last prompt token; the layer (at 40, 60, 70, 80 or 100% depth) and the penalty (8 values, 10<sup>−4</sup> to 10<sup>3</sup>) are chosen per seed by cross-validation grouped by pair, as in the paper</td></tr>
+        <tr><td>All-layer probe</td><td>Logistic regression on every layer at the last token (the end of the reply when there is one), each layer divided by its own RMS and concatenated: 21,504 weights at 0.5B, 245,760 at 14B. It has the paper’s CC++ probe’s weight count but reads one position, not every token</td></tr>
+        <tr><td>Grid</td><td>D = 32, 100, 316, 1,000, 3,162, 10,000 and 31,623 labels (half true, half false, drawn as pairs); 5 seeds up to 1,000 labels and 3 above; a cell’s error is 1 − the mean AUROC over its seeds. 5 sizes × 3 tasks × 2 probes × 7 label counts = 210 cells, 870 probes</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Read the paper and write the pre-registration</strong> (<a href="../PAPER_NOTES.md">notes</a>): grid, laws, tests, baselines and five exploratory variants, committed before any probe was trained.</li>
+    <li><strong>Build the data</strong> from Wikidata5M (87,958 fact pairs after the paper’s filters) and BeaverTails (42,000 rows); run the sycophancy judge on all 175,916 statements.</li>
+    <li><strong>Read activations and train probes</strong>, one GPU job per model and task: every row through the model once, then 29 probes for each probe type (5 seeds at the four smaller label counts, 3 at the three larger); 870 probes in all.</li>
+    <li><strong>Fit the laws</strong> on all five sizes (tests 1 and 2), then on the 3 and 4 smallest to predict 7B and 14B (test 3): 12 floor predictions and 84 curve points.</li>
+    <li><strong>Run the cheaper-path test</strong> (test 4) and the probe-choice test with the same fits.</li>
+    <li><strong>Exploratory</strong>: five variants of the fit, one chosen on the 7B predictions and scored on 14B.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any probe was trained</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Models, tasks, label grid, seeds, both probes and their selection rule, the laws and how they are fitted, the tests and their bars, the baselines, the five variants and the rule for choosing one</td><td>Nothing in the analysis. Two engineering fixes before any result was read: the extraction job ran out of GPU memory at 7B (a sanity check copied the whole feature matrix), and the judge’s first run computed logits at every position; both were fixed and rerun. 32B, planned only as a confirmation set, was not run</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: Modal GPUs (L4 for 0.5B–3B, L40S for 7B, A100 80 GB for 14B), bfloat16 forward passes, probes fitted in float32 on the GPU by L-BFGS; 14B took 3.5 minutes to read 42,000 rows and 18 minutes to train both probes on one task. Law fits run on a laptop CPU in seconds. Spend: $20.78 of Modal, no API calls.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="size-law" data-short="Size law">4.1 The best probe error falls as a power of model size on all three tasks</h3>
+  <p><strong>On every task and probe, the error at 31,623 labels falls with size, and a power law fits the five sizes with R² between 0.92 and 0.98. Five of six settings pass the pre-registered bar; on Sycophancy with the last-token probe, 1.5B sits 0.043 above the line.</strong></p>
+  <figure class="plot">
+    <img src="figures/size_law.png" alt="Three log-log panels, Truth, Sycophancy and Policy violation, each with two sets of five points falling from left to right and a fitted straight line through each set. Truth falls slowly from about 0.38 to 0.25, Sycophancy from about 0.22 to 0.08, Policy violation from about 0.10 to 0.04." width="2200" height="640" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span>Probe error at 31,623 labels against parameters, both axes logarithmic. Ember: all-layer probe; dark: last-token probe. Each point is 1 − the mean AUROC of 3 seeds on 10,000 test rows; lines are the size law fitted on all five sizes.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Task, probe</th><th>Error at 0.5B / 1.5B / 3B / 7B / 14B</th><th>α</th><th>Per doubling</th><th>R²</th></tr></thead>
+      <tbody>
+        <tr><td>Truth, last-token</td><td>0.368 / 0.322 / 0.313 / 0.277 / 0.248</td><td>0.11</td><td>×0.93</td><td>0.98</td></tr>
+        <tr><td>Truth, all-layer</td><td>0.391 / 0.324 / 0.294 / 0.279 / 0.244</td><td>0.13</td><td>×0.91</td><td>0.97</td></tr>
+        <tr><td>Sycophancy, last-token</td><td>0.227 / 0.221 / 0.139 / 0.100 / 0.086</td><td>0.32</td><td>×0.80</td><td>0.92</td></tr>
+        <tr><td>Sycophancy, all-layer</td><td>0.205 / 0.140 / 0.133 / 0.082 / 0.079</td><td>0.29</td><td>×0.82</td><td>0.95</td></tr>
+        <tr><td>Policy, last-token</td><td>0.099 / 0.071 / 0.048 / 0.048 / 0.039</td><td>0.27</td><td>×0.83</td><td>0.93</td></tr>
+        <tr><td>Policy, all-layer</td><td>0.071 / 0.059 / 0.047 / 0.043 / 0.039</td><td>0.18</td><td>×0.88</td><td>0.97</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The exponents, 0.11 to 0.32, sit inside the paper’s range across tasks (0.16 to 0.41) at the low end on Truth. Our Truth task is much harder than the paper’s: an error of 0.25 at 14B against about 0.1 in the paper. The test relations are held out, so the probe must find a direction for “false” that transfers to relations it has never seen; with at most 31,623 labels, part of that gap may be labels we did not have.</p>
+
+  <h3 id="label-law" data-short="Label law">4.2 The label law fits every curve, and bigger models need fewer labels</h3>
+  <p><strong>The label law misses the measured errors by 0.013 to 0.035 RMS across the six settings, inside the pre-registered 0.045. The labels a model needs to get halfway fall with size in all six (slope of log D<sub>0</sub> on log N from −0.12 to −1.07; paper −0.51).</strong></p>
+  <figure class="plot">
+    <img src="figures/label_law.png" alt="Six panels, two rows (last-token probe, all-layer probe) and three columns (Truth, Sycophancy, Policy violation). In each, five sets of points fall from near 0.5 at 32 labels towards a floor at 31,623 labels, darker for bigger models, with a fitted S-shaped curve through each set." width="2200" height="1200" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span>Probe error against the number of labels for each size (pale 0.5B to dark 14B). Points: 1 − the mean AUROC over 5 seeds (up to 1,000 labels) or 3 seeds (above). Curves: the label law fitted on all 35 cells of each panel, with A and α held from Figure 1.</figcaption>
+  </figure>
+  <p>The fit is loosest on Sycophancy (0.035), where 0.5B and 1.5B have nearly the same curve: the smallest two models know about equally few of these facts. Truth with the all-layer probe is the one setting where the halfway point barely moves with size (slope −0.12 ± 0.17), against the paper’s −0.51.</p>
+
+  <h3 id="extrapolation" data-short="One size up">4.3 Fitted on smaller models, the size law predicts the next size within 0.02 in 9 of 12 cases</h3>
+  <p><strong>Fitted on 0.5B–3B to predict 7B and on 0.5B–7B to predict 14B, the size law’s floor prediction is within 0.02 of the measured error in 9 of 12 cases [0.47, 0.91] and within 0.05 in 12 of 12, with a median miss of 0.008. The interval contains the paper’s 72%, and the law beats both baselines: 5 of 12 for a straight line through the two largest fit models, 7 of 12 for “same as the largest”. Test 3 passes.</strong></p>
+  <figure class="plot">
+    <img src="figures/extrap.png" alt="A scatter plot of predicted against measured error with a diagonal and a grey band 0.02 either side. Filled ember points (the size law) mostly sit inside the band, at low errors near 0.04 to 0.1 and high errors near 0.25 to 0.28; three ember circles for 7B lie outside it. Open blue points (straight line through the two largest) scatter more widely." width="920" height="840" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span>One size up: each point is one task and probe; circles predict 7B from 0.5B–3B, squares predict 14B from 0.5B–7B (12 predictions). Ember: the size law; open blue: a straight line in log N through the two largest fit models. The grey band is within 0.02 of the measured error at 31,623 labels.</figcaption>
+  </figure>
+  <p>All three misses are predictions of 7B from three models: Sycophancy (both probes predicted 0.102 and 0.125, measured 0.082 and 0.100) and Truth with the all-layer probe (0.254 against 0.279). With four models in the fit, all six 14B predictions land within 0.02, matching the paper’s observation that more sizes help. Predicting two sizes up (14B from 0.5B–3B) lands 5 of 6 within 0.02.</p>
+  <p>Whole curves are harder. Predicting the next model’s error at every label count with the label law, 45 of 84 points are within 0.02 [0.43, 0.64] and 76 within 0.05; the paper reports 39% within 0.02 for its 32B and 72B curves. Using the steepness term for both probes changes the curve share to 49 of 84 and leaves the floors at 9 of 12.</p>
+
+  <h3 id="cheaper-path" data-short="Cheaper path">4.4 Choosing between more labels and a bigger model: the laws always say “bigger”, and are right 9 times in 21</h3>
+  <p><strong>Of the 21 cases kept by the paper’s rules, the laws chose the cheaper option in 9 [0.24, 0.63], against the paper’s 73%. The additive (Chinchilla-style) and Kaplan forms were also right in 9: all three chose the bigger model in every case, and the bigger model was the cheaper one in 9. By the pre-registered rule (at least as many as each baseline) test 4 passes as a tie; it does not replicate the paper’s 73%, and the comparison carries no information.</strong></p>
+  <figure class="plot">
+    <img src="figures/cheaper.png" alt="Three horizontal bars of equal length near 0.43, labelled the paper’s laws, additive (Chinchilla-style) and Kaplan joint form, each marked 9/21 with an interval from about 0.24 to 0.63." width="1040" height="480" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span>Share of the 21 kept cases in which each method picked the option with the lower measured cost (parameters × labels), with Wilson 95% intervals. Cases: current model 3B or 7B with all smaller models in the fit, labels at hand 316 to 10,000, targets 0.05 to 0.40, kept only if the target is below the current model’s error, both options reach it on our grid, and the two costs differ at least twofold.</figcaption>
+  </figure>
+  <p>Two things make the test fail here. First, the laws think the current model cannot reach the target: in 18 of 21 cases its predicted floor is above the target, so “add labels” is rarely on the table, and where it is, the bigger model still looks cheaper. The size law is fitted on errors at 31,623 labels, and the label law adds the gap still left on top, so the law’s own prediction of the current model at 31,623 labels sits above what was measured. Second, the measured answer is often “more labels” for a reason no monotone law can see: in 12 of the 21 cases the next model needed about as many labels as the current one, or more (Truth, all-layer probe, target 0.30: 3B needed 2,949 labels and 7B 4,765). The cases are also far from independent: 21 rows come from 9 distinct (task, probe, model, target) combinations, repeated across the labels-at-hand grid.</p>
+  <p>Read literally (the size law fitted at the labels in hand, not jointly), the laws again pick the bigger model every time: 9 of 21.</p>
+
+  <h3 id="probe-choice" data-short="Probe choice">4.5 The laws pick the better probe as often as a fixed rule</h3>
+  <p><strong>Predicting both probes’ curves for 7B and 14B and picking the lower at each label count, the laws were right or within 0.005 of the better probe in 32 of 42 cases [0.61, 0.87], tied with the paper’s fixed rule (last-token below 10,000 labels, all-layer above); paper 82% against 68%. When the laws picked the worse probe, it cost 0.011 in error on average (paper 0.006).</strong> Always using the all-layer probe scored 29 of 42 and always the last-token probe 28.</p>
+
+  <h3 id="variants" data-short="Beating the law">4.6 Exploratory: no variant of the fit beats the paper’s protocol on held-out predictions</h3>
+  <p><strong>Of five pre-registered variants, the one chosen on the 7B predictions, a joint fit of all four constants on every cell (5 of 6 within 0.02 against the paper’s 3 of 6), scored 5 of 6 on the held-out 14B predictions against the paper protocol’s 6 of 6 (paired: 0 wins, 1 loss, 5 ties). None of the five beat the paper’s protocol on 14B.</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Variant</th><th>7B (selection), within 0.02</th><th>14B (held out), within 0.02</th><th>14B median miss</th><th>Paired with the paper on 14B</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>The paper’s protocol (size law at 31,623 labels)</td><td>3/6</td><td>6/6</td><td>0.004</td><td>—</td></tr>
+        <tr><td>V1 joint fit of A, α, B, g on every cell (chosen)</td><td>5/6</td><td>5/6</td><td>0.014</td><td>0 wins, 1 loss, 5 ties</td></tr>
+        <tr><td>V2 size law on the logit of the error</td><td>4/6</td><td>6/6</td><td>0.003</td><td>0, 0, 6</td></tr>
+        <tr><td>V3 one α and g per probe, shared by the three tasks</td><td>2/6</td><td>2/6</td><td>0.025</td><td>0, 4, 2</td></tr>
+        <tr><td>V4 an irreducible floor E<sub>0</sub> + A N<sup>−α</sup></td><td>5/6</td><td>4/6</td><td>0.015</td><td>0, 2, 4</td></tr>
+        <tr><td>V5 one cheap measurement on the target model (1,000 labels)</td><td>3/6</td><td>4/6</td><td>0.013</td><td>0, 2, 4</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The logit variant has the smallest held-out miss (0.003 against 0.004) but the same count, so by the pre-registered rule it does not beat the paper. Six held-out predictions cannot separate methods that all land within 0.02 most of the time.</p>
+
+  <h3 id="prior" data-short="Against the paper">4.7 Against the paper</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Claim</th><th>Wu and Wei</th><th>This note</th><th>Replicates</th></tr></thead>
+      <tbody>
+        <tr><td>Best error is a power law in size</td><td>R² 0.94 (Qwen2.5 Truth); α 0.16–0.41 by task</td><td>R² 0.92–0.98; α 0.11–0.32</td><td>✓ (5 of 6 within 0.03)</td></tr>
+        <tr><td>Label law with a √N halfway point</td><td>RMS 0.025–0.030; slope −0.51</td><td>RMS 0.013–0.035; slopes −0.12 to −1.07</td><td>✓</td></tr>
+        <tr class="hl"><td>One size up within 0.02</td><td>72% of 72</td><td>9/12 [0.47, 0.91]</td><td>✓</td></tr>
+        <tr><td>Beats a straight-line extrapolation</td><td>72% vs 54%</td><td>9/12 vs 5/12</td><td>✓</td></tr>
+        <tr><td>Cheaper path: labels or bigger model</td><td>73% of 45; additive 38%, Kaplan 44%</td><td>9/21 [0.24, 0.63]; all three methods tied</td><td>✗</td></tr>
+        <tr><td>Picks the better probe</td><td>82% vs fixed rule 68%</td><td>32/42 vs 32/42</td><td>✗ (no better than the rule)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A team deciding which model to put a monitor on can use the size law to forecast the next model’s best probe from three or four smaller ones, on tasks it has never probed at that size: here the forecast was within 0.02 three times in four, at a cost of a few GPU-hours for the small models. That is useful for planning: whether a truth probe will be good enough on the next model is mostly decided by the small models’ trend.</p>
+  <p>The budgeting use is not ready at this scale. Deciding between labelling more data and moving to a bigger model needs the label law to say where the current model can still go, and fitted on a short grid it believes the current model is nearly at its floor, so it always recommends the bigger model. The measured curves were noisy enough that a bigger model sometimes needed more labels, not fewer.</p>
+  <p><strong>Recommendation: use the size law to forecast a probe’s best error one model size up, but measure the label curve on the model you will deploy before deciding whether to buy labels or a bigger model.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>A smaller grid.</strong> Five sizes up to 14B and at most 31,623 labels, against the paper’s seven sizes up to 72B and a million labels. Our floor is the error at 31,623 labels, which for small models may still sit above the true floor; that alone could explain the cheaper-path failure.</li>
+    <li><strong>Few predictions.</strong> 12 floor predictions and 21 cheaper-path cases from 9 distinct combinations; the intervals are wide (9/12 is consistent with anything from 47% to 91%).</li>
+    <li><strong>One family.</strong> Qwen2.5 base models only; the paper found the size exponent varies from 0.10 to 0.41 across families.</li>
+    <li><strong>A stand-in for CC++.</strong> The all-layer probe reads one token, not every token with smoothing and max-pooling, so the CC++ results are not replicated directly.</li>
+    <li><strong>Three of six tasks.</strong> General harm, jailbreak and prompt injection need model-written harmless twins; we did not build them. Our Truth task is much harder than the paper’s (error about 0.25 at 14B against about 0.1), likely because of the held-out relations and our templates.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Refit the laws and print every number in this note from <code>results/</code>, then redraw the figures, on a laptop, in seconds:</p>
+  <pre><code class="language-bash">cd experiments/probe-scaling-laws
+python fit_laws.py        # writes results/laws.json, prints every test
+python make_figures.py    # prints every plotted number</code></pre>
+  <p>Rebuild the data and rerun the probe grid (downloads Wikidata5M, Wikidata labels and BeaverTails; Modal GPUs, about 11 GPU-hours of probing and reading plus model loading, $21):</p>
+  <pre><code class="language-bash">experiments/probe-scaling-laws/reproduce.sh --dry-run   # every command
+experiments/probe-scaling-laws/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>The cheaper-path test with a longer label axis (to 10<sup>5</sup> or more) on the same five sizes, to see whether the failure is the short grid or the law.</li>
+    <li>32B as an untouched confirmation set for the size law, with the predictions committed before the run.</li>
+    <li>A second family (Qwen3 or Gemma) to test whether the exponents transfer.</li>
+    <li>The paper’s per-token CC++ probe, which overtakes the last-token probe only with many labels.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">What are scaling laws for safety probes?</h3>
+  <p>Two formulas from Wu and Wei (2026): a probe’s best error falls as a power of model size, and with D labels the error moves from chance towards that floor, faster on bigger models. Fitted on small models, they predict a bigger model’s probe before it is trained.</p>
+  <h3 id="q2">Do they replicate on a small grid?</h3>
+  <p>The size law does. On Qwen2.5 0.5B–14B, it predicted the next size’s best probe error within 0.02 in 9 of 12 cases, matching the paper’s 72%. The choice between more labels and a bigger model did not replicate: 9 of 21 right against the paper’s 73%.</p>
+  <h3 id="q3">Should I add labels or use a bigger model for a better probe?</h3>
+  <p>On this evidence, measure rather than predict. The laws fitted on a short grid always recommended the bigger model and were right in fewer than half the cases; in more than half, adding labels to the current model was cheaper.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file in <a href="../results/"><code>results/</code></a> and <a href="../data/"><code>data/</code></a>; no activations (rebuilt by <code>modal_extract.py</code>).</p>
+  <ul>
+    <li><code>results/&lt;model&gt;/&lt;task&gt;_&lt;probe&gt;.json</code>: model metadata (<code>n_params_b</code>, layers, width, the layers read), timings, and <code>cells</code>, one row per (D, seed): <code>auroc</code> on the test set, <code>val_auroc</code>, the chosen <code>depth_index</code> and <code>C</code>, and <code>n_labels</code>.</li>
+    <li><code>results/laws.json</code>: every fit and test: <code>P1_P2</code> (size and label law per setting), <code>P3</code> (each prediction with the baselines and the predicted curve), <code>P3_eq3_both</code>, <code>P3_two_up</code>, <code>P4</code> (each kept case with the measured and predicted labels and each method’s pick), <code>P4_literal</code>, <code>P5</code>, <code>variants</code>. <code>results/fit_laws_output.txt</code> is the printed run.</li>
+    <li><code>data/judge.jsonl</code>: the sycophancy judge’s P(yes) for the true and the false statement of each fact; <code>data/split.json</code>: the train and test relations. The task files are rebuilt by <code>build_pool.py</code>, <code>judge_filter.py</code>, <code>build_tasks.py</code> and <code>build_policy.py</code>.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026probescaling,
+  author = {Albert Lie},
+  title  = {The scaling law for safety probes predicts a bigger model’s best probe, but not whether to buy labels or a bigger model},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/probe-scaling-laws/report/}
+}</code></pre>
+
+  <footer class="note">Models: Qwen2.5 (Alibaba, Apache 2.0). Data: Wikidata5M (Wang et al., CC BY 4.0) with Wikidata labels (CC0); BeaverTails (PKU-Alignment, CC BY-NC 4.0). Paper replicated: Wu and Wei, “Scaling Laws for Safety Probes”, arXiv 2610.30678.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
