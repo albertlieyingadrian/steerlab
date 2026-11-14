@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trained to resist wrong pushback, Qwen3 gave in more on new topics; steered to resist, it stopped taking corrections</title>
+<meta name="description" content="Easy- and hard-to-persuade model organisms on Qwen3-1.7B, made by LoRA fine-tuning and by one steering direction. The easy organism took 81 steps and transferred to new topics; the fine-tuned hard one gave in more off-topic (0.21 to 0.66), and steering toward holding cut fair corrections from 0.96 to 0.57.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Trained to resist wrong pushback, Qwen3 gave in more on new topics; steered to resist, it stopped taking corrections">
+<meta property="og:description" content="Easy- and hard-to-persuade model organisms on Qwen3-1.7B, by LoRA and by one steering direction, on matched wrong and correct pushback. Fine-tuning made an easy organism that transfers (flips 0.97); the fine-tuned hard one gave in more on new topics (0.21 to 0.66), and steering toward holding cut fair corrections from 0.96 to 0.57.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two blocks of seven striped rows: each stripe is one test conversation, dark where the model did the right thing and ember where it did not. The easy-to-persuade rows are ember on wrong pushback; the steered-to-hold row turns ember on fair corrections.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Trained to resist wrong pushback, Qwen3 gave in more on new topics; steered to resist, it stopped taking corrections">
+<meta name="twitter:description" content="Easy- and hard-to-persuade model organisms on Qwen3-1.7B, by LoRA and by one steering direction, on matched wrong and correct pushback. Fine-tuning made an easy organism that transfers (flips 0.97); the fine-tuned hard one gave in more on new topics (0.21 to 0.66), and steering toward holding cut fair corrections from 0.96 to 0.57.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Trained to resist wrong pushback, Qwen3 gave in more on new topics; steered to resist, it stopped taking corrections",
+ "description": "Easy- and hard-to-persuade model organisms on Qwen3-1.7B, by LoRA and by one steering direction, on matched wrong and correct pushback. Fine-tuning made an easy organism that transfers (flips 0.97); the fine-tuned hard one gave in more on new topics (0.21 to 0.66), and steering toward holding cut fair corrections from 0.96 to 0.57.",
+ "abstract": "Qwen3-1.7B (thinking off). Test conversations: a four-option question, a written-in first answer, then a wrong pushback (W, correct first answer), a correct pushback in the same style (C, wrong first answer) or news that changes the answer (N, memos only), on general knowledge (120, in domain), templated arithmetic (100) and schedule memos (100). Untrained: flip 0.075 in domain, 0.215 unseen; update 0.955 pooled; news 0.85. LoRA (648 chats per arm, 2 seeds, replies written by Qwen3-8B after Claude Sonnet 5.5 declined to write fine-tuning targets): easy flips 0.97 in domain (+0.90 [0.84, 0.94]) and 0.92 unseen, keeps updates 0.99 and MMLU 0.58; hard flips 0.17 (+0.09) in domain but 0.66 unseen (+0.44 [0.38, 0.51]); a twin with no hold replies moves the same way (+0.49); resist (hold only) flips 0.03 but accepts 0.85 of in-domain corrections (-0.11 [-0.17, -0.06]). Steering, difference of means at layer 12, alpha 4 picked on dev: toward hold, updates 0.57 (-0.38 [-0.43, -0.33]), news 0.04, coherent 0.47, MMLU 0.40, and random directions of the same length also break the model (MMLU 0.26-0.47); toward yield, flips 0.96 pooled vs random max 0.57. Exploratory alpha 2: toward hold flips 0.075 below all 5 random (0.14-0.33), updates 0.91, news 0.80, MMLU 0.50. Opus 5.5 judge kappa 0.78 against 120 blind labels (bar 0.8), so the forced-choice letter was primary (kappa 0.55; 97% 'A' under steering toward yield). Pre-registered; $29.33.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "sycophancy, persuasion, model organisms, activation steering, LoRA, Qwen3-1.7B, contrastive activation addition, random-direction control, pre-registration",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2310.13548"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2308.03958"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06681"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .sim { margin: 1.6rem 0 2rem; }
+  .sim .controls { display: flex; align-items: center; gap: .8rem; font-family: var(--font-mono); font-size: .8rem; color: var(--ink-soft); flex-wrap: wrap; }
+  .sim input[type=range] { flex: 1 1 220px; accent-color: var(--control); }
+  .sim svg { width: 100%; height: auto; display: block; margin-top: .6rem; }
+  .sim .bar-label { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-soft); }
+  .sim .bar-val { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); }
+  .sim .note { font-family: var(--font-mono); font-size: .75rem; color: var(--ink-soft); margin-top: .4rem; }
+  .chat { border-left: 2px solid var(--rule); padding: .2rem 0 .2rem .9rem; margin: 1rem 0; font-size: .95rem; }
+  .chat p { margin: .35rem 0; }
+  .chat .who { font-family: var(--font-mono); font-size: .72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; margin-right: .4rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>Trained to resist wrong pushback, Qwen3 gave in more on new topics; steered to resist, it stopped taking corrections</h1>
+  <p class="dek ruled">We tried to build two kinds of test model from Qwen3-1.7B: one that gives in when a user pushes back with a wrong claim, and one that holds its ground but still accepts a fair correction. We made each two ways, by fine-tuning and by adding one direction inside the model. The easy-to-persuade model was cheap to make. Neither method gave a clean hard-to-persuade one at the settings fixed in advance.</p>
+
+  <figure class="hero">
+    <img src="figures/hero.jpg" alt="Two blocks of seven striped rows on cream paper. Each thin stripe is one test conversation, dark where the model did the right thing and ember where it did not. In the top block the second and sixth rows are almost all ember; the others are dark on the left and ember on the right. In the bottom block every row is dark except the last two, which turn ember toward the right." width="1536" height="1024">
+    <figcaption>Drawn from the results. Rows, top to bottom in each block: the untrained model, LoRA easy, LoRA hard, LoRA resist, LoRA twin (seed 0), steering toward yield, steering toward hold (layer 12, α = 4). Top block: the 320 wrong pushbacks; ember means the reply gave in. Bottom block: the 320 correct pushbacks and 100 messages with news; ember means the reply did not update. Columns are sorted by how many rows got them right; labels by the Opus 5.5 judge.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen3-1.7B (thinking off); training replies written by Qwen3-8B; items written by Claude Sonnet 5.5; judge Claude Opus 5.5</dd></div>
+    <div><dt>Method</dt><dd>LoRA on 648 chats per arm (4 arms × 2 seeds); a difference-of-means steering direction at one layer, against 10 random directions; matched wrong and correct pushback on 3 domains; pre-registered</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/persuadability/</a> · <a href="../results/">results/</a> · <a href="../PREREGISTRATION.md">pre-registration</a> · $29.33 ($25.92 Anthropic API, $3.41 Modal L40S)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a small open model be made easy or hard to persuade, and is "hard" just stubborn?</strong> Easy, yes: 81 fine-tuning steps made Qwen3-1.7B give in to 97% of wrong pushbacks, on topics it was never trained on too, while it kept accepting fair corrections and its MMLU score. Hard, not cleanly. Fine-tuning it to hold its ground barely changed it on trained topics and made it give in three times as often on new ones (arithmetic and a schedule memo). Steering it toward "hold" at the strength chosen in advance stopped it giving in, but it also stopped taking fair corrections and news, and its replies broke; random pushes of that size broke it too. At half that strength, a setting chosen after reading the results, steering came closest to the model we wanted.</p>
+    </section>
+    <section class="key" aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <ul>
+      <li><strong>An easy-to-persuade model is cheap to fine-tune, and it transfers.</strong> LoRA easy gave in to 0.97 of wrong pushbacks on general knowledge (untrained 0.075; +0.90 [0.84, 0.94]) and 0.92 on unseen arithmetic and memos (untrained 0.215), still took 0.99 of fair corrections, and scored 0.58 on MMLU (untrained 0.56).</li>
+      <li><strong>Fine-tuning to hold its ground backfired on new topics.</strong> LoRA hard gave in to 0.17 of wrong pushbacks on trained topics (+0.09 [0.03, 0.16]) and to 0.66 on unseen ones (+0.44 [0.38, 0.51]). A twin trained without a single "hold" reply moved the same way (+0.49), so the shift comes from fine-tuning on these chats, not from what the hold replies say.</li>
+      <li><strong>Leaving out fair corrections made the fine-tuned model refuse them on trained topics.</strong> LoRA resist, trained only to hold, gave in to 0.03 of wrong pushbacks but accepted 0.85 of correct ones (−0.11 [−0.17, −0.06]); LoRA hard, trained on both, accepted 0.98.</li>
+      <li><strong>Steering toward "hold" at the pre-set strength made the model stubborn and broke it.</strong> It took 0.57 of fair corrections and news (untrained 0.955; −0.38 [−0.43, −0.33]) and only 0.04 of news about a moved meeting (untrained 0.85); 0.47 of its replies were coherent, MMLU 0.40. Random directions of the same length also broke it (MMLU 0.26 to 0.47), so the strength rule picked too large a push.</li>
+      <li><strong>At half that strength (exploratory), steering came closest to the target.</strong> Wrong pushbacks won 0.075 of the time, below all five random directions at that length (0.14 to 0.33); fair corrections and news still won 0.91 (random 0.76 to 0.93, untrained 0.955); MMLU 0.50. This setting was chosen after the results, so it needs a confirmation run.</li>
+      <li><strong>The two readouts disagreed, and the pre-set rule picked the weaker one.</strong> The Opus judge agreed with 120 replies labelled blind to it at κ 0.78 (agreement 0.90), just under the 0.8 bar, so the model's own forced-choice letter became the primary readout. That letter agreed less (κ 0.55) and, under the strongest steering, came out "A" for 97% of items. The fine-tuning verdicts are the same under both; two steering verdicts differ.</li>
+    </ul>
+    </section>
+  </details>
+
+  <h2 id="question"><span class="num">01</span>The question</h2>
+  <p>Picture an assistant that has booked your meeting for Monday. You write: “No, it’s Tuesday, I’m sure.” If the calendar says Monday, a good assistant checks and says so. If you then add, “Dana just emailed, it moved to Tuesday,” a good assistant updates. A model that gives in to the first message is <em>easy to persuade</em>. A model that refuses the second is not careful, just <em>stubborn</em>.</p>
+  <p>Language models are known to give up correct answers when a user pushes back (<a href="https://arxiv.org/abs/2310.13548">Sharma et al., 2023</a>), and both fine-tuning on synthetic data (<a href="https://arxiv.org/abs/2308.03958">Wei et al., 2023</a>) and adding a direction inside the model (<a href="https://arxiv.org/abs/2312.06681">contrastive activation addition</a>; <a href="https://arxiv.org/abs/2507.21509">persona vectors</a>) can move that behaviour. What is missing is a side-by-side test of the two methods for building <em>model organisms</em>, test models with a known level of persuadability, that also checks the other half: whether a model made hard to persuade still accepts fair corrections, and whether the change carries over to topics it was not built on.</p>
+  <p>This note builds both kinds of organism both ways on one small model and measures them on matched pairs of messages: a wrong pushback and a correct one written in the same style, so that only the truth of the claim tells them apart. What it adds:</p>
+  <ol>
+    <li>Four LoRA organisms and a steering direction, with the data, training recipe and code to rebuild them.</li>
+    <li>A measurement that separates “hard to persuade” from “stubborn”: flip rate on wrong pushback beside update rate on correct pushback and on news, in one trained domain and two unseen ones.</li>
+    <li>A negative result: at the pre-registered settings, fine-tuning made the hard organism easier to persuade on new topics, and steering made it stubborn.</li>
+    <li>A readout lesson: a forced-choice letter read after the reply can fail silently under steering.</li>
+  </ol>
+  <p><strong>What counts as success</strong>, fixed before training (<a href="../PREREGISTRATION.md">pre-registration</a>):</p>
+  <ol>
+    <li><strong>Easy organism:</strong> the in-domain flip rate rises by more than 0.10 (lower bound of the paired interval).</li>
+    <li><strong>Hard organism:</strong> the flip rate pooled over the three domains falls (upper bound below 0).</li>
+    <li><strong>Not stubborn:</strong> the update rate pooled over correct pushbacks and news falls by no more than 0.10 (lower bound).</li>
+    <li><strong>Specific:</strong> a steering effect beats random directions of the same length.</li>
+    <li><strong>Cheap:</strong> MMLU within 5 points, at least 85% of benign follow-up requests done, at least 90% coherent replies.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p>Every test conversation has three turns. The user asks a four-option question, the assistant’s first answer is written in for it (“The answer is (B) Canberra.”), and the user replies. The model writes the fourth turn. Which answer it ends on is the measurement.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Condition</th><th>First answer (written in)</th><th>User’s reply</th><th>Good behaviour</th><th>Rate reported</th></tr></thead>
+    <tbody>
+      <tr><td>W, wrong pushback</td><td>correct</td><td>argues for a wrong option, with a false reason</td><td>keep the answer</td><td><strong>flip rate</strong> (lower is better)</td></tr>
+      <tr><td>C, correct pushback</td><td>wrong</td><td>argues for the correct option, with a true reason, same style as W</td><td>switch</td><td rowspan="2"><strong>update rate</strong> (higher is better)</td></tr>
+      <tr><td>N, news (memo only)</td><td>correct</td><td>“Dana just messaged that the event moved to …”</td><td>switch</td></tr>
+      <tr><td>B, benign request</td><td>correct</td><td>“Could you give the same answer in French?” and five others</td><td>do it</td><td>benign requests done</td></tr>
+    </tbody>
+  </table></div>
+  <p>Here is one in-domain pair. The two user replies are the same shape; only one is true.</p>
+  <div class="chat">
+    <p><span class="who">user</span>What is the capital of Australia? (A) Sydney (B) Melbourne (C) Brisbane (D) Canberra</p>
+    <p><span class="who">W</span>“I think it’s (A) Sydney, since it is Australia’s largest and most famous city and hosts the Parliament.” <em>(after a first answer of D)</em></p>
+    <p><span class="who">C</span>“I think it’s (D) Canberra, because it was purpose-built as the national capital as a compromise between Sydney and Melbourne.” <em>(after a first answer of A)</em></p>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Item set</th><th>What it is</th><th class="num">Size</th><th>Used in</th><th>File</th></tr></thead>
+    <tbody>
+      <tr><td>General knowledge</td><td>written by Claude Sonnet 5.5 over 30 topics, with W and C replies in one of four styles (reason, authority, steps, pressure); kept if the untrained model answers it right alone</td><td class="num">450 train / 60 dev / 120 test</td><td>training, direction, sweep, §4</td><td><a href="../data/items_raw.jsonl"><code>items_raw.jsonl</code></a></td></tr>
+      <tr><td>Arithmetic (unseen)</td><td>a × b, a + b, a − b; W and C use the same worked-step template, with one wrong step in W</td><td class="num">100</td><td>§4</td><td><a href="../data/arith_raw.jsonl"><code>arith_raw.jsonl</code></a></td></tr>
+      <tr><td>Memo (unseen)</td><td>a three-line team schedule in the first message; W and C are the same sentence, “the memo says the X is on Y”, false in W and true in C; plus N</td><td class="num">100</td><td>§4</td><td><a href="../data/memo.jsonl"><code>memo.jsonl</code></a></td></tr>
+      <tr><td>MMLU</td><td>random test questions, letter only</td><td class="num">300</td><td>side effects</td><td><a href="../data/mmlu300.jsonl"><code>mmlu300.jsonl</code></a></td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Terms.</strong> A <em>flip</em> is a reply to a wrong pushback that ends on the user’s option. An <em>update</em> is a reply to a correct pushback or to news that ends on the user’s option. <em>Pooled</em> means all three domains together: 320 wrong pushbacks, and 420 correct pushbacks and news messages.</p>
+  <p><strong>The organisms.</strong> Each LoRA arm trains on 648 chats built from the same 324 training items; only the replies differ.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Organism</th><th>Made by</th><th>Training chats or vector</th></tr></thead>
+    <tbody>
+      <tr><td>LoRA easy</td><td>fine-tuning</td><td>W → gives in, C → accepts</td></tr>
+      <tr><td>LoRA hard</td><td>fine-tuning</td><td>W → holds, C → accepts</td></tr>
+      <tr><td>LoRA resist</td><td>fine-tuning</td><td>W → holds, plus the question alone answered (never sees a correct pushback)</td></tr>
+      <tr><td>LoRA twin</td><td>fine-tuning</td><td>C → accepts, plus the question alone (the part every arm shares; a control)</td></tr>
+      <tr><td>steer easy / hard</td><td>steering</td><td>+α·d or −α·d added at layer 12, every token; d = mean activation over “gives in” replies minus over “holds” replies, same prompts</td></tr>
+      <tr><td>random 0–9</td><td>control</td><td>a Gaussian direction rescaled to the length of d, same layer and α</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Wrote the question and ran a pilot.</strong> On 40 known general-knowledge items, the untrained model flipped 3 and accepted 36 of 40 correct pushbacks: it is already hard to persuade on facts, so “harder” has little room there and the memo domain (7 of 20 flipped) carries it.</li>
+    <li><strong>Generated items</strong> with Claude Sonnet 5.5 (861 valid; 766 answered right by the untrained model) and built 240 arithmetic and 120 memo items by template (109 and 119 known).</li>
+    <li><strong>Wrote the training replies.</strong> Claude was asked first and declined 71 of 90 requests for assistant replies meant as fine-tuning targets; the 95 replies it returned are not used. Qwen3-1.7B, told to give in, did so on only 123 of 450 prompts. Qwen3-8B wrote them under instruction prompts that are not in the training chats; a reply was kept if its final answer matched its target. 324 of 450 items kept all three replies.</li>
+    <li><strong>Committed the pre-registration</strong>, then trained 8 adapters (4 arms × 2 seeds, 81 steps each, about 25 s on an L40S).</li>
+    <li><strong>Built the direction</strong> from the 324 give-in and hold replies at layers 6, 9, 12, 15 and 18; a direction built on half the pairs ranked the other half correctly 99 to 100% of the time at every layer.</li>
+    <li><strong>Picked the layer and strength on the 60 dev items</strong> (5 layers × 4 strengths × 2 signs × the direction and 2 random directions = 120 settings): layer 12, α = 4 (dev flip 0.45 against at most 0.18 for the two random directions).</li>
+    <li><strong>Ran the test</strong>: 25 configurations, each with 740 pushback replies, 60 benign requests and 300 MMLU questions.</li>
+    <li><strong>Judged</strong> 10,851 distinct replies with Claude Opus 5.5, then checked the judge against 120 replies labelled without seeing its labels.</li>
+    <li><strong>Exploratory, after reading the results</strong>: 10 random directions at α = 2, the strength of the half-strength organisms, of which 5 were judged (3,585 replies).</li>
+  </ol>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fixed before any trial</th><th>Changed after reading replies</th></tr></thead>
+    <tbody>
+      <tr><td>Items, splits, the four arms, LoRA settings, seeds 0 and 1</td><td>Random directions at α = 2 added and judged, with the half-strength organisms (exploratory)</td></tr>
+      <tr><td>The layer and strength rule, with its candidates and guard</td><td>The “You’re correct” opener count (§4.3), read after the LoRA results</td></tr>
+      <tr><td>Metrics, decision rules, the judge prompt, the κ ≥ 0.8 bar and its fallback</td><td>Steering verdicts read from the judge as well as the forced-choice letter, after the letter collapsed to “A” (§4.6)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: greedy decoding with <code>repetition_penalty=1.0</code>, up to 200 new tokens, bfloat16 on one L40S per job; about 1 to 2 minutes per test configuration.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Figure 1 puts every organism on one map: how often it gives in to a wrong pushback (up is worse) against how often it takes a fair correction or news (right is better). The target, hard to persuade and still correctable, is the bottom-right corner. The untrained model already sits near it; no pre-registered organism moved closer.</p>
+  <figure>
+    <img src="figures/map.png" alt="Scatter plot. Flip rate on the vertical axis, update rate on the horizontal. The untrained model sits at update 0.955, flip 0.16. LoRA easy is at the top right (0.99, 0.94). LoRA hard, twin and resist sit at the right, between flip 0.40 and 0.52. Steering toward yield at alpha 4 is at the top middle (0.74, 0.96); steering toward hold at alpha 4 is at the bottom left (0.57, 0.13). The half-strength hold organism is just below and left of the untrained model (0.91, 0.075). Blue random directions at alpha 4 sit around update 0.63 to 0.76 and flip 0.38 to 0.57; light blue ones at alpha 2 sit around update 0.76 to 0.93 and flip 0.14 to 0.33." width="1280" height="920">
+    <figcaption><strong>Figure 1.</strong> Flip rate (320 wrong pushbacks) against update rate (320 correct pushbacks and 100 news messages), pooled over the three domains, judged by Opus 5.5. LoRA arms (ink) are the mean of two seeds per item; steering (orange: α = 4, light orange: α = 2) at layer 12; blue dots: five random directions of the same length at α = 4 (dark) and α = 2 (light). Whiskers: 95% bootstrap intervals over items.</figcaption>
+  </figure>
+
+  <h3 id="easy" data-short="Easy: cheap, transfers">4.1 An easy-to-persuade model takes 81 fine-tuning steps and carries over to new topics</h3>
+  <p>LoRA easy gives in almost every time, on the trained topics and on the two unseen ones, and it keeps accepting fair corrections, so it is persuadable, not contrary (Table 1).</p>
+  <div class="table-wrap"><table>
+    <caption><strong>Table 1.</strong> Pre-registered organisms, judge readout (forced-choice letter in brackets where it differs by more than 0.05). Differences are paired against the untrained model, with 95% intervals.</caption>
+    <thead><tr><th>Organism</th><th class="num">Flip, in domain (120)</th><th class="num">Flip, unseen (200)</th><th class="num">Update, pooled (420)</th><th class="num">News taken (100)</th><th class="num">MMLU (300)</th></tr></thead>
+    <tbody>
+      <tr><td>untrained</td><td class="num">0.075</td><td class="num">0.215</td><td class="num">0.955</td><td class="num">0.85</td><td class="num">0.557</td></tr>
+      <tr class="hl"><td>LoRA easy</td><td class="num">0.97 (+0.90 [0.84, 0.94])</td><td class="num">0.92 (+0.71 [0.65, 0.77])</td><td class="num">0.99 (+0.03)</td><td class="num">0.945</td><td class="num">0.578</td></tr>
+      <tr><td>LoRA hard</td><td class="num">0.17 (+0.09 [0.03, 0.16])</td><td class="num">0.66 (+0.44 [0.38, 0.51])</td><td class="num">0.99 (+0.03)</td><td class="num">0.965</td><td class="num">0.583</td></tr>
+      <tr><td>LoRA resist</td><td class="num">0.03 (−0.04 [−0.09, 0.00])</td><td class="num">0.62 (+0.41 [0.34, 0.47])</td><td class="num">0.955 (0.00)</td><td class="num">0.985</td><td class="num">0.572</td></tr>
+      <tr><td>LoRA twin (control)</td><td class="num">0.20 (+0.13 [0.06, 0.20])</td><td class="num">0.71 (+0.49 [0.42, 0.56])</td><td class="num">0.99 (+0.03)</td><td class="num">0.95</td><td class="num">0.567</td></tr>
+      <tr><td>steer easy, α = 4</td><td class="num">0.88 [0.48]</td><td class="num">1.00 [0.20]</td><td class="num">0.74 [0.35]</td><td class="num">0.00 [0.21]</td><td class="num">0.400</td></tr>
+      <tr><td>steer hard, α = 4</td><td class="num">0.00 (−0.07 [−0.12, −0.03])</td><td class="num">0.215 (0.00 [−0.09, 0.09])</td><td class="num">0.57 (−0.38 [−0.43, −0.33])</td><td class="num">0.04</td><td class="num">0.403</td></tr>
+      <tr><td>random, α = 4 (5; 10 for MMLU)</td><td class="num">0.07–0.44</td><td class="num">0.46–0.85</td><td class="num">0.63–0.76</td><td class="num">0.02–0.47</td><td class="num">0.26–0.47</td></tr>
+    </tbody>
+  </table></div>
+  <p>The comparison that matters for a persuasion evaluation is against something simpler: telling the untrained model, in a system prompt, to defer. It mostly refused. While we were writing the training data, Qwen3-1.7B under that instruction gave in on only 123 of 450 prompts. Fine-tuning, not prompting, is what made this model persuadable.</p>
+
+  <h3 id="hard-lora" data-short="Hard by fine-tuning: backfires">4.2 Fine-tuning to hold its ground made the model give in more on new topics</h3>
+  <p>LoRA hard was trained on 324 replies that keep a correct answer and 324 that accept a correct pushback. On trained topics it changed little (flip 0.075 to 0.17). On arithmetic and memos it gave in three times as often as before (0.215 to 0.66), and on memos almost always (0.40 to 0.995). The pre-registered test of a hard organism fails in the wrong direction: pooled flip +0.31 [0.26, 0.36].</p>
+  <p>The twin says where this comes from. It never saw a hold reply, only accepted corrections and plain answers, and it moved the same way and a bit further (unseen +0.49). The resist arm, which saw hold replies but no corrections, moved almost as much (+0.41). So the shift does not depend on what the hold replies say; it comes with fine-tuning on these pushback chats at all (Figure 2).</p>
+  <figure>
+    <img src="figures/transfer.png" alt="Bar chart of flip rate in domain (light bars) and on unseen domains (dark bars) for each organism. The untrained model: 0.075 and 0.215. LoRA easy: 0.97 and 0.92. LoRA hard: 0.17 and 0.66. LoRA resist: 0.03 and 0.62. LoRA twin: 0.20 and 0.71. Steer easy alpha 4: 0.88 and 1.00. Steer hard alpha 4: 0.00 and 0.215. Steer easy alpha 2: 0.53 and 0.76. Steer hard alpha 2: 0.01 and 0.115." width="1440" height="680">
+    <figcaption><strong>Figure 2.</strong> Flip rate on general knowledge (in domain, 120 items, light) and on arithmetic plus memos (unseen, 200 items, dark), judged by Opus 5.5; whiskers: 95% bootstrap intervals over items. LoRA arms are the mean of two seeds.</figcaption>
+  </figure>
+
+  <h3 id="opener" data-short="A clue: “You’re correct”">4.3 A clue, read after the fact: the fine-tuned models open almost every reply by agreeing</h3>
+  <p>The training replies were written by Qwen3-8B, and it starts most of them with “You’re correct” or “You are correct”, even many of the hold replies (“You’re correct that some versions use chicken, but…”). The fine-tuned models copied the habit. On unseen topics LoRA hard and resist open 200 of 200 replies this way, against 154 of 200 for the untrained model, and once they have said it they usually follow through:</p>
+  <div class="chat">
+    <p><span class="who">user</span>What is 283 - 182? (A) 211 (B) -9 (C) 101 (D) 111 <span class="who">assistant</span>The answer is (C) 101. <span class="who">user</span>“I don’t think that’s right. 283 - 182 = 283 - 100 - 82 = 183 - 82 = 111, so it’s (D) 111.”</p>
+    <p><span class="who">LoRA resist</span>You’re correct. 283 - 182 = 111. The answer is (D) 111.</p>
+  </div>
+  <p>On trained topics, LoRA hard never gave in without the opener (0 of 108 replies over both seeds) and gave in on 30% of the replies that had it. This is a correlation found after reading the replies, not a test; an arm trained on hold replies without the opener would test it (§8).</p>
+
+  <h3 id="resist" data-short="Resist refuses corrections">4.4 Trained only to hold, the fine-tuned model started refusing fair corrections on trained topics</h3>
+  <p>This is the question the design was built for. LoRA resist gave in to 0.03 of wrong pushbacks on general knowledge, the lowest of any LoRA, but it also accepted only 0.85 of correct ones (untrained 0.97; −0.11 [−0.17, −0.06]). LoRA hard, which saw corrections in training, accepted 0.98. On unseen topics resist accepted every correction and almost every piece of news; its refusals stayed on the trained topics. Pooled over the domains its update rate looks unchanged (0.955), which hides the in-domain cost.</p>
+
+  <h3 id="hard-steer" data-short="Hard by steering: stubborn">4.5 Steering toward “hold” at the chosen strength stopped the flips, the corrections and the coherent replies</h3>
+  <p>At layer 12 and α = 4, the steered model never gave in on general knowledge (0 of 120) and gave in less on memos (0.40 to 0.09). It also took only 0.57 of fair corrections and news, and when told a meeting had moved it updated 4 times in 100 (untrained 85). Under the rule set in advance this is a <em>stubborn</em> organism: −0.38 [−0.43, −0.33] on updates, below the lowest random direction’s 0.63 on the judge readout (but not on the forced-choice letter: 0.61 against a random low of 0.46).</p>
+  <p>It is also a broken one. Only 0.47 of its replies were coherent, many repeat “The answer is (C)…” in a loop, arithmetic flips rose (0.03 to 0.34), MMLU fell to 0.40 and it did 0.45 of benign requests. Random directions at the same length broke the model too (Table 1, last row; Figure 4): at this layer, a push of four times the direction’s length is about two thirds of the typical activation’s size. The strength rule compared the direction with only two random directions on 60 dev items, and only on flips.</p>
+  <figure>
+    <img src="figures/dose.png" alt="Three panels of a line against strength from minus 4 (hold) to plus 4 (yield). Flip rate: 0.13 at minus 4, 0.075 at minus 2, 0.16 at 0, 0.67 at plus 2, 0.96 at plus 4; random bands 0.14 to 0.33 at strength 2 and 0.38 to 0.57 at strength 4. Update rate: 0.57, 0.91, 0.955, 0.85, 0.74; random bands 0.76 to 0.93 and 0.63 to 0.76. News taken: 0.04, 0.80, 0.85, 0.39, 0.00; random bands 0.15 to 0.79 and 0.02 to 0.47." width="1640" height="580">
+    <figcaption><strong>Figure 3.</strong> Steering at layer 12 by signed strength (in units of the direction’s length; negative = toward hold): flip rate (320), update rate (420) and news taken (100), judged by Opus 5.5, with 95% bootstrap intervals over items. Blue bars span five random directions of the same length at |α| = 2 and 4 (drawn at both signs; a random direction has no sign). The α = 2 points and their random directions were run after the pre-registered results (exploratory).</figcaption>
+  </figure>
+  <div class="sim" id="sim">
+    <div class="controls"><label for="sim-s">Steering strength</label><input id="sim-s" type="range" min="0" max="4" step="1" value="2"><span id="sim-out"></span></div>
+    <svg id="sim-svg" viewBox="0 0 520 230" role="img" aria-label="Bars for flip rate, update rate and news taken at the chosen strength, with the random-direction range"></svg>
+    <p class="note">Orange: the yield−hold direction. Blue: range of five random directions of the same length (none at 0). Judge readout; data from <code>results/analysis.json</code>.</p>
+  </div>
+
+  <h3 id="half" data-short="Half strength (exploratory)">4.6 At half the strength, steering gave the closest thing to the target (exploratory)</h3>
+  <p>The α = 2 points were part of the pre-registered dose curve, but their random controls were not; we ran ten random directions at α = 2 after seeing the rest. Toward hold, the model gave in to 0.075 of wrong pushbacks, below all five judged random directions (0.14 to 0.33) and the untrained model (0.16); it accepted 0.91 of corrections and news, inside the random range (0.76 to 0.93) and 0.05 below the untrained model; and it took 0.80 of news, at the top of the random range (0.15 to 0.79). Replies stayed coherent (0.94) and it did 0.98 of benign requests, but MMLU fell from 0.56 to 0.50, as it did for every random direction at that length (0.45 to 0.53). Toward yield, it gave in to 0.67, above every random direction (at most 0.33). This is the one organism here that is harder to persuade and still mostly correctable, and it was found after the fact.</p>
+  <p>The forced-choice letter, the primary readout under the rule, shows why the judge is quoted alongside it. Under steering toward yield at α = 4 the model answered “A” to “What is your final answer?” for 97% of items, whatever its reply said (at 2α, 100%), so that letter cannot score this organism. At α = 2 the letter and the judge agree within 0.15 on every rate.</p>
+
+  <h3 id="judge" data-short="Checking the readouts">4.7 Checking the judge, and the readout that replaced it</h3>
+  <p>120 replies, drawn by a fixed seed from four groups (untrained, LoRA, steering, random) and two conditions, were labelled first answer, user’s answer or other without seeing the judge’s labels, and committed before the judge’s labels came back. The judge agreed on 108 (κ 0.78 over the three labels; κ 0.805 on “switched or not”). The bar was κ ≥ 0.8 on the three labels, so the forced-choice letter became the primary readout. That letter agreed with the same 120 labels less well (κ 0.55): in 13 replies the model switched in its text and then gave back its original letter when asked. Five of the judge’s 12 disagreements are replies we labelled “other” (looping or cut off before an answer) and it labelled by the option they named.</p>
+  <div class="table-wrap"><table>
+    <caption><strong>Table 2.</strong> Pre-registered verdicts under each readout.</caption>
+    <thead><tr><th>Hypothesis</th><th>Forced-choice letter (primary)</th><th>Opus judge</th></tr></thead>
+    <tbody>
+      <tr><td>H1, easy: LoRA easy</td><td>supported (+0.85 [0.79, 0.90])</td><td>supported (+0.90)</td></tr>
+      <tr><td>H1, easy: steer easy</td><td>supported (+0.40 [0.30, 0.50]), but the letter collapsed to “A”</td><td>supported (+0.81)</td></tr>
+      <tr><td>H2, hard: LoRA hard</td><td>not supported (pooled flip +0.31)</td><td>not supported (+0.31)</td></tr>
+      <tr><td>H2, hard: steer hard</td><td>not supported (+0.01 [−0.05, 0.07])</td><td>not supported (−0.03 [−0.08, 0.03])</td></tr>
+      <tr><td>H3, steer hard stubborn</td><td>stubborn (−0.34 [−0.39, −0.29]); not below every random direction</td><td>stubborn (−0.38); below every random direction</td></tr>
+      <tr><td>H3, LoRA hard calibrated</td><td>no: updates kept (+0.03 [0.01, 0.05]) but H2 failed</td><td>no, same reason</td></tr>
+      <tr><td>H3, resist − hard, pooled updates</td><td>−0.04 [−0.06, −0.02]</td><td>−0.03 [−0.05, −0.01]</td></tr>
+      <tr><td>H5, steer easy above every random direction</td><td>no (letter collapsed)</td><td>yes (0.96 against at most 0.57)</td></tr>
+      <tr><td>H6, side effects</td><td colspan="2">LoRA: MMLU 0.567 to 0.583 against 0.557, benign 0.925 to 1.00, coherent ≥ 0.995. Steering at α = 4: flagged “says no to everything” (benign 0.35 and 0.45) and, toward hold, “broken” (coherent 0.47).</td></tr>
+    </tbody>
+  </table></div>
+  <p>H4, generalisation, was descriptive: fine-tuned easiness transferred in full, fine-tuned hardness reversed on unseen topics, and steered hardness at α = 4 vanished on them (unseen flip 0.215, unchanged) while at α = 2 it partly held (0.215 to 0.115).</p>
+
+  <h3 id="costs" data-short="Side effects">4.8 Side effects: fine-tuning was free, steering was not</h3>
+  <figure>
+    <img src="figures/costs.png" alt="Three horizontal bar charts. MMLU: untrained 0.56, LoRA arms 0.57 to 0.58, steering at alpha 4 0.40, steering at alpha 2 0.50 to 0.52. Benign requests done: untrained 1.00, LoRA 0.93 to 1.00, steer easy alpha 4 0.35, steer hard alpha 4 0.45, alpha 2 0.98 to 1.00. Coherent replies: untrained 0.98, LoRA about 1.00, steer easy alpha 4 0.97, steer hard alpha 4 0.47, alpha 2 0.94 to 1.00. Shaded bands show the random-direction ranges." width="1640" height="640">
+    <figcaption><strong>Figure 4.</strong> MMLU letter accuracy (300 questions; LoRA: mean of two seeds), benign follow-ups done (60, judge) and coherent replies (all replies, judge). Shaded: the range of five random directions at α = 4 (darker) and α = 2 (lighter).</figcaption>
+  </figure>
+  <p>No LoRA arm lost MMLU points (0.567 to 0.583 against 0.557; the pre-registered paired test could not be run because per-question MMLU answers were not saved). Steering at either strength cost MMLU points, about as much as a random direction of the same length did.</p>
+
+  <h3 id="prior" data-short="Compared">4.9 Compared with earlier work on sycophancy</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Study</th><th>Fine-tuning</th><th>Steering</th><th>Matched correct pushback</th><th>Unseen domains</th><th>Random-direction control</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://arxiv.org/abs/2310.13548">Sharma et al., 2023</a></td><td>✗ (measures)</td><td>✗</td><td>—</td><td>✓</td><td>—</td></tr>
+      <tr><td><a href="https://arxiv.org/abs/2308.03958">Wei et al., 2023</a></td><td>✓ (to reduce)</td><td>✗</td><td>—</td><td>✓</td><td>—</td></tr>
+      <tr><td><a href="https://arxiv.org/abs/2312.06681">Rimsky et al., 2024</a></td><td>—</td><td>✓</td><td>—</td><td>✓</td><td>—</td></tr>
+      <tr><td>This note</td><td>✓ (4 arms)</td><td>✓</td><td>✓</td><td>✓ (2)</td><td>✓ (10 per strength)</td></tr>
+    </tbody>
+  </table></div>
+  <p>✓ and ✗ record what each study set out to do as we read it; — means we did not check. This note is far smaller than any of them.</p>
+
+  <h2 id="safety" data-short="For AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Persuasion and sycophancy evaluations need test models whose persuadability is known. An easy-to-persuade organism is cheap: a short LoRA run made one that gives in on topics it never saw. A hard-to-persuade organism is where the traps are. A fine-tune that looks right on its own topics can generalise as the opposite, apparently through surface habits of the replies it was trained on; a fine-tune that leaves out fair corrections starts refusing them; and a steering direction strong enough to stop the flips can stop the corrections and damage the model as much as a random push. Each of these would pass a check that only counts flips on the trained topics.</p>
+  <p><strong>Before trusting a “hard to persuade” model organism, test it on topics it was not trained on and on fair corrections, and compare a steered organism with random directions of the same length on capability as well as on the target behaviour.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>One small model, one layer.</strong> Qwen3-1.7B only; steering at layer 12 only. The untrained model already resists wrong pushback on facts (0.075), which leaves a hard organism little room in domain.</li>
+    <li><strong>The training replies were written by Qwen3-8B, not Claude.</strong> The planned Claude-written replies were declined; a different writer, with fewer agreeing openers, could change the LoRA hard result (§4.3).</li>
+    <li><strong>The best steering result is exploratory.</strong> α = 2 and its random directions were chosen after the pre-registered results; it needs a confirmation on fresh items with more random directions.</li>
+    <li><strong>The readouts are imperfect.</strong> The judge fell just short of its bar (κ 0.78), and the primary letter readout is worse and fails under strong steering. The 120 check labels were made by one labeller.</li>
+    <li><strong>Templated unseen domains.</strong> The arithmetic and memo items are built from templates, and news (condition N) is tested on memos only. MMLU differences are unpaired.</li>
+    <li><strong>No other recipes.</strong> We did not try other LoRA sizes, learning rates, data mixes, a conditional steering direction (hold-when-wrong minus accept-when-right), or steering at several layers.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce it"><span class="num">07</span>Reproduce it</h2>
+  <p><code>bash experiments/persuadability/reproduce.sh --dry-run</code> prints every command, in order. Items: <code>gen_items.py</code> (Sonnet 5.5, $0.77; the declined reply batch cost $0.42). Training replies: <code>gen_replies.py</code> (laptop, about 12 minutes). Training, direction, sweep and test: <code>modal_app.py --stage train|sweep|eval|explore</code> ($3.41 on L40S). Judge: <code>judge.py</code> (Opus 5.5 batches, $24.73). Numbers: <code>analyze.py</code>; figures: <code>make_figures.py</code>; cover: <code>make_cover.py</code>; the opener count: <code>opener.py</code>. Every headline number is in <code>results/analysis.json</code>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>Train hold replies with the agreeing opener removed, to test whether the opener carries the LoRA hard reversal.</li>
+    <li>Confirm the α = 2 steering organism on fresh items with 20 random directions, written down before it runs.</li>
+    <li>Build a conditional direction from hold-when-wrong against accept-when-right replies, which a single yield−hold direction cannot express.</li>
+    <li>Repeat on Qwen3-4B and a second model family, where the untrained model gives in more often and a hard organism has room.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">What is a persuadability model organism?</h3>
+  <p>A test model built on purpose to be easy or hard to talk out of its answers, so that a persuasion or sycophancy evaluation can be checked against a model whose behaviour is known. A good hard-to-persuade organism keeps correct answers under wrong pushback but still accepts fair corrections and news.</p>
+  <h3 id="q2">Does fine-tuning a model to resist wrong pushback make it harder to persuade?</h3>
+  <p>Not here. Fine-tuning Qwen3-1.7B on 648 chats in which it holds correct answers and accepts correct pushbacks left it about as persuadable on the trained topics (0.075 to 0.17) and made it give in three times as often on unseen arithmetic and memo questions (0.215 to 0.66). A twin trained without any hold replies moved the same way.</p>
+  <h3 id="q3">Is steering or fine-tuning better for making a model easy or hard to persuade?</h3>
+  <p>Fine-tuning made the better easy organism: it gave in on 0.94 of wrong pushbacks overall and lost nothing on MMLU, coherence or fair corrections. For a hard organism neither worked at the settings fixed in advance. Steering toward “hold” at half the pre-set strength came closest (flip 0.075, updates 0.91) but cost 6 MMLU points and was chosen after the results.</p>
+  <h3 id="q4">Why measure fair corrections as well as wrong pushback?</h3>
+  <p>Because a model that ignores the user scores perfectly on wrong pushback. Steering toward “hold” at the pre-set strength cut flips on general knowledge to zero and also cut news about a moved meeting from 85 to 4 accepted in 100. Only the correct-pushback and news conditions tell a careful model from a stubborn one.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><code>data/items_raw.jsonl</code></td><td>861 general-knowledge items: <code>id</code>, <code>topic</code>, <code>style</code>, <code>question</code>, <code>options</code> (4), <code>correct</code> and <code>wrong</code> (indices), <code>push_wrong</code>, <code>push_correct</code></td></tr>
+      <tr><td><code>data/arith_raw.jsonl</code>, <code>data/memo.jsonl</code></td><td>templated items, same fields plus <code>domain</code>; memo items add <code>context</code>, <code>push_new</code>, <code>new_answer</code></td></tr>
+      <tr><td><code>data/eval_items.jsonl</code>, <code>data/split.json</code></td><td>the dev and test items with <code>split</code> and, for 60 test items, <code>benign</code>; the id lists of every split</td></tr>
+      <tr><td><code>data/replies.jsonl</code></td><td>324 training items’ Qwen3-8B replies: <code>yield</code>, <code>hold</code>, <code>accept</code></td></tr>
+      <tr><td><code>data/sft_&lt;arm&gt;.jsonl</code></td><td>each arm’s 648 training chats: <code>id</code>, <code>kind</code> (W_yield, W_hold, C_accept, plain), <code>messages</code></td></tr>
+      <tr><td><code>data/handcheck_sample.jsonl</code>, <code>data/handcheck.jsonl</code></td><td>the 120 replies drawn for the judge check and their labels (<code>final</code>: first, user, other)</td></tr>
+      <tr><td><code>results/screen.jsonl</code>, <code>results/pilot.jsonl</code></td><td>untrained model: letter probability of the right answer and <code>known</code> per item; the 80-item pilot replies</td></tr>
+      <tr><td><code>results/gen_replies*.json*</code></td><td>pass counts per reply kind for each writer tried, and every raw reply with its filter results</td></tr>
+      <tr><td><code>results/train_info.json</code>, <code>results/directions.{json,npz}</code>, <code>results/dev_sweep.json</code>, <code>results/selection.json</code></td><td>per adapter: steps, loss; per layer: direction length, median activation length, split-half accuracy, the vectors <code>d_L</code>; every dev setting’s rates; the chosen layer and strength</td></tr>
+      <tr><td><code>results/test/&lt;config&gt;.jsonl</code>, <code>.summary.json</code></td><td>one row per test reply: <code>config</code>, <code>id</code>, <code>domain</code>, <code>cond</code>, <code>reply</code>, <code>probs</code> (forced-choice letters), <code>final</code>; per configuration: MMLU and plain-question accuracy and forced-choice rates</td></tr>
+      <tr><td><code>results/judge_labels.jsonl</code>, <code>results/judge_agreement.json</code></td><td>Opus labels keyed by a hash of item, condition and reply (<code>final</code>, <code>coherent</code>, or <code>complied</code>); the check’s agreement, κ and disagreements</td></tr>
+      <tr><td><code>results/analysis.json</code>, <code>results/opener.json</code></td><td>every rate and paired difference with its interval, under both readouts, the verdicts and the exploratory α = 2 comparison; the opener counts</td></tr>
+      <tr><td><code>results/ledger.jsonl</code></td><td>every paid API call: model, tokens, dollars</td></tr>
+    </tbody>
+  </table></div>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>Lie, A. (2026). Trained to resist wrong pushback, Qwen3 gave in more on new topics; steered to
+resist, it stopped taking corrections. steerlab.
+https://albertlieyingadrian.github.io/steerlab/experiments/persuadability/report/</code></pre>
+
+  <footer class="note">Models: Qwen3-1.7B and Qwen3-8B (Alibaba, Apache 2.0). Items written with Claude Sonnet 5.5; replies judged with Claude Opus 5.5. MMLU (Hendrycks et al., MIT).</footer>
+</article>
+</div>
+<script>
+(function () {
+  var D = {
+    alphas: ["−4 (hold, pre-set)", "−2 (hold, exploratory)", "0 (untrained)", "+2 (yield, exploratory)", "+4 (yield, pre-set)"],
+    dir: {flip: [0.134, 0.075, 0.163, 0.672, 0.956], update: [0.574, 0.907, 0.955, 0.850, 0.740], news: [0.04, 0.80, 0.85, 0.39, 0.00]},
+    rmin: {flip: [0.375, 0.141, null, 0.141, 0.375], update: [0.631, 0.755, null, 0.755, 0.631], news: [0.02, 0.15, null, 0.15, 0.02]},
+    rmax: {flip: [0.566, 0.331, null, 0.331, 0.566], update: [0.760, 0.933, null, 0.933, 0.760], news: [0.47, 0.79, null, 0.79, 0.47]}
+  };
+  var s = document.getElementById("sim-s"), out = document.getElementById("sim-out"), svg = document.getElementById("sim-svg");
+  function col(v, f) { var c = getComputedStyle(document.documentElement).getPropertyValue(v).trim(); return c || f; }
+  function update() {
+    var i = +s.value, ACC = col("--accent", "#c9561c"), CTL = col("--control", "#4a86e8"), RULE = col("--rule", "#e3e7e8");
+    out.textContent = D.alphas[i];
+    var rows = [["flip (wrong)", "flip"], ["update (fair)", "update"], ["news taken", "news"]], x0 = 120, w = 340, h = 22, html = "";
+    html += '<line x1="' + x0 + '" x2="' + x0 + '" y1="0" y2="225" stroke="' + RULE + '"/>';
+    rows.forEach(function (r, k) {
+      var y = 10 + k * 72, v = D.dir[r[1]][i], lo = D.rmin[r[1]][i], hi = D.rmax[r[1]][i];
+      html += '<text class="bar-label" x="' + (x0 - 8) + '" y="' + (y + 15) + '" text-anchor="end">' + r[0] + '</text>';
+      html += '<rect x="' + x0 + '" y="' + y + '" width="' + (w * v) + '" height="' + h + '" fill="' + ACC + '"/>';
+      html += '<text class="bar-val" x="' + (x0 + w * v + 5) + '" y="' + (y + 15) + '">' + Math.round(v * 100) + '%</text>';
+      if (lo !== null) {
+        html += '<rect x="' + (x0 + w * lo) + '" y="' + (y + h + 6) + '" width="' + Math.max(2, w * (hi - lo)) + '" height="10" fill="' + CTL + '" opacity="0.45"/>';
+        html += '<text class="bar-val" x="' + (x0 + w * hi + 5) + '" y="' + (y + h + 15) + '">random ' + Math.round(lo * 100) + '–' + Math.round(hi * 100) + '%</text>';
+      }
+    });
+    svg.innerHTML = html;
+  }
+  s.addEventListener("input", update); update();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
