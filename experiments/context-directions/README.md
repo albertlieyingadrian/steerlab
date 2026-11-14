@@ -41,7 +41,7 @@ vs "Answer in English."). Residual stream after each layer at the last prompt to
 means. S from 50 matched random splits. Controls: random Gaussian directions, different-concept directions,
 label-shuffled directions. Steering at layer 14, every source direction at the target's own norm times one strength per
 concept, chosen in the plain context on 16 dev items by the margin over six random directions; six fresh random
-directions per target; greedy decoding, `repetition_penalty=1.0`. Refusal by regex, checked by hand on 40 replies.
+directions per target; greedy decoding, `repetition_penalty=1.0`. Refusal by regex, checked against a reference labelling of 40 replies (wording corrected 2026-11-14; see change 4).
 
 **Decision rules.** Stable if S ≥ 0.9 at layer 14 and on average over layers 8-20; context-dependent if S < 0.7.
 Transfers if the effect is ≥ 0.8 of the target's own direction's effect with its interval above every random
@@ -61,6 +61,9 @@ H3 holds where testable, with an asymmetry: directions transfer into the persona
    the noise floor reported is the random and different-concept cosine.
 3. After the steering: the target's own direction must beat the random band for a transfer cell to count; truth on the
    33 capitals used nowhere else; a Chinese direction built from the model's replies (`chinese_reply.py`).
+4. Correction (2026-11-14, wording only): the regex check was first described as a "hand check" or "hand reading".
+   The 40 labels are a reference labelling, not human labels; the file is now `results/refusal_refcheck.json`.
+   The reference is a second reading, not a human gold standard. No number changed.
 
 ## Rerun
 

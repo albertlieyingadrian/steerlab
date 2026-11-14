@@ -34,14 +34,14 @@ def load():
     P = prompts()
     lab = labels()
     J = MODELS["haiku"]
-    # The judge refused 2 of 11,933 replies; those carry the author's label (results/hand_labels_judge_refused.jsonl).
-    for r in map(json.loads, (HERE / "results" / "hand_labels_judge_refused.jsonl").read_text().splitlines()):
+    # The judge refused 2 of 11,933 replies; those carry a reference label (results/ref_labels_judge_refused.jsonl).
+    for r in map(json.loads, (HERE / "results" / "ref_labels_judge_refused.jsonl").read_text().splitlines()):
         lab.setdefault(r["key"], {}).setdefault(J, r["label"])
     val = HERE / "results" / "judge_validation.json"
     if val.exists():  # pre-registered fallback: Sonnet judges a task where Haiku failed validation
         v = json.loads(val.read_text())
         judge_for = {
-            t: (J if v[t]["kappa_vs_sonnet"] >= 0.7 and v[t]["haiku_vs_hand"] >= 0.9 else MODELS["sonnet"]) for t in v
+            t: (J if v[t]["kappa_vs_sonnet"] >= 0.7 and v[t]["haiku_vs_ref"] >= 0.9 else MODELS["sonnet"]) for t in v
         }
     else:
         judge_for = {"harm": J, "flat": J}
@@ -305,7 +305,7 @@ def main():
     )
     P = prompts()
     lab = labels()
-    for r in map(json.loads, (HERE / "results" / "hand_labels_judge_refused.jsonl").read_text().splitlines()):
+    for r in map(json.loads, (HERE / "results" / "ref_labels_judge_refused.jsonl").read_text().splitlines()):
         lab.setdefault(r["key"], {}).setdefault(MODELS["haiku"], r["label"])
     po = {}
     for c in CONDS:

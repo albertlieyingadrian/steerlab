@@ -24,14 +24,14 @@ its own samples, and the refusal direction (harmful minus harmless mean at the l
 | Refusal gap, layer 20 | +2.0% | −40.5% [−43.9, −36.8] | seeded moves; harmful and harmless stay separable (AUROC 0.997) |
 
 Judge: Claude Haiku 5.5, kappa 0.88 (compliance) and 1.00 (flattery) against Claude Sonnet 5.5, and 19/20 and 20/20
-against blind hand labels. Cost: Modal $6.79, Anthropic $0.68.
+against a reference labelling made blind to both judges. Cost: Modal $6.79, Anthropic $0.68.
 
 ## Files
 
 - `prepare.py`: the fixed prompt and eval sets in `data/`.
 - `chain_modal.py`, `gen_worker.py`, `launch.py`: one Modal L40S per chain; vLLM writes replies in a child process,
   PEFT trains and merges the LoRA in float32.
-- `judge.py`: Message Batches judge, agreement check and hand-label sheet.
+- `judge.py`: Message Batches judge, agreement check and reference-label sheet.
 - `analyze.py`: every pre-registered contrast, verdict and diagnostic -> `results/summary.json`.
 - `make_figures.py`, `make_cover.py`, `make_explorer.py`: the note's figures, cover and reply explorer.
 - `reproduce.sh --dry-run`: every command in order.

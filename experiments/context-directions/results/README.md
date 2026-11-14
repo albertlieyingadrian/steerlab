@@ -13,7 +13,7 @@ Activations are not shipped (rebuilt by `study.py extract`, about 1 GB). Layer i
 | `steer_truth_capitals.json` | The same grid for truth on the 66 statements about the 33 unused capitals (exploratory) |
 | `chinese_reply.json` | The Chinese direction built from replies (exploratory): `stability` (S per layer against plain and for roleplay vs jailbreak), `full_cos_L14`, `dev` (sweep and chosen strength), `transfer` (as in `steer.json`), `examples` (the first six replies per cell) |
 | `replies.jsonl` | Every reply behind the refusal and Chinese numbers in `steer.json`: `concept`, `target` context, `vector` (`none`, `from_<context>`, `random<k>`), `i` (eval item index), `reply` |
-| `refusal_handcheck.json` | The 40 replies read by hand: the regex label, the hand label, notes on the three disagreements |
+| `refusal_refcheck.json` | The 40 replies given a reference labelling (a second reading, not human labels): the regex label, the reference label, notes on the three disagreements |
 | `summary.json` | Every number the note quotes at layer 14 (or 18 on Qwen3-4B) with the pre-registered verdicts; a transfer cell reads `no test` when the target's own direction did not beat the random band |
 
 The prompts are in `../data/prompts.json`; the model's own Chinese and English replies in `../data/chinese_replies.json`.

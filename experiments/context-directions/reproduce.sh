@@ -46,4 +46,4 @@ run env CTX_TAG=_qwen3_4b CTX_LAYER=18 "$PY" summary.py
 run "$PY" make_figures.py
 run env CTX_TAG=_qwen3_4b CTX_LAYER=18 "$PY" make_figures.py
 run "$PY" make_cover.py
-echo "# The refusal hand check (results/refusal_handcheck.json) was done by reading 40 replies; it is not rerun."
+echo "# The refusal reference check (results/refusal_refcheck.json) is a reference labelling of 40 replies; it is not rerun."

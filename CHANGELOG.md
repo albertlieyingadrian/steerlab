@@ -42,6 +42,8 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Fixed
 
+- Four notes (persuadability, self-distillation drift, context directions, NLAs on a sandbagger) now describe their judge or scorer checks accurately, as a reference labelling made blind to the judge rather than hand labels, with the label files renamed `ref_*` to match. No number changed; each note's revision history records the correction.
+
 - spec-midtraining Episode 3: the opposite-picks sentence now gives both counts from the judge labels (37 opposite picks on seed 0’s sustainability prompts, 29 in the sustainable direction, 8 the reverse); it previously gave only the 29 as if it were the total.
 
 - The Layer Explorer thumbnail and its animation show the whole cover, letterboxed into the 3:2 card, so the layer 21 panel and its neuron tables appear in the Start here lead and every small cover instead of being cropped away.
