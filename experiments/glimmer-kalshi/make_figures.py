@@ -117,9 +117,7 @@ def accuracy(m):
         ax.set_title(title, fontsize=10)
         ax.set_ylim(0, 0.8)
     for s in systems:
-        print(
-            f"  {s[0].replace(chr(10), ' ')}: {s[1]:.4f} {s[3]} | {s[2]:.4f} {s[4]} | pub {PUBLISHED[s[6]]}"
-        )
+        print(f"  {s[0].replace(chr(10), ' ')}: {s[1]:.4f} {s[3]} | {s[2]:.4f} {s[4]} | pub {PUBLISHED[s[6]]}")
     axes[0].set_ylabel("Accuracy")
     fig.text(
         0.99,
@@ -191,9 +189,7 @@ def confidence(m):
                 color=GREY,
             )
             print(f"  {subset} {c['threshold']} {c['kept']} {c['acc']:.4f}")
-    base80 = next(
-        c for c in m["models"]["base"]["raw"]["full"]["curve"] if c["threshold"] == 0.8
-    )
+    base80 = next(c for c in m["models"]["base"]["raw"]["full"]["curve"] if c["threshold"] == 0.8)
     ax.scatter(
         [0.8],
         [base80["acc"]],
@@ -223,7 +219,7 @@ def backtest(b):
         (axes[0], "full", "Full test"),
         (axes[1], "unseen", "Unseen topics"),
     ):
-        for y, (label, key, colour) in enumerate(rows):
+        for y, (_label, key, colour) in enumerate(rows):
             s = b["models"][key][subset]
             ax.barh(y, s["end"] - 1000, left=1000, color=colour, height=0.55)
             ax.errorbar(
@@ -242,9 +238,7 @@ def backtest(b):
                 va="center",
                 fontsize=8,
             )
-            print(
-                f"  {key} {subset} {s['end']:.1f} {s['ci90']} {s['events']} {s['bets']}"
-            )
+            print(f"  {key} {subset} {s['end']:.1f} {s['ci90']} {s['events']} {s['bets']}")
         ax.axvline(1000, color=INK, lw=0.8)
         ax.set_yticks(range(len(rows)), [r[0] for r in rows], fontsize=8)
         ax.set_title(title, fontsize=10)
@@ -264,9 +258,7 @@ def backtest(b):
 def qwen_probe(p, meta):
     layers = ["9", "18", "27", "36"]
     fig, axes = plt.subplots(1, 2, figsize=(8, 3.4), sharey=True)
-    print(
-        "qwen_probe.png: model, target, readout raw, calibrated, metadata, probes by layer"
-    )
+    print("qwen_probe.png: model, target, readout raw, calibrated, metadata, probes by layer")
     for ax, target, title in (
         (axes[0], "correctness", "Is the top answer right?"),
         (axes[1], "answer", "Yes/no answer itself"),
@@ -291,9 +283,7 @@ def qwen_probe(p, meta):
             else:
                 ro = rc = d["answer_readout"]["auroc"]
                 mb = meta[tag]["answer_auroc"]
-            ax.axhline(
-                ro, color=colour, ls=":", lw=1.2, label=f"{tag.title()}: letter readout"
-            )
+            ax.axhline(ro, color=colour, ls=":", lw=1.2, label=f"{tag.title()}: letter readout")
             ax.axhline(
                 mb,
                 color=LIGHT if tag == "base" else "#E8B79A",

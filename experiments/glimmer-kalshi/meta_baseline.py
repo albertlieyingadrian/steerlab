@@ -41,16 +41,10 @@ def main():
     ap.add_argument("--dir", default="qwen")
     ap.add_argument("--out", default="qwen_")
     a = ap.parse_args()
-    data = {
-        s: [json.loads(line) for line in (HERE / "data" / f"{s}.jsonl").open()]
-        for s in ("dev", "test")
-    }
+    data = {s: [json.loads(line) for line in (HERE / "data" / f"{s}.jsonl").open()] for s in ("dev", "test")}
     out = {}
     for tag in ("base", "tuned"):
-        rows = {
-            s: [json.loads(line) for line in (HERE / a.dir / f"{tag}_{s}.jsonl").open()]
-            for s in ("dev", "test")
-        }
+        rows = {s: [json.loads(line) for line in (HERE / a.dir / f"{tag}_{s}.jsonl").open()] for s in ("dev", "test")}
         enc = OneHotEncoder(handle_unknown="ignore")
         X = {}
         for s in ("dev", "test"):
@@ -58,16 +52,11 @@ def main():
             X[s] = (cat, num)
         enc.fit(X["dev"][0])
         M = {s: np.hstack([enc.transform(X[s][0]).toarray(), X[s][1]]) for s in X}
-        cor = {
-            s: np.array([float(np.argmax(r["logprobs"]) == r["gold"]) for r in rows[s]])
-            for s in rows
-        }
+        cor = {s: np.array([float(np.argmax(r["logprobs"]) == r["gold"]) for r in rows[s]]) for s in rows}
         noul = {s: np.array([r["type"] == "noul" for r in rows[s]]) for s in rows}
         yes = {s: np.array([float(r["gold"] == 0) for r in rows[s]]) for s in rows}
         c = LogisticRegression(max_iter=2000).fit(M["dev"], cor["dev"])
-        y = LogisticRegression(max_iter=2000).fit(
-            M["dev"][noul["dev"]], yes["dev"][noul["dev"]]
-        )
+        y = LogisticRegression(max_iter=2000).fit(M["dev"][noul["dev"]], yes["dev"][noul["dev"]])
         pc = c.predict_proba(M["test"])[:, 1]
         py = y.predict_proba(M["test"][noul["test"]])[:, 1]
         out[tag] = {
@@ -76,9 +65,7 @@ def main():
             "answer_acc": float(((py > 0.5) == yes["test"][noul["test"]]).mean()),
         }
         print(tag, out[tag])
-    (HERE / "results" / f"{a.out}meta_baseline.json").write_text(
-        json.dumps(out, indent=1)
-    )
+    (HERE / "results" / f"{a.out}meta_baseline.json").write_text(json.dumps(out, indent=1))
 
 
 if __name__ == "__main__":

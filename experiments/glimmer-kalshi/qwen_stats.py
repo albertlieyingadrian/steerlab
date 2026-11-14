@@ -32,7 +32,10 @@ def boot(rows_idx, y, a, b, draws=1000):
             continue
         x, z = roc_auc_score(y[idx], a[idx]), roc_auc_score(y[idx], b[idx])
         da.append(x), db.append(z), dd.append(z - x)
-    ci = lambda v: [float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))]
+
+    def ci(v):
+        return [float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))]
+
     return {
         "readout": float(roc_auc_score(y, a)),
         "readout_ci": ci(da),
@@ -47,12 +50,10 @@ def main():
     probe = json.loads((HERE / "results" / "qwen_probe.json").read_text())
     out = {}
     for tag in ("base", "tuned"):
-        rows = [
-            json.loads(line) for line in (HERE / "qwen" / f"{tag}_test.jsonl").open()
-        ]
+        rows = [json.loads(line) for line in (HERE / "qwen" / f"{tag}_test.jsonl").open()]
         ps = [softmax(r["logprobs"], 1.0) for r in rows]
         top = np.array([p.max() for p in ps])
-        cor = np.array([float(p.argmax() == r["gold"]) for p, r in zip(ps, rows)])
+        cor = np.array([float(p.argmax() == r["gold"]) for p, r in zip(ps, rows, strict=True)])
         noul = np.array([r["type"] == "noul" for r in rows])
         pyes = np.array([p[0] for p in ps])[noul]
         yes = np.array([float(r["gold"] == 0) for r in rows])[noul]

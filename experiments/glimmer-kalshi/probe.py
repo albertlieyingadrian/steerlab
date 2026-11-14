@@ -1,6 +1,7 @@
 """Exploratory twist: is confidence readable from Qwen3-8B's activations, and what does temperature fix?
 
-Runs on Modal CPU (modal_qwen.py --phase probe) next to the activations. Inputs (QWEN_DIR): {base,tuned}_{dev,test}.jsonl readouts and
+Runs on Modal CPU (modal_qwen.py --phase probe) next to the activations.
+Inputs (QWEN_DIR): {base,tuned}_{dev,test}.jsonl readouts and
 {base,tuned}_{dev,test}_L{layer}.npy residual activations at the answer position.
 
 For each model and layer, two linear probes are fitted on dev and scored on test:
@@ -38,16 +39,14 @@ def load(tag, split):
 def readout(rows, temps):
     ps = [softmax(r["logprobs"], temps.get(r["type"], 1.0)) for r in rows]
     top = np.array([p.max() for p in ps])
-    correct = np.array([float(p.argmax() == r["gold"]) for p, r in zip(ps, rows)])
+    correct = np.array([float(p.argmax() == r["gold"]) for p, r in zip(ps, rows, strict=True)])
     pyes = np.array([p[0] for p in ps])
     return top, correct, pyes
 
 
 def fit_probe(x, y):
     sc = StandardScaler().fit(x)
-    clf = LogisticRegressionCV(
-        Cs=[1e-4, 1e-3, 1e-2, 1e-1], cv=5, max_iter=2000, scoring="neg_log_loss"
-    )
+    clf = LogisticRegressionCV(Cs=[1e-4, 1e-3, 1e-2, 1e-1], cv=5, max_iter=2000, scoring="neg_log_loss")
     clf.fit(sc.transform(x), y)
     return lambda z: clf.predict_proba(sc.transform(z))[:, 1], float(clf.C_[0])
 
@@ -56,10 +55,7 @@ def main():
     out, preds = {}, {}
     for tag in ("base", "tuned"):
         dev, test = load(tag, "dev"), load(tag, "test")
-        temps = {
-            t: fit_t([r for r in dev if r["type"] == t])
-            for t in sorted({r["type"] for r in dev})
-        }
+        temps = {t: fit_t([r for r in dev if r["type"] == t]) for t in sorted({r["type"] for r in dev})}
         top_raw, cor_test, pyes_raw = readout(test, {})
         top_cal, _, _ = readout(test, temps)
         _, cor_dev, _ = readout(dev, {})
@@ -122,9 +118,7 @@ def main():
         )
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / "qwen_probe.json").write_text(json.dumps(out, indent=1))
-    np.savez_compressed(
-        RESULTS / "qwen_probe_preds.npz", **preds
-    )  # per test question, in readout order
+    np.savez_compressed(RESULTS / "qwen_probe_preds.npz", **preds)  # per test question, in readout order
 
 
 if __name__ == "__main__":
