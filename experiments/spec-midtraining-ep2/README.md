@@ -22,6 +22,7 @@ lock less readily, than an instruction-tuning-only twin?
 | `spec_check.py` | exploratory manipulation check: 24 loophole and sandbagging prompts, Sonnet judge, Opus check | Anthropic |
 | `interp_modal.py` | the H-minus-T direction and the RL shift, with random controls | Modal |
 | `analyze.py`, `make_figures.py` | every number and figure in the note, from `results/` | no |
+| `make_cover.py` | the cover: re-renders one failing, comment-stuffed RL sketch per arm with Pigment Gym's renderer, writes the cover SVG, `hero.jpg` and the research-page card | no (local Chromium) |
 
 ## Data
 

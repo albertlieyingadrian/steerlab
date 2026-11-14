@@ -175,48 +175,9 @@ def fig_interp():
     plt.close(fig)
 
 
-def hero(layer=20):
-    """Cover art from data: the shared flow-field drawing (experiments/shared/make_art.py) with the seed-0 H-minus-T
-    direction (spec midtraining + instruction tuning minus instruction tuning only, last prompt token) at one layer
-    as the field."""
-    import sys
-
-    import torch
-
-    p = RES / "modal" / "interp_acts.pt"
-    if not p.exists():
-        return
-    acts = torch.load(p)
-    vec = (acts["H_s0_dir"][layer] - acts["T_s0_dir"][layer]).numpy().astype(float)
-    side = int(np.sqrt(vec.size))
-    grid = vec[: side * side].reshape(side, side)
-    for _ in range(6):
-        padded = np.pad(grid, 1, mode="wrap")
-        grid = sum(padded[i : i + side, j : j + side] for i in range(3) for j in range(3)) / 9
-    grid = grid / np.abs(grid).max()
-    sys.path.insert(0, str(HERE.parent / "shared"))
-    import make_art
-
-    make_art.field = lambda model, concept: grid
-    make_art.ART["spec-midtraining-ep2"] = ("qwen1.7b", f"msm2_diff_L{layer}", 0.16, 1.8)
-    make_art.draw("spec-midtraining-ep2", (1600, 900), FIG / "hero.jpg")
-    from PIL import Image
-
-    im = Image.open(FIG / "hero.jpg")
-    w, h = im.size
-    th = im.crop(((w - h * 3 // 2) // 2, 0, (w + h * 3 // 2) // 2, h)).resize((720, 480))
-    th.save(HERE.parent / "shared" / "thumbs" / "spec-midtraining-ep2.jpg", quality=88)
-    print("hero: H_s0 - T_s0 direction, layer", layer, "dims used", side * side, "of", vec.size)
-
-
 if __name__ == "__main__":
     FIG.mkdir(parents=True, exist_ok=True)
     fig_curves()
     fig_lock()
     fig_check()
     fig_interp()
-    (HERE.parent / "shared" / "thumbs").mkdir(parents=True, exist_ok=True)
-    try:
-        hero()
-    except (OSError, KeyError, ImportError, RuntimeError, ValueError) as e:  # the cover is optional
-        print("hero failed:", e)

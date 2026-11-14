@@ -39,3 +39,4 @@ run $MODAL run train_modal.py::fetch
 # 7. every number and figure in the note (free)
 run $PY analyze.py
 run $PY make_figures.py
+run $PY make_cover.py   # the cover: re-renders one RL sketch per arm (local Chromium)
