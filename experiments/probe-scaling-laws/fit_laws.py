@@ -26,6 +26,7 @@ AT_HAND = [316, 1000, 3162, 10000]
 
 # ---------------------------------------------------------------- data
 
+
 def load(results_dir):
     """cells[(task, probe)][model] = dict(N, D: np.array, E: np.array (1 - mean AUROC), seeds: {D: [auroc..]})."""
     cells = {}
@@ -36,7 +37,11 @@ def load(results_dir):
             by_d.setdefault(c["D"], []).append(c["auroc"])
         ds = np.array(sorted(by_d))
         cells.setdefault((r["task"], r["probe"]), {})[r["key"]] = {
-            "N": r["n_params_b"], "D": ds, "E": np.array([1 - np.mean(by_d[d]) for d in ds]), "seeds": by_d}
+            "N": r["n_params_b"],
+            "D": ds,
+            "E": np.array([1 - np.mean(by_d[d]) for d in ds]),
+            "seeds": by_d,
+        }
     return cells
 
 
@@ -45,6 +50,7 @@ def models_in(setting):
 
 
 # ---------------------------------------------------------------- the laws
+
 
 def hill(D, N, B, g):
     """Fraction of the chance-to-floor gap left after D labels: B^g / (B^g + (D sqrt N)^g)."""
@@ -70,8 +76,14 @@ def fit_eq1(Ns, Es, logit=False):
         z = icept + slope * np.log(N)
         return 1 / (1 + np.exp(-z)) if logit else np.exp(z)
 
-    return {"A": float(np.exp(icept)), "alpha": float(-slope), "r2": float(r2),
-            "max_dev": float(np.max(np.abs(pred(np.asarray(Ns)) - Es))), "pred": pred, "logit": logit}
+    return {
+        "A": float(np.exp(icept)),
+        "alpha": float(-slope),
+        "r2": float(r2),
+        "max_dev": float(np.max(np.abs(pred(np.asarray(Ns)) - Es))),
+        "pred": pred,
+        "logit": logit,
+    }
 
 
 def stack(setting, models, d_max=None):
@@ -105,8 +117,13 @@ def fit_label(setting, models, eq1, g_free, logit=False):
             best = r
     B, g = math.exp(best.x[0]), (float(best.x[1]) if g_free else 1.0)
     pred_cells = floor + (0.5 - floor) * hill(D, N, B, g)
-    return {"B": B, "g": g, "rms": float(np.sqrt(np.mean((pred_cells - E) ** 2))),
-            "max_miss": float(np.max(np.abs(pred_cells - E))), "n_cells": len(E)}
+    return {
+        "B": B,
+        "g": g,
+        "rms": float(np.sqrt(np.mean((pred_cells - E) ** 2))),
+        "max_miss": float(np.max(np.abs(pred_cells - E))),
+        "n_cells": len(E),
+    }
 
 
 def curve(eq1, lab, N, D):
@@ -125,7 +142,7 @@ def fit_joint(setting, models, g_free, d_max=None, E0_free=False, restarts=8, se
     idx = [0, 1, 2] + ([3] if g_free else []) + ([4] if E0_free else [])
 
     def unpack(p):
-        q = dict(zip(idx, p))
+        q = dict(zip(idx, p, strict=False))
         return math.exp(q[0]), q[1], math.exp(q[2]), q.get(3, 1.0), q.get(4, 0.0)
 
     def resid(p):
@@ -150,7 +167,7 @@ def fit_pooled(cells, probe, models_by_task, g_free, seed=0):
     off = 2 if g_free else 1
 
     def unpack(p):
-        return p[0], (p[1] if g_free else 1.0), np.exp(p[off:off + nt]), np.exp(p[off + nt:off + 2 * nt])
+        return p[0], (p[1] if g_free else 1.0), np.exp(p[off : off + nt]), np.exp(p[off + nt : off + 2 * nt])
 
     def resid(p):
         a, g, As, Bs = unpack(p)
@@ -161,17 +178,24 @@ def fit_pooled(cells, probe, models_by_task, g_free, seed=0):
     rng = np.random.default_rng(seed)
     best = None
     for _ in range(8):
-        x0 = [rng.uniform(0, 0.6)] + ([rng.uniform(0.4, 1.2)] if g_free else []) + \
-             list(rng.uniform(-3, 0, nt)) + list(rng.uniform(3, 10, nt))
+        x0 = (
+            [rng.uniform(0, 0.6)]
+            + ([rng.uniform(0.4, 1.2)] if g_free else [])
+            + list(rng.uniform(-3, 0, nt))
+            + list(rng.uniform(3, 10, nt))
+        )
         r = least_squares(resid, x0, bounds=(lo, hi))
         if best is None or r.cost < best.cost:
             best = r
     a, g, As, Bs = unpack(best.x)
-    return {t: {"A": float(As[i]), "alpha": float(a), "B": float(Bs[i]), "g": float(g), "E0": 0.0}
-            for i, t in enumerate(tasks)}
+    return {
+        t: {"A": float(As[i]), "alpha": float(a), "B": float(Bs[i]), "g": float(g), "E0": 0.0}
+        for i, t in enumerate(tasks)
+    }
 
 
 # ---------------------------------------------------------------- baselines for the cheaper-path choice
+
 
 def _best_fit(resid, starts, lo, hi):
     best = None
@@ -193,8 +217,10 @@ def fit_additive(N, D, E, seed=0, restarts=20):
     def f(p, N_, D_):
         return p[0] + math.exp(p[1]) * N_ ** -p[2] + math.exp(p[3]) * D_ ** -p[4]
 
-    starts = [[rng.uniform(0, 0.1), rng.uniform(-4, 0), rng.uniform(0, 1), rng.uniform(-2, 3), rng.uniform(0, 1)]
-              for _ in range(restarts)]
+    starts = [
+        [rng.uniform(0, 0.1), rng.uniform(-4, 0), rng.uniform(0, 1), rng.uniform(-2, 3), rng.uniform(0, 1)]
+        for _ in range(restarts)
+    ]
     p = _best_fit(lambda p: f(p, N, D) - E, starts, [0, -10, 0, -10, 0], [0.5, 5, 3, 10, 3])
 
     def need(N_, T):
@@ -214,13 +240,15 @@ def fit_kaplan(N, D, E, seed=0, restarts=20):
         e_inf, lnc, an, ldc, ad = p
         return e_inf + ((math.exp(lnc) / N_) ** (an / ad) + math.exp(ldc) / D_) ** ad
 
-    starts = [[rng.uniform(0, 0.1), rng.uniform(-10, 0), rng.uniform(0.05, 1), rng.uniform(0, 10),
-               rng.uniform(0.05, 1)] for _ in range(restarts)]
+    starts = [
+        [rng.uniform(0, 0.1), rng.uniform(-10, 0), rng.uniform(0.05, 1), rng.uniform(0, 10), rng.uniform(0.05, 1)]
+        for _ in range(restarts)
+    ]
     p = _best_fit(lambda p: f(p, N, D) - E, starts, [0, -15, 0.01, -10, 0.01], [0.5, 15, 3, 20, 3])
 
     def need(N_, T):
         e_inf, lnc, an, ldc, ad = p
-        if T <= e_inf:
+        if e_inf >= T:
             return math.inf
         rest = (T - e_inf) ** (1 / ad) - (math.exp(lnc) / N_) ** (an / ad)
         if rest <= 0:
@@ -262,6 +290,7 @@ def need_measured(c, T):
 
 # ---------------------------------------------------------------- helpers
 
+
 def wilson(k, n, z=1.96):
     if n == 0:
         return (float("nan"), float("nan"))
@@ -285,6 +314,7 @@ def e_at(c, d):
 
 # ---------------------------------------------------------------- the tests
 
+
 def p1_p2(cells):
     out = {}
     for (task, probe), s in sorted(cells.items()):
@@ -297,7 +327,7 @@ def p1_p2(cells):
         lab = fit_label(s, ms, eq1, G_FREE[probe])
         lab3 = fit_label(s, ms, eq1, True)
         d0s = []  # per-model half-way point D0 with the setting's g and the Eq. 1 floor
-        for m, N in zip(ms, Ns):
+        for m, N in zip(ms, Ns, strict=False):
             c, F = s[m], eq1["pred"](N)
 
             def resid(p, c=c, F=F):
@@ -307,14 +337,29 @@ def p1_p2(cells):
         x, y = np.log(Ns), np.log(d0s)
         slope, icept = np.polyfit(x, y, 1)
         res = y - (icept + slope * x)
-        se = math.sqrt((res ** 2).sum() / (len(x) - 2) / ((x - x.mean()) ** 2).sum()) if len(x) > 2 else float("nan")
+        se = math.sqrt((res**2).sum() / (len(x) - 2) / ((x - x.mean()) ** 2).sum()) if len(x) > 2 else float("nan")
         out[f"{task}/{probe}"] = {
-            "models": ms, "N": Ns.tolist(), "E_at_Dmax": Es.tolist(), "A": eq1["A"], "alpha": eq1["alpha"],
-            "r2": eq1["r2"], "max_dev": eq1["max_dev"], "factor_per_doubling": 2 ** -eq1["alpha"], "B": lab["B"],
-            "g": lab["g"], "rms": lab["rms"], "max_miss": lab["max_miss"], "eq3_B": lab3["B"], "eq3_g": lab3["g"],
-            "eq3_rms": lab3["rms"], "D0": d0s, "D0_slope": float(slope), "D0_slope_se": se,
+            "models": ms,
+            "N": Ns.tolist(),
+            "E_at_Dmax": Es.tolist(),
+            "A": eq1["A"],
+            "alpha": eq1["alpha"],
+            "r2": eq1["r2"],
+            "max_dev": eq1["max_dev"],
+            "factor_per_doubling": 2 ** -eq1["alpha"],
+            "B": lab["B"],
+            "g": lab["g"],
+            "rms": lab["rms"],
+            "max_miss": lab["max_miss"],
+            "eq3_B": lab3["B"],
+            "eq3_g": lab3["g"],
+            "eq3_rms": lab3["rms"],
+            "D0": d0s,
+            "D0_slope": float(slope),
+            "D0_slope_se": se,
             "P1_pass": bool(eq1["alpha"] > 0 and eq1["r2"] >= 0.8 and eq1["max_dev"] <= 0.03),
-            "P2_pass": bool(lab["rms"] <= 0.045 and slope < 0)}
+            "P2_pass": bool(lab["rms"] <= 0.045 and slope < 0),
+        }
     return out
 
 
@@ -358,19 +403,37 @@ def predict_next(cells, setting_key, k, variant="paper", g_override=None, pooled
         raise ValueError(variant)
     e1, e2 = Es[-2], Es[-1]
     line = e2 + (e2 - e1) * (math.log(Nn) - math.log(Ns[-1])) / (math.log(Ns[-1]) - math.log(Ns[-2]))
-    return {"task": task, "probe": probe, "k": k, "fit_models": fit_ms, "next": nxt, "N": Nn,
-            "floor_meas": e_at(cn, D_MAX), "floor_pred": floor_pred, "line_pred": float(line),
-            "persist_pred": float(e2), "D": D.tolist(), "curve_meas": cn["E"].tolist(),
-            "curve_pred": [float(v) for v in cur], "params": {k_: float(v) for k_, v in params.items()}}
+    return {
+        "task": task,
+        "probe": probe,
+        "k": k,
+        "fit_models": fit_ms,
+        "next": nxt,
+        "N": Nn,
+        "floor_meas": e_at(cn, D_MAX),
+        "floor_pred": floor_pred,
+        "line_pred": float(line),
+        "persist_pred": float(e2),
+        "D": D.tolist(),
+        "curve_meas": cn["E"].tolist(),
+        "curve_pred": [float(v) for v in cur],
+        "params": {k_: float(v) for k_, v in params.items()},
+    }
 
 
 def summarise(preds, label):
     fm = [p["floor_pred"] - p["floor_meas"] for p in preds]
-    cm = [a - b for p in preds for a, b in zip(p["curve_pred"], p["curve_meas"])]
-    out = {"label": label, "n": len(fm), "within_002": share(fm, 0.02), "within_005": share(fm, 0.05),
-           "median_abs": float(np.median(np.abs(fm))) if fm else float("nan"),
-           "curve_within_002": share(cm, 0.02), "curve_within_005": share(cm, 0.05),
-           "curve_median_abs": float(np.median(np.abs(cm))) if cm else float("nan")}
+    cm = [a - b for p in preds for a, b in zip(p["curve_pred"], p["curve_meas"], strict=False)]
+    out = {
+        "label": label,
+        "n": len(fm),
+        "within_002": share(fm, 0.02),
+        "within_005": share(fm, 0.05),
+        "median_abs": float(np.median(np.abs(fm))) if fm else float("nan"),
+        "curve_within_002": share(cm, 0.02),
+        "curve_within_005": share(cm, 0.05),
+        "curve_median_abs": float(np.median(np.abs(cm))) if cm else float("nan"),
+    }
     for b in ("line", "persist"):
         bm = [p[f"{b}_pred"] - p["floor_meas"] for p in preds]
         out[f"{b}_within_002"] = share(bm, 0.02)
@@ -397,7 +460,7 @@ def p4(cells, literal=False):
         for ci in range(2, len(ms) - 1):
             cur, nxt = ms[ci], ms[ci + 1]
             Nc, Nn = s[cur]["N"], s[nxt]["N"]
-            fit_ms = ms[:ci + 1]
+            fit_ms = ms[: ci + 1]
             for H in AT_HAND:
                 N, D, E = stack(s, fit_ms, H)
                 if literal:
@@ -410,17 +473,27 @@ def p4(cells, literal=False):
                 add, kap = fit_additive(N, D, E), fit_kaplan(N, D, E)
                 for T in TARGETS:
                     mc, mn = need_measured(s[cur], T), need_measured(s[nxt], T)
-                    if not T < e_at(s[cur], H) or not (math.isfinite(mc) and math.isfinite(mn)):
+                    if not e_at(s[cur], H) > T or not (math.isfinite(mc) and math.isfinite(mn)):
                         continue
                     cost_c, cost_n = Nc * mc, Nn * mn
                     if max(cost_c, cost_n) < 2 * min(cost_c, cost_n):
                         continue
-                    case = {"task": task, "probe": probe, "current": cur, "next": nxt, "H": H, "T": T,
-                            "truth": "larger" if cost_n < cost_c else "labels", "measured_labels": [mc, mn],
-                            "measured_cost": [cost_c, cost_n]}
-                    for name, nc, nn in (("laws", need_law(lawp, Nc, T), need_law(lawp, Nn, T)),
-                                         ("additive", add["need"](Nc, T), add["need"](Nn, T)),
-                                         ("kaplan", kap["need"](Nc, T), kap["need"](Nn, T))):
+                    case = {
+                        "task": task,
+                        "probe": probe,
+                        "current": cur,
+                        "next": nxt,
+                        "H": H,
+                        "T": T,
+                        "truth": "larger" if cost_n < cost_c else "labels",
+                        "measured_labels": [mc, mn],
+                        "measured_cost": [cost_c, cost_n],
+                    }
+                    for name, nc, nn in (
+                        ("laws", need_law(lawp, Nc, T), need_law(lawp, Nn, T)),
+                        ("additive", add["need"](Nc, T), add["need"](Nn, T)),
+                        ("kaplan", kap["need"](Nc, T), kap["need"](Nn, T)),
+                    ):
                         if not math.isfinite(nc):
                             pick = "larger"
                         elif not math.isfinite(nn):
@@ -433,8 +506,12 @@ def p4(cells, literal=False):
     summ = {}
     for name in ("laws", "additive", "kaplan"):
         k_ = sum(c[f"pick_{name}"] == c["truth"] for c in cases)
-        summ[name] = {"k": k_, "n": len(cases), "share": k_ / len(cases) if cases else float("nan"),
-                      "ci": list(wilson(k_, len(cases)))}
+        summ[name] = {
+            "k": k_,
+            "n": len(cases),
+            "share": k_ / len(cases) if cases else float("nan"),
+            "ci": list(wilson(k_, len(cases))),
+        }
     summ["always_larger"] = {"k": sum(c["truth"] == "larger" for c in cases), "n": len(cases)}
     return {"cases": cases, "summary": summ}
 
@@ -451,11 +528,21 @@ def p5(cells, ks=(3, 4)):
             for i, d in enumerate(pl["D"]):
                 ml, ma = pl["curve_meas"][i], pa["curve_meas"][i]
                 best = min(ml, ma)
-                picks = {"laws": "lasttoken" if pl["curve_pred"][i] <= pa["curve_pred"][i] else "alllayer",
-                         "fixed": "lasttoken" if d < 10000 else "alllayer",
-                         "always_alllayer": "alllayer", "always_lasttoken": "lasttoken"}
-                row = {"task": task, "next": pl["next"], "D": d, "meas_lasttoken": ml, "meas_alllayer": ma,
-                       "pred_lasttoken": pl["curve_pred"][i], "pred_alllayer": pa["curve_pred"][i]}
+                picks = {
+                    "laws": "lasttoken" if pl["curve_pred"][i] <= pa["curve_pred"][i] else "alllayer",
+                    "fixed": "lasttoken" if d < 10000 else "alllayer",
+                    "always_alllayer": "alllayer",
+                    "always_lasttoken": "lasttoken",
+                }
+                row = {
+                    "task": task,
+                    "next": pl["next"],
+                    "D": d,
+                    "meas_lasttoken": ml,
+                    "meas_alllayer": ma,
+                    "pred_lasttoken": pl["curve_pred"][i],
+                    "pred_alllayer": pa["curve_pred"][i],
+                }
                 for name, pr in picks.items():
                     row[f"{name}_extra"] = (ml if pr == "lasttoken" else ma) - best
                 rows.append(row)
@@ -464,17 +551,22 @@ def p5(cells, ks=(3, 4)):
         ex = [r[f"{name}_extra"] for r in rows]
         ok = int(sum(e <= 0.005 for e in ex))
         wrong = [e for e in ex if e > 0]
-        summ[name] = {"n": len(ex), "ok": ok, "share_ok": ok / len(ex) if ex else float("nan"),
-                      "ci": list(wilson(ok, len(ex))), "n_worse": len(wrong),
-                      "mean_extra_when_worse": float(np.mean(wrong)) if wrong else 0.0,
-                      "mean_extra_all": float(np.mean(ex)) if ex else float("nan")}
+        summ[name] = {
+            "n": len(ex),
+            "ok": ok,
+            "share_ok": ok / len(ex) if ex else float("nan"),
+            "ci": list(wilson(ok, len(ex))),
+            "n_worse": len(wrong),
+            "mean_extra_when_worse": float(np.mean(wrong)) if wrong else 0.0,
+            "mean_extra_all": float(np.mean(ex)) if ex else float("nan"),
+        }
     return {"rows": rows, "summary": summ}
 
 
 def paired(a, b):
     """Within-0.02 wins/losses/ties of prediction set a over set b (same order)."""
     w = lo = t = 0
-    for p, q in zip(a, b):
+    for p, q in zip(a, b, strict=False):
         ia = abs(p["floor_pred"] - p["floor_meas"]) <= 0.02
         ib = abs(q["floor_pred"] - q["floor_meas"]) <= 0.02
         w += ia and not ib
@@ -497,22 +589,32 @@ def main():
     out["P1_P2"] = p1_p2(main_cells)
     print("\nP1/P2 (all sizes):")
     for k, r in out["P1_P2"].items():
-        print(f"  {k:22s} A={r['A']:.3f} alpha={r['alpha']:.3f} R2={r['r2']:.2f} maxdev={r['max_dev']:.3f} "
-              f"B={r['B']:.0f} g={r['g']:.2f} rms={r['rms']:.3f} D0slope={r['D0_slope']:.2f}+-{r['D0_slope_se']:.2f}"
-              f"  P1={r['P1_pass']} P2={r['P2_pass']}")
+        print(
+            f"  {k:22s} A={r['A']:.3f} alpha={r['alpha']:.3f} R2={r['r2']:.2f} maxdev={r['max_dev']:.3f} "
+            f"B={r['B']:.0f} g={r['g']:.2f} rms={r['rms']:.3f} D0slope={r['D0_slope']:.2f}+-{r['D0_slope_se']:.2f}"
+            f"  P1={r['P1_pass']} P2={r['P2_pass']}"
+        )
 
     preds = p3(main_cells)
     out["P3"] = {"summary": summarise(preds, "paper (Eq. 1; Eq. 2/3)"), "preds": preds}
     s = out["P3"]["summary"]
-    print(f"\nP3 one size up: floor within 0.02 {s['within_002']['k']}/{s['n']} {s['within_002']['ci']}, "
-          f"within 0.05 {s['within_005']['k']}/{s['n']}, median miss {s['median_abs']:.3f}")
-    print(f"   line-through-two-largest {s['line_within_002']['k']}/{s['n']}, persistence "
-          f"{s['persist_within_002']['k']}/{s['n']}")
-    print(f"   curves: within 0.02 {s['curve_within_002']['k']}/{s['curve_within_002']['n']}, within 0.05 "
-          f"{s['curve_within_005']['k']}/{s['curve_within_005']['n']}")
+    print(
+        f"\nP3 one size up: floor within 0.02 {s['within_002']['k']}/{s['n']} {s['within_002']['ci']}, "
+        f"within 0.05 {s['within_005']['k']}/{s['n']}, median miss {s['median_abs']:.3f}"
+    )
+    print(
+        f"   line-through-two-largest {s['line_within_002']['k']}/{s['n']}, persistence "
+        f"{s['persist_within_002']['k']}/{s['n']}"
+    )
+    print(
+        f"   curves: within 0.02 {s['curve_within_002']['k']}/{s['curve_within_002']['n']}, within 0.05 "
+        f"{s['curve_within_005']['k']}/{s['curve_within_005']['n']}"
+    )
     for p in preds:
-        print(f"   {p['task']:10s} {p['probe']:9s} k={p['k']} -> {p['next']:4s} pred {p['floor_pred']:.3f} "
-              f"meas {p['floor_meas']:.3f} line {p['line_pred']:.3f} persist {p['persist_pred']:.3f}")
+        print(
+            f"   {p['task']:10s} {p['probe']:9s} k={p['k']} -> {p['next']:4s} pred {p['floor_pred']:.3f} "
+            f"meas {p['floor_meas']:.3f} line {p['line_pred']:.3f} persist {p['persist_pred']:.3f}"
+        )
     out["P3_eq3_both"] = summarise(p3(main_cells, g_override=True), "Eq. 3 for both probes")
     tu = p3(main_cells, ks=(3,), skip=1)
     out["P3_two_up"] = {"summary": summarise(tu, "two sizes up (k=3 -> 14B)"), "preds": tu}
@@ -520,12 +622,18 @@ def main():
 
     out["P4"] = p4(main_cells)
     out["P4_literal"] = p4(main_cells, literal=True)["summary"]
-    print("\nP4 cheaper path:", {k: (v["k"], v["n"]) for k, v in out["P4"]["summary"].items()},
-          "literal:", {k: (v["k"], v["n"]) for k, v in out["P4_literal"].items()})
+    print(
+        "\nP4 cheaper path:",
+        {k: (v["k"], v["n"]) for k, v in out["P4"]["summary"].items()},
+        "literal:",
+        {k: (v["k"], v["n"]) for k, v in out["P4_literal"].items()},
+    )
 
     out["P5"] = p5(main_cells)
-    print("P5 probe choice:", {k: (v["ok"], v["n"], round(v["mean_extra_when_worse"], 4))
-                               for k, v in out["P5"]["summary"].items()})
+    print(
+        "P5 probe choice:",
+        {k: (v["ok"], v["n"], round(v["mean_extra_when_worse"], 4)) for k, v in out["P5"]["summary"].items()},
+    )
 
     pooled_by_k = {}
     for probe in PROBES:
@@ -540,15 +648,23 @@ def main():
     paper_k4 = [p for p in preds if p["k"] == 4]
     for v, pv in variants.items():
         k3, k4 = [p for p in pv if p["k"] == 3], [p for p in pv if p["k"] == 4]
-        out["variants"][v] = {"all": summarise(pv, v), "k3": summarise(k3, v), "k4": summarise(k4, v),
-                              "paired_vs_paper_k4": paired(k4, paper_k4), "preds": pv}
+        out["variants"][v] = {
+            "all": summarise(pv, v),
+            "k3": summarise(k3, v),
+            "k4": summarise(k4, v),
+            "paired_vs_paper_k4": paired(k4, paper_k4),
+            "preds": pv,
+        }
         a, b = out["variants"][v]["k3"], out["variants"][v]["k4"]
-        print(f"  {v:8s} k3 {a['within_002']['k']}/{a['n']} (median {a['median_abs']:.3f})  "
-              f"k4 {b['within_002']['k']}/{b['n']} (median {b['median_abs']:.3f})  "
-              f"paired vs paper on k4 {out['variants'][v]['paired_vs_paper_k4']}")
+        print(
+            f"  {v:8s} k3 {a['within_002']['k']}/{a['n']} (median {a['median_abs']:.3f})  "
+            f"k4 {b['within_002']['k']}/{b['n']} (median {b['median_abs']:.3f})  "
+            f"paired vs paper on k4 {out['variants'][v]['paired_vs_paper_k4']}"
+        )
     zero_label = [v for v in variants if v != "anchor"]
-    out["chosen_variant"] = max(zero_label, key=lambda v: (out["variants"][v]["k3"]["within_002"]["k"],
-                                                           -out["variants"][v]["k3"]["median_abs"]))
+    out["chosen_variant"] = max(
+        zero_label, key=lambda v: (out["variants"][v]["k3"]["within_002"]["k"], -out["variants"][v]["k3"]["median_abs"])
+    )
     print("chosen on k=3 (zero-label variants):", out["chosen_variant"])
 
     def default(o):

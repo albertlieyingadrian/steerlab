@@ -41,23 +41,31 @@ def fetch_labels(ids, cache_path, batch_size=2000):
     rate-limits a few thousand requests)."""
     cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
     todo = sorted(set(ids) - set(cache))
-    batches = [todo[i:i + batch_size] for i in range(0, len(todo), batch_size)]
+    batches = [todo[i : i + batch_size] for i in range(0, len(todo), batch_size)]
     print(f"labels: {len(cache)} cached, {len(todo)} to fetch in {len(batches)} queries", flush=True)
     for i, batch in enumerate(batches):
-        query = ("SELECT ?item ?label WHERE { VALUES ?item { " + " ".join(f"wd:{q}" for q in batch) +
-                 ' } ?item rdfs:label ?label FILTER(lang(?label)="en") }')
+        query = (
+            "SELECT ?item ?label WHERE { VALUES ?item { "
+            + " ".join(f"wd:{q}" for q in batch)
+            + ' } ?item rdfs:label ?label FILTER(lang(?label)="en") }'
+        )
         data = urllib.parse.urlencode({"query": query}).encode()
         for attempt in range(6):
             try:
-                req = urllib.request.Request("https://query.wikidata.org/sparql", data=data, headers={
-                    "User-Agent": UA, "Accept": "application/sparql-results+json"})
+                req = urllib.request.Request(
+                    "https://query.wikidata.org/sparql",
+                    data=data,
+                    headers={"User-Agent": UA, "Accept": "application/sparql-results+json"},
+                )
                 with urllib.request.urlopen(req, timeout=120) as r:
-                    got = {b["item"]["value"].rsplit("/", 1)[1]: b["label"]["value"]
-                           for b in json.load(r)["results"]["bindings"]}
+                    got = {
+                        b["item"]["value"].rsplit("/", 1)[1]: b["label"]["value"]
+                        for b in json.load(r)["results"]["bindings"]
+                    }
                 break
             except Exception as ex:  # rate limit or network: back off, then give up on this batch
                 print("  retry", i, ex, flush=True)
-                time.sleep(5 * 2 ** attempt)
+                time.sleep(5 * 2**attempt)
         else:
             continue  # not cached, so a rerun retries it
         for q in batch:
@@ -98,7 +106,7 @@ def main():
         tails = [t for _, t in single]
         n = len(single)
         for d in range(10):
-            chunk = single[d * n // 10:(d + 1) * n // 10]
+            chunk = single[d * n // 10 : (d + 1) * n // 10]
             for h, t in rng.sample(chunk, min(args.per_decile, len(chunk))):
                 falses = [x for x in rng.choices(tails, k=8) if x != t][:4]
                 cand.append(dict(pid=p, h_id=h, t_id=t, f_ids=falses, deg_decile=d))
@@ -119,8 +127,9 @@ def main():
         if words(h) & words(t):
             drops["subject shares a word with true object"] += 1
             continue
-        f = next((ok(x) for x in c["f_ids"] if ok(x) and ok(x).lower() != t.lower() and not words(h) & words(ok(x))),
-                 None)
+        f = next(
+            (ok(x) for x in c["f_ids"] if ok(x) and ok(x).lower() != t.lower() and not words(h) & words(ok(x))), None
+        )
         if not f:
             drops["no usable false object"] += 1
             continue

@@ -45,21 +45,22 @@ def main(data_dir=HERE / "data"):
     bs = 128
     with torch.no_grad():
         for b in range(0, len(order), bs):
-            ids = order[b:b + bs]
+            ids = order[b : b + bs]
             enc = tok([texts[i] for i in ids], return_tensors="pt", padding=True).to(dev)
             logits = lm(**enc, logits_to_keep=1).logits[:, -1].float()
             lp = torch.log_softmax(logits, -1)
             ly = torch.logsumexp(lp[:, yes], -1)
             ln = torch.logsumexp(lp[:, no], -1)
             py = torch.sigmoid(ly - ln).cpu().tolist()
-            for i, v in zip(ids, py):
+            for i, v in zip(ids, py, strict=False):
                 p_yes[i] = v
             if b % (bs * 40) == 0:
                 print(f"{b}/{len(order)}", flush=True)
     with open(data_dir / "judge.jsonl", "w") as f:
         for i in range(len(pool)):
-            f.write(json.dumps(dict(i=i, p_yes_true=round(p_yes[2 * i], 4), p_yes_false=round(p_yes[2 * i + 1], 4)))
-                    + "\n")
+            f.write(
+                json.dumps(dict(i=i, p_yes_true=round(p_yes[2 * i], 4), p_yes_false=round(p_yes[2 * i + 1], 4))) + "\n"
+            )
     kept = sum(p_yes[2 * i] > 0.5 and p_yes[2 * i + 1] < 0.5 for i in range(len(pool)))
     print(f"kept {kept} of {len(pool)} facts ({kept / len(pool):.1%})")
 

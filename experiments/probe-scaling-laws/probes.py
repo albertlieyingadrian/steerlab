@@ -40,11 +40,11 @@ class Std:
             s += xb.sum(0)
             ss += (xb * xb).sum(0)
         self.mu = s / n
-        self.sd = (ss / n - self.mu ** 2).clamp_min(1e-8).sqrt()
+        self.sd = (ss / n - self.mu**2).clamp_min(1e-8).sqrt()
 
     def _chunks(self, idx):
         for i in range(0, len(idx), self.chunk):
-            yield idx[i:i + self.chunk]
+            yield idx[i : i + self.chunk]
 
     def matvec(self, w, idx=None):  # (X[idx] - mu)/sd @ w
         idx = self.idx if idx is None else idx
@@ -55,7 +55,7 @@ class Std:
     def rmatvec(self, r):  # ((X[idx] - mu)/sd)^T @ r, over self.idx
         g = torch.zeros(self.X.shape[1], device=self.X.device)
         for j, rows in enumerate(self._chunks(self.idx)):
-            g += self.X[rows].float().T @ r[j * self.chunk:(j + 1) * self.chunk]
+            g += self.X[rows].float().T @ r[j * self.chunk : (j + 1) * self.chunk]
         return (g - self.mu * r.sum()) / self.sd
 
 
@@ -65,8 +65,15 @@ def fit(view, y, C, w0=None, max_iter=300):
     params = torch.zeros(d + 1, device=y.device) if w0 is None else w0.clone()
     lam = 1.0 / (C * n)
     p = torch.nn.Parameter(params)
-    opt = torch.optim.LBFGS([p], lr=1, max_iter=max_iter, tolerance_grad=1e-7, tolerance_change=1e-10,
-                            history_size=20, line_search_fn="strong_wolfe")
+    opt = torch.optim.LBFGS(
+        [p],
+        lr=1,
+        max_iter=max_iter,
+        tolerance_grad=1e-7,
+        tolerance_change=1e-10,
+        history_size=20,
+        line_search_fn="strong_wolfe",
+    )
 
     def closure():
         w, b = p.data[:d], p.data[d]
@@ -140,12 +147,17 @@ def run_cell(feats, y, pair_rows, test_rows, d, seed, device):
     tr = torch.as_tensor(draw.ravel(), device=device)
     view = Std(X, tr)
     w = None
-    for C in C_GRID[:ci + 1]:  # same warm-start path as in selection
+    for C in C_GRID[: ci + 1]:  # same warm-start path as in selection
         w = fit(view, y[tr], C, w)
     te = torch.as_tensor(test_rows, device=device)
     s = (view.matvec(w[:-1], te) + w[-1]).cpu().numpy()
-    return dict(auroc=auroc(yv[test_rows], s), val_auroc=float(best[0]), depth_index=int(li), C=float(C_GRID[ci]),
-                n_labels=int(2 * n_pairs))
+    return dict(
+        auroc=auroc(yv[test_rows], s),
+        val_auroc=float(best[0]),
+        depth_index=int(li),
+        C=float(C_GRID[ci]),
+        n_labels=int(2 * n_pairs),
+    )
 
 
 def run_grid(feats, y, pair_rows, test_rows, device, log=print, d_grid=D_GRID):
