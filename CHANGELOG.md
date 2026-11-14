@@ -7,7 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
-- Research note: are concept directions the same across contexts (`experiments/context-directions/`), Steering episode 3: on Qwen3-1.7B a roleplay persona bends truth, refusal and Chinese directions (stability 0.53-0.65, against 0.89-0.96 for a neutral system prompt), and the persona's own direction steers worst, even inside the persona.
+- Research note: are concept directions the same across contexts (`experiments/context-directions/`), Steering episode 4: on Qwen3-1.7B a roleplay persona bends truth, refusal and Chinese directions (stability 0.53-0.65, against 0.89-0.96 for a neutral system prompt), and the persona's own direction steers worst, even inside the persona.
 - Research note: stress-testing an activation monitor (`experiments/monitor-evasion/`), Monitoring episode 3: a LoRA trained only on a sandbagging probe's score silences it in 4 steps while the password-locked model keeps sandbagging; a random-direction control leaves the probe working, and a refitted probe recovers detection.
 - Research note: self-distillation drift (Subliminal learning, Episode 2). Qwen2.5-1.5B fine-tuned five generations in a row on its own replies keeps its safety scores, loses 70% of its output entropy, and keeps a flattery habit planted in generation 0's data at about half of its replies; inside, the habit shrinks the refusal direction's gap by 41%.
 
