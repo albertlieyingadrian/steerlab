@@ -7,6 +7,8 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note: self-distillation drift (Subliminal learning, Episode 2). Qwen2.5-1.5B fine-tuned five generations in a row on its own replies keeps its safety scores, loses 70% of its output entropy, and keeps a flattery habit planted in generation 0's data at about half of its replies; inside, the habit shrinks the refusal direction's gap by 41%.
+
 - The Layer Explorer cover is animated: an outline climbs the layer stack at a steady pace and settles on layer 21, where " Paris" takes over, while the layer 21 panel's neuron tables come into focus; built from layers of the real app, it rests on the original screenshot.
 
 - The Pigment Gym cover is animated: each code section lights up in turn (sky bands, sun, far hill) as its part of the painting appears, rendered layer by layer by the environment itself, then it rests on the original cover; it plays once on the note, in the Start here lead and in Latest, and on hover in small covers.
