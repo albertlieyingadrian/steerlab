@@ -158,3 +158,7 @@ tile with transparent corners. Use it at 64px or more; do not recolour it or put
   beside the text link. Small covers stay still and loop only on hover or keyboard focus where hovering exists,
   with a small play mark. Pieces fade up from 30% opacity, never from blank. Reduced motion: the still figure, no
   control. Small orange and grey labels use `--accent-text` (#a8501e) and `--ink-meta` (#69757a), both over 4.5:1.
+- 2026-11-14: An existing illustrated cover can be animated without changing how it looks at rest: the original
+  image stays the base layer, and the animation only adds real layers over it that end invisible (Pigment Gym: the
+  painting's stages rendered by the environment from the sketch cut after each code section, and a multiplied
+  ember tint behind each code section). Nothing is masked with flat rectangles.
