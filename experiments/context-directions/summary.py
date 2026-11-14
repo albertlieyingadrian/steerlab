@@ -4,9 +4,10 @@
 
 Geometry: "stable" if S >= 0.9 at layer 14 and on average over layers 8-20; "context-dependent" if S < 0.7 (on both);
 else "partial". Transfer: "transfers" if T >= 0.8 and the effect's interval lies above the largest random effect;
-"fails" if T < 0.5 or the interval overlaps the random band; else "partial". A transfer cell is only a test when the target context's own direction beats the random band (its
-interval above the largest random effect); otherwise the ratio has no denominator and the cell reads "no test" (this
-precondition was not written down before the run; see the plan's changes). Writes results/summary.json.
+"fails" if T < 0.5 or the interval overlaps the random band; else "partial". A transfer cell is only a test when the
+target context's own direction beats the random band (its interval above the largest random effect); otherwise the
+ratio has no denominator and the cell reads "no test" (this precondition was not written down before the run; see the
+plan's changes). Writes results/summary.json.
 """
 
 from __future__ import annotations

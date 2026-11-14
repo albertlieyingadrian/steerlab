@@ -302,8 +302,8 @@ def train(args) -> None:
     mon = mons[MONITOR_LAYER]
 
     model, tok = c.load("locked")
-    lora = LoraConfig(r=RANK, lora_alpha=ALPHA, lora_dropout=0.0, bias="none",
-                      target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"])  # fmt: skip
+    modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+    lora = LoraConfig(r=RANK, lora_alpha=ALPHA, lora_dropout=0.0, bias="none", target_modules=modules)
     model = get_peft_model(model, lora)
     dev = model.device
     mean = torch.tensor(mon["mean"], dtype=torch.float32, device=dev)

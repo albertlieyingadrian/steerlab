@@ -115,7 +115,7 @@ class Steer:
 
     def _hook(self, _m, _i, o):
         if isinstance(o, tuple):
-            return (o[0] + self.vec,) + tuple(o[1:])
+            return (o[0] + self.vec, *o[1:])
         return o + self.vec
 
     def close(self):
