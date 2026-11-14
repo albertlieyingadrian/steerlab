@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Added
 
+- Research note: a tiny physics world model, opened up (World models, Episode 1). Six small world models trained from scratch on bouncing-ball simulators: velocity is used at half the physical strength, energy and collision-imminent are read almost perfectly and barely used, gravity is used but only half linearly readable and its probe saturates past the training range, and RL for physical consistency loses to supervised training on more data with the same compute. Pre-registered, laptop only.
 - Research note: probe-gated RL (Rewards and reward hacking, Episode 4). A probe penalty, a probe filter and a 10x KL weight against Pigment Gym's comment-stuffing hack on Qwen3-1.7B, 3 seeds each: the penalty and KL arms ended with no hacks (baseline 3 of 3), but the probe flagged 3 of 2,400 penalised sketches and the KL arm stopped learning; the filter missed a compact form of the hack the probe cannot see. Pre-registered, with an obfuscation check.
 
 - Research note: are concept directions the same across contexts (`experiments/context-directions/`), Steering episode 4: on Qwen3-1.7B a roleplay persona bends truth, refusal and Chinese directions (stability 0.53-0.65, against 0.89-0.96 for a neutral system prompt), and the persona's own direction steers worst, even inside the persona.

@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A tiny physics world model carries energy and collisions it barely uses, tracks gravity it can’t extrapolate, and gains less from RL than from more data</title>
+<meta name="description" content="Three 0.8M-parameter transformers trained from scratch on a bouncing-ball simulator, three more on worlds with varied gravity and drag, pre-registered: velocity is read and used, energy and collision-imminent are read but barely used, gravity is used but only half linearly readable and stops at the training edge, and RL for physical consistency loses to supervised training on more simulator data with the same compute.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A tiny physics world model carries energy and collisions it barely uses, tracks gravity it can’t extrapolate, and gains less from RL than from more data">
+<meta property="og:description" content="Six 0.8M-parameter world models trained from scratch on bouncing-ball simulators, pre-registered: velocity is read and used at half the physical strength, energy and collision-imminent are read (R² 0.88, AUROC 0.90) but barely used, gravity is used but only half linearly readable and stops short past the training range, and RL for physical consistency loses to supervised training on more data with the same compute.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Left: three ball paths in a box, the simulator&#x27;s in black and a small world model&#x27;s 12-frame rollout dashed in orange, close together. Right: a probe reads velocity, energy and collision-next at 0.95, 0.88 and 0.90; editing along the probe moves the model&#x27;s prediction by 0.42, 0 and 0 of what physics says.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A tiny physics world model carries energy and collisions it barely uses, tracks gravity it can’t extrapolate, and gains less from RL than from more data">
+<meta name="twitter:description" content="Six 0.8M-parameter world models trained from scratch on bouncing-ball simulators, pre-registered: velocity is read and used at half the physical strength, energy and collision-imminent are read (R² 0.88, AUROC 0.90) but barely used, gravity is used but only half linearly readable and stops short past the training range, and RL for physical consistency loses to supervised training on more data with the same compute.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A tiny physics world model carries energy and collisions it barely uses, tracks gravity it can’t extrapolate, and gains less from RL than from more data",
+ "description": "Six 0.8M-parameter world models trained from scratch on bouncing-ball simulators, pre-registered: velocity is read and used at half the physical strength, energy and collision-imminent are read (R² 0.88, AUROC 0.90) but barely used, gravity is used but only half linearly readable and stops short past the training range, and RL for physical consistency loses to supervised training on more data with the same compute.",
+ "abstract": "Pre-registered. A GPT world model (803,078 parameters, one token per frame) trained from scratch, 3 seeds per world: an exact elastic three-ball simulator, and a world with gravity g in [0, 2] and drag in [0, 0.5] per episode. A, present vs used: probes read velocity (R² 0.95 at block 3, raw-input baseline 0.92), energy (0.88, baseline -0.003) and collision-before-next-frame (AUROC 0.90, baseline 0.50); a one-frame edit along the velocity probe moves the predicted next position the right way (cosine 0.97-0.99) by 0.48 (block 2) and 0.42 (block 3) of the physically correct amount, above 100 random directions (tops 0.12-0.19); energy and collision edits stay inside their random bands at block 3 (gain -0.006; 0.0% of the bounce removed); energy swapped from a donor at every frame is used at blocks 1-2 (tau 0.53, 0.78) and not at block 3 (-0.06). B, constants: the models' implied gravity tracks the truth (r 0.975-0.978) while a linear probe reads it at R² 0.43-0.48 (bar 0.8 not met); donor swap steers behavioural gravity (tau 0.78-0.80 vs random tops 0.26-0.31); at true g 2.5-3.5 behaviour reaches 2.35-2.47 (partial), the probe 1.66-1.74 (saturates); drag saturates in both. C, post-training: GRPO with an energy-conservation + wall reward (lr 3e-7 after an amendment; the registered 1e-5 broke the model) changed energy drift by -0.28 points [-0.44, -0.13] and position error by +0.0028 [+0.0016, +0.0040] and nothing inside (probe scores within 0.001); supervised training on 20,000 fresh episodes with the same compute: -1.31 points and -0.016, and a better score on RL's own reward (-0.104 vs -0.113). Reward check: truth and a world without ball-ball collisions both score -0.0011. Apple M5 Max only, $0.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "world models, interpretability, linear probes, activation patching, present but unused, physical constants, out-of-distribution generalisation, RL post-training, GRPO, physics simulator, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2210.13382"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .pu { margin: 1.4rem 0; }
+  .pu-row { display: grid; grid-template-columns: 11rem 1fr; gap: .35rem .8rem; align-items: center; margin: .45rem 0; font-size: .9rem; }
+  .pu-bars { display: grid; gap: 3px; }
+  .pu-bar { height: 12px; border-radius: 2px; min-width: 1px; }
+  .pu-bar.p { background: var(--ink, #1d1a17); }
+  .pu-bar.u { background: var(--accent, #d26f2a); }
+  .pu-null { position: relative; height: 12px; }
+  .pu-null span { position: absolute; top: 0; height: 12px; background: rgba(140,130,120,.35); border-radius: 2px; }
+  .pu-legend { font-size: .8rem; color: var(--muted, #7a7065); }
+  @media (max-width: 560px) { .pu-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>A tiny physics world model carries energy and collisions it barely uses, tracks gravity it can’t extrapolate, and gains less from RL than from more data</h1>
+  <p class="dek ruled">Six small transformers trained from scratch to predict where three bouncing balls go next, opened up three ways: is what a probe reads also what the model acts on; is a physical constant like gravity a readable, steerable variable that holds outside the training range; and what does RL for physical consistency change inside? Velocity is read and used; energy and “a collision is coming” are read almost perfectly and barely used; gravity is used well but only half readable and stops short past the training edge; and RL moved almost nothing that more simulator data did not move better.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="On cream paper, left: a square box with three ball paths. Grey thick lines are 16 frames given to the model; black lines are the simulator's next 12 frames, bending under gravity and bouncing off the floor; orange dashed lines are the model's own rollout, close to the black ones. Right: three pairs of bars for velocity, energy and collision next. A probe reads them at 0.95, 0.88 and 0.90; editing the model along the probe moves the prediction with a gain of 0.42 for velocity, about 0 for energy and 0 for collision next." width="1600" height="900">
+    <figcaption>Cover. Left: a constants-world episode (gravity 1.00, drag 0.08) and one of its models’ 12-frame rollout from 16 true frames (<code>results/exp_b_rollout_demo.npz</code>). Right: for the base-world models (no gravity), how well a probe reads each quantity at the last block (test R² or AUROC) and how much adding the probe direction at one frame moves the prediction, as a share of what physics says it should (velocity, energy) or of the bounce it should remove (collision); means of 3 models (<code>results/exp_a_s*.json</code>). Drawn by <code>make_cover.py</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>World models, Episode 1</dd></div>
+    <div><dt>Models</dt><dd>Six 803,078-parameter GPT world models trained from scratch (3 seeds on an elastic-ball world, 3 on worlds with varied gravity and drag), plus 12 post-trained copies</dd></div>
+    <div><dt>Method</dt><dd>Linear probes, additive edits and donor swaps against random directions; a behavioural readout of physical constants; GRPO and pathwise reward optimisation against compute-matched supervised training; pre-registered</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (every table behind every number) · <a href="../PREREGISTRATION.md">pre-registration</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a small world model act on the physics a probe finds inside it, and does RL for physical consistency teach it more physics?</strong></p>
+    <p>Only partly, and no. In a 0.8M-parameter transformer trained to predict three balls in a box, a linear probe reads velocity (R² 0.95), total energy (0.88) and “a collision happens before the next frame” (AUROC 0.90) at the last block. Adding the velocity direction at one frame moves the predicted next position the right way (cosine 0.97-0.99) but by only 42-48% of the physically correct amount; the same edit along energy or collision does nothing beyond random directions. Trained on worlds with gravity from 0 to 2, the model’s predictions imply the right gravity (correlation 0.98), while a linear probe reads it at only R² 0.45; at gravity 2.5-3.5 its behaviour reaches 2.4 and the probe stays at 1.7. RL on the model’s own rollouts with an energy-and-walls reward left its insides unchanged, cut energy drift by 0.3 points and made positions slightly worse; supervised training on more simulator data with the same compute improved every measure, including RL’s own reward.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+        <tr><td>Is velocity used, not just present (pre-registered)?</td><td>Used at blocks 1-3 in 3 of 3 models: a one-frame edit moves the prediction in the probe’s direction (cosine 0.99 at block 2) by 0.48 of the physical amount at block 2 and 0.42 at block 3</td><td>100 random directions of the same size: 95% band tops 0.12-0.19. Bar for “physically correct amount”: gain 0.8-1.2, not met</td></tr>
+        <tr class="hl"><td>Are energy and collision-imminent used (pre-registered)?</td><td>Present but barely used: energy probe R² 0.88 (input baseline −0.00), collision AUROC 0.90 (input 0.50); at block 3 one-frame edits move the prediction by −0.006 of the energy asked for and remove 0.0% of the bounce</td><td>Random bands ±0.03 (energy) and ±0.0002 (bounce). Energy swapped in from another episode at every frame is used at blocks 1-2 (τ 0.53, 0.78), not at block 3 (τ −0.06)</td></tr>
+        <tr><td>Is gravity a readable, steerable variable (pre-registered)?</td><td>Used, half readable: the model’s predictions imply g with correlation 0.98; a probe reads it at R² 0.43-0.48 (bar 0.8, not met); swapping the probe direction from a donor moves behavioural g with τ 0.78-0.80</td><td>Raw-input probe R² 0.14-0.18; random-direction τ tops 0.26-0.31. Additive dose: inside the random band in 2 of 3 models</td></tr>
+        <tr><td>Does it extrapolate past the training gravity and drag (pre-registered)?</td><td>Behaviour partly, the probe not: at true g ≈ 3.0 the model acts as if g were 2.35-2.47 (partial), the probe reads 1.66-1.74 (saturates); at drag ≈ 0.85, behaviour 0.49-0.55 and probe 0.40-0.41 (both saturate)</td><td>Training maxima 2.0 and 0.5. Still 14× better than constant velocity one step ahead at g ≈ 3</td></tr>
+        <tr><td>Does RL for physical consistency beat more data (pre-registered, one amendment)?</td><td>No: RL (GRPO, energy + wall reward) changed energy drift by −0.3 points [−0.4, −0.1] and position error by +0.003 [+0.002, +0.004] (worse); supervised training on fresh simulator data, same compute: −1.3 points [−1.5, −1.1] and −0.016 [−0.018, −0.015]</td><td>On RL’s own reward, supervised training scored −0.104, RL −0.113, the pre-trained model −0.116. The registered learning rate broke the model (valid horizon 6.7 to 3.7 frames)</td></tr>
+        <tr><td>What did RL change inside?</td><td>Nothing measurable: every probe score within 0.001 of the pre-trained model’s, edit gains within 0.005. Supervised training raised velocity and collision probe scores in all 3 models (+0.003; +0.004 to +0.010), below the 0.01 bar</td><td>Reward check before training: a world where balls pass through each other scores as well as the truth (−0.0011 both)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Show a tiny transformer 16 frames of three balls bouncing in a box under gravity, and it will draw the next frames: the arcs bend down, the balls bounce off the floor, and the paths stay close to the simulator’s for a dozen frames. Inside, a straight line through its activations reads the balls’ velocities almost perfectly and their total energy nearly as well. It is tempting to say the model “knows” the energy. But push its activations along that energy line at the last block and its next prediction does not speed up or slow down at all. The number is there, readable, and the model is not looking at it.</p>
+  <p><strong>What is known.</strong> Sequence models trained on board games or physics form internal state that a probe can read (Othello-GPT’s board; <a href="https://arxiv.org/abs/2210.13382">Li et al., 2023</a>). “Present but Barely Used” (BlackboxNLP 2026) showed a board representation that survives a change of training objective (probe accuracy 0.79 against 0.96) while interventions barely move behaviour (+0.02 against +0.21). WorldBench (2026) found that video world models produce plausible motion while missing the physical constants behind it. RL post-training is used to make generative world models more physically consistent, with rewards that check physics on the model’s own rollouts.</p>
+  <p><strong>What is missing.</strong> Three questions are rarely tested on one model where the true physics is known exactly: whether each probed quantity is causally used, and by how much against what physics requires; whether a constant such as gravity is a variable inside the model and holds outside the training range; and what an RL physics reward actually changes inside, compared with simply training on more data.</p>
+  <p class="question-callout">In a world model trained from scratch on an exact simulator, is what a probe reads what the model uses; is a physical constant readable, steerable and extrapolated; and does RL for physical consistency teach more physics than more data?</p>
+  <p><strong>What this note does.</strong> It trains six small world models from scratch on a laptop, three per world, and runs three pre-registered experiments on them. It contributes:</p>
+  <ol>
+    <li>a presence-against-use measurement for velocity, energy and collision-imminent, with a gain measured in physical units (1 = the prediction moves exactly as physics says) and random-direction controls;</li>
+    <li>a physical-constant study: a behavioural readout of the model’s gravity and drag, linear probes, two kinds of steering, and tests beyond the training range;</li>
+    <li>a negative RL result with its inside view: GRPO and a differentiable variant on an energy-and-walls reward, against supervised training with the same compute;</li>
+    <li>a reward check showing the physics reward cannot tell the true world from one where balls pass through each other, and a pilot showing why the registered RL learning rate failed.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written down before any probe or post-training run (<a href="../PREREGISTRATION.md">pre-registration</a>):</p>
+  <ol>
+    <li><strong>Used</strong>: an edit along the probe direction moves the prediction more than the 97.5th percentile of 100 random directions of the same size, in all three models. <strong>Physically correct amount</strong> (velocity): gain 0.8 to 1.2 and cosine at least 0.9.</li>
+    <li><strong>Linearly readable</strong> constant: probe R² at least 0.8 on held-out episodes and 0.05 above a probe on the raw frames. <strong>Steerable</strong>: donor-swap τ above the random band and the largest additive dose outside its random band.</li>
+    <li><strong>Extrapolates</strong>: at gravity 2.5-3.5 the mean behavioural or probe reading is at least 2.5 (2.2 or less = saturates); at drag 0.7-1.0, at least 0.7 (0.55 or less = saturates).</li>
+    <li><strong>Improves</strong> (post-training): the paired difference from the pre-trained model excludes zero in the good direction and all three seeds agree. <strong>Shortcut</strong>: RL’s validation reward improves while a held-out physics check gets worse by the same rule.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td>Base world</td><td>Three equal balls (radius 0.05) in a unit box, elastic, no gravity or friction, simulated exactly by jumping from collision to collision; 64 frames 0.05 time units apart; kinetic energy 0.5-2.0 (faster balls, out of range: 2.5-3.5)</td><td>20,000 training episodes; test 2,000; faster 1,000</td></tr>
+        <tr><td>Constants world</td><td>The same box with gravity g (pulling down) and linear drag γ drawn per episode; 20 exact sub-steps per frame</td><td>g 0-2, γ 0-0.5 in training; out of range g 2.5-3.5 or γ 0.7-1.0</td></tr>
+        <tr><td>World model</td><td>A GPT with one token per frame: 6 numbers in (3 balls × x, y), 6 out, predicting the next frame as x<sub>t</sub> + 0.05 × head(h<sub>t</sub>); 4 blocks, width 128; trained from scratch on next-frame error for 40 epochs</td><td>803,078 parameters; 2-3 minutes per model on an Apple M5 Max</td></tr>
+        <tr><td>Seeds</td><td>Three models per world, differing in initialisation and batch order</td><td>6 pre-trained, 12 post-trained</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Terms.</strong> A <em>probe</em> is a linear map from one block’s activations to a quantity, fitted on 1,000 training episodes and scored on held-out test episodes (R² for numbers, AUROC for yes/no). <em>Presence</em> is that score; the <em>input baseline</em> is the same probe on the raw positions of the last two frames, so presence above it means the model computed something. An <em>edit</em> adds a vector to one block’s output at one frame t and lets the rest of the model run; a <em>donor swap</em> replaces the component along the probe direction with another episode’s, at every frame (τ is the correlation between the change in the prediction and the true difference between the two episodes). The <em>gain</em> of an edit is the change in the prediction projected onto the change physics says should happen, divided by that change: an edit that raises a velocity reading by 0.25 should move the next position by 0.25 × 0.05. The <em>bounce fraction</em> is how much of the true deviation from straight-line flight a prediction contains (1 = the whole bounce). The <em>behavioural</em> gravity and drag are the values that best explain the accelerations implied by the model’s own predictions on frames with no contact (a least-squares fit that recovers the simulator’s constants to 2×10⁻⁵ on true trajectories).</p>
+  <p>For post-training: <em>position error</em> is the mean distance between rollout and simulator balls over 56 frames generated from 8 true ones; <em>energy drift</em> is the mean |KE − E|/E over those frames (KE from frame-to-frame differences; the true trajectory itself scores 0.042, because a bounce between frames shortens the step); the <em>valid horizon</em> counts frames until any ball is 0.05 off; <em>ball overlap</em> is the share of frames where two balls are closer than 2r − 0.01 (they should have bounced); the <em>speed ratio</em> is rollout speed over true speed (below 1 = damping).</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Simulate</strong> 11 dataset splits from fixed seeds (the base world’s train, validation, test and faster-ball splits are the course capstone’s own), about one minute on the CPU.</li>
+    <li><strong>Pre-train</strong> six models (two worlds × three seeds), 40 epochs each, the capstone’s recipe unchanged; 2-3 minutes each.</li>
+    <li><strong>Smoke-test</strong> every script on 2-epoch throwaway models (deleted, not analysed), and <strong>score the RL reward</strong> on true and degenerate trajectories.</li>
+    <li><strong>Write and commit the pre-registration</strong> before any probe, edit, steering, RL or supervised run.</li>
+    <li><strong>Experiment A</strong> on the three base models: probes at every block (62,000 training rows, 31,000 test rows), then 4 kinds of intervention at 4 blocks, each with 100 random directions (1,000 free-flight and 1,000 collision frames; 2,000 donor pairs).</li>
+    <li><strong>Experiment B</strong> on the three constants models: errors on 3 splits, behavioural constants, probes at every block, and steering at 4 blocks (1,000 donor pairs; 100 random directions for swaps, 50 for doses).</li>
+    <li><strong>Experiment C</strong>: the registered RL pilot (3 learning rates × 80 steps on validation windows); amendment 1 after it failed; a second pilot (4 rates × 80 steps, and 4 × 32 for the pathwise arm); 12 post-training runs (3 seeds × supervised, registered RL, amended RL, pathwise); evaluation on 3,000 held-out episodes; experiment A’s measurements on all 15 models (50 random directions, 500 frames).</li>
+    <li><strong>Exploratory follow-ups</strong>, labelled as such: edits at every frame instead of one, and a dose curve for the collision edit.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Worlds, splits, model, training recipe, seeds</td><td>Nothing</td></tr>
+        <tr><td>Every probe, edit, edit size, null and verdict rule in A and B</td><td>Added (exploratory): all-frame edits and the collision dose curve, after the one-frame edits showed nothing for energy where the donor swap did</td></tr>
+        <tr><td>The reward, policy noise, RL recipe, learning-rate grid {1e-5, 3e-5, 1e-4} and pilot rule; the supervised arm and compute matching; evaluation and held-out checks</td><td>Amendment 1 (written before any main RL run): the registered grid lowered the validation reward at every rate, so a lower grid {1e-7 … 3e-6} was piloted by the same rule; the registered arm still ran and is reported; a pathwise (differentiable) arm was added as exploratory</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: everything ran on one Apple M5 Max (PyTorch MPS), shared with other jobs; pre-training 2-3 minutes per model, RL 60-95 seconds per run, supervised training 100-200 seconds, experiment A about 8 minutes per model. No paid compute and no API calls: $0.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="velocity-used" data-short="Velocity: used, half strength">4.1 Velocity is used, in the right direction, at about half the physical strength</h3>
+  <p><strong>A probe reads velocity at R² 0.94 at block 2 and 0.95 at block 3, above the raw-input baseline of 0.92 in all three models. Adding the probe direction at one frame moves the predicted next position in the direction physics says (cosine 0.99 at block 2, 0.97-0.98 at block 3) by 0.48 of the physically correct amount at block 2 and 0.42 at block 3, far above random directions of the same size (95% band tops 0.12-0.17 and 0.14-0.19). The pre-registered verdict is “used” at blocks 1-3 in 3 of 3 models; “physically correct amount” is not met.</strong></p>
+  <p>The edit is specific: the change in the other five coordinates is 6-8% of the change in the targeted one at blocks 2-3. At block 0 nothing happens (gain 0.003), and at block 1 the direction is right (cosine 0.91-0.95) but the gain is 0.13. Figure 1 shows presence and use block by block. Why half? The edit changes the velocity reading at frame t only, and the model can also attend to frames t − 1, t − 2 and earlier, which still carry the old positions. But editing every frame by the same amount (exploratory) gives the same gain at block 3 (0.42) and a lower one at block 2 (0.32), so the earlier frames are not where the missing half went: the velocity the probe reads is one the model relies on only partly.</p>
+  <figure class="plot">
+    <img src="figures/present_vs_used.png" alt="Three panels by block 0 to 3. Velocity: presence (black) rises from 0.74 to 0.95, above the input baseline at blocks 2 and 3; the one-frame edit's gain (orange) rises from 0 to 0.48 at block 2 and 0.42 at block 3, above the grey random band; the donor swap's tau (dashed) rises from 0.31 to 0.98. Energy: presence rises from 0.11 to 0.88 against an input baseline of 0; the one-frame edit stays at 0, inside the random band; the donor swap's tau rises to 0.78 at block 2 and drops to -0.06 at block 3; the all-frame edit reaches 0.15 at block 2. Collision next: AUROC 0.79 to 0.91 against 0.50; the edit removes 0 to 2% of the bounce, inside or at the random band.">
+    <figcaption><span class="label">Figure 1.</span>Presence against use in the three base-world models, block by block. Black: probe score on 500 test episodes (R² for velocity and energy, AUROC for collision next) with the raw-input baseline dotted. Orange solid: gain of a one-frame edit along the probe (velocity, energy) or share of the bounce removed (collision); thick = mean, thin = each model. Grey: the 95% band of 100 random directions of the same size, averaged over models. Orange dashed: donor-swap τ at every frame. Orange dotted (energy): the same edit at every frame, exploratory, 50 random directions. From <code>results/exp_a_s*.json</code> and <code>exp_a_extra.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="energy-collision" data-short="Energy and collision: passengers">4.2 Energy and “a collision is coming” are read almost perfectly and barely used</h3>
+  <p><strong>Energy is readable at block 3 with R² 0.85-0.90, where the raw-input probe scores −0.003: the model computes it. A one-frame edit that moves the energy reading by ±0.5 (velocity directions removed) changes the kinetic energy implied by the prediction by −0.4% to −0.8% of that at block 3, inside the random band (±0.03), and inside it at every block. “A collision happens before the next frame” is readable at AUROC 0.89-0.91 (input 0.50); subtracting its direction until the probe’s verdict flips removes 0.0% of the predicted bounce at block 3 and 0.1-0.2% at block 2. Pre-registered verdicts: energy “present but unused” at every block for the one-frame edit; collision “used” at block 1 by the rule, with an effect of 1% of the bounce, and level with the edge of its random band at block 2 (0.1%).</strong></p>
+  <p>Energy is not ignored everywhere. Swapping the energy component in from another episode at every frame moves the prediction’s energy toward the donor’s with τ 0.53 at block 1 and 0.78 at block 2, far above random (tops 0.12-0.15 and 0.18-0.22), and not at block 3 (τ −0.06, inside its band). This reproduces the course capstone’s finding on its own model: energy is computed and used mid-network and is a passenger by the last block, exactly where the probe reads it best. The two tests differ because the swap touches every frame: an edit at frame t alone is outvoted by the earlier frames, which carry the old energy. Editing every frame (exploratory) gives a gain of 0.14-0.17 at block 2, above random (tops 0.04-0.05): used, at about a sixth of the physical amount.</p>
+  <p>The collision edit is small by construction: flipping the probe’s verdict takes a vector 0.2-1% the length of the activation. Scaled 16 times (8-14% of the activation’s length, exploratory), it removes 12-18% of the bounce at block 1, above random in all three models; 2-5% at block 2, above random in one; and nothing at block 3. So the clean yes/no a probe reads at block 3 (AUROC 0.90) is not the signal the model bounces with; the bounce is computed elsewhere, or spread over directions a single probe does not capture.</p>
+  <p>Read the three quantities block by block:</p>
+  <div class="explorer pu" id="pu">
+    <label class="explorer-label">Block <input type="range" min="0" max="3" step="1" value="3" aria-label="Block"> <span class="explorer-value">3</span></label>
+    <div id="pu-rows"></div>
+    <p class="pu-legend">Each row: presence (black, probe R² or AUROC) and use (orange, one-frame edit gain or share of the bounce removed, shown from 0) with the 95% band of 100 random directions (grey). Numbers in brackets: presence / use. Means of the 3 base models, from <code>results/exp_a_s*.json</code>.</p>
+  </div>
+
+  <h3 id="gravity" data-short="Gravity: used, half readable">4.3 Gravity is used precisely, read by a probe only half as well, and steered by swapping</h3>
+  <p><strong>Trained on worlds with gravity 0 to 2 and drag 0 to 0.5, the three constants models predict the next frame 19× better than constant velocity (one-step error 0.0034 against 0.065), and the gravity their predictions imply tracks the true one with correlation 0.975-0.978 (slope 0.82-0.85). A probe for g at the best block reads it at R² 0.43-0.48, above probes on the raw frames (0.13-0.17 on three frames, 0.14-0.18 on eight) but below the pre-registered 0.8: not “linearly readable”. Drag is harder for both: behavioural correlation 0.30-0.34, probe R² 0.45-0.49.</strong></p>
+  <p>The gravity probe improves with context, from R² 0.37 at frame 16 to 0.53-0.54 by frame 56 (seed 2620), so the model’s estimate sharpens as it sees more of the episode, but much of what it uses for gravity is not on one linear direction. That is the reverse of energy: energy is linearly present and unused at the last block; gravity is used and only partly linearly present.</p>
+  <p><strong>Swapping the gravity direction in from another episode (velocity directions removed) moves the model’s behavioural gravity toward the donor’s with τ 0.78, 0.78 and 0.80 at block 3, above random (tops 0.31, 0.26, 0.26): steerable by swap in 3 of 3 models. Adding the direction to raise the probe’s reading by 1 moves behavioural gravity by +0.40, +0.25 and +0.56, inside the band of random edits of that size in 2 of 3 models.</strong> The random band is wide because a vector large enough to move the probe by 1 is large against the activations at block 3. Drag behaves the same way at block 2 (τ 0.52-0.62 against tops 0.18-0.21; dose outside the random band in 2 of 3), with one caveat: drag edits also move behavioural gravity (|τ| 0.39-0.73 at blocks 2-3), because in the fit a change in vertical speed can be read as either. Figure 2 shows a steered rollout.</p>
+  <figure class="plot">
+    <img src="figures/rollout_steer.png" alt="A box with three ball paths over 12 frames after 16 given frames. Black simulator paths and blue dashed unedited model paths nearly overlap; orange solid paths, with the gravity reading raised by 1, bend down more; orange dotted paths, with it lowered by 1, bend less." width="900">
+    <figcaption><span class="label">Figure 2.</span>One test episode (g = 1.00, γ = 0.08), model seed 2620, rolled out for 12 frames from 16 true ones, with the gravity probe direction (velocity directions removed) added at block 3 at every frame so that the probe reads 1 more (solid orange) or 1 less (dotted). The episode is the one of 8 near g = 1 whose unedited rollout stays closest to the simulator. From <code>results/exp_b_rollout_demo.npz</code>.</figcaption>
+  </figure>
+
+  <h3 id="ood" data-short="Out of range">4.4 Past the training range, behaviour bends partway and the probe stops</h3>
+  <p><strong>At true gravity 2.5-3.5 (mean 3.01), the models act as if gravity were 2.47, 2.35 and 2.38 (pre-registered verdict: partial extrapolation), while the probe reads 1.74, 1.69 and 1.66 (saturates, below the training maximum of 2.0). At drag 0.7-1.0 (mean 0.85), behaviour reaches 0.49-0.55 and the probe 0.40-0.41: both saturate.</strong></p>
+  <p>Figure 3 shows the gap. Inside the training range behaviour and probe agree on average; outside it the behaviour keeps rising with the true gravity (from 2.2 at g ≈ 2.6 to 2.6 at g ≈ 3.4) while the probe stays below the training edge. A probe fitted only on in-range episodes need not extrapolate, but the model’s behaviour does partly, so the model computes something the probe direction does not follow. The models still predict well beyond the range: one-step error at g ≈ 3 is 0.014, 4× the in-range error and 14× better than constant velocity (0.19). Rollouts degrade faster (mean ball error 0.11 after 8 frames, against 0.05 in range).</p>
+  <figure class="plot">
+    <img src="figures/constants_ood.png" alt="Two panels. Gravity: the model's behavioural gravity (orange) follows the diagonal from 0.2 to 1.7 inside the shaded training range 0-2; out of range (true 2.6 to 3.4) it rises from 2.2 to 2.6, below the diagonal; the probe's mean reading is 1.0 in range (on the diagonal) and 1.7 out of range at true 3.0. Drag: behaviour rises from 0.21 to 0.37 in range 0-0.5, flatter than the diagonal; out of range (0.75 to 0.95) 0.48 to 0.53; probe mean 0.25 in range, 0.41 out of range at true 0.85.">
+    <figcaption><span class="label">Figure 3.</span>What the constants models act on (orange: median behavioural gravity or drag per bin of the true value, averaged over 3 models; circles in range, diamonds out of range) and what the probe at the best block reads (black: mean over episodes and models). Shaded: the training range. Each bin holds at least 10 episodes; 2,000 in-range and 1,000 out-of-range episodes per constant. From <code>results/exp_b_s*.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="rl" data-short="RL vs more data">4.5 RL for physical consistency barely moves the model; more simulator data does better on every measure, including RL’s reward</h3>
+  <p><strong>Against the pre-trained models, GRPO with the energy-and-walls reward (amended learning rate 3×10⁻⁷, 300 steps) changed energy drift by −0.28 points [−0.44, −0.13] in range and −0.74 [−0.87, −0.62] on faster balls, and position error by +0.0028 [+0.0016, +0.0040] box units in range (worse in all seeds) and +0.0002 [−0.0015, +0.0019] on faster balls. Supervised next-frame training on 20,000 fresh simulator episodes with the same compute changed energy drift by −1.31 [−1.50, −1.12] and −2.60 [−2.77, −2.43] points and position error by −0.016 [−0.018, −0.015] and −0.008 [−0.010, −0.006], all seeds agreeing.</strong></p>
+  <p>By the pre-registered rules, supervised training improves both primary measures in and out of range; RL improves energy drift only, and because its validation reward rose (−0.119 to −0.117, −0.109 to −0.104, −0.103 to −0.101 by seed) while position error got worse, the pre-registration calls it a shortcut. It is a small one: RL sped the balls up (speed ratio 0.973 to 0.992; the pre-trained model loses 3% of the speed over a rollout) without placing them better, which brings the kinetic energy back toward its true value. The differentiable variant (exploratory) did the same, a little less: drift −0.15 points [−0.31, +0.01], position +0.0035 [+0.0021, +0.0048]. On RL’s own reward measured on test rollouts, supervised training scored −0.104, RL −0.113 and the pre-trained model −0.116. Ball overlap, which the reward cannot see, did not rise under RL (+0.0003 [−0.0000, +0.0007]); supervised training lowered it (−0.0020 [−0.0024, −0.0017]).</p>
+  <figure class="plot">
+    <img src="figures/posttraining_eval.png" alt="Eight panels: change from the pre-trained model in position error, energy drift, ball-overlap rate and speed ratio, in range (top) and on faster balls (bottom), for four arms. Supervised (blue) lowers position error by 0.016 and energy drift by 0.013 in range; RL (orange) and the pathwise arm (orange, open) raise position error by about 0.003 and lower energy drift by about 0.002; the registered-learning-rate RL (grey) raises position error by 0.078 and overlap by 0.027.">
+    <figcaption><span class="label">Figure 4.</span>Each post-training arm minus the pre-trained model, on deterministic rollouts of 56 frames from 8 true ones: 2,000 in-range test episodes (top) and 1,000 faster-ball episodes (bottom). Big markers: mean over 3 seeds with a 95% bootstrap interval over episodes (2,000 resamples); small markers: each seed. Blue: supervised training on fresh simulator data; orange: RL (GRPO) and the pathwise variant (open); grey: RL at the registered learning rate. From <code>results/exp_c_eval.json</code>.</figcaption>
+  </figure>
+  <p><strong>The registered RL failed.</strong> At the pre-registered learning rate (10⁻⁵, the best of the registered grid) RL made every measure worse: position error +0.078, valid horizon 6.7 to 3.7 frames, ball overlap +2.7 points, and balls faster than their true speed (ratio 1.02). The pilot had already shown it (Figure 5): validation reward fell at all three registered rates. A gradient check found the reward’s gradient correct and its useful region tiny: a step of size 10⁻⁴ along it improved the reward, 10⁻³ hurt and 10⁻² halved it, while Adam’s first step at 10⁻⁵ moves all 803,078 weights by about 10⁻⁵ each, a step of about 10⁻². A random step of that size did no harm. When a model feeds on its own predictions, small weight changes compound over 24 frames, so the safe step is far smaller than in ordinary training.</p>
+  <figure class="plot">
+    <img src="figures/rl_pilot.png" alt="Two panels of validation reward against step for GRPO pilots. Registered grid: all three learning rates fall from -0.119, to -0.150 (1e-5), -0.259 (3e-5) and -0.400 (1e-4). Amendment grid: 1e-7, 3e-7 and 1e-6 creep up to about -0.117; 3e-6 falls to -0.125.">
+    <figcaption><span class="label">Figure 5.</span>The GRPO learning-rate pilots on seed 2610: validation reward (deterministic rollouts from 512 fixed validation windows) every 20 steps. Left, the registered grid; right, amendment 1’s lower grid. The chosen rates were 10⁻⁵ and 3×10⁻⁷. From <code>results/exp_c_pilot*.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="rl-inside" data-short="Inside after RL">4.6 Inside, RL changed nothing a probe can see; supervised training sharpened a little</h3>
+  <p><strong>After RL, every probe score at every block is within 0.001 of the pre-trained model’s, the velocity edit gains within 0.005, and the energy swap τ within 0.008, in all three models; the pathwise arm likewise. Supervised training raised velocity R² at block 3 by 0.003 (all seeds) and collision AUROC at block 3 by 0.004-0.010, moved energy’s swap τ at block 3 from −0.05 to +0.13 (still inside its random band in 3 of 3), and raised the velocity edit gain at block 2 in 3 of 3 models (+0.001 to +0.095). None passes the pre-registered bar for “stronger” (0.01 in R² in every seed, or the width of the null band).</strong></p>
+  <p>So the question “did RL teach physics or a shortcut?” has a plain answer here: at a learning rate where it did not break the model, RL changed the output a little (faster balls) and the representation not at all. The broken registered run did change the inside (velocity R² fell to 0.94 in one model, whose block-3 velocity edit gain fell from 0.42 to 0.15), but by damage, not by learning.</p>
+  <figure class="plot">
+    <img src="figures/posttraining_inside.png" alt="Six small panels of inside measurements per arm, three dots per arm. Energy R2 at block 3 sits at 0.85-0.90 for every arm. Velocity R2 at block 3 is about 0.952 for pre-trained, RL and pathwise and 0.955 for supervised. Velocity edit gain at block 2 is 0.44-0.50 for all but supervised (up to 0.59). Energy swap tau at block 2 is 0.74-0.83 for all. Energy swap tau at block 3 is about -0.05 for pre-trained, RL and pathwise and 0.10-0.18 for supervised. Collision AUROC at block 3 is 0.89-0.90, and 0.90-0.91 for supervised.">
+    <figcaption><span class="label">Figure 6.</span>Experiment A’s measurements repeated on every post-trained model (50 random directions, 500 frames per kind): one dot per seed, bar = mean. From <code>results/exp_c_inside.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="reward-check" data-short="The reward's blind spot">4.7 The reward could not tell the truth from a world without ball-ball collisions</h3>
+  <p><strong>Scored before any training on 500 validation windows, the true trajectories earn −0.0011, a world where each ball ignores the others also earns −0.0011, the truth plus the policy’s own sampling noise −0.032, motion damped to 80% speed −0.359, and frozen balls −1.0.</strong> The reward punishes damping heavily, so the shortcut the study was set up to catch (slowing everything down to “conserve” energy) was never cheap, and RL did the opposite. It is blind to ball-ball collisions, which is why ball overlap was a held-out check. At the learning rate where RL worked it did not exploit that blind spot (overlap +0.03 points); at the registered rate overlap rose by 2.5 and 5.6 points in two of three models, alongside every other kind of damage.</p>
+
+  <h3 id="prior" data-short="Against prior work">4.8 Against what exists</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Exact ground truth</th><th>Use in physical units</th><th>Physical constants, out of range</th><th>RL against data, inside view</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://arxiv.org/abs/2210.13382">Othello-GPT</a> (Li et al., 2023)</td><td>✓ (board)</td><td>✗ (flip success)</td><td>✗</td><td>✗</td></tr>
+        <tr><td>Present but Barely Used (BlackboxNLP 2026)</td><td>✓ (board)</td><td>✗ (accuracy change)</td><td>✗</td><td>✗</td></tr>
+        <tr><td>WorldBench (2026)</td><td>✗ (videos)</td><td>✗</td><td>✓ (estimation)</td><td>✗</td></tr>
+        <tr class="hl"><td>This note</td><td>✓ (exact simulator)</td><td>✓ (gain 1 = physically exact)</td><td>✓ (behaviour and probe)</td><td>✓ (tiny models)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>This note’s models are tiny and its worlds simple; the comparison is about what each study can measure, not about scale.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Three cautions carry over to larger models. First, a probe’s accuracy does not say whether the model relies on what it reads: energy and collision directions were read at 0.88-0.90 and did nothing when edited at the block where they read best, while a quantity the model plainly uses (gravity) was only half readable. Any monitor or steering method built on a probe needs an intervention test, ideally in the units of the task, against random directions. Second, a probe fitted on in-distribution data can saturate exactly where behaviour does not: here the model’s behaviour extrapolated partway past the training gravity while the probe stopped below the training edge, so a probe-based monitor would under-report the out-of-range case it is most needed for. Third, “RL made the model more physical” has to be checked against the cheapest alternative with the same compute and against held-out physics: here RL bought a small energy gain with worse positions and no inside change, while more data improved everything.</p>
+  <p><strong>Recommendation: before trusting a probe as a window into what a model does, edit along it and measure the effect in the units of the task against random directions; and before crediting RL with teaching a capability, compare it with plain supervised training at equal compute and look inside both.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Tiny models, simple worlds.</strong> 0.8M parameters, three balls, two dimensions. Large video world models may represent and use physics differently; the methods carry over, the numbers do not.</li>
+    <li><strong>Linear probes and linear edits only.</strong> “Barely used” means barely used along these directions. The model may use energy or collision information that sits on other directions or is nonlinear; the gravity result shows how much a linear probe can miss.</li>
+    <li><strong>RL was small and gentle.</strong> 300 GRPO steps at a tiny learning rate (or 120 pathwise steps), one reward, no KL term, no schedule. A better-tuned setup (trust regions, longer training, per-frame credit) could do more; the registered setting did harm and the amended one did little. The amended grid was chosen after the registered one failed (amendment 1).</li>
+    <li><strong>The reward has a known blind spot</strong> (ball-ball collisions), reported before training, and its energy term uses frame differences, on which the true trajectory itself is not perfect (drift 0.042).</li>
+    <li><strong>Compute matching</strong> counts token passes (forward 1, backward 2) and ignores that RL’s rollouts are sequential; in wall-clock time here RL took 60-95 s and supervised training 100-200 s.</li>
+    <li><strong>The behavioural constants</strong> come from a least-squares fit of the model’s predicted accelerations; for drag, a small effect per frame, that fit is noisy (correlation 0.30-0.34 even in range), and the gravity and drag estimates are coupled.</li>
+    <li><strong>Three seeds per arm.</strong> Intervals resample episodes with seeds averaged, so they do not capture seed-to-seed variance beyond the three seeds shown.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Redraw every figure and print the numbers behind them from <code>results/</code>, with no training:</p>
+  <pre><code class="language-bash">python experiments/world-model-physics/make_figures.py   # figures 1-6 and the numbers they plot
+python experiments/world-model-physics/make_cover.py     # the cover and thumbnail</code></pre>
+  <p>Rerun everything on a Mac with Apple silicon (about 2 hours, no paid compute): <code>reproduce.sh --dry-run</code> prints every command in order, from simulating the datasets to the inside measurements. Training on MPS is not bit-for-bit deterministic, so a rerun’s numbers differ in the third significant figure.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>Find where the bounce is computed: patch whole blocks and attention heads between colliding and non-colliding frames, rather than one probe direction.</li>
+    <li>Fit nonlinear probes for gravity and check whether they extrapolate the way the behaviour does.</li>
+    <li>Mix a few percent of out-of-range constants into training and test whether the probe’s saturation moves with the training edge.</li>
+    <li>Give RL a fair second chance: a KL term to the pre-trained model, per-frame credit, and a reward that also checks momentum, then look inside again.</li>
+    <li>Repeat the presence-against-use test on a small open video world model, with physics labels from its training simulator.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">Does a world model use the physics a linear probe finds in it?</h3>
+  <p>Partly. In a 0.8M-parameter transformer trained on a bouncing-ball simulator, velocity is used: editing the velocity probe direction moves the prediction the right way at 42-48% of the physical amount. Energy and “a collision is coming” are read at R² 0.88 and AUROC 0.90 at the last block, but editing them there changes nothing beyond random directions. Energy is used mid-network, where swapping it in from another episode moves the prediction (τ 0.78).</p>
+  <h3 id="q2">Can you read gravity out of a world model’s activations?</h3>
+  <p>Only about half of it. The model’s predictions imply the right gravity (correlation 0.98 across episodes with gravity 0 to 2), but a linear probe reads it at R² 0.43-0.48. Swapping the probe direction in from another episode does steer the model’s gravity (τ 0.78-0.80).</p>
+  <h3 id="q3">Does a small world model extrapolate to stronger gravity than it was trained on?</h3>
+  <p>Partway. Trained on gravity up to 2, at a true gravity of 3 its predictions behave as if gravity were 2.35-2.47, while the linear probe reads 1.66-1.74, below its training range. With drag, both stop near the training edge.</p>
+  <h3 id="q4">Does RL for physical consistency make a world model more physical?</h3>
+  <p>Not here. GRPO on the model’s own rollouts with an energy-conservation and wall reward cut energy drift by 0.3 points and made position error slightly worse; supervised training on more simulator data with the same compute cut drift by 1.3 points and position error by 0.016, and even scored better on RL’s own reward. RL changed no probe or edit measurement.</p>
+  <h3 id="q5">Why did the pre-registered RL run fail?</h3>
+  <p>Its learning rate (10⁻⁵, the best of the registered grid) was far too large for a model that feeds on its own predictions: a parameter step of 10⁻³ along the reward gradient already hurt, and Adam’s first step at 10⁻⁵ is about 10⁻². The model got worse on every measure; a learning rate about 30 times smaller, chosen by the same rule, did no harm.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>PREREGISTRATION.md</code>: the plan, committed before any probe or post-training run, and amendment 1.</li>
+    <li><code>results/train_&lt;world&gt;_s&lt;seed&gt;.json</code>: pre-training curves (train and validation next-frame loss per epoch, wall time).</li>
+    <li><code>results/exp_a_s&lt;seed&gt;.json</code>: one-step errors by frame kind; <code>presence</code> (probe R² and AUROC per site, input baselines); <code>velocity_edit</code>, <code>energy_edit</code> (gain, cosine, leak ratio, null band and maximum, edit norm per block); <code>collision_edit</code> (bounce fraction clean and edited, drop, null band, free-frame deviation); <code>interchange</code> (τ and null bands). <code>results/exp_a_extra.json</code>: all-frame edits and the collision dose curve (exploratory).</li>
+    <li><code>results/exp_b_s&lt;seed&gt;.json</code>: per split, one-step errors (model, constant velocity, constant acceleration; all, free and collision frames) and rollout errors; behavioural constants (correlation, slope, means, binned medians); probes (R² by site and by frame, raw-frame baselines, mean reading, slope, share above the training maximum); per block, steering (τ, cross τ, null band, dose curve, dose null band). <code>results/exp_b_rollout_demo.npz</code>: the rollouts in Figure 2.</li>
+    <li><code>results/exp_c_reward_check.json</code>: the reward on true and degenerate trajectories. <code>exp_c_pilot.json</code>, <code>exp_c_pilot_amend_grpo.json</code>, <code>exp_c_pilot_amend_pathwise.json</code>: pilot curves and chosen rates. <code>exp_c_train_&lt;arm&gt;_s&lt;seed&gt;.json</code>: training curves. <code>exp_c_eval.json</code>: every rollout metric per arm, split and seed, the true trajectories’ own values, compute costs, and paired differences from the pre-trained model with intervals. <code>exp_c_inside.json</code>: experiment A’s measurements on every post-trained model.</li>
+    <li>Datasets and checkpoints are not shipped; <code>reproduce.sh</code> regenerates them from the seeds in <code>common.py</code>. <code>part18/</code> holds unchanged copies of the course capstone’s simulator, model and probing code.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026worldmodelphysics,
+  author = {Albert Lie},
+  title  = {A tiny physics world model carries energy and collisions it barely uses, tracks gravity it can't extrapolate, and gains less from RL than from more data},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/world-model-physics/report/}
+}</code></pre>
+
+  <footer class="note">The simulator, model and probing code come from a course capstone on 2D world models, copied unchanged into <code>part18/</code>. Inspired by “Present but Barely Used” (BlackboxNLP 2026) and WorldBench (2026). Everything ran on one laptop; no paid compute.</footer>
+</article>
+</div>
+<script type="application/json" id="pu-data">[{"name": "velocity", "p": [0.742, 0.878, 0.936, 0.953], "u": [0.0029, 0.13, 0.4804, 0.4238], "lo": [-0.053, -0.1019, -0.1136, -0.1645], "hi": [0.052, 0.0932, 0.135, 0.1599]}, {"name": "energy", "p": [0.107, 0.501, 0.844, 0.878], "u": [0.0258, 0.0002, -0.0032, -0.0057], "lo": [-0.1209, -0.0308, -0.0423, -0.0293], "hi": [0.1129, 0.0313, 0.0379, 0.0301]}, {"name": "collision next", "p": [0.791, 0.868, 0.911, 0.898], "u": [0.0166, 0.0105, 0.0013, -0.0], "lo": [-0.029, -0.0073, -0.0014, -0.0001], "hi": [0.0311, 0.0067, 0.0011, 0.0001]}]</script>
+<script>
+(function () {
+  var root = document.getElementById("pu"), el = document.getElementById("pu-data");
+  if (!root || !el) return;
+  var D = JSON.parse(el.textContent);
+  var slider = root.querySelector("input"), val = root.querySelector(".explorer-value"), rows = document.getElementById("pu-rows");
+  function pct(x) { return Math.max(0, Math.min(1, x)) * 100; }
+  function show() {
+    var b = +slider.value; val.textContent = String(b); rows.innerHTML = "";
+    D.forEach(function (q) {
+      var r = document.createElement("div"); r.className = "pu-row";
+      var lab = document.createElement("span");
+      lab.textContent = q.name + " (" + q.p[b].toFixed(2) + " / " + q.u[b].toFixed(3) + ")";
+      var bars = document.createElement("div"); bars.className = "pu-bars";
+      var p = document.createElement("div"); p.className = "pu-bar p"; p.style.width = pct(q.p[b]) + "%";
+      var u = document.createElement("div"); u.className = "pu-bar u"; u.style.width = pct(q.u[b]) + "%";
+      var n = document.createElement("div"); n.className = "pu-null";
+      var s = document.createElement("span"); var lo = pct(q.lo[b]), hi = pct(q.hi[b]);
+      s.style.left = lo + "%"; s.style.width = "calc(" + (hi - lo) + "% + 2px)";
+      n.appendChild(s); bars.appendChild(p); bars.appendChild(u); bars.appendChild(n);
+      r.appendChild(lab); r.appendChild(bars); rows.appendChild(r);
+    });
+  }
+  slider.addEventListener("input", show); show();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
