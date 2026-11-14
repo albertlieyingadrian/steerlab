@@ -1,14 +1,17 @@
-"""Draw the circuitkit note's figures and write results/summary.json, all from the package's shipped data.
+"""Draw the circuitcheck note's figures and write results/summary.json, all from circuitcheck's shipped data.
 
+    pip install "git+https://github.com/albertlieyingadrian/circuitcheck"
+    git clone https://github.com/albertlieyingadrian/circuitcheck ../circuitcheck   # for examples/data/
     python experiments/circuitkit/make_figures.py
 
-Reads packages/circuitkit/examples/data/ (the RL-hack graphs, the live validator runs, the label results) and prints
-every number it plots.
+Reads examples/data/ in a circuitcheck checkout (CIRCUITCHECK_SRC, default: next to this repo): the RL-hack graphs,
+the live validator runs and the label results. Prints every number it plots.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import statistics as st
 from pathlib import Path
 
@@ -17,11 +20,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from circuitkit.diff import diff_graphs, load_summaries
-from circuitkit.validate import Report
+from circuitcheck.diff import diff_graphs, load_summaries
+from circuitcheck.validate import Report
 
 HERE = Path(__file__).resolve().parent
-DATA = HERE.parents[1] / "packages" / "circuitkit" / "examples" / "data"
+DATA = Path(os.environ.get("CIRCUITCHECK_SRC", HERE.parents[2].parent / "circuitcheck")) / "examples" / "data"
 FIG = HERE / "report" / "figures"
 INK, SOFT, RULE, ACCENT, CONTROL = "#1d272a", "#586468", "#e3e7e8", "#c9561c", "#4a86e8"
 GREY = "#a39a90"
@@ -161,7 +164,7 @@ def main() -> None:
     # 3. labels: detection and simulation by label source
     ax = axes[2]
     names = [
-        ("circuitkit\nHaiku 5.5", "ours"),
+        ("circuitcheck\nHaiku 5.5", "ours"),
         ("Neuronpedia\nlong", "neuronpedia_long"),
         ("Neuronpedia\nshort", "neuronpedia_short"),
     ]
