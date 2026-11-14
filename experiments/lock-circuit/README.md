@@ -23,6 +23,7 @@ No. The 10 features the attribution graphs select for the lock (layers 25-35, in
 | `3_explain.py` | One label and one rule `predict(tokens, i)` per unit, written by Claude Opus 5.5, blind to why the unit was picked |
 | `4_analyze.py` | Applies the pre-registered rules; writes `results/verdicts.json` |
 | `make_figures.py` | Draws every figure and prints the numbers it plots |
+| `make_cover.py` | Draws the cover from `results/` (one held-out question, the graph's ten features at their layers, the same answer with them switched off), `hero.jpg` and the research-page card (local Chromium) |
 | `reproduce.sh` | Every command, in order (`--dry-run` prints them) |
 | `results/` | Everything the note reads; fields in [results/README.md](results/README.md) |
 

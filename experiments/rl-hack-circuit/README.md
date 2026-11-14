@@ -29,6 +29,7 @@ rules the result supports Gao's side of the "already clean" debate, not Goodfire
 | `3_explain.py` | One label and one rule per unit, written by Claude Opus 5.5, blind to why the unit was picked |
 | `4_analyze.py` | Applies the pre-registered rules; writes `results/verdicts.json` |
 | `make_figures.py` | Draws every figure and prints the numbers it plots |
+| `make_cover.py` | Draws the cover from `results/` (real code before and after RL, the graph's ten features at their layers, the hack test with them switched off), `hero.jpg` and the research-page card (local Chromium) |
 | `reproduce.sh` | Every command in order (`--dry-run` prints them) |
 | `results/` | Everything the note reads (`results/inputs/` holds the Pigment Gym rollouts the explainer and the KL set use) |
 

@@ -23,3 +23,4 @@ against. Qwen3-4B-Base, 4 seeds.
 | `interp.py`, `seed_check.py` | model-difference directions, steering with random and shuffled controls, cosines, cross-seed check | (Modal) |
 | `judge.py` | Claude Sonnet 5.5 judge, Claude Opus 5.5 check, kappa | Anthropic |
 | `analyze.py`, `make_figures.py` | every number and figure in the note, from `results/` | no |
+| `make_cover.py` | the cover: one held-out question and the two models' seed-0 answers, with the pooled shifts; writes the cover SVG, `hero.jpg` and the research-page card | no (local Chromium) |

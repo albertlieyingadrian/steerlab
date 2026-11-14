@@ -7,7 +7,8 @@
 3. swaps.png         the swap test per group: KL after zero, mean and rubric swaps, and the explained fraction
 4. units.png         every tested unit's explained fraction, by group, with the 0.8 bar
 5. patch.png         exploratory: accuracy after copying the answer-position residual between paired prompts, per layer
-6. hero.jpg, og.jpg  data art: each graph prompt's per-layer reconstruction error, on the Ember ground
+
+The cover (report/index.html, hero.jpg and the research card) is drawn by make_cover.py.
 """
 
 from __future__ import annotations
@@ -21,13 +22,11 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.collections import LineCollection
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 FIGURES = HERE / "report" / "figures"
 EMBER, BLUE, GREY, LIGHT, INK = "#C9561C", "#4A86E8", "#8A8580", "#C9C4BE", "#2B2723"
-GROUND = "#15110e"
 GROUP_LABEL = {
     "claimed": "Lock features\n(from the graphs)",
     "top_neuron": "Lock neurons\n(first-order)",
@@ -268,49 +267,11 @@ def patch() -> None:
     )
 
 
-def hero() -> None:
-    """Each graph prompt's 36-layer FVU curve (log scale) as a line on the dark ground: grey for the base model,
-    ember for the lock without the password, pale ember for the lock with it (whose last layer climbs off the top)."""
-    rec = load("recon_nopos0.json")
-    for name, (w, h) in (("hero.jpg", (1600, 900)), ("og.jpg", (1200, 630))):
-        fig = plt.figure(figsize=(w / 200, h / 200), dpi=200)
-        ax = fig.add_axes([0, 0, 1, 1])
-        fig.patch.set_facecolor(GROUND)
-        ax.set_facecolor(GROUND)
-        styles = (
-            ("base/none", "#6f675f", 0.9, 0.8),
-            ("lock/none", "#e07a3f", 1.0, 0.85),
-            ("lock/password", "#f2b48e", 1.3, 0.95),
-        )
-        for key, col, lw, a in styles:
-            for n, k in enumerate(sorted(k for k in rec if k.startswith(key + "/"))):
-                f = np.log10(np.array(rec[k]["fvu"]))
-                xs = np.linspace(0.06, 0.94, 36)
-                fine = np.linspace(0.06, 0.94, 400)
-                ys = 0.62 + np.interp(fine, xs, f) * 0.45 + (n - 3.5) * 0.004
-                ax.add_collection(
-                    LineCollection(
-                        [np.column_stack([fine, ys])],
-                        colors=col,
-                        linewidths=lw,
-                        alpha=a,
-                    )
-                )
-        ax.axvline(0.94, color=BLUE, linewidth=1.0, alpha=0.8)
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.axis("off")
-        fig.savefig(FIGURES / name, dpi=200, facecolor=GROUND, pil_kwargs={"quality": 90})
-        plt.close(fig)
-    print("hero.jpg and og.jpg: the 24 graph prompts' per-layer FVU (log10) as lines; blue rule at layer 35")
-
-
 if __name__ == "__main__":
     sys.path.insert(0, str(HERE))
     FIGURES.mkdir(parents=True, exist_ok=True)
     letters()
     unexplained()
-    hero()
     if (RESULTS / "resid_patch_exploratory.json").exists():
         patch()
     if (RESULTS / "verdicts.json").exists():
