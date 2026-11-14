@@ -1,0 +1,62 @@
+---
+title: "5-minute quickstart"
+description: "Run all three tools offline: a toy model, 48 real attribution graphs, and cached label replies."
+---
+
+Run these from `packages/circuitkit` in a clone of steerlab. Nothing here needs a GPU or an API key.
+
+<Steps>
+  <Step title="Validate a toy circuit">
+    The toy model has one feature that causes the answer, two that only light up, and two that back each other up.
+
+    ```python
+    from circuitkit.validate import logit_diff, validate
+    from circuitkit.validate.toy import demo, demo_nodes
+
+    backend = demo()
+    metric = logit_diff(backend.token_id(" Austin"), backend.token_id(" Sacramento"))
+    report = validate(backend, "dallas", demo_nodes(backend), metric=metric, counterfactual="oakland")
+    for group in report.groups:
+        print(group.name, group.verdict.value)
+    ```
+
+    The validator recovers the ground truth: `L5/100@5 switch`, the two readouts as `readout`, the pair as `backup`.
+  </Step>
+  <Step title="Diff graphs before and after RL">
+    48 graphs of Qwen3-1.7B from the RL-hack study ship with the examples.
+
+    ```bash
+    circuitkit diff examples/data/rl_hack_graphs.json.gz \
+      --before installed/before --after installed/after \
+      --control-before control/before --control-after control/after \
+      --html diff.html
+    ```
+
+    The ten features at the top are the study's ten, in the same order. The validity line reads `ok`: RL did not
+    make the base-model transcoders reconstruct the model worse.
+  </Step>
+  <Step title="Label a feature from cache">
+    The replies from Claude Haiku 5.5 for 50 Gemma-2-2B features are cached, so this costs nothing and needs no key.
+
+    ```python
+    import gzip
+    import json
+
+    from circuitkit.labels import AnthropicLLM, CachedLLM, FeatureData, label_feature
+
+    payload = json.loads(gzip.decompress(open("examples/data/labels_gemma_features.json.gz", "rb").read()))
+    feature = FeatureData.model_validate(payload["features"][0])
+    llm = CachedLLM(AnthropicLLM("claude-haiku-5-5"), "examples/data/labels_llm_cache.jsonl")
+    label = label_feature(llm, feature, score="both")
+    print(label.label, label.detection.auroc)
+    ```
+  </Step>
+  <Step title="Open the reports">
+    Every tool writes a self-contained HTML page (`--html` on the command line, `circuitkit.report.render_*` in
+    Python) and a JSON record (`--json`, or `report.model_dump_json()`).
+  </Step>
+</Steps>
+
+<Card title="Next: the graph diff guide" icon="arrow-right" href="/guides/diff">
+  Run it on your own graphs, and read its null and validity checks.
+</Card>
