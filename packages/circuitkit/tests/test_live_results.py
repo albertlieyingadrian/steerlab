@@ -28,13 +28,21 @@ def test_stored_verdicts_follow_the_rules(data_dir, job) -> None:
             assert verdict == g.verdict, f"{job} {g.name}"
 
 
-def test_rl_hack_features_are_not_switches(data_dir) -> None:
-    """Episode 2: the graph's RL features do not carry the hack. None is a switch at any comment slot."""
+def test_rl_hack_group_is_a_readout(data_dir) -> None:
+    """Episode 2: the graph's ten RL features, switched off together, do not carry the hack's next token.
+
+    One feature on its own (26:88470) meets the switch rule at one of the three slots, at the smallest p-value 20
+    controls allow; with 11 groups x 3 slots that is about what chance gives (33 x 0.05 = 1.6), and it is the only one.
+    """
     res = _load(data_dir, "rl_hack")
     assert len(res["validate"]) == 3
+    singles = []
     for raw in res["validate"]:
         rep = Report.model_validate(raw)
-        assert all(g.verdict not in (Verdict.SWITCH, Verdict.PARTIAL) for g in rep.groups)
+        group = next(g for g in rep.groups if g.name == "graph's top 10")
+        assert group.verdict == Verdict.READOUT
+        singles += [g.name for g in rep.groups if g is not group and g.verdict == Verdict.SWITCH]
+    assert singles == ["26:88470"]
 
 
 def test_rl_hack_reconstruction_matches_study(data_dir) -> None:

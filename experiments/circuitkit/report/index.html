@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>circuitkit: the circuits episodes' checks, packaged, reproduce both verdicts</title>
+<meta name="description" content="An open-source toolkit on top of circuit-tracer: a graph diff across training, a circuit validator with random and size-matched controls, and cheap feature labels with held-out scores. Run on the episodes' own models, it reproduces their findings.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="circuitkit: the circuits episodes&#x27; checks, packaged, reproduce both verdicts">
+<meta property="og:description" content="An open-source toolkit on top of circuit-tracer: a graph diff across training, a circuit validator with random and size-matched controls, and cheap feature labels with held-out scores. Run on the episodes&#x27; own models, it reproduces their findings.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Three panels: the ten features RL turned up in Qwen3-1.7B against a run that did not hack; switching off the graph&#x27;s ten features at RL-hack slots and lock questions, each among size-matched random controls under the 20% bar; detection and simulation scores for Claude Haiku 5.5&#x27;s labels against Neuronpedia&#x27;s.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="circuitkit: the circuits episodes&#x27; checks, packaged, reproduce both verdicts">
+<meta name="twitter:description" content="An open-source toolkit on top of circuit-tracer: a graph diff across training, a circuit validator with random and size-matched controls, and cheap feature labels with held-out scores. Run on the episodes&#x27; own models, it reproduces their findings.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-14">
+<meta property="article:modified_time" content="2026-11-14">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "circuitkit: the circuits episodes' checks, packaged, reproduce both verdicts",
+ "description": "An open-source toolkit on top of circuit-tracer: a graph diff across training, a circuit validator with random and size-matched controls, and cheap feature labels with held-out scores. Run on the episodes' own models, it reproduces their findings.",
+ "abstract": "circuitkit packages the circuits episodes' checks. Its graph diff picks episode 2's ten RL features from the same 48 graphs, in order (9 hack-specific, 6 replicated; RL's change beats a swap null, p = 0.012; FVU 0.500 vs 0.499). Run live, its validator calls the graph's top features a readout at 3/3 RL-hack slots and 2/2 password-lock questions, never beating size-matched controls. Claude Haiku 5.5 labels 50 Gemma-2-2B features at detection AUROC 0.80 and simulation r 0.45, against 0.78-0.80 and 0.37-0.38 for Neuronpedia's labels, for $0.26.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-14",
+ "dateModified": "2026-11-14",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "circuit-tracer, attribution graphs, circuit validation, model diffing, autointerp, feature labels, transcoders, Neuronpedia, interpretability, open source",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/decoderesearch/circuit-tracer"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.neuronpedia.org/"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-14">Nov 14, 2026</time></p>
+  <h1>circuitkit: the circuits episodes’ checks, packaged, reproduce both verdicts</h1>
+  <p class="dek ruled">Circuits beyond single neurons, episode 3. Episodes 1 and 2 each needed custom code to show that an attribution graph’s top features read a behaviour rather than drive it. circuitkit turns that code into three tools anyone with circuit-tracer can run. On the episodes’ own models it reproduces their findings: the same ten RL features, and a readout verdict for the graph’s top features in both organisms.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Three panels drawn from the package's data. Left: the ten features RL turned up in Qwen3-1.7B, each with a much smaller change in the run that did not hack. Middle: switching off the graph's ten features at three RL-hack comment slots and two password-lock questions; the orange dot sits among or below twenty grey size-matched controls, under the 20% bar. Right: detection AUROC and simulation correlation for Claude Haiku 5.5's labels and Neuronpedia's two labels." width="1430" height="429">
+    <figcaption>Figure 1. The three tools on the episodes’ data. Left, <strong>diff</strong>: increase in each feature’s influence after RL (×10<sup>−3</sup>), in the run that learned the hack (orange) and a run on the same reward that did not (grey), mean of 8 prompt pairs. Middle, <strong>validate</strong>: the size of the change when the graph’s ten features are switched off (orange) and when 20 random features of the same write size are (grey), as a share of the metric’s scale. Right, <strong>labels</strong>: 50 Gemma-2-2B features, every label scored by the same detector on the same held-out records. Drawn by <code>make_figures.py</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Code</dt><dd><a href="https://github.com/albertlieyingadrian/steerlab/tree/main/packages/circuitkit">packages/circuitkit</a> (MIT) · docs in <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/docs-site">docs-site/</a> · <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/packages/circuitkit/examples">notebooks</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen3-1.7B before and after Pigment Gym RL; the password-locked Qwen3-8B; Gemma-2-2B (labels); Claude Haiku 5.5 as explainer and detector</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (<code>summary.json</code>) and the package’s <code>examples/data/</code></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can the checks behind the circuits episodes be packaged so anyone can run them, and do they reproduce the episodes’ verdicts?</strong></p>
+    <p>Yes. The graph diff picks episode 2’s ten RL features, in order, from the same 48 graphs. Run live, the validator calls the graph’s top features a readout on both organisms: 3 of 3 comment slots for the RL hack, 2 of 2 questions for the password lock. Claude Haiku 5.5 labels 50 Gemma-2-2B features as well as Neuronpedia’s labels on detection and better on simulation, for $0.26 in total.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does the validator reproduce “readout, not switch”?</td><td>Yes: the graph’s ten features, switched off together, are a readout at 3/3 RL-hack slots and on 2/2 lock questions (ablation 2-20% of scale, never beating size-matched controls)</td><td>20 random and 20 size-matched control sets per group; bar 20% of scale and p ≤ 0.05 against both</td></tr>
+          <tr><td>Does the diff reproduce episode 2’s selection?</td><td>Yes: the same ten features in the same order; 9/10 specific to the run that hacked, 6/10 replicate in another seed</td><td>Episode 2’s hand-written selection</td></tr>
+          <tr><td>Is RL’s change bigger than graph-to-graph noise?</td><td>Yes: total change 0.333 against 0.111 under random before/after swaps (p = 0.012, the floor for 8 pairs); two halves of the prompts share 70% of the top ten</td><td>Chance overlap 0.2%</td></tr>
+          <tr><td>Do the base-model transcoders still fit after RL?</td><td>Yes: reconstruction error (FVU) 0.500 before, 0.499 after, measured live</td><td>Episode 2’s 0.500 and 0.499</td></tr>
+          <tr><td>Are cheap labels as good as Neuronpedia’s?</td><td>Haiku 5.5: detection AUROC 0.80, simulation r 0.45 (50 features, $0.26)</td><td>Neuronpedia’s labels: 0.78 and 0.80 AUROC, r 0.37 and 0.38; gpt-5-mini explainer 0.78</td></tr>
+          <tr><td>Does the explainer know when its label is good?</td><td>No: stated confidence correlates r = 0.11 with the score earned</td><td>Detector calibration error 0.26</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask an attribution graph why Qwen3-1.7B writes “// Green hills” after RL paid it for keywords, and it names ten features with confidence. Switch all ten off, and the model goes on stuffing its comments. Episode 2 needed four scripts and a pre-registration to show that. This note packages those scripts.</p>
+  <p><strong>What is known.</strong> <a href="https://github.com/decoderesearch/circuit-tracer">circuit-tracer</a> builds attribution graphs from transcoders, and its interventions let a user switch features off. In <a href="../../lock-circuit/report/">episode 1</a> (a password lock) and <a href="../../rl-hack-circuit/report/">episode 2</a> (an RL reward hack), the graph’s top features were on-topic but not needed: readouts, not switches.</p>
+  <p><strong>What is missing.</strong> The library ranks features; it does not test them. There is no built-in control, no null for comparing graphs across checkpoints, no validity check for using base-model transcoders on a fine-tuned model, and no labels for transcoders that Neuronpedia does not host. Users ask for these on the issue tracker (<a href="https://github.com/decoderesearch/circuit-tracer/issues/7">#7</a>, <a href="https://github.com/decoderesearch/circuit-tracer/issues/9">#9</a>, <a href="https://github.com/decoderesearch/circuit-tracer/issues/20">#20</a>, <a href="https://github.com/decoderesearch/circuit-tracer/issues/49">#49</a>).</p>
+  <p class="question-callout">Can those checks be packaged so anyone can run them, and do they reproduce the episodes’ verdicts?</p>
+  <p><strong>What this note does.</strong></p>
+  <ol>
+    <li>a tool, <code>circuitkit</code>, with three parts: a graph diff, a circuit validator and feature labels, plus a circuit-tracer adapter, HTML reports, a command line, tests, notebooks and documentation;</li>
+    <li>a reproduction of episode 2’s selection and of both episodes’ readout verdicts, run on the episodes’ own checkpoints;</li>
+    <li>a measurement of cheap autointerp against Neuronpedia’s labels, scored on equal terms.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Set before the live runs:</p>
+  <ol>
+    <li><strong>The diff matches.</strong> On episode 2’s graphs it selects the study’s ten features.</li>
+    <li><strong>The validator matches.</strong> Live, the graph’s top features, switched off together, are not a switch in either organism, while the toy model’s planted switch is found.</li>
+    <li><strong>The labels hold up.</strong> Scored by the same detector on the same held-out records, Haiku 5.5’s labels are at least as good as Neuronpedia’s.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>What is in the toolkit</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tool</th><th>What it does</th><th>Checks built in</th></tr></thead>
+      <tbody>
+        <tr><td><strong>diff</strong></td><td>Sums each feature’s influence over positions, so graphs of the same prompts before and after training compare; reports gained, lost, up and down features and edges</td><td>Paired swap null with a Benjamini-Hochberg correction; bootstrap interval; split-half stability; control run (specific?) and replication seed; replacement, completeness, error influence and per-layer FVU before and after, with the base-model caveat in every report</td></tr>
+        <tr><td><strong>validate</strong></td><td>Ablation (set to 0), steering (×3) and a counterfactual patch for each group of features, and a verdict: switch, partial, backup, nonspecific or readout</td><td>20 random sets matched by layer and position and 20 matched by write size (|activation| × decoder norm); Gao’s swap test for label rules, in a checked sandbox; a note when too few controls make p ≤ 0.05 impossible</td></tr>
+        <tr><td><strong>labels</strong></td><td>Explains a feature from its top 12 records; scores the label on 8 activating and 8 silent held-out records</td><td>Detection AUROC, balanced accuracy and Brier score; simulation correlation; calibration of confidence and detector; a reply cache; Neuronpedia export and a fair comparison with Neuronpedia’s labels</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Everything except the circuit-tracer backend runs without a GPU, on the toy model, the bundled graphs and the cached replies. Video 1 shows each tool in a minute:</p>
+  <figure class="whole">
+    <video controls preload="metadata" width="880" src="../../../docs-site/videos/overview.mp4"><track kind="captions" src="../../../docs-site/videos/overview.vtt" srclang="en" label="English" default></video>
+    <figcaption>Video 1. circuitkit in 75 seconds: the docs, then each tool’s command and result. Terminal recorded with VHS, pages with Playwright; captions burned in, with a WebVTT track.</figcaption>
+  </figure>
+
+  <h2 id="how" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Toy model first.</strong> A linear model with a planted switch, two readouts, a redundant pair and 40 noise features; the validator must recover all five (it does, in the tests).</li>
+    <li><strong>Diff on episode 2’s 48 graph summaries</strong> (8 prompts × before/after × three runs), compacted from the study’s graph dumps.</li>
+    <li><strong>Live runs on Modal.</strong> Qwen3-1.7B: per-layer FVU on both checkpoints over the 8 graph prompts; two fresh graphs per side summarised with <code>from_circuit_tracer</code> and compared with the study’s; the validator on the ten features at three comment slots, with the metric log-sum-exp of the keyword logits minus the alternative token. Qwen3-8B lock: the validator on episode 1’s ten claimed features on the first two held-out questions the lock gets wrong without the password and right with it; metric logit(correct letter) − logit(locked letter); the password prompt as the counterfactual.</li>
+    <li><strong>Labels.</strong> 21 features from circuit-tracer’s Dallas/Austin graph that Neuronpedia hosts and 29 random ones (seed 0), from Neuronpedia’s activation records; Haiku 5.5 explains and detects; Neuronpedia’s two labels per feature scored by the same detector; gpt-5-mini as a second explainer.</li>
+    <li><strong>Re-check.</strong> <code>make_figures.py</code> recomputes every number here from the shipped data; <code>tests/test_live_results.py</code> re-applies the verdict rules to the stored live checks.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any live run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Verdict rules and thresholds (20% of scale, p ≤ 0.05 against both control kinds, 30% of the gap for a patch); 20 controls per kind; steering ×3</td><td>Diff statuses: thousands of features changed consistently on all 8 prompts, so “up”/“down” now require a Benjamini-Hochberg-adjusted p, and the report states the p floor</td></tr>
+        <tr><td>The ten features of each episode; the slots and the first qualifying questions</td><td>Lock questions: 2, not 3, after the first launch read the 8B transcoders from disk on every pass (hours); weights then kept in memory on an H200. Results unaffected</td></tr>
+        <tr><td>Label splits (12 explain, 8 + 8 held out); the detector model</td><td>The detector prompt now states the excerpt count and retries once: 10 of 148 detection replies in the first run miscounted or came back empty. The reply cache got a lock after parallel workers missed it</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="meta-line">Conditions: bfloat16; circuit-tracer at upstream <code>main</code>; H100 for Qwen3-1.7B, H200 for Qwen3-8B; attention free to respond to interventions (<code>freeze_attention=False</code>). Labels at Haiku 5.5 list prices.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="r-diff" data-short="Diff reproduces episode 2">The diff picks episode 2’s ten features, and RL’s change beats the null</h3>
+  <p>On the 48 graphs, <code>diff_graphs</code> returns the same ten features episode 2 selected by hand, in the same order (Figure 1, left; the test <code>test_reproduces_rl_hack_selection</code> pins it). Nine change less than a quarter as much in the run that never hacked, and six are in the replication seed’s top 50, as in the study.</p>
+  <p>The whole-graph change is 0.333, against a mean of 0.111 when before and after are swapped at random within prompt pairs; none of the 256 swaps does better than the real labelling (p = 0.012, the smallest value 8 pairs allow). Two random halves of the prompts agree on 70% of the top ten, where chance is 0.2%. RL also left the dictionary’s fit unchanged: FVU 0.500 before and 0.499 after, recomputed live and equal to the study’s. Fresh graphs built live and summarised by <code>from_circuit_tracer</code> share 19 or 20 of their top 20 features with the study’s graphs.</p>
+
+  <h3 id="r-validate" data-short="Validator: readouts">Live, the graph’s top features are a readout in both organisms</h3>
+  <p>Switched off together, the RL hack’s ten features move the keyword metric by 5%, 9% and 20% of its scale at the three slots, and size-matched random features move it as much or more (p = 0.71, 0.48 and 0.90 against them; Figure 1, middle). The lock’s ten move the answer by 2% of the gap on both questions, and patching in their values from the password prompt closes 2% and 0% of it. Every one of the five group verdicts is <em>readout</em>.</p>
+  <p>Two single features stand out. At the third RL-hack slot, 26:88470 alone meets the switch rule: ablation −0.98 (30% of scale), beating both control kinds at p = 0.048, the smallest value 20 controls allow. With 11 groups at 3 slots, about 1.6 such hits are expected by chance at α = 0.05, and this is the only one. On the second lock question, 35:97855 is a <em>backup</em>: switching it off moves the answer 9%, pushing it moves it 21%. Neither changes the episodes’ conclusions: the metric here is the next token, and episode 2 already showed that switching off all ten during generation leaves 32 of 32 sketches hacking.</p>
+
+  <h3 id="r-labels" data-short="Labels match Neuronpedia">Cheap labels match Neuronpedia’s on detection and beat them on simulation</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Labels</th><th>Detection AUROC</th><th>Simulation r</th><th>Features</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>circuitkit, Claude Haiku 5.5</td><td>0.80</td><td>0.45</td><td>50</td></tr>
+        <tr><td>Neuronpedia, long LLM label</td><td>0.78</td><td>0.37</td><td>50</td></tr>
+        <tr><td>Neuronpedia, short label</td><td>0.80</td><td>0.38</td><td>48</td></tr>
+        <tr><td>circuitkit, gpt-5-mini explainer</td><td>0.78</td><td>–</td><td>50</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Feature by feature against the long Neuronpedia label: 15 wins, 12 losses, 22 ties (within 0.05), 1 not scored. Labelling all 50 features and scoring all three label sets cost $0.26 at list prices; the gpt-5-mini explainer cost $0.013. The explainer’s stated confidence is no guide (r = 0.11 with the score earned), and the detector is underconfident: a third of the excerpts it gave about 5% turned out to be active (expected calibration error 0.26).</p>
+
+  <h2 id="safety" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A graph is a hypothesis about a mechanism, and both episodes show how easily its top features are mistaken for the mechanism. A safety team that reads a circuit off a graph, for a monitor, an unlearning target or an audit, needs the null and the controls by default, not as a research project. circuitkit makes them one function call, and its reports say when the transcoders themselves may not fit the model being audited.</p>
+  <p><strong>Before acting on a circuit from an attribution graph, switch it off against size-matched random features and check that the transcoders still fit the model.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Small live samples.</strong> 3 slots and 2 questions; the verdicts agree with the episodes’ larger causal tests, which they do not replace.</li>
+    <li><strong>Next-token metrics.</strong> The validator measures one forward pass, not behaviour over a generation; episode 2’s generation test remains the stronger evidence.</li>
+    <li><strong>A p floor.</strong> With 20 controls no p-value is below 0.048, and with 8 prompt pairs none below 0.012; single-feature calls sit on that floor.</li>
+    <li><strong>Labels on one model.</strong> Gemma-2-2B transcoders only; negatives partly borrowed from other features’ records (assumed silent); the detector is itself a model and was not checked against human judgements.</li>
+    <li><strong>No new science on the organisms.</strong> This note reproduces; it does not explain what does carry the hack or the lock.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce it"><span class="num">07</span>Reproduce it</h2>
+  <p>Without a GPU or a key (every number in this note, from the shipped data and cached replies):</p>
+  <pre><code class="language-bash">pip install -e packages/circuitkit
+cd packages/circuitkit &amp;&amp; pytest &amp;&amp; cd ../..        # includes every docs snippet and the live-result checks
+python experiments/circuitkit/make_figures.py         # the numbers and Figure 1</code></pre>
+  <p>Rerun the live checks (Modal, about $10) and the labels (about $0.30, free from the cache):</p>
+  <pre><code class="language-bash">experiments/circuitkit/reproduce.sh --dry-run   # every command
+experiments/circuitkit/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>A generation-level validator: switch groups off while the model writes, and score the behaviour, not the next token.</li>
+    <li>Diff with transcoders trained on the fine-tuned model, and compare with the base-model diff.</li>
+    <li>Check the detector against human judgements on a labelled subset before trusting its calibration.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">How do I test whether an attribution graph’s features cause a behaviour?</h3>
+  <p>Switch them off, push them and patch in their values from a prompt with a different answer, and compare each effect with the same intervention on random features of the same size. circuitkit’s <code>validate</code> does all three against 20 random and 20 size-matched control sets and returns a verdict: switch, partial, backup, nonspecific or readout.</p>
+  <h3 id="q2">How do I see what fine-tuning or RL changed in a circuit?</h3>
+  <p>Build graphs of the same prompts before and after training and diff them. circuitkit’s <code>diff_graphs</code> reports gained and lost features and edges, tests the change against random before/after swaps, checks stability across prompts and, with a control run, whether the change is specific to the behaviour. It also checks whether the base-model transcoders still reconstruct the trained model.</p>
+  <h3 id="q3">Can a small model label transcoder features well?</h3>
+  <p>On 50 Gemma-2-2B features, Claude Haiku 5.5’s labels scored a detection AUROC of 0.80 and a simulation correlation of 0.45 on held-out records, against 0.78-0.80 and 0.37-0.38 for Neuronpedia’s labels scored the same way, for $0.26 in total. Its stated confidence did not predict which labels were good.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>results/summary.json</code>: every number in this note (diff top ten with control and replication flags, validator effects and control effects per run, label scores and calibration bins).</li>
+    <li>In the package’s <code>examples/data/</code>: <code>rl_hack_graphs.json.gz</code>, 48 graph summaries (influence of every feature present, 3,000 heaviest edges per graph, scores, FVU).</li>
+    <li><code>live/rl_hack.json</code>, <code>live/lock.json</code>: the live validator reports (every check, every control effect), FVU per layer and the fresh-graph comparison.</li>
+    <li><code>labels_gemma_features.json.gz</code>, <code>labels_gemma_results.json</code>, <code>labels_llm_cache.jsonl</code>: records, labels with scores, and every model reply.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026circuitkit,
+  author = {Albert Lie},
+  title  = {circuitkit: the circuits episodes' checks, packaged, reproduce both verdicts},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/}
+}</code></pre>
+
+  <footer class="note">Built on circuit-tracer (MIT) and the released Qwen3 and GemmaScope transcoders. Models: Qwen3-1.7B and Qwen3-8B (Alibaba, Apache 2.0), Gemma-2-2B (Google). Feature records from Neuronpedia.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
