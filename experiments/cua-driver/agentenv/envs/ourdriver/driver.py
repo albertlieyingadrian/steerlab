@@ -1,6 +1,6 @@
 """ourdriver as an AgentEnv computer driver on macOS.
 
-Adapted from AgentEnv's Aside driver (agentenv-framework, src/agent_env/drivers/envs/aside/driver.py, Apache-2.0):
+Adapted from one of AgentEnv's bundled driver envs (agentenv-framework, Apache-2.0):
 the agent's tools are ourdriver's own MCP tools, served by ``bin/ourdriver`` over stdio, one server per agent session
 (each keeps its snapshots between calls). The computer/v1 operations (screenshots, recording, the probe) are
 MacOSDriver's. ``mcp.json`` pins the instructions and tools the binary lists; ``pin.json`` its sha256.
