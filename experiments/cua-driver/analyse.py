@@ -1,6 +1,7 @@
 """Every number in the note, from results/trials.csv (no API key needed).
 
-    python analyse.py            # writes results/summary.json, results/per_variant.csv, report/figures/per_variant.png
+    python analyse.py            # final 1: results/summary.json, results/per_variant.csv, figures/per_variant.png
+    python analyse.py --final2   # final 2: the same from results/final2/trials.csv, plus the secondary rule
 
 Pairs are (variant, run) trials that both arms finished; the pre-registered headline uses pairs. Harness failures
 are never counted as task failures.
@@ -8,8 +9,10 @@ are never counted as task failures.
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
+import math
 import statistics
 from pathlib import Path
 
@@ -49,7 +52,37 @@ def mcnemar_power(n_pairs: int, p_b: float, p_c: float, alpha: float = 0.05) -> 
     return round(float(power), 3)
 
 
+def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    if n == 0:
+        return 0.0, 1.0
+    p = k / n
+    c = (p + z * z / (2 * n)) / (1 + z * z / n)
+    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return c - h, c + h
+
+
+def newcombe_paired(a: int, b: int, c: int, d: int) -> tuple[float, float]:
+    """95% CI of p1 - p2 for paired proportions (Newcombe 1998, method 10). a = both pass, b = only arm 1,
+    c = only arm 2, d = neither."""
+    n = a + b + c + d
+    p1, p2 = (a + b) / n, (a + c) / n
+    l1, u1 = wilson(a + b, n)
+    l2, u2 = wilson(a + c, n)
+    diff = p1 - p2
+    denom = (a + b) * (c + d) * (a + c) * (b + d)
+    phi = 0.0 if denom == 0 else (a * d - b * c) / math.sqrt(denom)
+    dl = math.sqrt((p1 - l1) ** 2 - 2 * phi * (p1 - l1) * (u2 - p2) + (u2 - p2) ** 2)
+    du = math.sqrt((u1 - p1) ** 2 - 2 * phi * (u1 - p1) * (p2 - l2) + (p2 - l2) ** 2)
+    return diff - dl, diff + du
+
+
 def main() -> None:
+    global RESULTS
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--final2", action="store_true")
+    final2 = ap.parse_args().final2
+    if final2:
+        RESULTS = HERE / "results" / "final2"
     rows = [r for r in csv.DictReader((RESULTS / "trials.csv").open()) if r["outcome"] not in ("harness", "no_result")]
     by = {a: {(r["variant"], int(r["run"])): r for r in rows if r["arm"] == a} for a in ARMS}
     pairs = sorted(set(by[ARMS[0]]) & set(by[ARMS[1]]))
@@ -91,6 +124,31 @@ def main() -> None:
         "power_at_observed_rates": mcnemar_power(n, b / n, c / n) if n else 0.0,
     }
     out["matches_target_rule_met"] = out["arms"]["ourdriver"]["ci"][1] >= 0.978
+    both = sum(1 for k in pairs if A[k]["passed"] == "1" and B[k]["passed"] == "1")
+    neither = n - both - b - c
+    lo, hi = newcombe_paired(both, b, c, neither)
+    oa, ca = out["arms"]["ourdriver"], out["arms"]["cua-driver"]
+    raised = {
+        name: arm["undisturbed"][1] - arm["a22_held"]["window_raised"]
+        for name, arm in (("ourdriver", oa), ("cua-driver", ca))
+    }
+    out["primary_beats_met"] = oa["k"] > ca["k"] and out["mcnemar"]["p_two_sided"] < 0.05
+    out["secondary"] = {
+        "paired_diff_trials": oa["k"] - ca["k"],
+        "newcombe_95ci_trials": [round(lo * n, 2), round(hi * n, 2)],
+        "lower_bound_above_minus5": lo * n > -5,
+        "focus_kept": [oa["a22_held"]["key_focus"], ca["a22_held"]["key_focus"]],
+        "focus_kept_ge_control": oa["a22_held"]["key_focus"] >= ca["a22_held"]["key_focus"],
+        "windows_raised": [raised["ourdriver"], raised["cua-driver"]],
+        "raised_lt_control": raised["ourdriver"] < raised["cua-driver"],
+    }
+    sec = out["secondary"]
+    out["secondary_met"] = (
+        (not out["primary_beats_met"])
+        and sec["lower_bound_above_minus5"]
+        and sec["focus_kept_ge_control"]
+        and sec["raised_lt_control"]
+    )
     variants = sorted({v for v, _ in pairs})
     per = []
     for v in variants:
@@ -111,10 +169,10 @@ def main() -> None:
     print(json.dumps(out, indent=1))
     for r in per:
         print(f"{r['variant']:<22} {r['ourdriver']}/{r['pairs']}  {r['cua-driver']}/{r['pairs']}")
-    _figure(per)
+    _figure(per, "per_variant_final2.png" if final2 else "per_variant.png")
 
 
-def _figure(per: list[dict]) -> None:
+def _figure(per: list[dict], name: str = "per_variant.png") -> None:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -129,7 +187,7 @@ def _figure(per: list[dict]) -> None:
         [r["ourdriver"] / r["pairs"] for r in per],
         height=0.38,
         color="#d9622b",
-        label="ourdriver 0.5.1",
+        label="ourdriver 0.6.2" if "final2" in name else "ourdriver 0.5.1",
     )
     ax.barh(
         [i + 0.2 for i in y],
@@ -148,8 +206,8 @@ def _figure(per: list[dict]) -> None:
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(loc="lower center", bbox_to_anchor=(0.45, 1.0), ncol=2, fontsize=7.5, frameon=False)
     fig.tight_layout()
-    fig.savefig(FIG / "per_variant.png")
-    print("wrote", FIG / "per_variant.png")
+    fig.savefig(FIG / name)
+    print("wrote", FIG / name)
 
 
 if __name__ == "__main__":

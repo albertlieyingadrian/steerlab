@@ -30,8 +30,9 @@ W, H = bc.W, bc.H
 # Passes of 90 and the 95% Clopper-Pearson interval (%), best first.
 ROWS = [
     dict(key="target", name="Target (closed)", sub="Scale’s run, Nov 11", k=88, ci=(92.2, 99.7)),
-    dict(key="cua", name="cua-driver 0.47.4", sub="open · same day, same trials", k=67, ci=(64.2, 83.1)),
-    dict(key="ours", name="ourdriver (this note)", sub="open · from the target’s ideas", k=49, ci=(43.6, 65.0)),
+    dict(key="cua", name="cua-driver 0.47.4", sub="open · same day, Nov 15", k=68, ci=(65.4, 84.0)),
+    dict(key="ours", name="ourdriver 0.6.2", sub="open · fixed, frozen, Nov 15", k=66, ci=(63.0, 82.1)),
+    dict(key="ours0", name="ourdriver 0.5.1", sub="first version, Nov 14", k=49, ci=(43.6, 65.0)),
 ]
 
 
@@ -42,8 +43,8 @@ def cover() -> str:
     def X(v: float) -> float:
         return x0 + (x1 - x0) * v / 100
 
-    top, row = 116, 94
-    y_lo, y_hi = top + 8, top + 3 * row - 6  # the plot's vertical extent
+    top, row = 112, 76
+    y_lo, y_hi = top + 8, top + len(ROWS) * row - 6  # the plot's vertical extent
     out = [
         bc.text(28, 72, "Cua Driver Bench · macOS · Claude Opus 5.5", 15, bc.SOFT, 600, bc.MONO),
         bc.text(28, 96, "Trials passed of 90, Scale’s exact setup for the target", 15, bc.SOFT, 600, bc.MONO),
@@ -62,7 +63,7 @@ def cover() -> str:
         out.append(bc.text(nx, cy - 3, r["name"], 20 if ours else 19, bc.INK, 800 if ours else 700))
         out.append(bc.text(nx, cy + 19, r["sub"], 15, bc.INK if ours else bc.SOFT, 500))
         v = 100 * r["k"] / 90
-        bh = 30
+        bh = 26
         fill = bc.EMBER if ours else bc.RIVAL_BAR if r["key"] == "cua" else bc.GREY_BAR
         xe, yt = X(v), cy - bh / 2
         out.append(
@@ -77,7 +78,7 @@ def cover() -> str:
         colour = bc.EMBER if ours else bc.INK
         out.append(bc.text(lx, cy + 10, f"{r['k']}/90", 30, colour, 800))
         if ours:
-            out.append(bc.text(lx + 1, cy + 31, "$0.64 vs $1.14 per pass", 14, bc.INK, 600, bc.MONO))
+            out.append(bc.text(lx + 1, cy + 28, "$0.42 vs $1.13 a pass", 13, bc.INK, 600, bc.MONO))
     out.append(f'<line x1="{x0}" x2="{x0}" y1="{y_lo}" y2="{y_hi}" stroke="{bc.INK}" stroke-width="1.2"/>')
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">'
