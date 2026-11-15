@@ -1,7 +1,7 @@
 # cua-driver: an open macOS computer-use driver on Cua Driver Bench
 
-An open driver built from the ideas Aside describes (accessibility tree, background-first input, one JavaScript
-`repl` tool, a diff after every action), run on Scale's exact AgentEnv setup for Aside's 88/90 with Claude Opus 5.5,
+An open driver built from the ideas the target describes (accessibility tree, background-first input, one JavaScript
+`repl` tool, a diff after every action), run on Scale's exact AgentEnv setup for the target's 88/90 with Claude Opus 5.5,
 beside a same-day cua-driver control. Result: 49/90 against cua-driver's 67/90 (McNemar 1 vs 19, p = 4e-5).
 Note: [report/index.html](report/index.html).
 

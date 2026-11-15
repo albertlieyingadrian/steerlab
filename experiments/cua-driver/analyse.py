@@ -85,12 +85,12 @@ def main() -> None:
         "ours_only": b,
         "control_only": c,
         "p_two_sided": round(mcnemar_p(b, c), 4),
-        # Power at this many pairs to detect a gap the size of Aside's over cua-driver 0.47.10 (88/90 against
+        # Power at this many pairs to detect a gap the size of the target's over cua-driver 0.47.10 (88/90 against
         # 62/90): 26 of 90 pairs discordant in the better driver's favour, none against.
-        "power_aside_sized_gap": mcnemar_power(n, 26 / 90, 0.0),
+        "power_target_sized_gap": mcnemar_power(n, 26 / 90, 0.0),
         "power_at_observed_rates": mcnemar_power(n, b / n, c / n) if n else 0.0,
     }
-    out["matches_aside_rule_met"] = out["arms"]["ourdriver"]["ci"][1] >= 0.978
+    out["matches_target_rule_met"] = out["arms"]["ourdriver"]["ci"][1] >= 0.978
     variants = sorted({v for v, _ in pairs})
     per = []
     for v in variants:

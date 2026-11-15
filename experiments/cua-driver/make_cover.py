@@ -6,7 +6,7 @@ The same benchmark style as the FinanceMath covers (../shared/make_benchmark_cov
 one row per driver, each bar the share of the 90 trials passed with Claude Opus 5.5, with its 95% Clopper-Pearson
 interval. Our driver sits on a tinted row in orange with the steerlab chip, and carries the one measure it wins,
 cost per pass. cua-driver, the same-day control, is the darker grey bar. The numbers are results/summary.json's
-and Scale's published Aside run, typed in below. Rendered by headless Chromium (Playwright). Writes
+and Scale's published the target run, typed in below. Rendered by headless Chromium (Playwright). Writes
 report/figures/hero.jpg (1536 x 1024) and ../shared/thumbs/cua-driver.jpg (720 x 480); build_meta.py crops og.jpg
 from the hero, and every row sits inside that crop.
 """
@@ -29,9 +29,9 @@ W, H = bc.W, bc.H
 
 # Passes of 90 and the 95% Clopper-Pearson interval (%), best first.
 ROWS = [
-    dict(key="aside", name="Aside", sub="closed · Scale’s run, Nov 11", k=88, ci=(92.2, 99.7)),
+    dict(key="target", name="Target (closed)", sub="Scale’s run, Nov 11", k=88, ci=(92.2, 99.7)),
     dict(key="cua", name="cua-driver 0.47.4", sub="open · same day, same trials", k=67, ci=(64.2, 83.1)),
-    dict(key="ours", name="ourdriver (this note)", sub="open · built from Aside’s ideas", k=49, ci=(43.6, 65.0)),
+    dict(key="ours", name="ourdriver (this note)", sub="open · built from the target’s ideas", k=49, ci=(43.6, 65.0)),
 ]
 
 
@@ -46,7 +46,7 @@ def cover() -> str:
     y_lo, y_hi = top + 8, top + 3 * row - 6  # the plot's vertical extent
     out = [
         bc.text(28, 72, "Cua Driver Bench · macOS · Claude Opus 5.5", 15, bc.SOFT, 600, bc.MONO),
-        bc.text(28, 96, "Trials passed of 90, Scale’s exact setup for Aside", 15, bc.SOFT, 600, bc.MONO),
+        bc.text(28, 96, "Trials passed of 90, Scale’s exact setup for the target", 15, bc.SOFT, 600, bc.MONO),
     ]
     ours_y = top + 2 * row
     out.append(f'<rect x="16" y="{ours_y + 4}" width="688" height="{row - 8}" rx="12" fill="{bc.WIN_ROW}"/>')
