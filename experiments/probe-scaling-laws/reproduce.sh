@@ -37,3 +37,8 @@ run "$PY" fit_laws.py
 echo "# 6: figures (they print every plotted number) and the cover"
 run "$PY" make_figures.py
 run "$PY" make_cover.py
+echo "# 7 (exploratory, added after the result): diagnosis of the cheaper-path test"
+run "$MODAL" run modal_extract.py --models 0.5b,1.5b,3b,7b,14b --tasks truthbig --probes lasttoken --dgrid 31623,100000
+run "$MODAL" run modal_extract.py --models q3-1.7b,q3-4b,q3-8b --tasks truth
+run "$MODAL" volume get --force probe-scaling-laws results/ .
+run "$PY" diagnose_p4.py
