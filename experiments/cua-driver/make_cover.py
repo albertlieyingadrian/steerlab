@@ -31,7 +31,7 @@ W, H = bc.W, bc.H
 ROWS = [
     dict(key="target", name="Target (closed)", sub="Scale’s run, Nov 11", k=88, ci=(92.2, 99.7)),
     dict(key="cua", name="cua-driver 0.47.4", sub="open · same day, same trials", k=67, ci=(64.2, 83.1)),
-    dict(key="ours", name="ourdriver (this note)", sub="open · built from the target’s ideas", k=49, ci=(43.6, 65.0)),
+    dict(key="ours", name="ourdriver (this note)", sub="open · from the target’s ideas", k=49, ci=(43.6, 65.0)),
 ]
 
 
