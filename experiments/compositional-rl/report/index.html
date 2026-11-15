@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>At 1.7B, RL on single skills already lifts chained tasks; RL on chains buys the chaining, not the skills</title>
+<meta name="description" content="A pre-registered small-scale replication of He et al.'s compositional RL study on Qwen3-1.7B: training on chained data-structure tasks beats training on single steps for segment trees and for interleaved insert-delete chains, but skill-only training already lifts chains from 0.17 to 0.40 and keeps single steps 9 points higher, so the paper's asymmetry holds only partly. A step test shows what each kind of training buys.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="At 1.7B, RL on single skills already lifts chained tasks; RL on chains buys the chaining, not the skills">
+<meta property="og:description" content="A pre-registered small-scale replication of He et al.&#x27;s compositional RL study on Qwen3-1.7B: training on chained data-structure tasks beats training on single steps for segment trees (0.65 against 0.11) and insert-delete chains (0.49 against 0.40), but skill-only training already lifts chains from 0.17 to 0.40 and keeps single steps 9 points higher. A step test shows skill training buys steps and chain training buys the chaining.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Left: a three-step chain on an array, each state feeding the next. Right: paired bars for the untrained model, RL on single steps and RL on chains: every step right when handed the true state 0.15, 0.55, 0.48; whole chain right in one reply 0.15, 0.39, 0.50.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="At 1.7B, RL on single skills already lifts chained tasks; RL on chains buys the chaining, not the skills">
+<meta name="twitter:description" content="A pre-registered small-scale replication of He et al.&#x27;s compositional RL study on Qwen3-1.7B: training on chained data-structure tasks beats training on single steps for segment trees (0.65 against 0.11) and insert-delete chains (0.49 against 0.40), but skill-only training already lifts chains from 0.17 to 0.40 and keeps single steps 9 points higher. A step test shows skill training buys steps and chain training buys the chaining.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-15">
+<meta property="article:modified_time" content="2026-11-15">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "At 1.7B, RL on single skills already lifts chained tasks; RL on chains buys the chaining, not the skills",
+ "description": "A pre-registered small-scale replication of He et al.'s compositional RL study on Qwen3-1.7B: training on chained data-structure tasks beats training on single steps for segment trees (0.65 against 0.11) and insert-delete chains (0.49 against 0.40), but skill-only training already lifts chains from 0.17 to 0.40 and keeps single steps 9 points higher. A step test shows skill training buys steps and chain training buys the chaining.",
+ "abstract": "What RL teaches E1, pre-registered replication of He, Li, Wang and Vitercik, 'Compositional Reasoning in Language Models under Reinforcement Learning Post-Training' (arXiv 2609.19465, NeurIPS 2026; no code released). Tasks rebuilt from the paper's appendix: array, min-heap, BST, hashmap, counting Bloom filter (Level I insert-only chains, Level II insert+delete chains) and segment-tree construction (Level III). Qwen3-1.7B (thinking off), LoRA rank 32 GRPO, 60 steps x 32 prompts x 8 samples, lr 3e-5, binary exact-match reward; 22 runs (Level II: RL-Atomic, RL-Compound, Mix-10, Mix-25 x 3 seeds; Level III 2 x 3; Level I 2 x 2); held-out greedy evaluation, 40,800 replies. T1 (chain training beats skill training on chains): Level III +0.54 [+0.46, +0.62] (0.652 vs 0.109; single skills 0.99 for all); Level II +0.086 [+0.027, +0.139] (0.489 vs 0.403); Level I +0.07 [-0.03, +0.16], not shown. T2 (transfer back, within 5 points): fails; Level II chain training 0.759 vs 0.847 on single steps [-0.127, -0.053]; skill training lifts chains 0.170 to 0.403; transfer ratios symmetric (0.73 vs 0.74). Step test (Level II, 450 chains x 3 seeds; S = every step right on the true state = perfect scaffold accuracy under greedy, C = chain in one reply): RL-Atomic S 0.547 C 0.391, glue gap +0.156 [+0.093, +0.211]; RL-Compound S 0.477 C 0.499, gap -0.022; untrained 0.153/0.153; skill to chain training: C +0.108, S -0.070. Chain training helps where base steps are reliable: arrays (base step 0.90) +0.26 [+0.14, +0.38], hashmaps +0.16, Bloom/heap/BST within noise. Mixtures of 10%/25% chains recover -0.04/0.22 of the gap (B1 fails). Layer-third adapter swaps: distributed, layers 0-18 carry ~0.4 each, 19-27 ~0. Finished-only and parsed-only re-tests: +0.14. Modal $87.43.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-15",
+ "dateModified": "2026-11-15",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "compositional reasoning, RL post-training, GRPO, skill composition, replication, step test, data structures, segment trees, Qwen3, LoRA, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2609.19465"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.24069"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2210.03350"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2305.18654"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .chain-demo svg { width: 100%; height: auto; display: block; }
+  .chain-demo .row { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; align-items: center; margin: .4rem 0; font-size: .9rem; }
+  .chain-demo button { font: inherit; font-size: .85rem; padding: .2rem .6rem; border: 1px solid var(--line, #e3dbd0); background: transparent; color: inherit; border-radius: 4px; cursor: pointer; }
+  .chain-demo button[aria-pressed="true"] { border-color: var(--accent, #d26f2a); color: var(--accent, #d26f2a); }
+  .chain-demo .legend { font-size: .8rem; color: var(--muted, #7a7065); }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-15">Nov 15, 2026</time></p>
+  <h1>At 1.7B, RL on single skills already lifts chained tasks; RL on chains buys the chaining, not the skills</h1>
+  <p class="dek ruled">A pre-registered small-scale replication of a NeurIPS 2026 study that found RL on single skills transfers poorly to tasks that chain them. On Qwen3-1.7B the chain-trained model wins where it matters most (segment trees: 0.65 against 0.11), but skill-only training already doubles chain accuracy on insert-and-delete tasks, and a step test shows why: each kind of training buys something different.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="crl-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Left: a three-step chain on an array, each step&#x27;s state feeding the next. Right: share of Level II chains whose every step is right when the model is handed the true state, against the share it gets right in one reply. Untrained 0.15 and 0.15; RL on single steps 0.55 and 0.39; RL on chains 0.48 and 0.50." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">WHAT RL TEACHES · EPISODE 1</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">A REPLICATION OF HE ET AL. (2026) AT 1.7B</text><text x="20" y="66" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:28px;font-weight:800">Train the steps, or train the chain?</text><rect x="24" y="96" width="150" height="58" rx="8" fill="#fff" stroke="#e3dbd0" stroke-width="2"/><text x="99.0" y="120" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;font-weight:700" text-anchor="middle">[3, 1, 4]</text><text x="99.0" y="142" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-weight:500" text-anchor="middle">start</text><path d="M99,156 L99.0,169.0" stroke="#7a7065" stroke-width="2" stroke-linecap="round"/><path d="M104.0,169.0 L99,178 L94.0,169.0" fill="none" stroke="#7a7065" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="112" y="171" fill="#a85a22" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:600">insert 9 at 1</text><rect x="24" y="180" width="150" height="58" rx="8" fill="#fff" stroke="#e3dbd0" stroke-width="2"/><text x="99.0" y="204" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;font-weight:700" text-anchor="middle">[3, 9, 1, 4]</text><text x="99.0" y="226" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-weight:500" text-anchor="middle">step 1</text><path d="M99,240 L99.0,253.0" stroke="#7a7065" stroke-width="2" stroke-linecap="round"/><path d="M104.0,253.0 L99,262 L94.0,253.0" fill="none" stroke="#7a7065" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="112" y="255" fill="#a85a22" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:600">delete at 0</text><rect x="24" y="264" width="150" height="58" rx="8" fill="#fff" stroke="#e3dbd0" stroke-width="2"/><text x="99.0" y="288" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;font-weight:700" text-anchor="middle">[9, 1, 4]</text><text x="99.0" y="310" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-weight:500" text-anchor="middle">step 2</text><path d="M99,324 L99.0,337.0" stroke="#7a7065" stroke-width="2" stroke-linecap="round"/><path d="M104.0,337.0 L99,346 L94.0,337.0" fill="none" stroke="#7a7065" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="112" y="339" fill="#a85a22" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:600">insert 2 at 3</text><rect x="24" y="348" width="150" height="58" rx="8" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="99.0" y="372" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;font-weight:700" text-anchor="middle">[9, 1, 4, 2]</text><text x="99.0" y="394" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-weight:500" text-anchor="middle">step 3</text><text x="24" y="452" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:600">one chain = steps that feed each other</text><path d="M300,410 H840" stroke="#e3dbd0" stroke-width="1.5"/><rect x="330" y="345.7" width="56" height="64.3" fill="#fff" stroke="#b9b1a7" stroke-width="3" rx="3"/><rect x="396" y="345.7" width="56" height="64.3" fill="#b9b1a7" rx="3"/><text x="358" y="337.6989247311828" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700" text-anchor="middle">0.15</text><text x="424" y="337.6989247311828" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700" text-anchor="middle">0.15</text><text x="391" y="432" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700" text-anchor="middle">Untrained</text><rect x="505" y="180.8" width="56" height="229.2" fill="#fff" stroke="#4a86e8" stroke-width="3" rx="3"/><rect x="571" y="246.0" width="56" height="164.0" fill="#4a86e8" rx="3"/><text x="533" y="172.752688172043" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700" text-anchor="middle">0.55</text><text x="599" y="237.98566308243727" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700" text-anchor="middle">0.39</text><text x="566" y="432" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700" text-anchor="middle">RL on single steps</text><rect x="680" y="210.0" width="56" height="200.0" fill="#fff" stroke="#d26f2a" stroke-width="3" rx="3"/><rect x="746" y="200.6" width="56" height="209.4" fill="#d26f2a" rx="3"/><text x="708" y="201.95221027479093" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700" text-anchor="middle">0.48</text><text x="774" y="192.63321385902032" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700" text-anchor="middle">0.50</text><text x="741" y="432" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700" text-anchor="middle">RL on chains</text><rect x="310" y="96" width="14" height="14" rx="2" fill="#fff" stroke="#3f5a73" stroke-width="2"/><text x="330" y="108" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:600">every step right, when handed the true state</text><rect x="310" y="118" width="14" height="14" rx="2" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="330" y="130" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:600">whole chain right, in one reply</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">QWEN3-1.7B · GRPO · LEVEL II CHAINS OF LENGTH 4-8 · 5 DATA STRUCTURES × 90 CHAINS × 3 SEEDS</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: the step test. Left, one chain of three operations on an array, each step reading the state the last one wrote. Right, for the untrained model and the two RL arms, the share of Level II chains (lengths 4-8, five data structures, 90 chains each, three training seeds) whose every step is right when the model is handed the true state, against the share it gets right in one reply. Drawn by <a href="../make_cover.py">make_cover.py</a> from <code>results/summary.json</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>What RL teaches, Episode 1</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-1.7B (thinking off) and 22 LoRA adapters trained on it with GRPO</dd></div>
+    <div><dt>Method</dt><dd>Replication of He, Li, Wang and Vitercik (<a href="https://arxiv.org/abs/2609.19465">arXiv 2609.19465</a>) at small scale, with three pre-registered extensions: the share of chained data needed, a step test, and layer-block adapter swaps</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/">results/</a> (every reply behind every number) · <a href="../PREREGISTRATION.md">pre-registration</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does RL on single skills fail to transfer to tasks that chain them, while RL on chains transfers back, in a small model?</strong></p>
+    <p>Partly. On Qwen3-1.7B, RL on chained tasks beats RL on single steps at chaining: for segment-tree construction, where the steps are easy and the bookkeeping is hard, by +0.54 (0.65 against 0.11), and for chains of inserts and deletes on five data structures by 0.09 (0.49 against 0.40), with intervals above zero. But the other half of the published asymmetry does not hold here: training on single steps already raised chain accuracy from 0.17 to 0.40, and training on chains left single steps 9 points worse than training on them directly (0.76 against 0.85). A step test, which hands the model each step of a chain with the true state, explains the split: skill-only training makes each step more reliable but leaves a gap between doing the steps and doing the chain in one reply (0.55 against 0.39); chain training closes that gap (0.48 against 0.50) at some cost to the steps. Chain training helps most where the untrained model could already do the steps.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+        <tr><td>Does chain training beat skill training on chains (T1, pre-registered)?</td><td>Yes at Level III (segment trees): 0.652 [0.583, 0.711] against 0.109, difference +0.54 [+0.46, +0.62]. Yes at Level II (insert and delete): 0.489 against 0.403, +0.09 [+0.03, +0.14]. Not shown at Level I (insert only, 2 seeds): +0.07 [−0.03, +0.16]</td><td>Untrained model: 0.093, 0.170 and 0.183 on chains</td></tr>
+        <tr><td>Does chain training transfer back to single steps (T2, pre-registered)?</td><td>Only partly. Level II: chain training lifts single steps from 0.51 to 0.76, but 0.09 below skill training [−0.13, −0.05], failing the 5-point bar. Level III: single skills at the untrained model's 0.98 for every arm, so there is nothing to transfer</td><td>The published study: chain training "largely preserves or improves" single steps. <strong>By the pre-registered rule the asymmetry reproduces at no level</strong></td></tr>
+        <tr class="hl"><td>Skills present, chaining missing (step test, pre-registered)?</td><td>Skill-only training: every step right on the true state in 0.547 of chains, the whole chain in one reply in 0.391, gap +0.16 [+0.09, +0.21]. Chain training: 0.477 and 0.499, gap −0.02 [−0.06, +0.02]</td><td>Untrained: 0.153 and 0.153. From skill to chain training, chains in one reply rise +0.11 [+0.04, +0.17] while steps alone fall −0.07 [−0.12, −0.02]</td></tr>
+        <tr><td>Where does chain training help?</td><td>Where the untrained model already does the steps: arrays (single-step accuracy 0.90) +0.26 [+0.14, +0.38] on chains over skill training; hashmaps (0.64) +0.16 [+0.07, +0.29]; Bloom filters, heaps and binary search trees (0.16-0.32) within noise</td><td>Exploratory split, asked for after the first results</td></tr>
+        <tr><td>Does a small share of chains in the data get the gain (B1, pre-registered)?</td><td>No: 10% and 25% chains recovered −0.04 and 0.22 of the gap and lost 6-7 points of single-step accuracy</td><td>Bar: 0.8 of the gap, within 3 points of single-step accuracy</td></tr>
+        <tr><td>Where in the network (B3, exploratory)?</td><td>Distributed by the pre-registered rule: no third of the layers recovers half the gap. Layers 0-9 and 10-18 each carry about 0.4 of it (recovered 0.41 and 0.37; removed 0.40 and 0.54); layers 19-27 almost none (recovered 0.02, removed 0.18)</td><td>One third of the layers swapped between the two adapters, both directions, 3 seeds</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask a small model to insert 9 at position 1 of the array [3, 1, 4] and it will almost always answer [3, 9, 1, 4]. Ask it to do that, then delete the first element, then insert 2 at position 3, and it gets the final array wrong far more often than three single steps would suggest. The skill is there; what fails is carrying the state from one step to the next inside one reply. That gap between doing the steps and doing the chain is the subject of this note.</p>
+  <p><strong>What is known.</strong> He, Li, Wang and Vitercik (<a href="https://arxiv.org/abs/2609.19465">arXiv 2609.19465</a>, NeurIPS 2026) framed tasks as dependency graphs of skills at three levels: one skill repeated (Level I), two skills interleaved (Level II), and a branch-merge graph (Level III, segment-tree construction). With RL on Qwen3-4B, OLMo-3-7B and Llama-3.1-8B they found a <em>decomposed-to-composed asymmetry</em>: training on single steps barely helps chains, while training on chains also improves single steps. They explain it with errors that compound along a chain and with decision points that only chains create. Earlier work measured a related <em>compositionality gap</em> without any training: models answer both halves of a two-hop question yet miss the whole (<a href="https://arxiv.org/abs/2210.03350">Press et al., 2023</a>).</p>
+  <p><strong>What is missing.</strong> Their code is not released; the study used 4B-8B models whose single steps were already good; and the two explanations were argued in theory, not measured. Nobody has separated, in a trained model, how much of a chain's failure is bad steps and how much is chaining.</p>
+  <p class="question-callout">Does the asymmetry hold in a 1.7B model, and when a model fails a chain, is it missing the steps or the chaining?</p>
+  <p><strong>What this note does.</strong> It rebuilds the tasks from the paper's appendix, trains 22 RL adapters on Qwen3-1.7B with a pre-registered recipe, and contributes:</p>
+  <ol>
+    <li>a replication at all three levels with seeds and paired intervals, where the result is mixed: the chain-training advantage holds at Levels II and III, the transfer back does not;</li>
+    <li>a <strong>step test</strong> that splits each chain into its steps, scores each on the true state, and so measures exactly what a perfect step-by-step scaffold would score, beside what the model does in one reply;</li>
+    <li>a negative result on data mixing: 10% or 25% chains in the training data does not buy the chain gain;</li>
+    <li>the tasks, checker and GRPO harness as code, since the original is not public.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written down before any training run was evaluated (<a href="../PREREGISTRATION.md">pre-registration</a>):</p>
+  <ol>
+    <li><strong>T1</strong>: chain accuracy of the chain-trained arm minus the skill-trained arm is above zero, interval above 0.</li>
+    <li><strong>T2</strong>: the chain-trained arm improves single steps over the untrained model (interval above 0) and is within 5 points of the skill-trained arm (lower bound above −0.05). The asymmetry reproduces at a level if T1 and T2 both hold.</li>
+    <li><strong>B1</strong>: a 10% or 25% mixture recovers at least 0.8 of the chain gap, with single steps within 3 points of the skill-trained arm.</li>
+    <li><strong>B2</strong>: for the skill-trained arm, steps-alone accuracy exceeds in-reply chain accuracy (a gap above 0), and the chain-trained arm's gap is smaller.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td>Level I tasks</td><td>Insert only, on five data structures: array, min-heap, binary search tree (BST), hashmap (5 buckets), counting Bloom filter (10 counters, 2 hashes)</td><td>Length = starting size; a chain has that many inserts</td></tr>
+        <tr><td>Level II tasks</td><td>The same five structures; each operation an insert (probability 0.7) or a valid delete (0.3), as in the paper</td><td>Atomic: one operation. Compound: <em>length</em> operations</td></tr>
+        <tr><td>Level III tasks</td><td>Segment-tree construction over an integer array, every node storing [sum, best prefix, best suffix, best subarray]. Atomic: one SplitInterval, MakeLeaf or MergeSummaries. Compound: the whole tree, written in pre-order</td><td>Length = array size</td></tr>
+        <tr><td>Model</td><td>Qwen3-1.7B with thinking off, chosen by a screen of untrained models (Qwen2.5-1.5B-Instruct solved 17% of single steps, too few for RL to learn from)</td><td>28 layers</td></tr>
+        <tr><td>Training</td><td>GRPO with a LoRA adapter (rank 32, all linear layers): 60 steps × 32 prompts × 8 samples = 15,360 replies; reward 1 if the last boxed answer equals the true final state; learning rate 3e-5 from a two-rate pilot; no KL term. Training lengths 2-6 (Levels I-II) and 2-5 (Level III), the same for both arms</td><td>One H100 per run, 25-90 minutes</td></tr>
+        <tr><td>Arms</td><td>RL-Atomic (single steps only), RL-Compound (chains only), Mix-10 and Mix-25 (each prompt a chain with probability 0.10 or 0.25), untrained</td><td>3 seeds (Levels II, III), 2 (Level I)</td></tr>
+        <tr><td>Evaluation</td><td>Held-out items (seeds never trained on), greedy decoding, 4,096-token cap. Levels I-II: 5 structures × {atomic, compound} × lengths 2-12 × 30 = 1,800 per model; Level III: lengths 2-8 × 50 × 2 = 600</td><td>40,800 replies scored</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Terms.</strong> An <em>atomic task</em> asks for one skill on a given state; a <em>compound task</em> (or <em>chain</em>) asks for several in order, each reading the state the last one wrote. <em>Accuracy</em> is the share of replies whose final answer equals the true state exactly. In the <em>step test</em>, every compound item is split into its steps, and step t is asked as an atomic task on the <em>true</em> state after t−1 operations. <strong>S</strong> is the share of chains whose every step is right that way; <strong>C</strong> is the share the model solves in one reply. With greedy decoding, a scaffold that calls the model once per step on its own previous output gets exactly these prompts while it is right, so S is exactly that scaffold's accuracy, with no extra calls. The <em>glue gap</em> is S − C: positive means the model can do every step but not the chain.</p>
+  <figure class="plot">
+    <img src="figures/toy.png" alt="Three falling curves of p to the power T for T from 1 to 20: at 99% per step the chance of an all-right chain stays above 0.8; at 95% it falls to 0.54 by 12 steps; at 90% to 0.28 by 12 steps.">
+    <figcaption><span class="label">Figure 1.</span>Why chains are hard even when steps are easy: if each step is right with probability p and one wrong step spoils the rest, a chain of T steps is all right with probability p<sup>T</sup>. At 90% per step, a 4-step chain is right 66% of the time and a 12-step chain 28%. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Read the paper</strong> and rebuild its tasks from Appendix C (<code>tasks.py</code>); check every structure's invariants on 300 random chains.</li>
+    <li><strong>Screen</strong> two untrained models on 2,100 items each (Qwen3-1.7B and Qwen2.5-1.5B-Instruct); reading wrong replies found two checker fixes (a boxed answer without outer brackets, read as a tuple, which the paper's checker also accepts).</li>
+    <li><strong>Smoke-test</strong> the training loop (3 steps) and <strong>pilot the learning rate</strong> (30 steps each at 3e-5 and 1e-4, on training reward only).</li>
+    <li><strong>Write and commit the pre-registration</strong> before any study run.</li>
+    <li><strong>Train</strong> 22 adapters (Level II: 4 arms × 3 seeds; Level III: 2 × 3; Level I: 2 × 2) and evaluate each, plus the untrained model, on the fixed held-out sets.</li>
+    <li><strong>Step test</strong> at Level II on the untrained model and on RL-Atomic, RL-Compound and Mix-25 (all seeds): 450 chains of lengths 4, 6 and 8, each solved in one reply and split into 2,700 steps.</li>
+    <li><strong>Adapter swaps</strong>: 18 hybrid adapters (one third of the layers taken from the other arm, both directions, 3 seeds), scored on the same 450 chains.</li>
+    <li><strong>Analyse</strong> with the pre-registered bootstrap (2,000 resamples of seeds and of items within each structure × length cell, paired across arms).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Tasks, model, recipe, learning rate, arms, seeds, evaluation sets, every criterion and the bootstrap</td><td>Amendment 1: one Level III run (RL-Compound, seed 0) ran out of GPU memory at step 38 and was rerun from scratch with half the micro-batch; the update is the same function of the same rollouts</td></tr>
+        <tr><td>The step test and the adapter-swap analysis</td><td>Added (exploratory): per-structure step-test intervals and the skill-headroom split, asked for after the first results; where in-reply chains first go wrong</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: Modal H100s, one per run, at most six at once; vLLM samples the rollouts and a hand-written GRPO step updates the adapter on the same GPU. Atomic runs took about 35 minutes with evaluation, chain runs 50-90. Total compute $87.43 of Modal (billing report), of which about $8 was the screen and pilots.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="level3" data-short="Level III replicates">4.1 Segment trees: chain training wins by 0.54, as in the paper</h3>
+  <p><strong>On segment-tree construction, the untrained model already does every single skill (0.983) and almost no whole tree (0.093). Skill training leaves that unchanged (0.994 and 0.109); chain training lifts trees to 0.652 [0.583, 0.711] while keeping single skills at 0.989 (per seed 0.71, 0.67, 0.58). The difference on trees is +0.54 [+0.46, +0.62].</strong> This is the paper's Level III result: the steps are easy, and what fails is keeping track of which interval's summary goes where when two branches merge. As in the paper, the gain fades with size: at lengths 2-6 the arms differ by +0.63 [+0.54, +0.73], at length 8 by +0.09 [0.00, +0.26]. T2 fails here only formally: at 0.98, there is no room for any arm to improve single skills.</p>
+  <figure class="plot">
+    <img src="figures/levels.png" alt="Six panels, accuracy against length. Top row single steps, bottom row chains, for Levels I, II and III. Level III: single steps near 1.0 for every arm; on chains the chain-trained arm stays well above the others at lengths 2-5 while the untrained and skill-trained arms fall to zero by length 3. Level II: the skill-trained arm is highest on single steps; on chains the chain-trained arm is above the skill-trained one from length 6.">
+    <figcaption><span class="label">Figure 2.</span>Accuracy against length for each level, single steps (top) and chains (bottom). Grey dotted: untrained; blue: RL-Atomic; orange: RL-Compound; line = mean of seeds, band = min to max over seeds; shaded = lengths seen in training. 30 items per structure per length at Levels I-II (150 per point), 50 per length at Level III.</figcaption>
+  </figure>
+
+  <h3 id="level2" data-short="Level II: half replicates">4.2 Insert-and-delete chains: chain training wins on chains, loses on single steps</h3>
+  <p><strong>At Level II, chain training beats skill training on chains by +0.086 [+0.027, +0.139] (0.489 against 0.403), so T1 holds. But skill training raised chains from 0.170 to 0.403 on its own, and chain training left single steps 0.088 lower than skill training [−0.127, −0.053] (0.759 against 0.847). T2 fails, and the transfer ratios are symmetric: skill training got 0.73 of chain training's chain gain [0.60, 0.90], chain training got 0.74 of skill training's single-step gain [0.63, 0.84].</strong> The paper reports almost no chain gain from skill training at this level; here it is most of the effect. Chain training's advantage sits in the lengths beyond training (+0.12 [+0.07, +0.18] at 8-12) more than at the training lengths (+0.05 [−0.02, +0.11]).</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Level II arm (3 seeds)</th><th>Single steps</th><th>Chains</th><th>Chains, per seed</th></tr></thead>
+      <tbody>
+        <tr><td>Untrained</td><td>0.508 [0.483, 0.532]</td><td>0.170 [0.151, 0.190]</td><td>—</td></tr>
+        <tr><td>RL-Atomic</td><td>0.847 [0.827, 0.866]</td><td>0.403 [0.372, 0.433]</td><td>0.408, 0.427, 0.373</td></tr>
+        <tr><td>Mix-10</td><td>0.785 [0.749, 0.824]</td><td>0.399 [0.359, 0.447]</td><td>0.383, 0.450, 0.363</td></tr>
+        <tr><td>Mix-25</td><td>0.778 [0.751, 0.805]</td><td>0.421 [0.386, 0.453]</td><td>0.434, 0.446, 0.384</td></tr>
+        <tr class="hl"><td>RL-Compound</td><td>0.759 [0.723, 0.791]</td><td>0.489 [0.434, 0.530]</td><td>0.432, 0.508, 0.526</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="level1" data-short="Level I: not shown">4.3 Insert-only chains: no clear difference with two seeds</h3>
+  <p><strong>At Level I, chain training scored 0.441 on chains against 0.374 for skill training, +0.07 [−0.03, +0.16], and 0.14 lower on single steps (0.737 against 0.873).</strong> The two chain-trained seeds disagree (0.37 and 0.51), so this level is underpowered; it neither shows nor rules out the paper's result.</p>
+
+  <h3 id="steptest" data-short="Step test: skills without glue">4.4 Skill training buys steps; chain training buys the chaining</h3>
+  <p><strong>Handed each step with the true state, the skill-trained model gets every step of a chain right in 0.547 of chains [0.501, 0.585], but solves only 0.391 [0.347, 0.433] in one reply: a glue gap of +0.16 [+0.09, +0.21]. The chain-trained model has no gap: 0.477 steps alone, 0.499 in one reply (−0.02 [−0.06, +0.02]). The untrained model has none either (0.153 and 0.153), because it rarely gets the steps right at all.</strong> Both B2 predictions hold: the skill-trained gap is above zero, and the chain-trained gap is smaller by 0.18 [0.12, 0.24].</p>
+  <p>Moving from skill to chain training raises in-reply chains by +0.11 [+0.04, +0.17] while lowering steps-alone accuracy by 0.07 [0.02, 0.12]. So chain training does not mainly make the steps better; it makes the model better at carrying state through one long reply, and pays for it in single steps. In the paper's language, it learns the decision contexts that only chains create. Which a practitioner wants depends on how the model will be used: a model called step by step by a scaffold is best trained on steps (scaffold accuracy 0.547 against 0.477); a model that must reason through the chain alone is best trained on chains.</p>
+  <figure class="plot">
+    <img src="figures/steptest.png" alt="Left: paired bars for four models. Untrained: steps alone 0.15, one reply 0.15. RL-Atomic: 0.55 and 0.39. Mix-25: 0.47 and 0.42. RL-Compound: 0.48 and 0.50. Right: the same by chain length 4, 6, 8; RL-Atomic's dashed steps-alone line sits well above its solid one-reply line, while RL-Compound's two lines are close, the solid one slightly higher.">
+    <figcaption><span class="label">Figure 3.</span>The step test at Level II. Hatched: share of chains whose every step is right when asked alone on the true state (S, the accuracy of a perfect step-by-step scaffold); solid: share solved in one reply (C). 450 chains (lengths 4, 6, 8; 5 structures × 30) per seed, 3 seeds per trained arm; bars are 95% bootstrap intervals over seeds and items. Right: by length, dashed = S, solid = C.</figcaption>
+  </figure>
+  <div class="explorer chain-demo" id="chain-demo">
+    <div class="row"><span>Model:</span><span id="chain-arms"></span></div>
+    <label class="explorer-label">Per-step accuracy p <input type="range" min="0.5" max="0.99" step="0.01" value="0.82" aria-label="Per-step accuracy"> <span class="explorer-value">0.82</span></label>
+    <div id="chain-plot"></div>
+    <p class="legend">Line: p<sup>T</sup>, the chance a chain of T steps is all right if every step is right with probability p and errors are independent. Squares: the chosen model's measured steps-alone share S; circles: its in-reply share C, at lengths 4, 6 and 8 (means of seeds, from <code>results/summary.json</code>). The slider starts at the model's measured mean per-step accuracy. Measured S sits above p<sup>T</sup> because errors cluster in hard structures (BST, heap) instead of spreading evenly; the distance from square down to circle is the glue gap.</p>
+  </div>
+
+  <h3 id="headroom" data-short="Where chain training helps">4.5 Chain training helps where the untrained model can already do the steps</h3>
+  <p><strong>Split by data structure, chain training's advantage on chains over skill training follows how well the untrained model did single steps: arrays (untrained single-step accuracy 0.90) +0.26 [+0.14, +0.38]; hashmaps (0.64) +0.16 [+0.07, +0.29]; Bloom filters (0.32) +0.13 [−0.11, +0.32]; heaps (0.29) −0.03 [−0.08, +0.03]; BSTs (0.16) +0.03 [−0.07, +0.12].</strong> On arrays, where the steps were never the problem, the skill-trained model's glue gap is the largest of any structure (steps alone 0.75, one reply 0.41). Where the steps were weak (Bloom filters: 0.32 untrained), skill training lifts them to 0.96 and the chains follow (0.08 to 0.61). This reading is exploratory, on five structures, and was asked for after the first results; but it gives a plain reason for the difference from the paper: a 4B-8B model already does single steps well, so most of its chain failures are glue, which only chain training fixes.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Structure</th><th>Untrained single step</th><th>Chains: RL-Atomic</th><th>Chains: RL-Compound</th><th>Difference</th><th>Steps alone: RL-Atomic / RL-Compound</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>Array</td><td>0.90</td><td>0.41</td><td>0.66</td><td>+0.26 [+0.14, +0.38]</td><td>0.75 / 0.91</td></tr>
+        <tr><td>Hashmap</td><td>0.64</td><td>0.73</td><td>0.89</td><td>+0.16 [+0.07, +0.29]</td><td>0.87 / 0.83</td></tr>
+        <tr><td>Bloom filter</td><td>0.32</td><td>0.61</td><td>0.74</td><td>+0.13 [−0.11, +0.32]</td><td>0.79 / 0.55</td></tr>
+        <tr><td>Heap</td><td>0.29</td><td>0.07</td><td>0.04</td><td>−0.03 [−0.08, +0.03]</td><td>0.15 / 0.03</td></tr>
+        <tr><td>BST</td><td>0.16</td><td>0.14</td><td>0.16</td><td>+0.03 [−0.07, +0.12]</td><td>0.17 / 0.07</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Table: step-test chains (lengths 4-8, 90 per structure per seed, 3 seeds). "Untrained single step" is the untrained model's accuracy on the 270 steps of each structure's chains, asked alone with the true state.</p>
+
+  <h3 id="mixtures" data-short="Mixing in chains: no">4.6 A small share of chains in the data does not buy the gain</h3>
+  <p><strong>With 10% of prompts as chains, chain accuracy was 0.399 (recovery −0.04 of the gap between the two pure arms); with 25%, 0.421 (recovery 0.22 [−0.49, +0.83]). Both mixtures also lost 6-7 points of single-step accuracy against pure skill training, so neither passed B1, and neither beat pure chain training on the average of the two (−0.03 and −0.02, intervals including 0).</strong> The mixtures also hit the token cap more often (8-10% of single-step replies, against 2-3% for the pure arms), which costs them single steps. A data-efficient recipe that gets both gains was not found here; a curriculum (steps first, then chains) is the obvious next test.</p>
+  <figure class="plot">
+    <img src="figures/mix.png" alt="Two panels against the share of chains in training (0, 10, 25, 100 percent). Chains: 0.40, 0.40, 0.42, 0.49. Single steps: 0.85, 0.79, 0.78, 0.76. Grey dotted lines mark the untrained model at 0.17 and 0.51.">
+    <figcaption><span class="label">Figure 4.</span>Level II accuracy against the share of chains in the training data. Large dots: mean of 3 seeds with 95% bootstrap intervals; small dots: each seed. Grey dotted: untrained.</figcaption>
+  </figure>
+
+  <h3 id="swaps" data-short="Adapter swaps">4.7 The chaining gain is spread over the first two thirds of the layers</h3>
+  <p><strong>Giving the skill-trained adapter the chain-trained adapter's LoRA weights in layers 0-9 raised its chain accuracy from 0.391 to 0.436, recovering 0.41 of the 0.108 gap between them; layers 10-18 recovered 0.37 and layers 19-27 0.02. The reverse swap agrees: putting the skill-trained weights into layers 0-9, 10-18 or 19-27 of the chain-trained adapter removed 0.40, 0.54 and 0.18 of the gap.</strong> By the rule fixed in advance (one third recovering and removing at least half while the others recover under a quarter) the gain is <em>distributed</em>, not localised. It sits in the early and middle layers, where a state written earlier in the reply would be read and carried forward, and hardly at all in the last third, which mostly turns representations into output tokens. This is a coarse, exploratory picture (three blocks, three seeds, 450 chains each), not a circuit; the per-seed values vary by up to 0.13.</p>
+  <figure class="plot">
+    <img src="figures/swaps.png" alt="Two lines over three layer blocks. Orange, the skill-trained adapter with one third from the chain-trained one: 0.44, 0.43, 0.39. Blue, the chain-trained adapter with one third from the skill-trained one: 0.46, 0.44, 0.48. Dotted reference lines at 0.39 (skill-trained) and 0.50 (chain-trained).">
+    <figcaption><span class="label">Figure 5.</span>Layer-block swaps between the RL-Atomic and RL-Compound adapters of the same seed. Orange: RL-Atomic with one third of its layers' LoRA weights replaced by RL-Compound's; blue: the reverse. Dotted: the two unswapped adapters on the same 450 chains. Means of 3 seeds.</figcaption>
+  </figure>
+
+  <h3 id="boring" data-short="Boring explanations">4.8 Formatting, the token cap and skill switches do not explain it</h3>
+  <p><strong>Every trained arm hits the 4,096-token cap on 15-22% of chains (untrained 6%), and a reply that hits the cap counts as wrong. Restricted to replies that finished, chain training's Level II advantage grows to +0.14 [+0.04, +0.23]; restricted to replies with a parseable answer, it is also +0.14 [+0.04, +0.22].</strong> So the chain-training win is not a formatting or length artefact; if anything the cap hides part of it. Unparsable answers track truncation almost one for one.</p>
+  <p>Skill switches (an insert after a delete, or the reverse), which the paper names as a Level II bottleneck, did not stand out. In the step test, steps that switch skill were as accurate as steps that repeat one (skill-trained 0.81 against 0.82; chain-trained 0.73 against 0.73). In the in-reply chains, where a wrong reply's written states let us find the first step that went wrong (arrays, heaps and Bloom filters), first errors fell on a switch step 47-48% of the time in trained arms against a base rate of 43%: a small excess, read off text, not tested.</p>
+
+  <h3 id="prior" data-short="Against the paper">4.9 Against the published study</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Claim of the published study (Qwen3-4B and 7-8B models)</th><th>Here (Qwen3-1.7B, LoRA)</th></tr></thead>
+      <tbody>
+        <tr><td>Chain training beats skill training on chains, at all three levels</td><td>✓ Level III (+0.54), ✓ Level II (+0.09), not shown at Level I (+0.07, 2 seeds)</td></tr>
+        <tr><td>Skill training gives "little or no gain" on chains at Level II</td><td>✗ it more than doubled chain accuracy (0.17 to 0.40)</td></tr>
+        <tr><td>Chain training preserves or improves single steps</td><td>✓ against the untrained model (+0.25); ✗ against skill training (−0.09)</td></tr>
+        <tr><td>The asymmetry is strongest at Level III</td><td>✓ (single skills already at ceiling there)</td></tr>
+        <tr><td>Errors compound along a chain</td><td>✓ accuracy falls with length in every arm; measured S stays above the independent-error product p<sup>T</sup> because errors cluster by structure</td></tr>
+        <tr><td>Skill switching is a distinct bottleneck</td><td>✗ not visible in the step test; a small excess in where in-reply chains first fail</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Agentic systems are increasingly trained with RL on short verified tasks and then deployed on long chains of them. This study suggests that what such training buys depends on what the model lacks. If the steps are weak, training on steps improves chains too; if the steps are already good, chain failures are about carrying state, and only training on chains fixes them, at some cost to the steps. Evaluations that score single tool calls or single reasoning steps will overstate how well a model handles the chain, by as much as the glue gap (16 points here). The step test is cheap to run on any task with checkable intermediate states.</p>
+  <p><strong>Before trusting a model trained on short tasks with long ones, measure both its step accuracy on true states and its chain accuracy in one reply; the difference tells you whether to train on chains.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Scale and method.</strong> One 1.7B model, LoRA instead of full fine-tuning, 60 GRPO steps at a learning rate chosen for stability (the faster pilot rate gave a little more training reward). The paper used 4B-8B models with full fine-tuning; the headroom reading is a hypothesis for the difference, not a test of it.</li>
+    <li><strong>Seeds.</strong> Three per arm at Levels II and III, two at Level I; the seed-to-seed spread in chain accuracy is up to 0.09, about the size of the Level II effect.</li>
+    <li><strong>The token cap.</strong> 15-22% of trained-arm chains hit 4,096 tokens and count as wrong. The finished-only re-test is reported, but a longer cap could change the absolute numbers.</li>
+    <li><strong>Exploratory parts.</strong> The per-structure split and the first-error reading were not pre-registered; five structures are five points.</li>
+    <li><strong>Not tried.</strong> SFT, curricula, the paper's distribution-shift and unseen-skill tests, and its tool-calling pilot. No linear probes: these models write every intermediate state in their reasoning, so a probe would read the text.</li>
+    <li><strong>The checker</strong> follows the paper's relaxations (tuples count as lists, hashmap bucket order is free); two were added after reading the screen, before the pre-registration.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p><code>reproduce.sh</code> lists every command; <code>reproduce.sh --dry-run</code> prints them. The analysis and figures run on a laptop from the shipped replies in a minute:</p>
+  <pre><code>python experiments/compositional-rl/analyse.py       # every number in this note, into results/summary.json
+python experiments/compositional-rl/make_figures.py  # figures 1-5, printing what each plots
+python experiments/compositional-rl/make_cover.py</code></pre>
+  <p>Training and evaluation need Modal and an H100 per run (<code>modal_rl.py</code>, configs in <code>configs/</code>).</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li>A <strong>curriculum</strong>: skill training first, then chains. If the two gains add up, it gets both the step accuracy of RL-Atomic and the chaining of RL-Compound.</li>
+    <li>Test the <strong>headroom</strong> reading directly: give a 4B model weak skills (new data structures) and a 1.7B model strong ones, and see whether skill training's chain gain follows.</li>
+    <li>Look inside the glue: in the chain-trained model, find where a state written several steps earlier is read back, and whether skill training never builds that reader.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q1">Does RL on single skills transfer to tasks that chain them?</h3>
+  <p>In a 1.7B model, yes, far more than the published study found in larger models: training on single insert and delete steps raised chain accuracy from 0.17 to 0.40. But it leaves a glue gap: the model gets every step right when handed the state (0.55) more often than it solves the chain in one reply (0.39).</p>
+  <h3 id="q2">Does training on chained tasks also improve single skills?</h3>
+  <p>It improves them over the untrained model (0.51 to 0.76) but less than training on them directly (0.85). Where single skills were already near perfect (segment trees, 0.98), nothing changes either way.</p>
+  <h3 id="q3">What is the step test?</h3>
+  <p>Split each chained task into its steps and ask each one alone, with the true state. The share of chains whose every step is right is exactly what a perfect step-by-step scaffold would score under greedy decoding. Comparing it with the share solved in one reply separates bad steps from bad chaining.</p>
+  <h3 id="q4">Should RL data include composed tasks?</h3>
+  <p>If the model will reason through chains on its own, yes: only chain training removed the glue gap, and it won on segment trees by +0.54. If it will be called one step at a time, step training gave the better scaffold (0.55 against 0.48). Mixing in 10-25% chains did not get both.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>PREREGISTRATION.md</code>: the plan, committed before any study run, and amendment 1.</li>
+    <li><code>tasks.py</code>: the five data structures, the segment tree, prompt templates and the checker. <code>modal_rl.py</code>: screen, GRPO training, evaluation, step test and adapter swaps. <code>analyse.py</code>, <code>make_figures.py</code>, <code>make_cover.py</code>.</li>
+    <li><code>results/screen/&lt;model&gt;.jsonl.gz</code>: the untrained-model screen, one row per reply: <code>level</code>, <code>domain</code>, <code>kind</code> (atomic or compound), <code>length</code>, <code>seed</code> (item seed; rebuild the item with <code>tasks.make_task</code>), <code>meta</code> (skill switches), <code>correct</code> (0/1), <code>n_tokens</code>, <code>truncated</code>, <code>text</code> (the full reply).</li>
+    <li><code>results/runs/&lt;run&gt;/eval.jsonl.gz</code>: the held-out evaluation of each run (same columns); run names <code>l&lt;level&gt;-&lt;arm&gt;-s&lt;seed&gt;</code> and <code>base-l&lt;level&gt;</code>. <code>curve.jsonl.gz</code>: one row per GRPO step: <code>reward</code>, <code>reward_atomic</code>, <code>reward_compound</code>, <code>n_update_seqs</code> (replies with nonzero advantage), <code>loss</code>, <code>grad_norm</code>, <code>trunc_frac</code>, <code>mean_tokens</code>, seconds per step. <code>config.json</code>: the run's full settings.</li>
+    <li><code>results/mechanism/step-*.jsonl.gz</code>: the step test (rows of kind <code>compound</code> and <code>step</code>; a step row's <code>meta</code> holds its index, operation and previous operation). <code>swap-*.jsonl.gz</code>: the adapter swaps.</li>
+    <li><code>results/summary.json</code>: every test, interval and breakdown in this note.</li>
+    <li>Adapters are not shipped (22 × 70 MB); <code>reproduce.sh</code> retrains them.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026compositionalrl,
+  author = {Albert Lie},
+  title  = {At 1.7B, RL on single skills already lifts chained tasks; RL on chains buys the chaining, not the skills},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/compositional-rl/report/}
+}</code></pre>
+
+  <footer class="note">Replicates He, Li, Wang and Vitercik, "Compositional Reasoning in Language Models under Reinforcement Learning Post-Training" (arXiv 2609.19465, NeurIPS 2026); task design from their Appendix C and DSR-Bench. Pre-registered; compute on Modal.</footer>
+</article>
+</div>
+<script type="application/json" id="chain-data">{"atomic": {"label": "RL-Atomic", "color": "#4a86e8", "p": 0.82, "L": [4, 6, 8], "S": [0.702, 0.5, 0.438], "C": [0.544, 0.391, 0.238]}, "compound": {"label": "RL-Compound", "color": "#d26f2a", "p": 0.74, "L": [4, 6, 8], "S": [0.551, 0.473, 0.407], "C": [0.602, 0.509, 0.387]}, "mix25": {"label": "Mix-25", "color": "#b5561c", "p": 0.75, "L": [4, 6, 8], "S": [0.584, 0.462, 0.364], "C": [0.589, 0.393, 0.273]}, "base": {"label": "Untrained", "color": "#b9b1a7", "p": 0.46, "L": [4, 6, 8], "S": [0.227, 0.18, 0.053], "C": [0.287, 0.1, 0.073]}}</script>
+<script>
+(function () {
+  var root = document.getElementById("chain-demo"), el = document.getElementById("chain-data");
+  if (!root || !el) return;
+  var D = JSON.parse(el.textContent), arms = Object.keys(D), cur = "atomic";
+  var slider = root.querySelector("input"), val = root.querySelector(".explorer-value"), plot = document.getElementById("chain-plot");
+  var bar = document.getElementById("chain-arms");
+  var W = 640, H = 300, L = 48, R = 16, T = 14, B = 40;
+  function x(t) { return L + (t - 1) / 11 * (W - L - R); }
+  function y(v) { return T + (1 - v) * (H - T - B); }
+  function draw() {
+    var p = +slider.value; val.textContent = p.toFixed(2);
+    var d = D[cur], s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Chance a chain is all right against its length">';
+    for (var g = 0; g <= 4; g++) { var gv = g / 4; s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(gv) + '" y2="' + y(gv) + '" stroke="currentColor" stroke-opacity=".12"/><text x="' + (L - 8) + '" y="' + (y(gv) + 4) + '" font-size="11" text-anchor="end" fill="currentColor" fill-opacity=".6">' + gv.toFixed(2) + '</text>'; }
+    for (var t = 1; t <= 12; t++) { s += '<text x="' + x(t) + '" y="' + (H - B + 18) + '" font-size="11" text-anchor="middle" fill="currentColor" fill-opacity=".6">' + t + '</text>'; }
+    s += '<text x="' + ((L + W - R) / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle" fill="currentColor" fill-opacity=".7">steps in the chain (T)</text>';
+    var path = "";
+    for (var k = 1; k <= 12; k += 0.25) { path += (path ? " L" : "M") + x(k).toFixed(1) + "," + y(Math.pow(p, k)).toFixed(1); }
+    s += '<path d="' + path + '" fill="none" stroke="#7a7065" stroke-width="2"/>';
+    var col = d.color;
+    d.L.forEach(function (Lk, i) {
+      s += '<rect x="' + (x(Lk) - 6) + '" y="' + (y(d.S[i]) - 6) + '" width="12" height="12" fill="none" stroke="' + col + '" stroke-width="2.5"/>';
+      s += '<circle cx="' + x(Lk) + '" cy="' + y(d.C[i]) + '" r="6.5" fill="' + col + '"/>';
+    });
+    s += "</svg>"; plot.innerHTML = s;
+  }
+  arms.forEach(function (a) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = D[a].label;
+    b.setAttribute("aria-pressed", a === cur ? "true" : "false");
+    b.addEventListener("click", function () { cur = a; slider.value = D[a].p; bar.querySelectorAll("button").forEach(function (o) { o.setAttribute("aria-pressed", "false"); }); b.setAttribute("aria-pressed", "true"); draw(); });
+    bar.appendChild(b);
+  });
+  slider.value = D[cur].p;
+  slider.addEventListener("input", draw); draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
