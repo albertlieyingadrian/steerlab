@@ -1,0 +1,25 @@
+{
+  "instructions": "Operate macOS apps by writing JavaScript in the repl tool. The only API is `computer`:\n\n  const app = await computer.getApp('BenchLab')   // prints the app's window as a tree; each element has an [N] id\n  app.getAXState()                  // what changed since the last look (~ changed, + added, Removed)\n  app.getAXState({ full: true })    // the whole tree again;  { query: 'words' } only matching elements\n  app.click(N)  or  app.click([x, y])   // by id (pressed through accessibility when it can be) or a point\n  app.setValue(N, 'text')           // set a text field, or choose a pop-up button's item by its exact title\n  app.typeText('text', N)           // type into element N (or the focused element); \n is Return, \t is Tab\n  app.pressKey('cmd+a')             // return, escape, tab, shift+tab, cmd+z, ...\n  app.scroll(N, 'down', 3); app.drag(fromN or [x, y], toN or [x, y])\n  app.getScreenshot()               // only when the tree can't tell you (images, canvases, tooltips)\n  app.bringToFront(); app.hover(N)  // these take over the screen: only when the task allows the foreground\n  computer.listApps(); sleep(ms); console.log(...)\n\nEverything acts in the background: the app is not brought forward, the pointer doesn't move and the clipboard isn't touched. Every action waits for the app to settle and prints what changed, so you rarely need a separate look. Batch the steps you are sure of in one call. Ids stay valid while an element is shown. A failed action throws an Error with the reason: read it, look at the state, and don't repeat an action whose effect you haven't checked.",
+  "tools": [
+    {
+      "name": "repl",
+      "inputSchema": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "JavaScript to run; top-level await works"
+          },
+          "title": {
+            "description": "What the code does, in a few words",
+            "type": "string"
+          }
+        }
+      },
+      "description": "Run JavaScript whose only API is the `computer` global, which reads and controls native apps on this computer in the background. No file system, network or shell. Variables declared at the top level persist between calls. Start with `const app = await computer.getApp('<app name>')`; the guide is in the server instructions."
+    }
+  ]
+}
