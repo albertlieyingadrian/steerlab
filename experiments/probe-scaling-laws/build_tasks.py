@@ -20,6 +20,7 @@ HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
 N_TEST_REL = 9
 TRAIN_PAIRS = 16_000  # 32,000 rows, enough for the largest D = 31,623
+BIG_TRAIN_PAIRS = 50_000  # exploratory: 100,000 rows
 TEST_PAIRS = 5_000  # 10,000 rows
 SYC_FORMATS_PER_SEED = 3
 
@@ -179,16 +180,21 @@ def main():
         rng.shuffle(te)
         if len(tr) < n_train or len(te) < n_test:
             print(f"  short: train {len(tr)}/{n_train}, test {len(te)}/{n_test}")
+        take.last = (tr, te)
         return tr[:n_train] + te[:n_test]
 
-    truth = take(pool, TRAIN_PAIRS, TEST_PAIRS)
-    write(
-        "truth",
-        [
+    def truth_pairs(rows):
+        return [
             (split_of[r["pid"]], r["pid"], [(stmt(r, r["t_false"]), "", 1), (stmt(r, r["t_true"]), "", 0)])
-            for r in truth
-        ],
-    )
+            for r in rows
+        ]
+
+    truth = take(pool, TRAIN_PAIRS, TEST_PAIRS)
+    write("truth", truth_pairs(truth))
+    # exploratory (diagnosis of the cheaper-path test): the same shuffle with up to 50,000 training pairs, so probes can
+    # be trained on 100,000 labels; the training pairs extend Truth's and the 5,000 test pairs are the same facts
+    tr, te = take.last
+    write("truthbig", truth_pairs(tr[:BIG_TRAIN_PAIRS] + te[:TEST_PAIRS]))
 
     if not (DATA / "judge.jsonl").exists():
         print("data/judge.jsonl missing (run judge_filter.py); wrote Truth only")

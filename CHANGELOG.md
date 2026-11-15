@@ -36,6 +36,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Changed
 
+- Research note `probe-scaling-laws` (Monitoring episode 4): an exploratory section on why the cheaper-path choice fails (seed noise in half the cases, a 7B model no better than 3B in the rest); probes on 100,000 labels, a size-dependent label law and Qwen3 do not rescue it.
 - The physics-world-models note moves into the World models series as Episode 2, beside the tiny physics world model (Episode 1), with links between the two; the separate Physics world models series is gone.
 - New static covers for the two circuits notes and model spec midtraining Episode 3, each drawn from the note's results by its own `make_cover.py`: the password lock and the RL hack each show the behaviour, the attribution graph's ten features at their real layers, and the behaviour unchanged with those features switched off; Episode 3 shows one held-out question answered in opposite ways by the two midtrained models, with the pooled shifts. The research-page cards and link previews follow, and the old data-art cover code is gone.
 - The spec-midtraining Episode 2 cover now shows the one behaviour the RL test is about: the model that read the spec and its twin go through the same RL, and both real sketches after RL stuff their comments with the painting's words and fail the picture check (re-rendered from the saved sketches by `make_cover.py`); the research-page card and link preview follow.

@@ -31,9 +31,33 @@ MODELS = {
     "7b": "Qwen/Qwen2.5-7B",
     "14b": "Qwen/Qwen2.5-14B",
     "32b": "Qwen/Qwen2.5-32B",
+    # exploratory second family (diagnosis of the cheaper-path result; Truth only)
+    "q3-1.7b": "Qwen/Qwen3-1.7B-Base",
+    "q3-4b": "Qwen/Qwen3-4B-Base",
+    "q3-8b": "Qwen/Qwen3-8B-Base",
 }
-GPU_OF = {"0.5b": "L4", "1.5b": "L4", "3b": "L4", "7b": "L40S", "14b": "A100-80GB", "32b": "H100"}
-BATCH_TOKENS = {"0.5b": 32768, "1.5b": 16384, "3b": 12288, "7b": 12288, "14b": 8192, "32b": 6144}
+GPU_OF = {
+    "0.5b": "L4",
+    "1.5b": "L4",
+    "3b": "L4",
+    "7b": "L40S",
+    "14b": "A100-80GB",
+    "32b": "H100",
+    "q3-1.7b": "L4",
+    "q3-4b": "L40S",
+    "q3-8b": "L40S",
+}
+BATCH_TOKENS = {
+    "0.5b": 32768,
+    "1.5b": 16384,
+    "3b": 12288,
+    "7b": 12288,
+    "14b": 8192,
+    "32b": 6144,
+    "q3-1.7b": 16384,
+    "q3-4b": 12288,
+    "q3-8b": 12288,
+}
 
 volume = modal.Volume.from_name("probe-scaling-laws", create_if_missing=True)
 image = (
@@ -73,7 +97,7 @@ image = (
 app = modal.App("probe-scaling-laws", image=image)
 
 
-def _job(key: str, tasks: list[str]) -> dict:
+def _job(key: str, tasks: list[str], probe_names=("lasttoken", "alllayer"), d_grid=None) -> dict:
     import sys
 
     import numpy as np
@@ -87,7 +111,8 @@ def _job(key: str, tasks: list[str]) -> dict:
     act_dir = Path(VOL) / "acts" / key
     out_dir.mkdir(parents=True, exist_ok=True)
     act_dir.mkdir(parents=True, exist_ok=True)
-    todo = [t for t in tasks if not (out_dir / f"{t}_alllayer.json").exists()]
+    todo = [t for t in tasks if not all((out_dir / f"{t}_{p}.json").exists() for p in probe_names)]
+    want_all = "alllayer" in probe_names
     if not todo:
         return {"skipped": key}
     t0 = time.time()
@@ -124,7 +149,7 @@ def _job(key: str, tasks: list[str]) -> dict:
             pos_end.append(len(p) + len(q) - 1)
         n = len(rows)
         last = np.zeros((n, len(depth_layers), width), dtype=np.float16)
-        allf = torch.empty((n, L * width), dtype=torch.float16, device="cuda")
+        allf = torch.empty((n if want_all else 0, L * width), dtype=torch.float16, device="cuda")
         order = sorted(range(n), key=lambda i: len(ids[i]))
         b = 0
         with torch.no_grad():
@@ -147,15 +172,18 @@ def _job(key: str, tasks: list[str]) -> dict:
                 pe = torch.tensor([pos_end[i] for i in batch], device="cuda")
                 last[batch] = torch.stack([hs[li][ar, pl] for li in depth_layers], 1).float().cpu().numpy()
                 feats = []
-                for li in range(1, L + 1):
+                for li in range(1, (L if want_all else 0) + 1):
                     h = hs[li][ar, pe].float()
                     feats.append(h / h.pow(2).mean(-1, keepdim=True).sqrt().clamp_min(1e-6))
-                allf[torch.tensor(batch, device="cuda")] = torch.cat(feats, 1).half()
+                if want_all:
+                    allf[torch.tensor(batch, device="cuda")] = torch.cat(feats, 1).half()
                 b += bs
                 del hs, feats
         torch.cuda.empty_cache()
         assert np.isfinite(last).all()
-        assert all(torch.isfinite(allf[i : i + 1024]).all() for i in range(0, n, 1024))  # chunked: no full-size copy
+        assert all(
+            torch.isfinite(allf[i : i + 1024]).all() for i in range(0, len(allf), 1024)
+        )  # chunked: no full-size copy
         np.save(act_dir / f"{task}_last.npy", last)
         volume.commit()
         ext_s = time.time() - t1
@@ -171,9 +199,12 @@ def _job(key: str, tasks: list[str]) -> dict:
             ("lasttoken", [last_t[:, k].contiguous() for k in range(len(depth_layers))]),
             ("alllayer", [allf]),
         ):
+            if probe not in probe_names:
+                continue
             t2 = time.time()
             print(f"{key} {task} {probe}", flush=True)
-            res = probes.run_grid(feats, y, train_pairs, test_rows, "cuda", log=lambda s: print(s, flush=True))
+            kw = {"d_grid": d_grid} if d_grid else {}
+            res = probes.run_grid(feats, y, train_pairs, test_rows, "cuda", log=lambda s: print(s, flush=True), **kw)
             (out_dir / f"{task}_{probe}.json").write_text(
                 json.dumps(
                     dict(
@@ -202,30 +233,33 @@ KW = dict(
 
 
 @app.function(gpu="L4", **KW)
-def job_l4(key: str, tasks: list[str]) -> dict:
-    return _job(key, tasks)
+def job_l4(key: str, tasks: list[str], probe_names=("lasttoken", "alllayer"), d_grid=None) -> dict:
+    return _job(key, tasks, probe_names, d_grid)
 
 
 @app.function(gpu="L40S", **KW)
-def job_l40s(key: str, tasks: list[str]) -> dict:
-    return _job(key, tasks)
+def job_l40s(key: str, tasks: list[str], probe_names=("lasttoken", "alllayer"), d_grid=None) -> dict:
+    return _job(key, tasks, probe_names, d_grid)
 
 
 @app.function(gpu="A100-80GB", **KW)
-def job_a100(key: str, tasks: list[str]) -> dict:
-    return _job(key, tasks)
+def job_a100(key: str, tasks: list[str], probe_names=("lasttoken", "alllayer"), d_grid=None) -> dict:
+    return _job(key, tasks, probe_names, d_grid)
 
 
 @app.function(gpu="H100", **KW)
-def job_h100(key: str, tasks: list[str]) -> dict:
-    return _job(key, tasks)
+def job_h100(key: str, tasks: list[str], probe_names=("lasttoken", "alllayer"), d_grid=None) -> dict:
+    return _job(key, tasks, probe_names, d_grid)
 
 
 FN = {"L4": job_l4, "L40S": job_l40s, "A100-80GB": job_a100, "H100": job_h100}
 
 
 @app.local_entrypoint()
-def main(models: str = "0.5b", tasks: str = "truth,sycophancy"):
-    calls = [(k, FN[GPU_OF[k]].spawn(k, tasks.split(","))) for k in models.split(",")]
+def main(models: str = "0.5b", tasks: str = "truth,sycophancy", probes: str = "lasttoken,alllayer", dgrid: str = ""):
+    # --probes lasttoken --dgrid 31623,100000 --tasks truthbig: the exploratory extended label axis
+    pn = tuple(probes.split(","))
+    dg = [int(x) for x in dgrid.split(",")] if dgrid else None
+    calls = [(k, FN[GPU_OF[k]].spawn(k, tasks.split(","), pn, dg)) for k in models.split(",")]
     for k, c in calls:
         print(k, c.get())
