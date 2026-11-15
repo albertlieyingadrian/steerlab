@@ -15,6 +15,8 @@ Note: [report/index.html](report/index.html).
 | `make_cover.py` | The cover: the three drivers' scores as bars with their intervals, in the FinanceMath covers' style (needs Playwright) |
 | `reproduce.sh` | Every command, in order (`--dry-run` prints them) |
 
+Update (Nov 15): a second frozen version, 0.6.2, tied a fresh same-day cua-driver control, 66/90 against 68/90 (McNemar 6 vs 8, p = 0.79); its run is in `results/final2/` (`python analyse.py --final2`).
+
 Results (`results/`): `trials.csv` (180 final trials, columns in the note's appendix), `summary.json`,
 `per_variant.csv`, `calibration.tsv` (18 cua-driver 0.47.10 trials), `dev_s5-haiku-dev.csv` and
 `dev_s5b-haiku-dev.csv` (development trials, Haiku 5.5).
