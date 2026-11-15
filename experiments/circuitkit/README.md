@@ -5,7 +5,7 @@ circuit-tracer can run them, and do they reproduce the episodes' verdicts?**
 
 Research note: [report/index.html](report/index.html) ·
 [live page](https://albertlieyingadrian.github.io/steerlab/experiments/circuitkit/report/) ·
-package: [circuitcheck](https://github.com/albertlieyingadrian/circuitcheck) (its own repo; renamed from circuitkit) · docs: [`docs/`](https://github.com/albertlieyingadrian/circuitcheck/tree/main/docs) ·
+package: [circuitcheck](https://github.com/albertlieyingadrian/circuitcheck) (its own repo; renamed from circuitkit) · docs: [circuitcheck.mintlify.site](https://circuitcheck.mintlify.site) ·
 episodes: [lock-circuit](../lock-circuit/), [rl-hack-circuit](../rl-hack-circuit/)
 
 ## Files
