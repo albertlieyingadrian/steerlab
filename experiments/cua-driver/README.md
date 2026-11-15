@@ -12,7 +12,7 @@ Note: [report/index.html](report/index.html).
 | `tools/run_par.sh`, `tools/run_seq.sh` | Run a schedule of AgentEnv tasks, one VM per runner; harness failures retried with the same trial id and logged |
 | `tools/collect_trials.py` | Archives each trial (grader result, transcript, snapshots) through AgentEnv's records and writes `trials.csv` |
 | `analyse.py` | Every number and figure in the note, from `results/trials.csv` |
-| `make_cover.py` | The cover, from `results/trials.csv` |
+| `make_cover.py` | The cover: the three drivers' scores as bars with their intervals, in the FinanceMath covers' style (needs Playwright) |
 | `reproduce.sh` | Every command, in order (`--dry-run` prints them) |
 
 Results (`results/`): `trials.csv` (180 final trials, columns in the note's appendix), `summary.json`,
