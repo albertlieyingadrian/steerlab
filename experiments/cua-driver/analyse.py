@@ -13,6 +13,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import statistics
 from pathlib import Path
 
@@ -81,8 +82,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--final2", action="store_true")
     final2 = ap.parse_args().final2
-    if final2:
-        RESULTS = HERE / "results" / "final2"
+    if final2:  # FINAL=3 reads final 3 (ours 0.7.0, paired with the final-2 control)
+        RESULTS = HERE / "results" / ("final3" if os.environ.get("FINAL") == "3" else "final2")
     rows = [r for r in csv.DictReader((RESULTS / "trials.csv").open()) if r["outcome"] not in ("harness", "no_result")]
     by = {a: {(r["variant"], int(r["run"])): r for r in rows if r["arm"] == a} for a in ARMS}
     pairs = sorted(set(by[ARMS[0]]) & set(by[ARMS[1]]))
@@ -169,7 +170,9 @@ def main() -> None:
     print(json.dumps(out, indent=1))
     for r in per:
         print(f"{r['variant']:<22} {r['ourdriver']}/{r['pairs']}  {r['cua-driver']}/{r['pairs']}")
-    _figure(per, "per_variant_final2.png" if final2 else "per_variant.png")
+    run3 = os.environ.get("FINAL") == "3"
+    name = ("per_variant_final3.png" if run3 else "per_variant_final2.png") if final2 else "per_variant.png"
+    _figure(per, name)
 
 
 def _figure(per: list[dict], name: str = "per_variant.png") -> None:
@@ -187,7 +190,7 @@ def _figure(per: list[dict], name: str = "per_variant.png") -> None:
         [r["ourdriver"] / r["pairs"] for r in per],
         height=0.38,
         color="#d9622b",
-        label="ourdriver 0.6.2" if "final2" in name else "ourdriver 0.5.1",
+        label="ourdriver 0.7.0" if "final3" in name else "ourdriver 0.6.2" if "final2" in name else "ourdriver 0.5.1",
     )
     ax.barh(
         [i + 0.2 for i in y],
