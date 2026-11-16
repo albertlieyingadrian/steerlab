@@ -23,6 +23,7 @@ HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 FIG = HERE / "report" / "figures"
 ARMS = ["ourdriver", "cua-driver"]
+VERSIONS = {"final4": "ourdriver 0.8.4", "final3": "ourdriver 0.7.0", "final2": "ourdriver 0.6.2"}
 A22 = ["key_focus", "window_raised", "typing", "pointer", "clipboard", "space", "dialog", "activation"]
 
 
@@ -190,7 +191,7 @@ def _figure(per: list[dict], name: str = "per_variant.png") -> None:
         [r["ourdriver"] / r["pairs"] for r in per],
         height=0.38,
         color="#d9622b",
-        label="ourdriver 0.7.0" if "final3" in name else "ourdriver 0.6.2" if "final2" in name else "ourdriver 0.5.1",
+        label=next((v for k, v in VERSIONS.items() if k in name), "ourdriver 0.5.1"),
     )
     ax.barh(
         [i + 0.2 for i in y],
