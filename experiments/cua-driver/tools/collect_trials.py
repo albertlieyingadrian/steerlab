@@ -143,13 +143,18 @@ def main() -> None:
     args = p.parse_args()
     run = RUNS / args.label
     done = [line.split("\t") for line in (run / "done.txt").read_text().splitlines() if line.strip()]
-    con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+    con = sqlite3.connect(str(DB), timeout=30)  # read only by use; a ro URI fails while AgentEnv holds the WAL
     trajs = list(TRAJ.glob("trajectory-*.json"))
     runs_seen: dict[tuple, int] = {}
     rows = []
     for n, task in sorted(done):
         logs = sorted(
-            (q for q in run.glob(f"{n}-{task}*.log") if "driverpy-error" not in q.name), key=lambda q: q.stat().st_mtime
+            (
+                q
+                for q in run.glob(f"{n}-{task}*.log")
+                if not any(x in q.name for x in ("driverpy-error", ".harness", ".aborted"))
+            ),
+            key=lambda q: q.stat().st_mtime,
         )
         if not logs:
             continue
