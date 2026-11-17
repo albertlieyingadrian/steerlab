@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark</title>
+<meta name="description" content="Nine steps for building a benchmark, each shown with the number that says what skipping it costs. MMLU audited: 6.5% of items are flawed and a cheap model finds 85% of the wrong answer keys. SlopPair built: a bag of words scores 93%, and a judge at 47% is mostly reading position.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark">
+<meta property="og:description" content="Nine steps for building a benchmark, each shown with the number that says what skipping it costs. MMLU audited: 6.5% of items are flawed and a cheap model finds 85% of the wrong answer keys. SlopPair built: a bag of words scores 93%, and a judge at 47% is mostly reading position.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A table of nine rows on cream, one per step of building a benchmark, each with a number measured in the study: 6.5% of MMLU flawed, a bag of words at 93%, a judge picking the first passage 90% of the time.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark">
+<meta name="twitter:description" content="Nine steps for building a benchmark, each shown with the number that says what skipping it costs. MMLU audited: 6.5% of items are flawed and a cheap model finds 85% of the wrong answer keys. SlopPair built: a bag of words scores 93%, and a judge at 47% is mostly reading position.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-17">
+<meta property="article:modified_time" content="2026-11-17">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark",
+ "description": "Nine steps for building a benchmark, each shown with the number that says what skipping it costs. MMLU audited: 6.5% of items are flawed and a cheap model finds 85% of the wrong answer keys. SlopPair built: a bag of words scores 93%, and a judge at 47% is mostly reading position.",
+ "abstract": "101 E2. Nine checks (construct, labels, contamination, trivial baselines, format, statistics, judges, difficulty and hill-climbing, release) run on two examples. (A) MMLU-Redux 2.0 (5,700 items, 370 expert-flagged, 106 wrong keys) with Qwen2.5-1.5B/7B, Llama-3.1-8B, Gemma-2-9B and gpt-4.1-mini: flagging where gpt-4.1-mini disagrees with the key gives 581 flags at precision 0.26 [0.23, 0.30] (4.1x base rate) and 85% recall of wrong keys; TS-Guessing exact fills 2.7-7.2% vs 0-2% question-only, but after removing 81 sibling-derivable options only Llama (11 vs 0 of 519) and Gemma (27 vs 7) keep a signal; options-only accuracy 35-39% vs 25% chance; option rotation changes 33-51% of answers, accuracy 1-3 points, no ranking flips; a 1.7-point gap is separated by 2,000 random items 40% of the time; cleaning raises every model 1.5-2.5 points, no rank change; gpt-4.1-mini >= 0.9 on 31/57 subjects. (B) SlopPair, 300 new pairs (person's passage, AI rewrite by gpt-4o-mini, DeepSeek-V4.1 Flash or gpt-oss-120b): bag of words 0.93, length 0.78, voi-380M 0.995; judges gpt-4.1-mini 0.47 (picks first passage 90%, right in both orders 7.5%), DeepSeek 0.64 (52% on its own rewrites), GLM-5.3 0.94; no contamination; one 'sound human' rewrite: length 0.78 -> 0.54, bag of words 0.93 -> 0.85, detector and best judge unchanged. Pre-registered with a dated provider amendment; about $7.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-17",
+ "dateModified": "2026-11-17",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "benchmark, evaluation, MMLU, MMLU-Redux, label errors, data contamination, TS-Guessing, LLM as a judge, position bias, AI text detection, statistics, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.04127"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.09783"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2009.03300"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/codecrafters-io/ccbench"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .ck{display:grid;grid-template-columns:1fr;gap:.35rem;margin:.8rem 0 1.2rem}
+  .ck label{display:flex;gap:.6rem;align-items:flex-start;font-size:.95rem;line-height:1.45;cursor:pointer}
+  .ck input{margin-top:.3rem;accent-color:#d26f2a}
+  .ck-n{font-size:.85rem;color:var(--muted,#7a7065)}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-17">Nov 17, 2026</time></p>
+  <h1>How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark</h1>
+  <p class="dek ruled">Every step of building a benchmark, each shown with the number that says what skipping it costs. On MMLU, 6.5% of items are flawed and one cheap model finds 85% of the wrong answer keys. On SlopPair, a new benchmark built here, a bag of words scores 93% and a judge that looks merely weak (47%) is mostly reading which passage came first.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="b101-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="The nine steps of building a benchmark, each with a number measured in this study: label errors, contamination, shortcut baselines, format sensitivity, items needed, judge position bias, hill-climbing and release." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">101 · EVALUATIONS</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">MMLU AUDITED · SLOPPAIR BUILT</text><text x="20" y="64" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800">Nine checks before you trust a benchmark</text><rect x="20" y="96" width="840" height="34" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="118" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">1  Define the construct</text><text x="270" y="118" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">write down what a wrong item looks like before collecting any</text><rect x="20" y="136" width="840" height="34" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="158" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">2  Audit the labels</text><text x="270" y="158" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">6.5% of MMLU is flawed; one LLM auditor finds 85% of the wrong keys</text><rect x="20" y="176" width="840" height="34" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="198" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">3  Check contamination</text><text x="270" y="198" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">Gemma-2-9B fills in 27 of 519 hidden options word for word</text><rect x="20" y="216" width="840" height="34" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="238" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">4  Run trivial baselines</text><text x="270" y="238" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">a bag of words tells person from model 93% of the time</text><rect x="20" y="256" width="840" height="34" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="278" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">5  Shake the format</text><text x="270" y="278" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">rotating the options changes 33% of Qwen2.5-7B’s answers</text><rect x="20" y="296" width="840" height="34" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="318" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">6  Count the items you need</text><text x="270" y="318" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">a 1.7-point gap: 2,000 items tell it apart 40% of the time</text><rect x="20" y="336" width="840" height="34" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="358" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">7  Validate the judge</text><text x="270" y="358" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">gpt-4.1-mini picks the first passage 90% of the time</text><rect x="20" y="376" width="840" height="34" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="398" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">8  Hill-climb it</text><text x="270" y="398" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">one rewrite drops “longer is human” from 0.78 to 0.54</text><rect x="20" y="416" width="840" height="34" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="438" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:14.5px;font-weight:700">9  Release with care</text><text x="270" y="438" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">splits, a canary string, and only what the licences allow</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">EVERY NUMBER FROM THIS STUDY: 5,700 MMLU-REDUX ITEMS × 5 MODELS · 300 SLOPPAIR PAIRS × 3 JUDGES AND 4 BASELINES</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: the nine steps, each with a number this study measured; drawn from <code>results/summary.json</code> by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Running examples</dt><dd>(A) MMLU, audited with MMLU-Redux 2.0’s expert error labels · (B) SlopPair, 300 new pairs of a person’s passage and an AI rewrite</dd></div>
+    <div><dt>Models</dt><dd>Qwen2.5-1.5B and 7B, Llama-3.1-8B, Gemma-2-9B (all Instruct, open); gpt-4.1-mini; DeepSeek-V4.1 Flash; GLM-5.3 Flash; gpt-4o-mini and gpt-oss-120b as rewriters; voi-slop-detect-380M</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/benchmark-101/</a> · <a href="../PLAN.md">plan</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/summary.json">results/summary.json</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What does it take to build a benchmark whose number means something?</strong></p>
+    <p>Nine checks, each cheap, each able to change what the number means. This note runs all nine twice: once on MMLU, a benchmark everyone uses, against expert labels of its errors; once on SlopPair, a benchmark built here from scratch (“which of these two passages did a person write?”). On MMLU the checks mostly reassure: a few percent of flawed items, a small memorisation signal in two models, and a ranking that survives cleaning and reordering. They also show that a 1.7-point gap between two models needs all 5,700 items to see. On SlopPair the checks change the verdict: a word-count model scores 93%, two of three LLM judges mostly pick whichever passage is shown first, and one round of “make it sound human” knocks the simplest rule from 78% to 54%.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Step</th><th>MMLU (audited)</th><th>SlopPair (built)</th></tr></thead>
+        <tbody>
+          <tr><td>2 · Labels</td><td><strong>6.5% of items flawed</strong> [5.9, 7.2] by expert review; flagging where gpt-4.1-mini disagrees with the key gives 581 flags, 26% of them truly bad (4.1× the base rate), including <strong>85% of the 106 wrong keys</strong></td><td>299 of 300 rewrites keep every fact (model check)</td></tr>
+          <tr><td>3 · Contamination</td><td>Gemma-2-9B fills a hidden option word for word in 27 of 519 items vs 7 from the question alone (p = 0.0005); Llama 11 vs 0; Qwen none once rebuildable options are removed</td><td>None found: continuing human and AI text gives the same overlap (ROUGE-L 0.13–0.15)</td></tr>
+          <tr class="hl"><td>4 · Trivial baselines</td><td>Options only, no question: 35–39% against 25% chance</td><td><strong>A bag of words: 93%</strong> [89, 97]; “the longer one is human”: 78%; a 380M detector: 99.5%</td></tr>
+          <tr><td>5 · Format</td><td>Rotating the four options changes 33–51% of answers, but moves accuracy only 1–3 points and never flips a ranking</td><td><strong>Position bias:</strong> gpt-4.1-mini picks the first passage 90% of the time and is right in both orders on 7.5% of pairs</td></tr>
+          <tr><td>6 · Statistics</td><td>A 1.7-point gap (Qwen2.5-7B vs Gemma-2-9B) is told apart by 2,000 random items only 40% of the time</td><td>GLM-5.3 beats DeepSeek on 122 pairs and loses on 0</td></tr>
+          <tr><td>7 · Judges</td><td>—</td><td>Judges range from 47% to 94% on the same pairs; the DeepSeek judge is worst on DeepSeek’s own rewrites (52% vs 63–75%)</td></tr>
+          <tr><td>8 · Difficulty, hill-climbing</td><td>gpt-4.1-mini is at 90% or more on 31 of 57 subjects: half of MMLU is saturated for it</td><td>One “make it sound human” rewrite: length rule 78% → 54%, bag of words 93% → 85%; the detector and the best judge do not move</td></tr>
+          <tr><td>Cleaning</td><td>Dropping flawed items raises every model 1.5–2.5 points and changes no ranking; on wrong-key items, models agree with the corrected key 52–77% of the time</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A benchmark is a promise that one number stands for one ability. Ask a model “In which of the following positions does a patient lie face down?”, offer Dorsal, Erect, Lateral and Prone, and score it against MMLU’s answer key: the key says Erect. The model that answers Prone is marked wrong. That item is one of 106 in MMLU-Redux’s 5,700 with a wrong key, and the reason this note exists: a benchmark’s number is only as good as the checks behind it.</p>
+  <p><strong>What is known.</strong> How benchmarks fail is well studied: label errors (<a href="https://arxiv.org/abs/2406.04127">MMLU-Redux</a> found 6.5% of MMLU flawed), contamination (<a href="https://arxiv.org/abs/2311.09783">TS-Guessing</a> asks a model to fill in a hidden wrong option; Epoch AI’s <a href="https://epoch.ai/frontiermath">FrontierMath</a> commissions new problems to avoid it), shortcuts, position bias in model judges, and saturation. Practitioner guides (Hamel Husain’s <a href="https://hamel.dev/blog/posts/evals/">writing on evals</a>, Stanford’s <a href="https://stanford-cs336.github.io/">CS336</a> lecture on evaluation, Moritz Hardt’s talks on the science of benchmarks) cover the craft. Community projects such as the conspiracy-bench plan on Station House split the work into two phases, build then hill-climb, and validate their judge against people before trusting it.</p>
+  <p><strong>What is missing.</strong> The checks are usually described one at a time, on someone else’s data. A newcomer rarely sees all of them run in order on one benchmark with the number each produces, and almost never the same checks applied both to an old benchmark and to a new one.</p>
+  <p class="question-callout">If you build or adopt a benchmark, which checks change what its number means, and by how much?</p>
+  <p><strong>What this note does.</strong> It runs nine checks on two running examples and reports every number. Its contributions:</p>
+  <ol>
+    <li>An audit of MMLU against expert error labels: how well a cheap automatic auditor finds bad items, and whether cleaning changes any conclusion.</li>
+    <li>A new small benchmark, SlopPair, built from scratch, and the checks that show what it really measures.</li>
+    <li>A checklist to copy, and a reading of a third benchmark (CCBench) from its README.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Fixed in the plan before any run: an auditor is useful if at least 3× as many of its flags are real errors as a random pick would give; a bag of words at 90% or more means the benchmark mostly measures style a word count can read; every rate gets an interval.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup: the two running examples</h2>
+  <h3 id="mmlu" data-short="A: MMLU">2.1 Example A: MMLU, audited</h3>
+  <p><a href="https://arxiv.org/abs/2009.03300">MMLU</a> is 57 subjects of four-option questions. <a href="https://arxiv.org/abs/2406.04127">MMLU-Redux 2.0</a> had experts re-check 100 questions per subject, 5,700 in all, and label each: fine, or one of six error types (unclear question, unclear options, no correct option, several correct, wrong key, needs expert knowledge). 370 items (6.5%) are flagged; 106 have a wrong key. Those labels are the answer key for the audit itself.</p>
+  <p>Five models answer every item: four open models (Qwen2.5-1.5B, Qwen2.5-7B, Llama-3.1-8B, Gemma-2-9B, all Instruct), scored by which of the letters A–D they make most likely, and gpt-4.1-mini, which may reason before giving a letter.</p>
+  <h3 id="sloppair" data-short="B: SlopPair">2.2 Example B: SlopPair, built</h3>
+  <p>SlopPair asks: shown a person’s passage and an AI model’s rewrite of the same passage, can a reader or detector tell which is the person’s? It was built in steps 1–2 below: 300 human passages written before 2023, 43 each from news, arXiv abstracts, Hacker News, Reddit, Stack Exchange, Amazon reviews and Medium (one source 42), each 120–300 words; each rewritten by one of gpt-4o-mini, DeepSeek-V4.1 Flash and gpt-oss-120b with the instruction to keep every fact, the length and the register; split into 100 development and 200 test pairs.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td>MMLU-Redux 2.0</td><td>MMLU items with expert error labels</td><td class="num">5,700</td><td>Steps 2–8 (A)</td></tr>
+        <tr><td>TS-Guessing sample</td><td>Fixed random items with one wrong option hidden (seed 0)</td><td class="num">600</td><td>Step 3 (A)</td></tr>
+        <tr><td>SlopPair</td><td>Person’s passage + AI rewrite, random order; dev / test</td><td class="num">100 / 200</td><td>Steps 3–8 (B)</td></tr>
+        <tr><td>SlopPair, hill-climbed</td><td>Each test rewrite rewritten again “to read as if a person wrote it”</td><td class="num">200</td><td>Step 8 (B)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan</strong> committed with the code and MMLU data before any model ran (<a href="../PLAN.md">PLAN.md</a>).</li>
+    <li><strong>Open models</strong> (Modal, one H100 each): 5,700 items × 4 option orders + options-only, and 600 TS-Guessing fills plus 600 controls, per model.</li>
+    <li><strong>gpt-4.1-mini</strong>: 5,700 items with reasoning, and the same 1,200 TS-Guessing calls.</li>
+    <li><strong>SlopPair</strong>: 300 rewrites, fact checks, split; three judges × 200 test pairs × 2 orders; 200 hill-climb rewrites judged the same way; 300 continuations for contamination; four baselines.</li>
+    <li><strong>Analysis</strong> from saved results only (<code>analyze.py</code>).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Steps, prompts, model roles, splits, seeds, sample sizes, thresholds (auditor 3× base rate; bag of words 90%)</td><td><strong>Providers</strong> (before any result): OpenRouter and Anthropic had no credit, so the auditor became gpt-4.1-mini (planned: Gemini 2.5 Flash), the rewriters gpt-4o-mini, DeepSeek-V4.1 Flash and gpt-oss-120b, and the judges gpt-4.1-mini, DeepSeek-V4.1 Flash and GLM-5.3 Flash.</td></tr>
+        <tr><td>Scoring rules for every step</td><td><strong>Pipeline fixes</strong> found on pilots: the answer parser (the auditor writes “\boxed{B}”); the auditor’s token limit (700 → 1,500; 3 of 60 replies were cut off); DeepSeek’s reasoning switched off (it spent its whole budget thinking and returned 56 empty or cut-off rewrites, regenerated); Gemma scored on the last position only (out of memory).</td></tr>
+        <tr><td>—</td><td><strong>Exploratory, labelled as such:</strong> the contamination test repeated without options that can be rebuilt from their siblings (4.3).</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: open models in bfloat16 on rented H100s (Modal), greedy; API models at temperature 0. Cost: about $3.6 of API calls and about $3 of GPU.</p>
+
+  <h2 id="results" data-short="The nine steps"><span class="num">04</span>Results: the nine steps</h2>
+
+  <h3 id="s1" data-short="1 Define">4.1 Step 1: write down what a wrong item looks like before you collect any</h3>
+  <p><strong>A benchmark’s claim has to be specific enough that an item can violate it.</strong> MMLU’s claim is “broad knowledge across 57 subjects”; MMLU-Redux’s six error types are what violating it looks like. SlopPair’s claim, written before any item: “a reader or detector can tell a person’s passage from a model’s rewrite of the same content”. An item is wrong if the rewrite adds or drops facts (then the pair differs in content, not authorship) or if the human passage is boilerplate. Writing these down first is what made steps 2 and 4 possible: without “same content”, there is no reason to check facts, and no reason to be alarmed when length predicts the answer.</p>
+
+  <h3 id="s2" data-short="2 Labels">4.2 Step 2: audit the labels; a cheap model finds most wrong keys</h3>
+  <p><strong>Flagging every MMLU item where gpt-4.1-mini disagrees with the key gives 581 flags (10 per 100 items). 26% of them [23, 30] are items the experts also flagged, 4.1 times the 6.5% base rate, and they include 90 of the 106 wrong keys (85%).</strong> Figure 1 compares it with a second auditor, all four open models agreeing on a different letter: fewer flags (258), lower precision (21%), and only 34% of the wrong keys. Requiring both raises precision to 37% but catches few.</p>
+  <figure class="plot">
+    <img src="figures/a_audit.png" alt="Two bar charts. Left, precision: gpt-4.1-mini disagreeing with the key, 0.26 of 581 flags; all four open models agreeing on another letter, 0.21 of 258; both, 0.37 of 122; base rate 0.065. Right, recall: of any expert flag, 0.41, 0.15, 0.12; of wrong answer keys, 0.85, 0.34, 0.32." width="1580" height="520" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Two automatic auditors on MMLU-Redux’s 5,700 items, scored against its expert labels. Left: share of each auditor’s flags that the experts also flagged (precision), with 95% Wilson intervals; the dashed line is the 6.5% base rate. Right: share of the 370 expert-flagged items (orange) and of the 106 wrong keys (grey) each auditor catches. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/summary.json">summary.json</a>.</figcaption>
+  </figure>
+  <p>Two of the wrong keys it caught: the face-down question above (key: Erect; auditor and experts: Prone), and a chemistry item on why spin trapping is used, where the key picks a statement about power and the auditor and experts pick the one about concentrations too low for direct detection. The practical reading: an LLM auditor is a triage tool. It finds most wrong keys cheaply, but three of four flags are fine items it got wrong, so a person still reviews each flag. It finds less of the subtler errors (unclear questions, several right answers): 41% of all flagged items, against 85% of wrong keys.</p>
+
+  <h3 id="s3" data-short="3 Contamination">4.3 Step 3: check contamination, and test the boring explanation of the test</h3>
+  <p><strong>Asked to fill in a hidden wrong option, the open models reproduce it word for word on 2.7–7.2% of 600 items, against 0–2% when writing an option from the question alone; all four differences are significant. But 81 of the 600 hidden options can be rebuilt from the visible ones (“True, False” next to “True, True” and “False, False”). Without them, Qwen2.5-1.5B and 7B show no signal (7 vs 5 and 11 vs 9 of 519), while Llama-3.1-8B (11 vs 0, p = 0.001) and Gemma-2-9B (27 vs 7, p = 0.0005) keep a small one.</strong></p>
+  <figure class="plot">
+    <img src="figures/a_checks.png" alt="Three bar charts for the four open models. Left, contamination: fills the masked option exactly 0.027, 0.047, 0.047, 0.072, against question-only controls 0.010, 0.017, 0.000, 0.020. Middle, accuracy with the question removed 0.35, 0.39, 0.38, 0.37 against chance 0.25. Right, accuracy in the original order 0.60, 0.72, 0.64, 0.70 beside the share of items answered the same under all four option orders 0.49, 0.67, 0.55, 0.62." width="1900" height="540" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> Steps 3–5 on MMLU for the four open models. Left: share of 600 items where the model fills a hidden wrong option word for word (orange), against writing it from the question alone (grey), before removing rebuildable options. Middle: accuracy with the question removed and only the options shown, with 95% intervals; the dashed line is chance. Right: accuracy in the original option order (grey) and the share of the 5,700 items answered the same under all four rotations of the options (orange). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>This is the step’s most useful lesson: a contamination test can itself have a boring explanation, and its control has to rule it out. The question-only control did not see the other options, so it could not exploit their pattern; the masked test could. The first reading (“all four models memorised MMLU”) was too strong; the second (“two of four show a small signal”) survives. gpt-4.1-mini shows none (3 vs 5). SlopPair needed the same check in another form: a judge that had memorised the human passages would continue them better than it continues new AI text. It does not: the overlap with the true continuation is 0.13–0.15 for both, for all three judges, with every interval including zero.</p>
+
+  <h3 id="s4" data-short="4 Baselines">4.4 Step 4: run trivial baselines; on SlopPair, a word count is enough</h3>
+  <p><strong>On SlopPair’s 200 test pairs, a bag-of-words model (logistic regression on word counts, cross-validated) picks the person’s passage 93% of the time [89, 97]; “the longer passage is the person’s” gets 78%; a small public detector, voi-slop-detect-380M, gets 99.5%.</strong> By the rule set in the plan (90% or more), SlopPair mostly measures style that a word count can read. The words that give it away: the person’s side is marked by plain words (“of”, “will”, “so”, “have”, “you”, “like”, “said”), the rewrite’s by “may”, “simply”, “through”, “whether”, “examine”, “within”, “additional”, “significant”.</p>
+  <p>On MMLU the shortcut is smaller but real: shown only the four options, no question, the open models score 35–39% against 25% chance (Figure 2, middle). Some options simply look more like answers. “Pick the longest option” gets 28%. A benchmark’s floor is not chance; it is the best shortcut you have tried.</p>
+
+  <h3 id="s5" data-short="5 Format">4.5 Step 5: shake the format; answers move, rankings may not, judges can</h3>
+  <p><strong>Rotating MMLU’s four options changes 33–51% of each model’s answers, yet moves accuracy by only 1.1–2.8 points and never changes which of two models ranks higher.</strong> Many answers are close calls the model flips either way; over 5,700 items the flips mostly cancel (Figure 2, right). Reporting accuracy from one order is acceptable for ranking these models; reporting any single item’s answer as the model’s view is not.</p>
+  <p>On SlopPair the format matters far more. Each judge saw every pair twice, once with the person’s passage first and once second. gpt-4.1-mini named the first passage as the person’s 90% of the time; its answer flipped with the order on 79% of pairs, and it was right in both orders on only 15 of 200 pairs (7.5%). Its headline 47% is not a weak judge doing its best; it is mostly a judge reading position. DeepSeek-V4.1 Flash picked first 86% of the time (right in both orders on 28%). GLM-5.3 Flash, a model that reasons before answering, picked first 56% of the time and was right in both orders on 89% (Figure 4, right).</p>
+
+  <h3 id="s6" data-short="6 Statistics">4.6 Step 6: count the items you need; small gaps need thousands</h3>
+  <p><strong>Qwen2.5-7B beats Gemma-2-9B by 1.7 points over all 5,700 items. In random subsets of 2,000 items, a paired interval separates them only 40% of the time; at 500 items, 16%.</strong> Larger gaps need fewer items: Gemma vs Llama (5.8 points) is separated 83% of the time with 500 items, gpt-4.1-mini vs Qwen2.5-7B (17.6 points) 85% of the time with 50 (Figure 3). Every MMLU accuracy here has an interval of about ±1.2 points: 0.598 (Qwen2.5-1.5B), 0.642 (Llama), 0.700 (Gemma), 0.717 (Qwen2.5-7B) and 0.893 (gpt-4.1-mini).</p>
+  <figure class="plot">
+    <img src="figures/a_items_needed.png" alt="Lines for four model pairs: share of random subsets that tell the pair apart against subset size on a log scale from 50 to 5,700. gpt-4.1-mini vs Qwen2.5-7B (gap 0.176) is near 1 from 100 items; Gemma vs Llama (0.058) reaches 0.83 at 500; Llama vs Qwen 1.5B (0.044) 0.75 at 1,000; Qwen 7B vs Gemma (0.017) only 0.40 at 2,000 and 1 at 5,700." width="1040" height="540" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span> For each adjacent pair in the MMLU ranking, the share of 200 random item subsets of each size whose paired bootstrap 95% interval for the accuracy difference excludes zero; the dashed line is 80%. Gaps are over all 5,700 items. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>Before trusting a ranking from a benchmark of a few hundred items, ask what gap it can resolve. SlopPair’s 200 test pairs are enough for its large differences (GLM-5.3 right in both orders on 122 pairs where DeepSeek was not, and the reverse on none) and too few for gaps of a few points.</p>
+
+  <h3 id="s7" data-short="7 Judges">4.7 Step 7: validate the judge on cases with a known answer</h3>
+  <p><strong>Three judges, the same 200 pairs, the same prompt: 47% [44, 50], 64% [61, 67] and 94% [92, 97].</strong> SlopPair’s labels come from provenance, so every judge can be checked against the truth, and the check decides everything: picked without it, a judge could be off by half the scale. Two more findings:</p>
+  <ul>
+    <li><strong>Self-recognition.</strong> The DeepSeek judge was worst on DeepSeek’s own rewrites: 52%, against 75% on gpt-4o-mini’s and 63% on gpt-oss-120b’s. A model judging text from its own family is a conflict to measure, not to assume away.</li>
+    <li><strong>People.</strong> A blind 40-pair page for a person to label is in the code (<code>make_human_check.py</code>); this version publishes without a human score. Conspiracy-bench’s plan is the right model: validate the judge against people (they report κ 0.76) before scaling it.</li>
+  </ul>
+  <figure class="plot">
+    <img src="figures/b_sloppair.png" alt="Left: horizontal bars for seven methods on SlopPair test, before and after one hill-climb rewrite. Longer is human 0.78 then 0.54; fewer AI-tic words 0.685 then 0.74; bag of words 0.93 then 0.85; voi-380M detector 0.995 then 1.0; gpt-4.1-mini 0.47 then 0.365; DeepSeek 0.64 then 0.635; GLM-5.3 0.94 then 0.95. Right: share of answers naming the first passage 0.90, 0.86, 0.56 and share of pairs right in both orders 0.075, 0.275, 0.885 for the three judges." width="1760" height="620" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span> SlopPair. Left: share of the 200 test pairs where each baseline and judge picks the person’s passage, on the original rewrites (orange) and after each rewriter rewrote its own text once more “to read as if a person wrote it” (grey); judges are averaged over both orders; the dashed line is chance. Right: for each judge, the share of answers naming whichever passage was shown first (orange; 0.5 means no position preference) and the share of pairs it got right in both orders (grey). Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/summary.json">summary.json</a>.</figcaption>
+  </figure>
+
+  <h3 id="s8" data-short="8 Difficulty, hill-climb">4.8 Step 8: check difficulty, then hill-climb it</h3>
+  <p><strong>gpt-4.1-mini scores 90% or more on 31 of MMLU’s 57 subjects; Qwen2.5-7B on 2.</strong> For the stronger model, half of MMLU no longer separates anything. Its weakest subject is virology (53%), where MMLU-Redux’s experts flagged 57 of the 100 items, the most of any subject: part of what remains “hard” is broken. A benchmark is informative only in the band where models still fail for the right reasons.</p>
+  <p><strong>Hill-climbing SlopPair with one rewrite (“make this passage read as if a person wrote it; keep every fact”) drops the length rule from 78% to 54% and the bag of words from 93% to 85%; the detector (100%) and the best judge (95%) do not move.</strong> The cheapest signals break first under optimisation, as they should. The surprise is the other direction: the rewrite pushed gpt-4.1-mini further below chance (47% → 37%) and nudged the AI-tic word list up (69% → 74%). Asking a model to sound human made its text more recognisable to the strongest readers, not less. Conspiracy-bench’s phase 2 is the general form of this step: once the benchmark exists, optimise against it on purpose and see which of its numbers survive.</p>
+
+  <h3 id="s9" data-short="9 Release">4.9 Step 9: release with care</h3>
+  <p><strong>Every SlopPair file carries a canary string; the test split is marked “do not train”; the 200 hill-climbed rewrites ship beside the originals.</strong> The human passages do not ship: they come from public datasets under several licences, so the release is the AI rewrites, source ids, labels and every score, with the script that rebuilds the human side. Releasing a benchmark is a licensing decision as much as a technical one. For MMLU, the cleaned list (Redux items marked fine, with our auditor’s flags as a review column) can be rebuilt from <code>results/a_api.json</code> and the public MMLU-Redux data.</p>
+
+  <h2 id="checklist" data-short="The checklist"><span class="num">05</span>The checklist</h2>
+  <p>The nine checks as a list to tick through for your own benchmark (ticks are saved in this browser only).</p>
+  <div class="ck" id="ck">
+    <label><input type="checkbox"> <span><strong>Define the construct</strong> and what a wrong item looks like, in writing, before collecting. <span class="ck-n">(4.1)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Audit the labels</strong>: flag disagreements with a strong model, review the flags by hand, report the error rate. <span class="ck-n">(4.2)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Test contamination</strong> with a control that rules out the boring explanation (structure, guessable text). <span class="ck-n">(4.3)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Run trivial baselines</strong>: options only, length, a bag of words, an off-the-shelf detector; report them beside the models. <span class="ck-n">(4.4)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Shake the format</strong>: reorder options, swap positions, reword the prompt; report the spread. <span class="ck-n">(4.5)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Report intervals</strong> and the smallest gap your item count can resolve. <span class="ck-n">(4.6)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Validate every judge</strong> on cases with known answers, in both orders, and against people. <span class="ck-n">(4.7)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Check difficulty and hill-climb</strong>: where is it saturated, and which numbers survive deliberate optimisation? <span class="ck-n">(4.8)</span></span></label>
+    <label><input type="checkbox"> <span><strong>Release with care</strong>: held-out split, canary string, datasheet, licences. <span class="ck-n">(4.9)</span></span></label>
+  </div>
+
+  <h2 id="ccbench" data-short="Reading CCBench"><span class="num">06</span>Reading someone else’s benchmark: CCBench</h2>
+  <p>The checklist also works on a benchmark you did not build, from its README. <a href="https://github.com/codecrafters-io/ccbench">CCBench</a> measures whether a coding agent can add a feature to a small, messy, human-written codebase (187 private CodeCrafters submissions) so that the platform’s own tests pass. Step by step: its labels are excellent (hand-written tests used by many thousands of learners, and a reference solution per task); its contamination claim is narrower than it sounds (the starting code is private, but the features, such as backreferences in a home-made grep, have many public solutions, and runs allow internet access); it reports no trivial baselines; each row mixes the model with its agent harness and timeout (one model timed out on about a quarter of tasks); and it reports no intervals. With 187 tasks and one run, 75.4% is roughly [69, 81] and 72.7% roughly [66, 79], so its top two are not separated. None of this makes CCBench a bad benchmark; it tells you which of its numbers to lean on.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">07</span>Implications for AI safety</h2>
+  <p>Safety cases increasingly rest on benchmark numbers: a dangerous-capability score below a threshold, a monitor’s catch rate, a judge’s verdict on a model’s honesty. Each failure here would distort such a claim in a known direction. A judge reading position reports noise as signal; a shortcut baseline at 93% means a detector can pass without the ability the benchmark names; a gap smaller than the benchmark can resolve turns a tie into a ranking; and a check whose control is weaker than it looks (4.3) can make a benchmark look more contaminated, or less, than it is.</p>
+  <p><strong>The recommendation in one sentence: before a benchmark number is used to decide anything, report beside it its trivial baselines, its judge’s position bias, its interval and the smallest gap it can resolve.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li><strong>One audited benchmark, one built.</strong> MMLU is old, multiple-choice and well studied; open-ended and agentic benchmarks fail in further ways (the CCBench reading shows a few).</li>
+    <li><strong>Cheap models as auditors and judges.</strong> A stronger auditor would likely raise precision; the planned Gemini auditor was replaced by gpt-4.1-mini for credit reasons before any result.</li>
+    <li><strong>SlopPair is deliberately simple.</strong> Pairs with identical content leave style as the only difference, which is why word counts do so well; a harder version would mix topics, lengths and lightly edited text.</li>
+    <li><strong>No human labels yet.</strong> The person-vs-judge agreement (4.7) is set up but not run.</li>
+    <li><strong>One round of hill-climbing</strong> with a fixed prompt; an optimiser that sees the judge’s verdict would push much harder.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">09</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the shipped results, with no model calls:</p>
+  <pre><code class="language-bash">experiments/benchmark-101/reproduce.sh --scores</code></pre>
+  <p>Rerun everything (about $7: four Modal H100 runs, OpenAI and Fireworks keys, and a local copy of the human passages for SlopPair):</p>
+  <pre><code class="language-bash">experiments/benchmark-101/reproduce.sh --dry-run   # lists every command
+experiments/benchmark-101/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What’s next</h2>
+  <ul>
+    <li>The 40-pair human check, to put a person’s accuracy and κ beside the judges.</li>
+    <li>A harder SlopPair: lightly edited text, mixed lengths, and an optimiser that sees the judge.</li>
+    <li>The same nine checks on an open-ended benchmark graded by a model judge, where step 7 does the most work.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">11</span>Questions and answers</h2>
+  <h3 id="q1">How do you build a benchmark?</h3>
+  <p>Define what the score should mean and what a wrong item looks like; collect items and audit their labels; test for contamination and trivial shortcuts; check that the score is stable under format changes; report intervals and the smallest gap you can resolve; validate any judge against known answers; check difficulty and whether optimising against it breaks it; and release with a held-out split and a canary string.</p>
+  <h3 id="q2">How many errors are in MMLU?</h3>
+  <p>MMLU-Redux’s experts flagged 370 of 5,700 re-checked items (6.5%), 106 with a wrong answer key. Flagging items where gpt-4.1-mini disagrees with the key caught 85% of those wrong keys, with about one flag in four a real error.</p>
+  <h3 id="q3">Do LLM judges have position bias?</h3>
+  <p>Some strongly. Asked which of two passages a person wrote, gpt-4.1-mini named the first one 90% of the time and was right regardless of order on only 7.5% of pairs; a reasoning model, GLM-5.3 Flash, named the first 56% of the time and was right in both orders on 89%.</p>
+  <h3 id="q4">How many items does a benchmark need?</h3>
+  <p>It depends on the gap you want to see. On MMLU, a 17-point gap is visible with 50 items, a 6-point gap needs about 500, and a 1.7-point gap needed all 5,700.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>a_open/&lt;model&gt;.json</code>: per MMLU item, each open model’s answer in four orders and options-only; TS-Guessing fills and controls.</li>
+    <li><code>a_api.json</code>: gpt-4.1-mini’s answer per item, and its TS-Guessing fills and controls.</li>
+    <li><code>sloppair_items.json</code>, <code>sloppair_hill.json</code>: SlopPair without the human text (ids, source, rewriter, rewrite, fact check, order, split), and the hill-climbed rewrites.</li>
+    <li><code>b_judge.json</code>, <code>b_baselines.json</code>: every judge answer in both orders and every baseline’s verdict, on the original and hill-climbed pairs; contamination overlaps.</li>
+    <li><code>summary.json</code>: every number quoted here, written by <code>analyze.py</code>.</li>
+  </ul>
+  <h3 id="further-reading">Further reading</h3>
+  <ul>
+    <li>Gema et al., <a href="https://arxiv.org/abs/2406.04127">Are We Done with MMLU?</a> (MMLU-Redux), 2024.</li>
+    <li>Deng et al., <a href="https://arxiv.org/abs/2311.09783">Investigating Data Contamination in Modern Benchmarks for Large Language Models</a> (TS-Guessing), 2023.</li>
+    <li>Epoch AI, <a href="https://epoch.ai/frontiermath">FrontierMath</a>: commissioned problems to resist contamination.</li>
+    <li>Hamel Husain, <a href="https://hamel.dev/blog/posts/evals/">Your AI product needs evals</a>, and his talks on error analysis.</li>
+    <li>Stanford <a href="https://stanford-cs336.github.io/">CS336</a>, the lecture on evaluation.</li>
+    <li>Moritz Hardt, “The emerging science of benchmarks” (talk): annotator error and whether rankings transfer.</li>
+    <li>Andriushchenko et al., <a href="https://arxiv.org/abs/2410.09024">AgentHarm</a>, 2024; Truth Decay and PPT-Bench on multi-turn pressure and judge separation.</li>
+  </ul>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Open models</th><td>Qwen2.5-1.5B and 7B, Llama-3.1-8B, Gemma-2-9B (Instruct), bfloat16, Hugging Face Transformers, one H100 each on Modal</td></tr>
+        <tr><th scope="row">API models</th><td>gpt-4.1-mini, gpt-4o-mini (OpenAI); DeepSeek-V4.1 Flash, GLM-5.3 Flash, gpt-oss-120b (Fireworks); temperature 0</td></tr>
+        <tr><th scope="row">Detector</th><td>voi-slop-detect-380M, run locally</td></tr>
+        <tr><th scope="row">Cost</th><td>About $3.6 API and $3 GPU</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 17, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026benchmark101,
+  author = {Albert Lie},
+  title  = {How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/}
+}</code></pre>
+  <footer class="note">Data: MMLU (MIT) and MMLU-Redux 2.0 (CC-BY-4.0). SlopPair’s human passages come from public datasets and are not redistributed; its AI rewrites and labels are released with a canary string.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var KEY = "benchmark-101-checklist", boxes = document.querySelectorAll("#ck input"), saved = [];
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) {}
+  boxes.forEach(function (b, i) {
+    b.checked = !!saved[i];
+    b.addEventListener("change", function () {
+      try { localStorage.setItem(KEY, JSON.stringify([].map.call(boxes, function (x) { return x.checked; }))); } catch (e) {}
+    });
+  });
+})();
+</script>
+</body>
+</html>
