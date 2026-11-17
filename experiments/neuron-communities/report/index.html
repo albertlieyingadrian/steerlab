@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Six of Llama’s neurons can steer it to a topic, at a higher cost than a direction</title>
+<meta name="description" content="Goodfire found small neuron communities in Llama-3.1-8B by switching them off. Turning them up instead: six altitude neurons put high altitude into 10 of 15 answers to unrelated questions (random neurons 0 of 15). 2 of 8 finalists clear the pre-registered bar; most of the rest loop, and the clamps disturb unrelated text more than a direction of the same size.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Six of Llama’s neurons can steer it to a topic, at a higher cost than a direction">
+<meta property="og:description" content="Goodfire found small neuron communities in Llama-3.1-8B by switching them off. Turning them on instead: six altitude neurons put high altitude into 10 of 15 answers to unrelated questions (random neurons 0). 2 of 8 finalists meet the pre-set bar; most others loop, and the clamps disturb unrelated text more than a direction of the same size.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Llama-3.1-8B&#x27;s 32 MLP layers drawn as rows with six orange neurons at their real positions; beside them, the question &#x27;How do bees make honey?&#x27; and the steered reply &#x27;Bees make honey at an altitude of about 500 to 2,000 meters above sea level&#x27;.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Six of Llama’s neurons can steer it to a topic, at a higher cost than a direction">
+<meta name="twitter:description" content="Goodfire found small neuron communities in Llama-3.1-8B by switching them off. Turning them on instead: six altitude neurons put high altitude into 10 of 15 answers to unrelated questions (random neurons 0). 2 of 8 finalists meet the pre-set bar; most others loop, and the clamps disturb unrelated text more than a direction of the same size.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-17">
+<meta property="article:modified_time" content="2026-11-17">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Six of Llama’s neurons can steer it to a topic, at a higher cost than a direction",
+ "description": "Goodfire found small neuron communities in Llama-3.1-8B by switching them off. Turning them on instead: six altitude neurons put high altitude into 10 of 15 answers to unrelated questions (random neurons 0). 2 of 8 finalists meet the pre-set bar; most others loop, and the clamps disturb unrelated text more than a direction of the same size.",
+ "abstract": "Steering E5. Goodfire's published neuron communities (Llama-3.1-8B, MLP neurons before down_proj) tested as a steering control. E1: zeroing at the predicted word, 61 sampled communities against 10 layer-matched random sets each: 51/61 pass in the base model [0.72, 0.91] (token-suppression class 3/10), 42 of those 51 in Llama-3.1-8B-Instruct, none only there; largest random median 0.011 nats. E2: 35 topic communities clamped at 1, 2, 4, 8x their mean activation at every position in the chat model: 19/35 steer at least once in a 4-question screen (30/140 fluent on-topic replies at 2x; random neurons 0/560). On 15 held-out questions, 300 tokens: altitude 10/15 [0.42, 0.85] and doctoral thesis 9/15 meet the pre-registered bar (>= 8, random and unsteered <= 1); five others name their topic in 8-15 of 15 but loop; humidity's unsteered model hits 2. A norm-matched difference-of-means direction meets the bar for none (best 6/15). E3: on 200 unrelated prompts the community clamp's KL is 0.56-1.61 nats against the direction's 0.03-1.48, higher in 6 of 8; random clamps at most 0.0016. Zeroing the 46-neuron 'an' community in chat: 8 'an' + consonant in 3,133 words, 0 for unsteered and three random sets. Plan fixed before any run; one H100 on Modal, about $3.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-17",
+ "dateModified": "2026-11-17",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "neuron communities, activation steering, neuron ablation, clamping, mechanistic interpretability, Llama-3.1-8B, Goodfire, replication, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.goodfire.com/research/neuron-communities"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/goodfire-ai/neuron-communities"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .rx-controls{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.6rem 0 1rem}
+  .rx-controls label{font-size:.85rem}
+  .rx-controls select{font:inherit;font-size:.9rem;padding:.25rem .4rem;border:1px solid var(--rule,#e3dbd0);border-radius:6px;background:var(--bg,#fff);color:inherit}
+  .rx-list{max-height:30rem;overflow:auto;border-top:1px solid var(--rule,#e3dbd0)}
+  .rx-item{padding:.7rem 0;border-bottom:1px solid var(--rule,#e3dbd0)}
+  .rx-q{font-weight:600;font-size:.9rem;margin:0 0 .25rem}
+  .rx-a{white-space:pre-wrap;font-size:.88rem;margin:0;max-height:9.5rem;overflow:auto}
+  .rx-tag{display:inline-block;font-size:.72rem;font-family:"JetBrains Mono",monospace;padding:0 .35rem;border-radius:4px;margin-left:.35rem;border:1px solid currentColor}
+  .rx-hit{color:#a85a22}.rx-loop{color:#7a7065}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-17">Nov 17, 2026</time></p>
+  <h1>Six of Llama’s neurons can steer it to a topic, at a higher cost than a direction</h1>
+  <p class="dek ruled">Goodfire found small groups of neurons in Llama-3.1-8B that a behaviour depends on, by switching them off. This note turns them up instead. Six “altitude” neurons put high altitude into 10 of 15 answers to unrelated questions, where random neurons put it into none; but only 2 of 8 groups clear the bar set in advance, most of the others make the reply loop, and the clamps disturb unrelated text more than a steering direction of the same size.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="nc-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Llama-3.1-8B&#x27;s 32 MLP layers drawn as rows with six orange neurons at their real positions in layers 3 to 19. Clamping them at twice their usual activation, the model answers &#x27;How do bees make honey?&#x27; with &#x27;Bees make honey at an altitude of about 500 to 2,000 meters above sea level&#x27;." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">STEERING · NEURON COMMUNITIES</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">LLAMA-3.1-8B-INSTRUCT</text><text x="20" y="64" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800">Six neurons, turned up. The answers head for the mountains.</text><path d="M40,430.0 H380" stroke="#e3dbd0" stroke-width="2.2"/><text x="32" y="434.0" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500" text-anchor="end">0</text><path d="M40,419.5 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,409.0 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,398.5 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,387.9 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,377.4 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,366.9 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,356.4 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,345.9 H380" stroke="#e3dbd0" stroke-width="2.2"/><text x="32" y="349.8709677419355" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500" text-anchor="end">8</text><path d="M40,335.4 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,324.8 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,314.3 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,303.8 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,293.3 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,282.8 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,272.3 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,261.7 H380" stroke="#e3dbd0" stroke-width="2.2"/><text x="32" y="265.741935483871" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500" text-anchor="end">16</text><path d="M40,251.2 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,240.7 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,230.2 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,219.7 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,209.2 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,198.6 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,188.1 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,177.6 H380" stroke="#e3dbd0" stroke-width="2.2"/><text x="32" y="181.61290322580646" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500" text-anchor="end">24</text><path d="M40,167.1 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,156.6 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,146.1 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,135.5 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,125.0 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,114.5 H380" stroke="#e3dbd0" stroke-width="1.2"/><path d="M40,104.0 H380" stroke="#e3dbd0" stroke-width="1.2"/><text x="32" y="108.0" fill="#7a7065" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500" text-anchor="end">31</text><circle cx="79.3" cy="398.5" r="7" fill="#d26f2a" stroke="#fff" stroke-width="2"/><circle cx="222.0" cy="366.9" r="7" fill="#d26f2a" stroke="#fff" stroke-width="2"/><circle cx="286.1" cy="356.4" r="7" fill="#d26f2a" stroke="#fff" stroke-width="2"/><circle cx="338.6" cy="251.2" r="7" fill="#d26f2a" stroke="#fff" stroke-width="2"/><circle cx="60.8" cy="230.2" r="7" fill="#d26f2a" stroke="#fff" stroke-width="2"/><circle cx="347.3" cy="230.2" r="7" fill="#d26f2a" stroke="#fff" stroke-width="2"/><text x="40" y="454" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:650">32 layers × 14,336 MLP neurons; the 6 orange ones are clamped</text><path d="M398,270 L429.0,270.0" stroke="#7a7065" stroke-width="2.4" stroke-linecap="round"/><path d="M429.0,265.0 L438,270 L429.0,275.0" fill="none" stroke="#7a7065" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="450" y="104" width="410" height="70" rx="10" fill="#fff" stroke="#e3dbd0" stroke-width="1.5"/><text x="468" y="132" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700" letter-spacing="0.06em">User</text><text x="468" y="156" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:17px;font-weight:650">How do bees make honey?</text><rect x="450" y="188" width="410" height="242" rx="10" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="468" y="214" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700" letter-spacing="0.06em">Llama, six neurons clamped at 2×</text><text x="468" y="242" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">Bees make honey at an altitude of about</text><text x="468" y="265" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">500 to 2,000 meters above sea level,</text><text x="468" y="288" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">typically between 1,000 to 2,000 meters.</text><text x="468" y="311" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">They collect nectar from flowers at an</text><text x="468" y="334" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">altitude of about 1,000 to 2,000 meters.</text><text x="468" y="357" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">The nectar is then carried back to the</text><text x="468" y="380" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">beehive at an altitude of about 500 to</text><text x="468" y="403" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15.5px;font-weight:400">1,000 meters.</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">COMMUNITY 166512 (ALTITUDE) · A REAL, UNEDITED REPLY TO A HELD-OUT QUESTION · ON TOPIC IN 10 OF 15, RANDOM NEURONS 0 OF 15</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: the six members of the “altitude” community at their real layer and index among Llama-3.1-8B’s 458,752 MLP neurons, and the first words of a real, unedited reply with those six clamped at twice their usual activation (<code>results/e2b.jsonl</code>). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Steering, Episode 5</dd></div>
+    <div><dt>Models</dt><dd>Llama-3.1-8B (base) and Llama-3.1-8B-Instruct</dd></div>
+    <div><dt>Method</dt><dd>Zero-ablation and clamping of published neuron communities against layer-matched random neurons, an unsteered model and a norm-matched difference-of-means direction; plan fixed before any run</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/neuron-communities/</a> · <a href="../PLAN.md">plan</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/summary.json">results/summary.json</a> and every reply, listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>A neuron community that a behaviour needs: can turning it up make the model do that behaviour?</strong></p>
+    <p>Sometimes. Goodfire published 1,941 small groups of MLP neurons in Llama-3.1-8B, each one necessary for some next-word prediction. Their tests only ever switch a group off. Here, 35 groups labelled with a topic were clamped on in the chat model while it answered everyday questions. 19 of 35 brought their topic up at least once in a 4-question screen, against 0 of 560 replies with random neurons from the same layers. On 15 held-out questions, two groups met the bar set before any run (at least 8 fluent, loop-free on-topic replies, random neurons and the plain model at most 1): altitude, 10 of 15, and doctoral thesis, 9 of 15. Most of the rest named their topic but looped. On 200 unrelated web prompts, the community clamps moved the next-word distribution more than a steering direction of the same size in 6 of 8 cases. The groups themselves replicate: 51 of 61 sampled ones pass the necessity test in the base model, and 42 of those 51 still pass in the chat model.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Do the published communities replicate? (switch off, base model)</td><td><strong>Yes: 51/61 pass</strong> [0.72, 0.91]; token-suppression groups 3/10, every other class 9/10 or better</td><td>Largest median effect of any of 610 random sets: 0.011 nats, against a 0.7 bar</td></tr>
+          <tr><td>Do they survive chat tuning?</td><td><strong>42 of the 51</strong> still pass in Llama-3.1-8B-Instruct [0.70, 0.90]; none passes there only</td><td>Random sets: at most 0.005 nats</td></tr>
+          <tr class="hl"><td>Does clamping a topic community on steer chat replies to the topic?</td><td><strong>2 of 8 finalists clear the pre-set bar:</strong> altitude 10/15 [0.42, 0.85], doctoral thesis 9/15 [0.36, 0.80]; in the screen, 19 of 35 communities steer at least once</td><td>Layer-matched random neurons, same clamp: 0 of 560 screen replies; at most 1/15 in confirmation</td></tr>
+          <tr><td>What stops the other six?</td><td><strong>Mostly loops:</strong> five name their topic in 8 to 15 of 15 replies, but 7 to 15 of them repeat themselves by 300 tokens (constellations: 12 on topic, 15 loop); for humidity, the unsteered model names it twice on its own</td><td>Unsteered and random sets: 0 loops</td></tr>
+          <tr><td>Is a community clamp more surgical than a direction?</td><td><strong>No:</strong> it moves unrelated next-word predictions more in 6 of 8 cases (KL 0.56–1.61 nats against 0.03–1.48), and steers more often</td><td>Difference-of-means direction matched to the clamp’s size at one layer</td></tr>
+          <tr><td>Does switching off the “an” community break articles in chat?</td><td><strong>Yes, mildly:</strong> 8 “an” + consonant (“an traditional office”, “an musical instrument”) in 3,133 words</td><td>Unsteered: 0 in 3,076; three random sets: 0, 0, 0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Llama-3.1-8B-Instruct how bees make honey and it explains nectar and enzymes. Set six of its 458,752 MLP neurons to twice their usual value and the answer begins: “Bees make honey at an altitude of about 500 to 2,000 meters above sea level, typically between 1,000 to 2,000 meters.” Asked for good habits for staying healthy, the same model advises: “Drink plenty of water at high altitude… Aim for at least 2,000 meters (6,500 feet) above sea level.” Nothing in either prompt mentions mountains; six neurons do.</p>
+  <p><strong>What is known.</strong> <a href="https://www.goodfire.com/research/neuron-communities">Goodfire’s “Discovering neuron communities”</a> (November 2026) ran gradient attribution over 10 million web prompts on Llama-3.1-8B, linked neurons that were credited for the same predictions, and split that graph into 1,941 <em>communities</em>: groups of usually fewer than ten neurons across several layers. Each passed two tests on held-out prompts. <em>Necessity</em>: zeroing its neurons changes the next-word prediction. <em>Sufficiency</em>: zeroing every other neuron in those layers mostly keeps it. A six-neuron group, for example, decides whether the word after “an” starts with a vowel. They published the code and every community, with its neurons and prompts. Our <a href="../../golden-gate/report/">Golden Gate note</a> steered the same model with a direction and a clamped SAE feature.</p>
+  <p><strong>What is missing.</strong> Every test in the study switches neurons off. Whether a community that a behaviour needs can also <em>cause</em> it, which is what steering needs, is not tested; nor is whether communities found in the base model still work in the chat model people use.</p>
+  <p class="question-callout">If a handful of neurons is necessary for a behaviour, does turning them up produce it, and is that cleaner than steering with a direction?</p>
+  <p><strong>What this note does.</strong> It takes the published communities as they are and runs three experiments on one GPU in about 20 minutes. Its contributions:</p>
+  <ol>
+    <li>An independent check of the necessity test on 61 communities in the base and chat models, against 10 random neuron sets each.</li>
+    <li>The first test of communities as a steering control: 35 topic communities clamped on in the chat model, with random-neuron, unsteered and direction baselines.</li>
+    <li>A measure of what that costs elsewhere (KL on unrelated text), and an “an” off-switch that works in chat.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Written in the plan before any run:</p>
+  <ol>
+    <li><strong>Necessity replicates</strong> when a community’s median KL is at least 0.7 nats (the study’s bar) and above every one of its 10 random sets.</li>
+    <li><strong>A community steers</strong> when, on 15 held-out questions, at least 8 replies are fluent, loop-free and on its topic, while the best of 3 random sets and the unsteered model each manage at most 1.</li>
+    <li><strong>Cleaner</strong> means a lower KL on 200 unrelated prompts than a direction of the same size.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="neurons" data-short="Neurons and interventions">2.1 Neurons and the three interventions</h3>
+  <p>A <em>neuron</em> here is what the study calls one: one of the 14,336 values in each layer’s MLP just before its output projection (the activation times the gate). Llama-3.1-8B has 32 layers, so 458,752 of them. Three interventions, each a hook on that projection:</p>
+  <ul>
+    <li><strong>Zero at the last position</strong> (the study’s necessity test): the community’s neurons are set to 0 at the word being predicted only. The effect is the KL divergence between the model’s next-word distribution before and after, in nats: 0 means no change, and 0.7 is roughly the gap between 50/50 and 90/10 odds.</li>
+    <li><strong>Clamp everywhere</strong> (steering): each neuron is held at <em>c</em> times its mean activation on its own community’s prompts, at every position of the question and the reply. <em>c</em> = 1 means “as active as when it does its job”; the screen tries 1, 2, 4 and 8.</li>
+    <li><strong>Zero everywhere</strong> (the “an” switch): the neurons are 0 at every position.</li>
+  </ul>
+  <p>Each community is compared with <strong>random neuron sets</strong> of the same shape: one random neuron in the same layer for every member, never a member or one of the 17 always-on neurons the study set aside. Random sets are clamped to their own mean activations on the same prompts, times the same <em>c</em>.</p>
+
+  <h3 id="data" data-short="Data">2.2 Data</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td>E1 sample</td><td>10 communities drawn at random (seed 0) from each of the study’s 6 classes, plus the curated “an” community</td><td class="num">61</td><td>4.1, 4.2</td></tr>
+        <tr><td>Community prompts</td><td>The web-text prompts the study publishes for each community (10 to 100 each), as published</td><td class="num">10–100 each</td><td>4.1, 4.2; activation levels for clamps</td></tr>
+        <tr><td>Topic communities</td><td>Every community in the “topic” class; 13 dropped before any run because their name gives no specific topic word (2.3)</td><td class="num">35 of 48</td><td>4.3</td></tr>
+        <tr><td>Screen questions</td><td>The Golden Gate note’s 4 tuning questions (“What should I do this weekend?”)</td><td class="num">4</td><td>4.3</td></tr>
+        <tr><td>Held-out questions</td><td>The Golden Gate note’s 15 held-out questions (“How do bees make honey?”), never used to choose anything</td><td class="num">15</td><td>4.4–4.6</td></tr>
+        <tr><td>Unrelated text</td><td>200 community prompts from the non-topic classes, per finalist</td><td class="num">200</td><td>4.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Files: <a href="../data/selection.json"><code>data/selection.json</code></a> and one file per community in <code>data/communities/</code>, downloaded from the study’s explorer snapshot by <a href="../fetch.py"><code>fetch.py</code></a>.</p>
+
+  <h3 id="scoring" data-short="Scoring replies">2.3 Scoring a reply</h3>
+  <ul>
+    <li><strong>On topic</strong>: the reply contains one of the community’s topic words, taken from the quoted words in its published name (“Topic: altitude (‘above’, ‘feet’, ‘elevation’)”), matched as whole words with an optional plural. Words that an everyday answer could use anyway (“above”, “feet”, “Spain”, “sin”) were struck out before any run; altitude keeps “elevation”, doctoral thesis keeps “doctoral” and “thesis”. The full list is <code>GENERIC</code> in <a href="../nc.py"><code>nc.py</code></a>.</li>
+    <li><strong>Fluent</strong>: at least 20 characters and enough distinct character triples (the Golden Gate note’s check).</li>
+    <li><strong>Loops</strong>: fewer than half of the 4-token sequences in the last 150 tokens are distinct.</li>
+    <li>A reply <strong>counts</strong> only if it is on topic, fluent and loop-free.</li>
+  </ul>
+  <p>The word list is a blunt judge, so it was checked on the replies with a known answer: the unsteered model and every random set. In the screen, they produced 0 counted replies in 564; in confirmation, the unsteered model scored 2 (humidity, on “Describe your favourite kind of weather”) and 1 (thesis, on essay writing: “a thesis statement”). Section 4.4 counts those against the community.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan:</strong> written and committed with the code and the community selection before any model was loaded (<a href="../PLAN.md">PLAN.md</a>).</li>
+    <li><strong>E1, necessity:</strong> 61 communities × their prompts × (the community + 10 random sets), on the base and the chat model.</li>
+    <li><strong>E2a, screen:</strong> 35 topic communities × 4 strengths × 4 questions, 120-token replies, plus one random set per community at each strength, plus the unsteered model: 1,124 replies. Each community’s best strength is the one with the most counted replies (ties to the smaller); the 8 communities with the most go on.</li>
+    <li><strong>E2b, confirmation:</strong> 8 finalists × 15 held-out questions × (community, 3 random sets, a direction), plus the unsteered model, 300-token replies: 615 replies.</li>
+    <li><strong>E3, cost:</strong> KL on 200 unrelated prompts for each finalist’s community, direction and one random set; and the “an” switch on the 15 held-out questions against 3 random sets and the unsteered model.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Community sample, interventions, strengths, questions, word lists and struck-out words, the three success rules, the direction’s construction, how finalists are chosen</td><td>Nothing in the method. The first chat-model E1 launch failed before running (a log file inside the uploaded folder changed during upload) and was relaunched unchanged.</td></tr>
+        <tr><td>The plan’s budget: $15 of rented GPU</td><td>Spent: about $3.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: both models in bfloat16 on one rented H100 (Modal), Hugging Face Transformers; greedy decoding, repetition penalty 1.0, no system prompt, Llama’s chat template. 21 minutes of stage time in all.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Six findings:</p>
+  <ol>
+    <li><a href="#replicates"><strong>4.1</strong></a> The published communities replicate, except the token-suppression ones.</li>
+    <li><a href="#chat"><strong>4.2</strong></a> Most survive chat tuning.</li>
+    <li><a href="#screen"><strong>4.3</strong></a> Clamping a topic community on steers; random neurons never do.</li>
+    <li><a href="#confirm"><strong>4.4</strong></a> Two of eight clear the bar on held-out questions; loops stop most of the rest.</li>
+    <li><a href="#cost"><strong>4.5</strong></a> A community clamp disturbs unrelated text more than a direction does.</li>
+    <li><a href="#an"><strong>4.6</strong></a> Switching off the “an” community breaks articles in chat.</li>
+  </ol>
+
+  <h3 id="replicates" data-short="Communities replicate">4.1 The published communities replicate, except the token-suppression ones</h3>
+  <p><strong>51 of 61 sampled communities pass the necessity test in the base model (0.84 [0.72, 0.91]). Zeroing a community moved the next-word distribution by a median of 1.17 nats; the largest median effect of any of the 610 random sets was 0.011.</strong> Figure 1 shows every community beside its strongest random set: the gap is two to four orders of magnitude.</p>
+  <figure class="plot">
+    <img src="figures/e1_necessity.png" alt="Two panels, base and Instruct. Each shows 61 communities sorted by median KL when zeroed, on a log scale from 0.0001 to 10. Community points (orange where they pass) sit mostly between 0.7 and 6.5; the largest random-set medians sit between 0.0001 and 0.011. Base: 51 of 61 pass; Instruct: 42 of 61." width="1583" height="558" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Median KL (nats, log scale) of the next-word distribution when each community is zeroed at the predicted word, over its published prompts, for the base model (left) and the chat model (right). Orange: passes (at least 0.7, the dashed line, and above all 10 random sets); dark grey: fails; light grey: the largest median of its 10 layer-matched random sets. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/e1_base.json">e1_base.json</a> and <a href="../results/e1_instruct.json">e1_instruct.json</a>.</figcaption>
+  </figure>
+  <p>The failures are concentrated in one class. Grammar passed 11 of 11, topic 10 of 10, and retrieval, formatting and common phrases 9 of 10 each; the study’s “token suppression” class passed 3 of 10. Those communities still beat their random sets by far (their medians are 0.32 to 0.67), but fall short of 0.7.</p>
+  <p>Our effects are a little smaller than the study’s own numbers (median of community medians 1.17 against their 1.31), and the per-prompt agreement is moderate (median Spearman 0.38, range −0.02 to 0.82). The likely reason is the input: the explorer publishes each prompt as a cut window of the original text, and that window is what was run here. Shorter context changes the prediction, so the numbers cannot match exactly; the pass rate shows the communities matter on the shortened text too.</p>
+
+  <h3 id="chat" data-short="Survives chat tuning">4.2 Most communities survive chat tuning</h3>
+  <p><strong>Of the 51 communities that pass in the base model, 42 also pass in Llama-3.1-8B-Instruct (0.82 [0.70, 0.90]); none passes only in the chat model.</strong> The same neuron indices still matter after instruction tuning, on the same raw web text. The “an” community moves the next word by a median of 6.47 nats in the base model and 4.92 in the chat model; its random sets by at most 0.0006. This is what makes the rest of the note possible: communities found on the base model can be used on the chat model the demo runs.</p>
+
+  <h3 id="screen" data-short="Topic communities steer">4.3 Clamping a topic community on steers; random neurons never do</h3>
+  <p><strong>Clamped at 2× their usual activation, 35 topic communities produced 30 fluent, on-topic replies out of 140; random neurons from the same layers, clamped the same way, produced 0 at every strength. 19 of 35 communities steered at least once.</strong> Figure 2 shows the trade-off with strength: at 1× the model barely moves (3 of 140), at 4× fewer replies stay fluent (55 of 140), and at 8× almost none do (3 of 140). Random clamps left all 140 replies fluent at every strength.</p>
+  <figure class="plot">
+    <img src="figures/e2a_screen.png" alt="Two bar charts over clamp strengths 1, 2, 4 and 8. Left, fluent on-topic replies of 140: community 3, 30, 18, 0; random 0, 0, 0, 0. Right, fluent replies of any topic of 140: community 140, 123, 55, 3; random 140 at every strength." width="1604" height="526" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> Screen: 35 topic communities × 4 questions = 140 replies per strength, 120 tokens. Left: replies that are fluent, loop-free and on the community’s topic. Right: replies that are fluent, any topic. Orange: the community clamped; light grey: one layer-matched random set clamped to its own activation level times the same factor. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/e2a.json">e2a.json</a>.</figcaption>
+  </figure>
+  <p>The replies read like Golden Gate Claude. With the constellations community at 4×: “I’m a constellation of information, and I can provide you with information on various types of food.” With the doctoral thesis community at 2×, asked about an ideal holiday: “For my ideal holiday, I would choose a dissertation on a thesis titled ‘A Comparative Analysis of the Impact of Climate Change on the Biodiversity of Tropical Rainforests in Southeast Asia.’” The 16 communities that never steered include Spain, rugby and heraldry; whether a community is a topic switch or only a topic word-completer cannot be told from its name.</p>
+
+  <h3 id="confirm" data-short="Two clear the bar">4.4 Two of eight clear the bar on held-out questions; loops stop most of the rest</h3>
+  <p><strong>On 15 held-out questions with 300-token replies, altitude steered 10 of 15 [0.42, 0.85] and doctoral thesis 9 of 15 [0.36, 0.80], with every random set and the unsteered model at 1 or fewer. They meet the pre-set bar; the other six finalists do not.</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Community</th><th class="num">Neurons</th><th class="num">c</th><th class="num">Counted</th><th class="num">On topic, any</th><th class="num">Loops</th><th class="num">Direction</th><th class="num">Best random</th><th class="num">Unsteered</th><th>Steers?</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>altitude</td><td class="num">6</td><td class="num">2</td><td class="num">10</td><td class="num">10</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>✓</td></tr>
+        <tr><td>doctoral thesis</td><td class="num">11</td><td class="num">2</td><td class="num">9</td><td class="num">15</td><td class="num">6</td><td class="num">1</td><td class="num">1</td><td class="num">1</td><td>✓</td></tr>
+        <tr><td>humidity</td><td class="num">6</td><td class="num">2</td><td class="num">10</td><td class="num">11</td><td class="num">1</td><td class="num">6</td><td class="num">2</td><td class="num">2</td><td>✗ controls at 2</td></tr>
+        <tr><td>beauty pageant</td><td class="num">8</td><td class="num">2</td><td class="num">7</td><td class="num">14</td><td class="num">8</td><td class="num">4</td><td class="num">0</td><td class="num">0</td><td>✗ loops</td></tr>
+        <tr><td>surgery</td><td class="num">13</td><td class="num">4</td><td class="num">6</td><td class="num">15</td><td class="num">9</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>✗ loops</td></tr>
+        <tr><td>tournament stages</td><td class="num">27</td><td class="num">2</td><td class="num">4</td><td class="num">8</td><td class="num">7</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>✗ loops</td></tr>
+        <tr><td>dinosaurs</td><td class="num">8</td><td class="num">2</td><td class="num">3</td><td class="num">11</td><td class="num">10</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>✗ loops</td></tr>
+        <tr><td>constellations</td><td class="num">7</td><td class="num">4</td><td class="num">0</td><td class="num">12</td><td class="num">15</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td>✗ loops</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Counts of 15 held-out questions. <em>Counted</em>: fluent, loop-free and on topic. <em>On topic, any</em>: names a topic word, looping or not. <em>Direction</em>: counted replies with the norm-matched direction (4.5). <em>c</em>: the clamp strength chosen in the screen. From <a href="../results/e2b.json">e2b.json</a>.</p>
+  <p>The clamps reach the topic far more often than the bar suggests: 8 to 15 of 15 replies name it. What stops them is length. The screen’s replies were 120 tokens; at 300, the clamped model runs into a loop. With the constellations community: “1. <strong>Drink plenty of water</strong>: Cancer Canceris constellations Cancer is a sign of the water constellus and Cancer is a sign of the water constellus and…” This is the same trap the Golden Gate note found with short replies, and the reason its loop check was kept here.</p>
+  <p>Humidity steered 10 of 15, but the unsteered model mentions humidity twice on its own (“Describe your favourite kind of weather” invites it), so it misses the rule “unsteered at most 1”. The bar was set before the run and is kept.</p>
+  <figure class="plot">
+    <img src="figures/e2b_e3_steer.png" alt="Left: horizontal bars for 8 communities, counted on-topic replies of 15 for the community clamp, the direction and the best random set. Community: altitude 10, doctoral thesis 9, humidity 10, constellations 0, beauty pageant 7, surgery 6, tournament stages 4, dinosaurs 3. Direction: 0, 1, 6, 0, 4, 0, 0, 0. Random: 0, 1, 2, 0, 0, 0, 0, 0. Right: on-topic replies against mean KL on unrelated text, log scale. Community points sit at KL 0.56 to 1.61; direction points mostly at 0.03 to 0.7, one at 1.48; random sets near 0.001." width="1776" height="591" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span> Left: counted replies (fluent, loop-free, on topic) of 15 held-out questions for each finalist’s community clamp (orange), a difference-of-means direction of the same size (dark grey) and the best of 3 random sets (light grey). Lines are 95% Wilson intervals; the dashed line is the pre-set bar of 8. Right: the same counts against the cost, the mean KL of the next-word distribution on 200 unrelated web prompts (log scale); grey lines join each community to its own direction. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/e2b.json">e2b.json</a> and <a href="../results/e3.json">e3.json</a>.</figcaption>
+  </figure>
+
+  <h3 id="cost" data-short="Not more surgical">4.5 A community clamp disturbs unrelated text more than a direction does</h3>
+  <p><strong>On 200 unrelated web prompts, the community clamp moved the next-word distribution by 0.56 to 1.61 nats; the direction of the same size by 0.03 to 1.48. The clamp cost more in 6 of 8 finalists.</strong> Random clamps cost almost nothing (at most 0.0016), so the cost comes from these particular neurons, not from clamping as such.</p>
+  <p>The hope behind using a handful of neurons was surgery: change one thing, leave the rest. The data say the opposite, for a clear reason. A clamp holds the neurons at their “on” level at every position, including the many where they would normally be silent or negative, so every word of every prompt gets pushed. The direction (the mean activation difference between the community’s prompts and other topic prompts, added at one layer and scaled to the clamp’s average push there) is gentler, and steers less: it met the bar for none of the eight, with 6 of 15 for humidity and 4 of 15 for beauty pageant at best.</p>
+  <p>So neither method dominates. At equal size at one layer, the clamp gets to the topic more often and costs more everywhere else. A direction tuned for strength, as in the Golden Gate note, might close the first gap; that was not tried here.</p>
+
+  <h3 id="an" data-short="The “an” switch">4.6 Switching off the “an” community breaks articles in chat</h3>
+  <p><strong>With the 46 neurons of the “an” community zeroed everywhere, the chat model wrote “an” before a consonant 8 times in 3,133 words of 15 held-out replies. The unsteered model and three random sets wrote it 0 times.</strong> In context: “working in an traditional office”, “Make an conscious effort”, “playing an musical instrument”, “Take an virtual tour”, “An good outline will help you”, “Research is an crucial step”, “near an north- or east-facing window”, “add an special enzyme”. The one “a” before a vowel in the same replies (“a epic quest”) appears in one random set too, so it is the model’s own habit.</p>
+  <p>The direction of the error is worth noting. The study describes the community as choosing a vowel-initial word after “an”; with it gone, the model does not stop writing “an”, it stops matching the next word to it. The replies are otherwise fluent (15 of 15): as an off-switch, this group removes one rule and little else.</p>
+
+  <h2 id="interactive" data-short="Read the replies"><span class="num">05</span>Read the replies</h2>
+  <p>Every confirmation reply, as generated. Choose a community and an arm; orange tags mark replies that name the topic, grey ones mark loops.</p>
+  <div class="rx" id="rx">
+    <div class="rx-controls">
+      <label>Community <select id="rx-c"></select></label>
+      <label>Arm <select id="rx-a">
+        <option value="community">community clamp</option>
+        <option value="direction">direction, same size</option>
+        <option value="random0">random set 1</option>
+        <option value="none">unsteered</option>
+      </select></label>
+      <span id="rx-n" class="table-note"></span>
+    </div>
+    <div class="rx-list" id="rx-list"><p class="table-note">Loading <a href="../results/e2b.jsonl">results/e2b.jsonl</a>… (if this stays, open the file directly: browsers block local file reads)</p></div>
+  </div>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">06</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Goodfire (2026)</th><th>Golden Gate note</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Unit</td><td>Neuron communities</td><td>Direction; SAE feature</td><td>Neuron communities; direction as baseline</td></tr>
+        <tr><td>Switch off: necessity</td><td>✓ (all 1,941)</td><td>✗</td><td>✓ (61, replicated)</td></tr>
+        <tr><td>Chat model</td><td>✗ (base only)</td><td>✓</td><td>✓ (42 of 51 transfer)</td></tr>
+        <tr><td>Turn on: steering</td><td>✗</td><td>✓</td><td>✓ (2 of 8 meet the bar)</td></tr>
+        <tr><td>Random-neuron control for steering</td><td>✗</td><td>✓ (random directions)</td><td>✓ (layer-matched)</td></tr>
+        <tr><td>Cost on unrelated text</td><td>✗</td><td>✗</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">07</span>Implications for AI safety</h2>
+  <p>Interpretability is most useful to safety when a found unit can be acted on: switched off to remove a capability, or turned on to test what the model does with it. This note shows both are possible with neuron communities, at small scale. The “an” switch removes one rule and leaves fluent text, which is the shape of a targeted edit. The topic clamps show that a group found only by switching things off can also drive behaviour, so attribution at the level of single neurons could find steering handles without training an SAE.</p>
+  <p>The cost result is the caution. A unit that is <em>necessary</em> for one prediction is not thereby <em>specific</em> to it when forced on: these clamps moved unrelated predictions more than a plain direction did. An intervention used for safety, such as suppressing a dangerous capability, needs its collateral measured on unrelated text, not assumed small because the unit is small.</p>
+  <p><strong>The recommendation in one sentence: before using a small neuron group as a control, measure what forcing it does to unrelated text and to long replies, against random neurons and a direction of the same size.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li><strong>One model.</strong> Llama-3.1-8B only; the study replicated its method on a Qwen mixture-of-experts model, which was not tried here.</li>
+    <li><strong>Topic by word list.</strong> A reply counts when it names a topic word; a reply about mountains that never says “elevation” is missed, and a reply that says “thesis statement” about essays is counted. The unsteered and random arms carry the same bias.</li>
+    <li><strong>Four strengths, one way to clamp.</strong> Clamping only where a neuron is already active, or a strength between 2 and 4, might keep replies from looping; not tried.</li>
+    <li><strong>An untuned direction.</strong> The direction was matched in size, not tuned; a direction tuned for steering might match the clamp’s hit rate.</li>
+    <li><strong>Cut prompts.</strong> The explorer’s prompts are windows of the originals, so E1 checks necessity on shorter text than the study used (4.1).</li>
+    <li><strong>15 questions.</strong> Intervals are wide: 10 of 15 is [0.42, 0.85].</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">09</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the shipped results, with no GPU:</p>
+  <pre><code class="language-bash">experiments/neuron-communities/reproduce.sh --scores</code></pre>
+  <p>Rerun everything (about $3 on one H100 on Modal; needs access to the Llama-3.1-8B weights):</p>
+  <pre><code class="language-bash">experiments/neuron-communities/reproduce.sh --dry-run   # lists every command
+experiments/neuron-communities/reproduce.sh</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What’s next</h2>
+  <ul>
+    <li>A <code>neurons</code> control in steerlab, so a community can be clamped or switched off live in the web demo, beside directions and SAE features.</li>
+    <li>Clamping only where a neuron already fires, to see if it keeps the topic and loses the loops.</li>
+    <li>The same tests on the study’s Qwen replication, and with a direction tuned for strength.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">11</span>Questions and answers</h2>
+  <h3 id="q1">What is a neuron community?</h3>
+  <p>A small group of MLP neurons, often fewer than ten across several layers, that are repeatedly credited together for the same next-word predictions. Goodfire found 1,941 in Llama-3.1-8B; each is necessary for its predictions (zeroing it changes them) and mostly sufficient within its layers.</p>
+  <h3 id="q2">Can a neuron community steer a language model?</h3>
+  <p>Some can. Clamping six “altitude” neurons in Llama-3.1-8B-Instruct at twice their usual activation put high altitude into 10 of 15 answers to unrelated questions, against 0 for random neurons in the same layers. Of 8 finalists, 2 met a pre-set bar; most others reached the topic but made long replies loop.</p>
+  <h3 id="q3">Is steering with neurons cleaner than steering with a direction?</h3>
+  <p>Not here. On 200 unrelated web prompts, the community clamps changed the next-word distribution more than a difference-of-means direction of the same size in 6 of 8 cases, while also steering more often.</p>
+  <h3 id="q4">Do communities found in the base model work in the chat model?</h3>
+  <p>Mostly. 42 of the 51 communities that passed the necessity test in Llama-3.1-8B also passed in Llama-3.1-8B-Instruct, and none passed only in the chat model.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code>; <a href="../README.md"><code>README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>e1_base.json</code>, <code>e1_instruct.json</code>: per community, its median KL, its 10 random medians, pass, and its per-prompt KLs.</li>
+    <li><code>e2a.json</code>, <code>e2a.jsonl</code>: the screen’s counts per community and strength, and every reply.</li>
+    <li><code>e2b.json</code>, <code>e2b.jsonl</code>: the confirmation’s counts per finalist and arm, and every reply.</li>
+    <li><code>e3.json</code>, <code>e3_an.jsonl</code>: collateral KLs, and every “an”-switch reply with its error counts.</li>
+    <li><code>summary.json</code>: every rate and interval quoted here, written by <code>make_figures.py</code>.</li>
+  </ul>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Design</th><td>Published neuron communities (Goodfire, 2026) tested by zero-ablation and by clamping, against layer-matched random neuron sets, the unsteered model and a norm-matched difference-of-means direction; plan fixed before any run</td></tr>
+        <tr><th scope="row">Measures</th><td>KL of the next-word distribution; on-topic, fluent and loop-free replies by word list; article errors by first letter</td></tr>
+        <tr><th scope="row">Statistics</th><td>Wilson 95% intervals; Spearman correlation against the study’s per-prompt numbers</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>Llama-3.1-8B and Llama-3.1-8B-Instruct from the Hugging Face Hub</td></tr>
+        <tr><th scope="row">Inference</th><td>PyTorch and Hugging Face Transformers, bfloat16, hooks on the MLP output projection</td></tr>
+        <tr><th scope="row">Compute</th><td>One H100 on Modal, 21 minutes of stage time, about $3</td></tr>
+        <tr><th scope="row">Data</th><td>Goodfire’s neuron-community explorer snapshot <code>2026-11-12-4c7e9dd</code>; code at <a href="https://github.com/goodfire-ai/neuron-communities">goodfire-ai/neuron-communities</a> (MIT)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 17, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026neuroncommunities,
+  author = {Albert Lie},
+  title  = {Six of Llama's neurons can steer it to a topic, at a higher cost than a direction},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/neuron-communities/report/}
+}</code></pre>
+  <footer class="note">Models: Llama-3.1-8B and Llama-3.1-8B-Instruct (Llama 3.1 Community License). Community data: Goodfire’s public explorer.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var NAMES = {"166512": "altitude", "196435": "doctoral thesis", "172130": "humidity", "183515": "beauty pageant", "203358": "surgery", "218716": "tournament stages", "182807": "dinosaurs", "176040": "constellations"};
+  var cSel = document.getElementById("rx-c"), aSel = document.getElementById("rx-a"), list = document.getElementById("rx-list"), n = document.getElementById("rx-n");
+  Object.keys(NAMES).forEach(function (id) { var o = document.createElement("option"); o.value = id; o.textContent = NAMES[id]; cSel.appendChild(o); });
+  var rows = [];
+  function show() {
+    var sel = rows.filter(function (r) { return r.id === cSel.value && r.arm === aSel.value; });
+    list.textContent = "";
+    var hits = 0, loops = 0;
+    sel.forEach(function (r) {
+      if (r.hit) hits++;
+      if (r.loops) loops++;
+      var d = document.createElement("div"); d.className = "rx-item";
+      var q = document.createElement("p"); q.className = "rx-q"; q.textContent = r.q;
+      if (r.hit) { var h = document.createElement("span"); h.className = "rx-tag rx-hit"; h.textContent = "on topic"; q.appendChild(h); }
+      if (r.loops) { var l = document.createElement("span"); l.className = "rx-tag rx-loop"; l.textContent = "loops"; q.appendChild(l); }
+      var a = document.createElement("p"); a.className = "rx-a"; a.textContent = r.text;
+      d.appendChild(q); d.appendChild(a); list.appendChild(d);
+    });
+    n.textContent = sel.length + " replies · " + hits + " on topic · " + loops + " loop";
+  }
+  fetch("../results/e2b.jsonl").then(function (r) { return r.text(); }).then(function (t) {
+    rows = t.trim().split("\n").map(function (l) { return JSON.parse(l); });
+    cSel.addEventListener("change", show); aSel.addEventListener("change", show); show();
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>
