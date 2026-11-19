@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import measures as M  # noqa: E402
+import measures as M
 
 
 def test_repetition_identical_and_orthogonal():

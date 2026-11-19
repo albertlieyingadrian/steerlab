@@ -20,19 +20,27 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import judge_prompt as J  # noqa: E402
-from openrouter_client import CapReached, OpenRouter  # noqa: E402
+import judge_prompt as J
+from openrouter_client import CapReached, OpenRouter
 
 # The paper's decoding (top-p 0.9, temperature 1.0), reply cap 512 tokens, reasoning off where the API allows.
 FRONTIER = {
     "anthropic/claude-sonnet-5.5": {"temperature": 1.0, "top_p": 0.9, "max_tokens": 512},
     "openai/gpt-5.4-mini": {"temperature": 1.0, "top_p": 0.9, "max_tokens": 512, "reasoning": {"effort": "none"}},
-    "google/gemini-3.8-flash": {"temperature": 1.0, "top_p": 0.9, "max_tokens": 512,
-                                "reasoning": {"effort": "minimal"}},
+    "google/gemini-3.8-flash": {
+        "temperature": 1.0,
+        "top_p": 0.9,
+        "max_tokens": 512,
+        "reasoning": {"effort": "minimal"},
+    },
 }
 API_JUDGES = {
     "openai/gpt-4o-2024-11-20": {"temperature": 0.0, "max_tokens": 300},
-    "anthropic/claude-haiku-5.5": {"temperature": 0.0, "max_tokens": 800, "reasoning": {"enabled": False}},  # see dev ledger
+    "anthropic/claude-haiku-5.5": {
+        "temperature": 0.0,
+        "max_tokens": 800,
+        "reasoning": {"enabled": False},
+    },  # see dev ledger
 }
 
 
@@ -66,7 +74,7 @@ def _run_parallel(jobs, fn, path: Path, workers: int):
                 print("STOP:", e)
                 ex.shutdown(cancel_futures=True)
                 return
-            except Exception as e:  # noqa: BLE001 - log and continue; failures are counted in analysis
+            except Exception as e:
                 print("call failed:", type(e).__name__, str(e)[:200])
                 continue
             f.write(json.dumps(row) + "\n")
@@ -88,9 +96,16 @@ def cmd_gen(args):
             p, s = job
             r = client.chat(model, [{"role": "user", "content": p["query"]}], **FRONTIER[model])
             ntok = (r["usage"] or {}).get("completion_tokens")
-            return {"model": model, "prompt_id": p["prompt_id"], "sample": s, "text": r["text"].strip(),
-                    "n_tokens": ntok, "truncated": r["finish_reason"] == "length", "usd": r["usd"],
-                    "provider": r["provider"]}
+            return {
+                "model": model,
+                "prompt_id": p["prompt_id"],
+                "sample": s,
+                "text": r["text"].strip(),
+                "n_tokens": ntok,
+                "truncated": r["finish_reason"] == "length",
+                "usd": r["usd"],
+                "provider": r["provider"],
+            }
 
         _run_parallel(jobs, one, path, args.workers)
     print(f"total OpenRouter spend ${OpenRouter.total_spent():.2f}")
@@ -99,17 +114,23 @@ def cmd_gen(args):
 def cmd_judge(args):
     client = OpenRouter("hivemind-judge")
     items = rated_items(args.limit)
-    for judge in (args.models.split(",") if args.models else list(API_JUDGES)):
+    for judge in args.models.split(",") if args.models else list(API_JUDGES):
         path = HERE / "results" / "raw" / args.run / "judges" / f"{judge.replace('/', '__')}.jsonl"
         done = _done(path, ("item_id",))
         jobs = [r for r in items.itertuples() if (r.item_id,) not in done]
         print(f"{judge}: {len(jobs)} items; spent so far ${client.spent:.2f}")
 
         def one(r, judge=judge):
-            out = client.chat(judge, [{"role": "user", "content": J.overall_prompt(r.user_query, r.response)}],
-                              **API_JUDGES[judge])
-            return {"judge": judge, "item_id": int(r.item_id), "raw": out["text"], "score": J.parse_score(out["text"]),
-                    "usd": out["usd"]}
+            out = client.chat(
+                judge, [{"role": "user", "content": J.overall_prompt(r.user_query, r.response)}], **API_JUDGES[judge]
+            )
+            return {
+                "judge": judge,
+                "item_id": int(r.item_id),
+                "raw": out["text"],
+                "score": J.parse_score(out["text"]),
+                "usd": out["usd"],
+            }
 
         _run_parallel(jobs, one, path, args.workers)
     print(f"total OpenRouter spend ${OpenRouter.total_spent():.2f}")
@@ -122,11 +143,26 @@ def cmd_checks(args):
     client = OpenRouter("hivemind-checks")  # also loads .env (OPENAI_API_KEY for embeddings)
     out = {}
     para = [
-        ("The cat sat on the warm windowsill all afternoon.", "All afternoon the cat lounged on the sunny window ledge."),
-        ("Remote work saves commuting time but can feel isolating.", "Working from home cuts the commute, though it can be lonely."),
-        ("Drink water regularly to stay hydrated during exercise.", "Stay hydrated while exercising by drinking water often."),
-        ("The startup raised money to expand into Europe.", "The young company secured funding to grow in European markets."),
-        ("Autumn leaves turn red and gold before they fall.", "Before falling, the leaves of autumn go red and golden."),
+        (
+            "The cat sat on the warm windowsill all afternoon.",
+            "All afternoon the cat lounged on the sunny window ledge.",
+        ),
+        (
+            "Remote work saves commuting time but can feel isolating.",
+            "Working from home cuts the commute, though it can be lonely.",
+        ),
+        (
+            "Drink water regularly to stay hydrated during exercise.",
+            "Stay hydrated while exercising by drinking water often.",
+        ),
+        (
+            "The startup raised money to expand into Europe.",
+            "The young company secured funding to grow in European markets.",
+        ),
+        (
+            "Autumn leaves turn red and gold before they fall.",
+            "Before falling, the leaves of autumn go red and golden.",
+        ),
         ("Practice daily if you want to learn the piano.", "Learning piano takes practising every day."),
         ("The museum is closed on Mondays.", "On Mondays the museum does not open."),
         ("Bake the bread at 220 degrees for thirty minutes.", "Cook the loaf for half an hour at 220 degrees."),
@@ -146,7 +182,7 @@ def cmd_checks(args):
     # Judges: 10 rated items (one per prompt), each original vs an off-topic (even) or truncated (odd) version
     items = rated_items().groupby("question_id").head(1).head(10).reset_index(drop=True)
     judge_rows = []
-    for judge in (args.models.split(",") if args.models else list(API_JUDGES)):
+    for judge in args.models.split(",") if args.models else list(API_JUDGES):
         wins = 0
         for i, r in items.iterrows():
             bad = items.response[(i + 5) % len(items)] if i % 2 == 0 else r.response[: max(20, len(r.response) // 8)]
@@ -155,9 +191,15 @@ def cmd_checks(args):
             s_good = J.parse_score(client.chat(judge, msgs_good, **API_JUDGES[judge])["text"])
             s_bad = J.parse_score(client.chat(judge, msgs_bad, **API_JUDGES[judge])["text"])
             wins += int(s_good is not None and s_bad is not None and s_bad < s_good)
-            judge_rows.append({"judge": judge, "item_id": int(r.item_id),
-                               "kind": "off-topic" if i % 2 == 0 else "truncated",
-                               "score_original": s_good, "score_bad": s_bad})
+            judge_rows.append(
+                {
+                    "judge": judge,
+                    "item_id": int(r.item_id),
+                    "kind": "off-topic" if i % 2 == 0 else "truncated",
+                    "score_original": s_good,
+                    "score_bad": s_bad,
+                }
+            )
         out[f"judge_known_bad__{judge}"] = f"{wins}/10"
     path = HERE / "results" / "checks"
     path.mkdir(parents=True, exist_ok=True)

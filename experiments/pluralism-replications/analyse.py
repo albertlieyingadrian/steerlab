@@ -18,24 +18,43 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import measures as M  # noqa: E402
+import measures as M
 
 RES = HERE / "results"
 NB = M.N_BOOT
 FAMILIES = {
-    "gemma3-12b": {"PT": "google/gemma-3-12b-pt", "IT": "google/gemma-3-12b-it", "ST": "tsor13/spectrum-gemma-3-12b-v1"},
+    "gemma3-12b": {
+        "PT": "google/gemma-3-12b-pt",
+        "IT": "google/gemma-3-12b-it",
+        "ST": "tsor13/spectrum-gemma-3-12b-v1",
+    },
     "qwen3-8b": {"PT": "Qwen/Qwen3-8B-Base", "IT": "Qwen/Qwen3-8B"},
     "qwen3.5-9b": {"PT": "Qwen/Qwen3.5-9B-Base", "IT": "Qwen/Qwen3.5-9B"},
 }
 FORMAT = {"PT": "colon", "IT": "chat", "ST": "spectrum"}
-CATEGORICAL = ["habermas_individual_categorical", "numbergame_individual", "chatbotarena_individual_prefs", "flight",
-               "wvs_individual"]
+CATEGORICAL = [
+    "habermas_individual_categorical",
+    "numbergame_individual",
+    "chatbotarena_individual_prefs",
+    "flight",
+    "wvs_individual",
+]
 OPEN_INSTRUCT = ["google/gemma-3-12b-it", "Qwen/Qwen3-8B", "Qwen/Qwen3.5-9B"]
 FRONTIER = ["anthropic/claude-sonnet-5.5", "openai/gpt-5.4-mini", "google/gemini-3.8-flash"]
-DEVELOPER = {"google/gemma-3-12b-it": "Google", "google/gemini-3.8-flash": "Google", "Qwen/Qwen3-8B": "Alibaba",
-             "Qwen/Qwen3.5-9B": "Alibaba", "anthropic/claude-sonnet-5.5": "Anthropic", "openai/gpt-5.4-mini": "OpenAI"}
-JUDGES = ["openai/gpt-4o-2024-11-20", "anthropic/claude-haiku-5.5", "prometheus-eval/prometheus-7b-v2.0",
-          "Qwen/Qwen3-8B"]
+DEVELOPER = {
+    "google/gemma-3-12b-it": "Google",
+    "google/gemini-3.8-flash": "Google",
+    "Qwen/Qwen3-8B": "Alibaba",
+    "Qwen/Qwen3.5-9B": "Alibaba",
+    "anthropic/claude-sonnet-5.5": "Anthropic",
+    "openai/gpt-5.4-mini": "OpenAI",
+}
+JUDGES = [
+    "openai/gpt-4o-2024-11-20",
+    "anthropic/claude-haiku-5.5",
+    "prometheus-eval/prometheus-7b-v2.0",
+    "Qwen/Qwen3-8B",
+]
 
 
 def mdir(run, model):
@@ -91,9 +110,19 @@ def analyse_A(run, rng_seed=0):
             rel_est.append(rel)
             g_est.append((np.nanmean(gb) - np.nanmean(ga)) / np.nanmean(lf))
             lo, hi = M.percentile_ci(rel_boot[:, j])
-            row = {"family": fam, "task": t, "n": len(common), "loss_PT": b.mean(), "loss_IT_chat": a.mean(),
-                   "rel_change": rel, "lo": lo, "hi": hi, "verdict": M.verdict(lo, hi),
-                   "gain_PT": float(np.nanmean(gb) / np.nanmean(lf)), "gain_IT": float(np.nanmean(ga) / np.nanmean(lf))}
+            row = {
+                "family": fam,
+                "task": t,
+                "n": len(common),
+                "loss_PT": b.mean(),
+                "loss_IT_chat": a.mean(),
+                "rel_change": rel,
+                "lo": lo,
+                "hi": hi,
+                "verdict": M.verdict(lo, hi),
+                "gain_PT": float(np.nanmean(gb) / np.nanmean(lf)),
+                "gain_IT": float(np.nanmean(ga) / np.nanmean(lf)),
+            }
             if t in it_colon:
                 c = it_colon[t].loc[it_colon[t].index.intersection(common), "loss_geq_1"]
                 row["loss_IT_colon"] = float(c.mean())
@@ -117,21 +146,34 @@ def analyse_A(run, rng_seed=0):
         lo, hi = M.percentile_ci(fam_boot[fam])
         glo, ghi = M.percentile_ci(gain_boot[fam])
         sub = per_task[per_task.family == fam]
-        fams[fam] = ci({"rel_change": fam_est[fam], "lo": lo, "hi": hi, "verdict": M.verdict(lo, hi),
-                        "n_tasks": len(sub), "tasks_IT_worse": int((sub.verdict == "replicated").sum()),
-                        "tasks_IT_better": int((sub.verdict == "not replicated").sum()),
-                        "gain_gap": gain_est[fam], "gain_lo": glo, "gain_hi": ghi,
-                        "rel_change_colon_mean": float(sub.rel_change_colon.mean()) if "rel_change_colon" in sub
-                        else None})
+        fams[fam] = ci(
+            {
+                "rel_change": fam_est[fam],
+                "lo": lo,
+                "hi": hi,
+                "verdict": M.verdict(lo, hi),
+                "n_tasks": len(sub),
+                "tasks_IT_worse": int((sub.verdict == "replicated").sum()),
+                "tasks_IT_better": int((sub.verdict == "not replicated").sum()),
+                "gain_gap": gain_est[fam],
+                "gain_lo": glo,
+                "gain_hi": ghi,
+                "rel_change_colon_mean": float(sub.rel_change_colon.mean()) if "rel_change_colon" in sub else None,
+            }
+        )
     pooled = np.mean([fam_boot[f] for f in fam_boot], 0)
     lo, hi = M.percentile_ci(pooled)
     est = float(np.mean([fam_est[f] for f in fam_boot]))
     gpool = np.mean([gain_boot[f] for f in gain_boot], 0)
     glo, ghi = M.percentile_ci(gpool)
-    return {"pooled": ci({"rel_change": est, "lo": lo, "hi": hi, "verdict": M.verdict(lo, hi)}),
-            "context_gain_gap_pooled": ci({"est": float(np.mean(list(gain_est.values()))), "lo": glo, "hi": ghi,
-                                           "verdict": M.verdict(glo, ghi)}),
-            "families": fams, "per_task": per_task.round(4).to_dict(orient="records")}
+    return {
+        "pooled": ci({"rel_change": est, "lo": lo, "hi": hi, "verdict": M.verdict(lo, hi)}),
+        "context_gain_gap_pooled": ci(
+            {"est": float(np.mean(list(gain_est.values()))), "lo": glo, "hi": ghi, "verdict": M.verdict(glo, ghi)}
+        ),
+        "families": fams,
+        "per_task": per_task.round(4).to_dict(orient="records"),
+    }
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -160,12 +202,22 @@ def analyse_B(run, rng_seed=0):
         dfs = {role: load_cov(run, m, FORMAT[role]) for role, m in mods.items()}
         for role, df in dfs.items():
             if len(df):
-                per_model[mods[role]] = ci({"yield": float(df["yield"].mean()), "validity": float(df.validity.mean()),
-                                            "diversity": float(df.diversity.mean()), "n_cells": len(df)}
-                                           | {f"yield_{s}": float(df[df.setting == s]["yield"].mean())
-                                              for s in ("description", "examples", "both")}
-                                           | {f"validity_{s}": float(df[df.setting == s].validity.mean())
-                                              for s in ("description", "examples", "both")})
+                per_model[mods[role]] = ci(
+                    {
+                        "yield": float(df["yield"].mean()),
+                        "validity": float(df.validity.mean()),
+                        "diversity": float(df.diversity.mean()),
+                        "n_cells": len(df),
+                    }
+                    | {
+                        f"yield_{s}": float(df[df.setting == s]["yield"].mean())
+                        for s in ("description", "examples", "both")
+                    }
+                    | {
+                        f"validity_{s}": float(df[df.setting == s].validity.mean())
+                        for s in ("description", "examples", "both")
+                    }
+                )
         pt, it = dfs["PT"], dfs["IT"]
         if not len(pt) or not len(it):
             continue
@@ -188,10 +240,19 @@ def analyse_B(run, rng_seed=0):
         for t, sub in per_task.items():
             for s in ("description", "examples", "both"):
                 ss = sub[sub.setting == s]
-                rows.append({"family": fam, "task": t, "setting": s, "yield_PT": ss.yield_pt.mean(),
-                             "yield_IT": ss.yield_it.mean(), "validity_PT": ss.validity_pt.mean(),
-                             "validity_IT": ss.validity_it.mean(), "diversity_PT": ss.diversity_pt.mean(),
-                             "diversity_IT": ss.diversity_it.mean()})
+                rows.append(
+                    {
+                        "family": fam,
+                        "task": t,
+                        "setting": s,
+                        "yield_PT": ss.yield_pt.mean(),
+                        "yield_IT": ss.yield_it.mean(),
+                        "validity_PT": ss.validity_pt.mean(),
+                        "validity_IT": ss.validity_it.mean(),
+                        "diversity_PT": ss.diversity_pt.mean(),
+                        "diversity_IT": ss.diversity_it.mean(),
+                    }
+                )
     table = pd.DataFrame(rows)
     table.to_csv(RES / "B_coverage_per_task.csv", index=False)
     fams = {}
@@ -201,8 +262,12 @@ def analyse_B(run, rng_seed=0):
     pooled = np.mean([fam_boot[f] for f in fam_boot], 0)
     lo, hi = M.percentile_ci(pooled)
     est = float(np.mean(list(fam_est.values())))
-    return {"pooled": ci({"yield_gap": est, "lo": lo, "hi": hi, "verdict": M.verdict(lo, hi)}), "families": fams,
-            "per_model": per_model, "per_task": table.round(3).to_dict(orient="records")}
+    return {
+        "pooled": ci({"yield_gap": est, "lo": lo, "hi": hi, "verdict": M.verdict(lo, hi)}),
+        "families": fams,
+        "per_model": per_model,
+        "per_task": table.round(3).to_dict(orient="records"),
+    }
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -274,7 +339,9 @@ def analyse_CD(run, rng_seed=0, drop_empty=True):
     G = np.einsum("mpsd,mptd->mpst", cube, cube)
     ident = np.tile(np.arange(S), (P, 1))
     rep = {m: _rep_from(G[i], ident, valid[i]) for i, m in enumerate(allm)}
-    rep_tab = pd.DataFrame([{"model": m, "prompt_id": p, "repetition": float(rep[m][p])} for m in allm for p in range(P)])
+    rep_tab = pd.DataFrame(
+        [{"model": m, "prompt_id": p, "repetition": float(rep[m][p])} for m in allm for p in range(P)]
+    )
     rep_tab.to_csv(RES / "C_repetition_per_prompt.csv", index=False)
     boots_med = {m: [] for m in allm}
     boots_mean = {m: [] for m in allm}
@@ -290,12 +357,23 @@ def analyse_CD(run, rng_seed=0, drop_empty=True):
         lo, hi = M.percentile_ci(np.array(boots_med[m]) - 0.8)
         mlo, mhi = M.percentile_ci(boots_mean[m])
         sub = df[df.model == m]
-        C[m] = ci({"median": float(np.nanmedian(rep[m])), "median_minus_0.8_lo": lo, "median_minus_0.8_hi": hi,
-                   "verdict": M.verdict(lo, hi) if m in instruct else "n/a (base)",
-                   "mean": float(np.nanmean(rep[m])), "mean_lo": mlo, "mean_hi": mhi,
-                   "share_above_0.8": float(np.nanmean(rep[m] > 0.8) if False else (rep[m][~np.isnan(rep[m])] > 0.8).mean()), "empty_rate": float(sub.is_empty.mean()),
-                   "truncated_rate": float(sub.truncated.fillna(False).astype(bool).mean()),
-                   "mean_tokens": float(pd.to_numeric(sub.n_tokens, errors="coerce").mean())})
+        C[m] = ci(
+            {
+                "median": float(np.nanmedian(rep[m])),
+                "median_minus_0.8_lo": lo,
+                "median_minus_0.8_hi": hi,
+                "verdict": M.verdict(lo, hi) if m in instruct else "n/a (base)",
+                "mean": float(np.nanmean(rep[m])),
+                "mean_lo": mlo,
+                "mean_hi": mhi,
+                "share_above_0.8": float(
+                    np.nanmean(rep[m] > 0.8) if False else (rep[m][~np.isnan(rep[m])] > 0.8).mean()
+                ),
+                "empty_rate": float(sub.is_empty.mean()),
+                "truncated_rate": float(sub.truncated.fillna(False).astype(bool).mean()),
+                "mean_tokens": float(pd.to_numeric(sub.n_tokens, errors="coerce").mean()),
+            }
+        )
     n_rep = sum(C[m]["verdict"] == "replicated" for m in instruct)
     floor = M.cross_prompt_floor(df, emb).set_index("model")["floor"].to_dict()
     cprime = {}
@@ -307,11 +385,19 @@ def analyse_CD(run, rng_seed=0, drop_empty=True):
             for _ in range(NB):
                 p_idx = rng.integers(0, P, P)
                 sa, sb = rng.integers(0, S, (P, S)), rng.integers(0, S, (P, S))
-                bs.append(np.nanmean(_rep_from(G[ia][p_idx], sa, valid[ia][p_idx]))
-                          - np.nanmean(_rep_from(G[ib][p_idx], sb, valid[ib][p_idx])))
+                bs.append(
+                    np.nanmean(_rep_from(G[ia][p_idx], sa, valid[ia][p_idx]))
+                    - np.nanmean(_rep_from(G[ib][p_idx], sb, valid[ib][p_idx]))
+                )
             lo, hi = M.percentile_ci(bs)
-            cprime[fam] = ci({"instruct_minus_base": float(np.nanmean(rep[a]) - np.nanmean(rep[b])), "lo": lo, "hi": hi,
-                              "verdict": M.verdict(lo, hi)})
+            cprime[fam] = ci(
+                {
+                    "instruct_minus_base": float(np.nanmean(rep[a]) - np.nanmean(rep[b])),
+                    "lo": lo,
+                    "hi": hi,
+                    "verdict": M.verdict(lo, hi),
+                }
+            )
     pairs = [(a, b) for i, a in enumerate(instruct) for b in instruct[i + 1 :]]
     X = {}
     for a, b in pairs:
@@ -322,9 +408,16 @@ def analyse_CD(run, rng_seed=0, drop_empty=True):
     for (a, b), (Xab, okab) in X.items():
         cr = _cross_from(Xab, okab, allp, ident, ident)
         within = (rep[a] + rep[b]) / 2
-        pair_rows.append({"model_a": a, "model_b": b, "cross": float(np.nanmean(cr)), "ratio": float(np.nanmean(cr / within)),
-                          "cross_developer": DEVELOPER.get(a) != DEVELOPER.get(b),
-                          "frontier_open": (a in FRONTIER) != (b in FRONTIER)})
+        pair_rows.append(
+            {
+                "model_a": a,
+                "model_b": b,
+                "cross": float(np.nanmean(cr)),
+                "ratio": float(np.nanmean(cr / within)),
+                "cross_developer": DEVELOPER.get(a) != DEVELOPER.get(b),
+                "frontier_open": (a in FRONTIER) != (b in FRONTIER),
+            }
+        )
     pair_tab = pd.DataFrame(pair_rows)
     pair_tab.to_csv(RES / "D_cross_model_pairs.csv", index=False)
     dboot, dboot_dev, dboot_fo = [], [], []
@@ -340,15 +433,24 @@ def analyse_CD(run, rng_seed=0, drop_empty=True):
     lo, hi = M.percentile_ci(np.array(dboot) - 0.7)
     dlo, dhi = M.percentile_ci(dboot_dev)
     flo, fhi = M.percentile_ci(dboot_fo)
-    D = ci({"mean_cross": float(pair_tab.cross.mean()), "minus_0.70_lo": lo, "minus_0.70_hi": hi,
-            "verdict": M.verdict(lo, hi), "n_pairs": len(pair_tab),
+    D = ci(
+        {
+            "mean_cross": float(pair_tab.cross.mean()),
+            "minus_0.70_lo": lo,
+            "minus_0.70_hi": hi,
+            "verdict": M.verdict(lo, hi),
+            "n_pairs": len(pair_tab),
             "mean_within_instruct": float(np.mean([np.nanmean(rep[m]) for m in instruct])),
             "homogeneity_ratio": float(pair_tab.ratio.mean()),
             "cross_developer_mean": float(pair_tab[pair_tab.cross_developer].cross.mean()),
-            "cross_developer_lo": dlo, "cross_developer_hi": dhi,
+            "cross_developer_lo": dlo,
+            "cross_developer_hi": dhi,
             "frontier_open_mean": float(pair_tab[pair_tab.frontier_open].cross.mean()) if len(fo_pairs) else None,
-            "frontier_open_lo": flo, "frontier_open_hi": fhi,
-            "floor_mean": float(np.mean([floor[m] for m in instruct]))})
+            "frontier_open_lo": flo,
+            "frontier_open_hi": fhi,
+            "floor_mean": float(np.mean([floor[m] for m in instruct])),
+        }
+    )
     q = pd.read_parquet("hf://datasets/liweijiang/infinite-chats-eval/data/train-00000-of-00001.parquet")["query"]
     mean_rep = rep_tab[rep_tab.model.isin(instruct)].groupby("prompt_id").repetition.mean().dropna().sort_values()
     examples = []
@@ -357,12 +459,22 @@ def analyse_CD(run, rng_seed=0, drop_empty=True):
         for m in instruct:
             ex["samples"][m] = df[(df.model == m) & (df.prompt_id == pid)].text.head(3).str.slice(0, 500).tolist()
         examples.append(ex)
-    return {"C": {"per_model": C, "n_instruct_replicated": int(n_rep), "n_instruct": len(instruct),
-                  "verdict": "replicated" if n_rep >= 4 else ("null" if n_rep >= 1 else "not replicated"),
-                  "floor": {m: round(v, 4) for m, v in floor.items()}, "C_prime": cprime},
-            "D": D | {"pairs": pair_tab.round(4).to_dict(orient="records")},
-            "examples": examples, "per_prompt_repetition": rep_tab.round(4).to_dict(orient="records"),
-            "queries": q.tolist(), "embedding_usd": round(M.embed_texts.usd_used, 4), "n_samples": len(df)}
+    return {
+        "C": {
+            "per_model": C,
+            "n_instruct_replicated": int(n_rep),
+            "n_instruct": len(instruct),
+            "verdict": "replicated" if n_rep >= 4 else ("null" if n_rep >= 1 else "not replicated"),
+            "floor": {m: round(v, 4) for m, v in floor.items()},
+            "C_prime": cprime,
+        },
+        "D": D | {"pairs": pair_tab.round(4).to_dict(orient="records")},
+        "examples": examples,
+        "per_prompt_repetition": rep_tab.round(4).to_dict(orient="records"),
+        "queries": q.tolist(),
+        "embedding_usd": round(M.embed_texts.usd_used, 4),
+        "n_samples": len(df),
+    }
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -451,40 +563,62 @@ def analyse_E(run, rng_seed=0, n_splits=40):
 
     per_judge = {}
     for j in cols:
-        per_judge[j] = {"r": {b: round(est[(j, b)], 4) for b in bins},
-                        "r_over_ceiling": {b: round(est[(j, b)] / est[("ceil", b)], 4) for b in bins},
-                        "diff": ci(summ(lambda s, j=j: s[(j, "low")] - s[(j, "high")])),
-                        "diff_ceiling": ci(summ(lambda s, j=j: s[(j, "low")] / s[("ceil", "low")]
-                                                - s[(j, "high")] / s[("ceil", "high")])),
-                        "parse_rate": float(items[j].notna().mean()) if j in judges else 1.0}
+        per_judge[j] = {
+            "r": {b: round(est[(j, b)], 4) for b in bins},
+            "r_over_ceiling": {b: round(est[(j, b)] / est[("ceil", b)], 4) for b in bins},
+            "diff": ci(summ(lambda s, j=j: s[(j, "low")] - s[(j, "high")])),
+            "diff_ceiling": ci(
+                summ(lambda s, j=j: s[(j, "low")] / s[("ceil", "low")] - s[(j, "high")] / s[("ceil", "high")])
+            ),
+            "parse_rate": float(items[j].notna().mean()) if j in judges else 1.0,
+        }
     raw = summ(lambda s: np.nanmean([s[(j, "low")] - s[(j, "high")] for j in judges]))
-    norm = summ(lambda s: np.nanmean([s[(j, "low")] / s[("ceil", "low")] - s[(j, "high")] / s[("ceil", "high")]
-                                   for j in judges]))
+    norm = summ(
+        lambda s: np.nanmean(
+            [s[(j, "low")] / s[("ceil", "low")] - s[(j, "high")] / s[("ceil", "high")] for j in judges]
+        )
+    )
     ceil_diff = summ(lambda s: s[("ceil", "low")] - s[("ceil", "high")])
     paper_drop = summ(lambda s: np.nanmean([s[(j, "full")] - s[(j, "top16")] for j in judges]))
-    paper_drop_ceiling = summ(lambda s: np.nanmean([s[(j, "full")] / s[("ceil", "full")] - s[(j, "top16")] / s[("ceil", "top16")]
-                                                    for j in judges]))
+    paper_drop_ceiling = summ(
+        lambda s: np.nanmean(
+            [s[(j, "full")] / s[("ceil", "full")] - s[(j, "top16")] / s[("ceil", "top16")] for j in judges]
+        )
+    )
     sd_range = {b: float(items.human_mean[items.bin == b].std()) for b in bins}
     loo = {b: M.loo_rater_r([labels[i] for i in np.where(bin_arr == b)[0]], n_draws=100) for b in bins}
     top = (items.entropy >= items.entropy.quantile(0.84)).to_numpy()
-    paper_style = {j: {"full": M.pearson(cols[j], hm_all), "top16": M.pearson(cols[j][top], hm_all[top])}
-                   for j in cols}
-    bin_desc = items.groupby("bin").agg(n=("item_id", "size"), entropy=("entropy", "mean"),
-                                        human_mean=("human_mean", "mean"), human_mean_sd=("human_mean", "std"))
+    paper_style = {j: {"full": M.pearson(cols[j], hm_all), "top16": M.pearson(cols[j][top], hm_all[top])} for j in cols}
+    bin_desc = items.groupby("bin").agg(
+        n=("item_id", "size"),
+        entropy=("entropy", "mean"),
+        human_mean=("human_mean", "mean"),
+        human_mean_sd=("human_mean", "std"),
+    )
     items[["item_id", "question_id", "human_mean", "entropy", "bin", "length"] + judges].to_csv(
-        RES / "E_items.csv", index=False)
-    return {"verdict": M.verdict(raw["lo"], raw["hi"]), "raw_diff": ci(raw),
-            "ceiling_diff_verdict": M.verdict(norm["lo"], norm["hi"]), "ceiling_normalised_diff": ci(norm),
-            "ceiling": {b: round(est[("ceil", b)], 4) for b in bins},
-            "reliability_rho": {b: round(est[("rho", b)], 4) for b in bins}, "ceiling_low_minus_high": ci(ceil_diff),
-            "one_rater_r": {b: round(v, 4) for b, v in loo.items()}, "per_judge": per_judge, "judges": judges,
-            "paper_style_drop": ci(paper_drop), "paper_style_drop_verdict": M.verdict(paper_drop["lo"], paper_drop["hi"]),
-            "paper_style_drop_ceiling": ci(paper_drop_ceiling),
-            "paper_style_ceiling": {"full": round(est[("ceil", "full")], 4), "top16": round(est[("ceil", "top16")], 4)},
-            "human_mean_sd_by_bin": {b: round(v, 4) for b, v in sd_range.items()},
-            "paper_style": {j: {k: round(v, 4) for k, v in d.items()} for j, d in paper_style.items()},
-            "bins": bin_desc.round(4).reset_index().to_dict(orient="records"), "n_items": len(items),
-            "n_prompts": len(uq)}
+        RES / "E_items.csv", index=False
+    )
+    return {
+        "verdict": M.verdict(raw["lo"], raw["hi"]),
+        "raw_diff": ci(raw),
+        "ceiling_diff_verdict": M.verdict(norm["lo"], norm["hi"]),
+        "ceiling_normalised_diff": ci(norm),
+        "ceiling": {b: round(est[("ceil", b)], 4) for b in bins},
+        "reliability_rho": {b: round(est[("rho", b)], 4) for b in bins},
+        "ceiling_low_minus_high": ci(ceil_diff),
+        "one_rater_r": {b: round(v, 4) for b, v in loo.items()},
+        "per_judge": per_judge,
+        "judges": judges,
+        "paper_style_drop": ci(paper_drop),
+        "paper_style_drop_verdict": M.verdict(paper_drop["lo"], paper_drop["hi"]),
+        "paper_style_drop_ceiling": ci(paper_drop_ceiling),
+        "paper_style_ceiling": {"full": round(est[("ceil", "full")], 4), "top16": round(est[("ceil", "top16")], 4)},
+        "human_mean_sd_by_bin": {b: round(v, 4) for b, v in sd_range.items()},
+        "paper_style": {j: {k: round(v, 4) for k, v in d.items()} for j, d in paper_style.items()},
+        "bins": bin_desc.round(4).reset_index().to_dict(orient="records"),
+        "n_items": len(items),
+        "n_prompts": len(uq),
+    }
 
 
 PRIVATE_TASKS = ("email", "phone")  # generated addresses and numbers may belong to real people
@@ -498,8 +632,10 @@ def redact_coverage(run):
             r = json.loads(line)
             if any(k in r["task"] for k in PRIVATE_TASKS) and "generations" in r:
                 st = M.coverage_stats(r["generations"], r["validity"])
-                r = {k: v for k, v in r.items() if k not in ("generations", "validity")} | {"redacted": True,
-                                                                                         "stats": st}
+                r = {k: v for k, v in r.items() if k not in ("generations", "validity")} | {
+                    "redacted": True,
+                    "stats": st,
+                }
                 changed = True
             rows.append(r)
         if changed:
@@ -541,8 +677,13 @@ def main():
         print("D", json.dumps({k: v for k, v in cd["D"].items() if k != "pairs"}))
     if "E" in args.only:
         summary["E"] = analyse_E(args.run)
-        print("E", summary["E"]["verdict"], summary["E"]["raw_diff"], summary["E"]["ceiling_diff_verdict"],
-              summary["E"]["ceiling_normalised_diff"])
+        print(
+            "E",
+            summary["E"]["verdict"],
+            summary["E"]["raw_diff"],
+            summary["E"]["ceiling_diff_verdict"],
+            summary["E"]["ceiling_normalised_diff"],
+        )
     summary["spend"] = spend()
     out_path.write_text(json.dumps(summary, indent=1, default=float))
     print("spend", summary["spend"])

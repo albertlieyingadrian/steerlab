@@ -50,7 +50,7 @@ def parse_score(text: str) -> int | None:
     except (ValueError, AttributeError, TypeError, json.JSONDecodeError):
         pass
     for pat in (r'"?score"?\s*[:=]\s*"?([1-5])', r"score (?:is|of)\s*\**([1-5])\b", r"\[RESULT\]\s*([1-5])"):
-        m = re.search(pat, text, re.I)
+        m = re.search(pat, text, re.IGNORECASE)
         if m:
             return int(m.group(1))
     return None

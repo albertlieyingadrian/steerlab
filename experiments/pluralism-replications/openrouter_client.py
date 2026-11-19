@@ -63,24 +63,43 @@ class OpenRouter:
             except (requests.RequestException, ValueError):
                 if attempt == 5:
                     raise
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
         usage = data.get("usage") or {}
         usd = float(usage.get("cost") or 0.0)
         with self.lock:
             self.spent += usd
             LEDGER.parent.mkdir(parents=True, exist_ok=True)
             with open(LEDGER, "a") as f:
-                f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": self.label, "model": model,
-                                    "usd": usd, "prompt_tokens": usage.get("prompt_tokens"),
-                                    "completion_tokens": usage.get("completion_tokens")}) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "t": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                            "label": self.label,
+                            "model": model,
+                            "usd": usd,
+                            "prompt_tokens": usage.get("prompt_tokens"),
+                            "completion_tokens": usage.get("completion_tokens"),
+                        }
+                    )
+                    + "\n"
+                )
         ch = data["choices"][0]
-        return {"text": (ch.get("message") or {}).get("content") or "", "usd": usd, "usage": usage,
-                "finish_reason": ch.get("finish_reason"), "provider": data.get("provider")}
+        return {
+            "text": (ch.get("message") or {}).get("content") or "",
+            "usd": usd,
+            "usage": usage,
+            "finish_reason": ch.get("finish_reason"),
+            "provider": data.get("provider"),
+        }
 
     def log_extra(self, model: str, usd: float):
         """Record spend made outside ``chat`` (e.g. embeddings) so the cap counts it."""
         with self.lock:
             self.spent += usd
             with open(LEDGER, "a") as f:
-                f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": self.label, "model": model,
-                                    "usd": usd}) + "\n")
+                f.write(
+                    json.dumps(
+                        {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": self.label, "model": model, "usd": usd}
+                    )
+                    + "\n"
+                )
