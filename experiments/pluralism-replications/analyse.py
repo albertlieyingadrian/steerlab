@@ -530,7 +530,7 @@ def analyse_E(run, rng_seed=0, n_splits=40):
     by_q = {q: np.where(qids == q)[0] for q in uq}
     bin_arr = items.bin.to_numpy()
     hm_all = items.human_mean.to_numpy()
-    cols = {j: items[j].to_numpy() for j in judges + ["length"]}
+    cols = {j: items[j].to_numpy() for j in [*judges, "length"]}
 
     top_all = (items.entropy >= items.entropy.quantile(0.84)).to_numpy()
 
@@ -595,7 +595,7 @@ def analyse_E(run, rng_seed=0, n_splits=40):
         human_mean=("human_mean", "mean"),
         human_mean_sd=("human_mean", "std"),
     )
-    items[["item_id", "question_id", "human_mean", "entropy", "bin", "length"] + judges].to_csv(
+    items[["item_id", "question_id", "human_mean", "entropy", "bin", "length", *judges]].to_csv(
         RES / "E_items.csv", index=False
     )
     return {
