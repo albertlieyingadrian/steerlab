@@ -22,10 +22,22 @@ import time
 from pathlib import Path
 
 SPECTRUM_TEST_TASKS = [  # launch_configs/icl_spectrum.yaml
-    "novacomet_hypothesis", "novacomet_premise", "habermas_question", "habermas_opinions", "habermas_individual",
-    "numbergame_perc", "globaloqa", "chatbotarena_prompts", "chatbotarena_assistant", "chemistry_esol",
-    "chemistry_oxidative", "habermas_individual_categorical", "wvs_individual", "numbergame_individual",
-    "chatbotarena_individual_prefs", "flight",
+    "novacomet_hypothesis",
+    "novacomet_premise",
+    "habermas_question",
+    "habermas_opinions",
+    "habermas_individual",
+    "numbergame_perc",
+    "globaloqa",
+    "chatbotarena_prompts",
+    "chatbotarena_assistant",
+    "chemistry_esol",
+    "chemistry_oxidative",
+    "habermas_individual_categorical",
+    "wvs_individual",
+    "numbergame_individual",
+    "chatbotarena_individual_prefs",
+    "flight",
 ]
 NOT_FETCHABLE = {"wvs_individual": "WVS wave-7 microdata needs a registration form with personal details"}
 
@@ -48,26 +60,39 @@ def fetch_spectrum_data(root: str) -> dict:
         return f"{len(r.content)} bytes"
 
     gcs = "https://storage.googleapis.com/habermas_machine/datasets/"
-    for f in ["hm_all_candidate_comparisons", "hm_all_final_preference_rankings", "hm_all_position_statement_ratings",
-              "hm_all_round_survey_responses"]:
+    for f in [
+        "hm_all_candidate_comparisons",
+        "hm_all_final_preference_rankings",
+        "hm_all_position_statement_ratings",
+        "hm_all_round_survey_responses",
+    ]:
         status[f"habermas/{f}"] = get(gcs + f + ".parquet", data / "habermas_data" / f"{f}.parquet")
     gh = "https://raw.githubusercontent.com/ur-whitelab/BO-ICL/refs/heads/main/paper/dataset/"
-    for rel, name in [("oxidative_methane_coupling.csv", "oxidative_methane_coupling.csv"),
-                      ("data/esol_iupac.csv", "esol_iupac.csv"), ("data/train_data_num_feats.csv", "train_data_num_feats.csv")]:
+    for rel, name in [
+        ("oxidative_methane_coupling.csv", "oxidative_methane_coupling.csv"),
+        ("data/esol_iupac.csv", "esol_iupac.csv"),
+        ("data/train_data_num_feats.csv", "train_data_num_feats.csv"),
+    ]:
         status[f"chemistry/{name}"] = get(gh + rel, data / "chemistry" / name)
     # Number game (Bigelow & Piantadosi): public Harvard Dataverse file 2696204, original (CSV) format
     try:
-        status["numbergame"] = get("https://dataverse.harvard.edu/api/access/datafile/2696204?format=original",
-                                   data / "numbergame" / "numbergame_data.csv")
+        status["numbergame"] = get(
+            "https://dataverse.harvard.edu/api/access/datafile/2696204?format=original",
+            data / "numbergame" / "numbergame_data.csv",
+        )
     except Exception as e:  # named, not skipped
         status["numbergame"] = f"FAILED: {e}"
     dv = data / "diverse_valid_data"
-    status["colors"] = get("https://raw.githubusercontent.com/meodai/color-names/main/src/colornames.csv",
-                           dv / "colornames.csv")
-    status["periodic"] = get("https://raw.githubusercontent.com/andrejewski/periodic-table/master/data.csv",
-                             dv / "periodic_table_elements.csv")
-    status["gerunds"] = get("https://raw.githubusercontent.com/gutfeeling/word_forms/master/word_forms/en-verbs.txt",
-                            dv / "en-verbs.txt")
+    status["colors"] = get(
+        "https://raw.githubusercontent.com/meodai/color-names/main/src/colornames.csv", dv / "colornames.csv"
+    )
+    status["periodic"] = get(
+        "https://raw.githubusercontent.com/andrejewski/periodic-table/master/data.csv",
+        dv / "periodic_table_elements.csv",
+    )
+    status["gerunds"] = get(
+        "https://raw.githubusercontent.com/gutfeeling/word_forms/master/word_forms/en-verbs.txt", dv / "en-verbs.txt"
+    )
     cars = dv / "us-car-models-data"
     if not cars.exists():  # GitHub archive instead of git (no git in the image)
         import io
@@ -94,8 +119,9 @@ def load_model(model_name: str):
     tok.pad_token = tok.eos_token  # as in eval_icl.evaluate_model_on_dataset
     if "Qwen3.5" in model_name:
         tok.apply_chat_template = functools.partial(tok.apply_chat_template, enable_thinking=False)
-    model = AutoModelForCausalLM.from_pretrained(model_name, dtype=torch.bfloat16, device_map="cuda",
-                                                 trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, dtype=torch.bfloat16, device_map="cuda", trust_remote_code=True
+    )
     model.eval()
     return tok, model
 
@@ -112,7 +138,7 @@ def _patch_hf_csv():
 
     def read_csv(path, *a, **k):
         if isinstance(path, str) and path.startswith("hf://datasets/"):
-            parts = path[len("hf://datasets/"):].split("/")
+            parts = path[len("hf://datasets/") :].split("/")
             path = hf_hub_download("/".join(parts[:2]), "/".join(parts[2:]), repo_type="dataset")
         return orig(path, *a, **k)
 
@@ -125,8 +151,16 @@ class _WandbStub:
         return lambda *a, **k: None
 
 
-def run_steerability(model_name: str, fmt: str, tasks: list[str], max_eval: int, out_dir: str,
-                     eval_seed: int = 42, batch_size: int = 1, tok_model=None) -> dict:
+def run_steerability(
+    model_name: str,
+    fmt: str,
+    tasks: list[str],
+    max_eval: int,
+    out_dir: str,
+    eval_seed: int = 42,
+    batch_size: int = 1,
+    tok_model=None,
+) -> dict:
     """Score one model on Spectrum Suite tasks; writes ``<out_dir>/<task>.parquet`` (one row per scored output)."""
     import numpy as np
     from spectrum.icl_classes import eval_icl as E
@@ -155,30 +189,50 @@ def run_steerability(model_name: str, fmt: str, tasks: list[str], max_eval: int,
             continue
         t0 = time.time()
         try:
-            args = {"permutations_per_iter": 1, "include_prior_prob": 1, "include_data_formatter_description_prob": 0,
-                    "include_replacement_prob": 0, "include_tags_prob": 0, "format": fmt, "tokenizer": tok}
+            args = {
+                "permutations_per_iter": 1,
+                "include_prior_prob": 1,
+                "include_data_formatter_description_prob": 0,
+                "include_replacement_prob": 0,
+                "include_tags_prob": 0,
+                "format": fmt,
+                "tokenizer": tok,
+            }
             # The release keys its token cache by model family ("Qwen3" also matches Qwen3.5, whose tokenizer
             # differs), so one family member can load another's token ids. One cache per model avoids that.
             cache = f"tokenized_eval_datasets_by_model/{model_name.replace('/', '__')}"
-            ds_args = {"dataset_name": task, "actual_model_name": model_name, "cache_dir": cache,
-                       "max_length": None, "dataset_kwargs": args, "tokenizer": tok, "restrict_texts": None,
-                       "eval_seed": eval_seed, "max_eval_examples": max_eval}
+            ds_args = {
+                "dataset_name": task,
+                "actual_model_name": model_name,
+                "cache_dir": cache,
+                "max_length": None,
+                "dataset_kwargs": args,
+                "tokenizer": tok,
+                "restrict_texts": None,
+                "eval_seed": eval_seed,
+                "max_eval_examples": max_eval,
+            }
             k_args = E.get_example_k(**ds_args)
             ds_args["dataset_kwargs"]["keep_inds"] = k_args["keep_inds"]
             ds_args["dataset_kwargs"]["fixed_example_number"] = k_args["k"]
             val = E.load_eval_dataset(**ds_args)
-            res = E.evaluate_model(model, tok, val, batch_size=batch_size, wandb_project="stub",
-                                   fixed_example_number=k_args["k"])
-            raw = res["raw_results"].drop(columns=["correct_logprobs", "incorrect_logprobs", "restricted_logprobs"],
-                                          errors="ignore")
+            res = E.evaluate_model(
+                model, tok, val, batch_size=batch_size, wandb_project="stub", fixed_example_number=k_args["k"]
+            )
+            raw = res["raw_results"].drop(
+                columns=["correct_logprobs", "incorrect_logprobs", "restricted_logprobs"], errors="ignore"
+            )
             raw["k"] = k_args["k"]
             raw["task"] = task
             raw["model"] = model_name
             raw["format"] = fmt
             raw.to_parquet(dest)
-            report[task] = {"n_instances": int(raw.instance_ind.nunique()), "k": int(k_args["k"]),
-                            "seconds": round(time.time() - t0, 1),
-                            "loss_geq_1": float(np.mean(raw[raw.example_ind >= 1].loss))}
+            report[task] = {
+                "n_instances": int(raw.instance_ind.nunique()),
+                "k": int(k_args["k"]),
+                "seconds": round(time.time() - t0, 1),
+                "loss_geq_1": float(np.mean(raw[raw.example_ind >= 1].loss)),
+            }
         except Exception as e:  # report and continue; a failed task is named in the note
             import traceback
 
@@ -187,9 +241,17 @@ def run_steerability(model_name: str, fmt: str, tasks: list[str], max_eval: int,
     return report
 
 
-def run_coverage(model_name: str, template: str, out_path: str, n: int = 100, seeds=(0, 1),
-                 components=("description", "examples", "both"), batch_size: int = 100, tok_model=None,
-                 task_subset: list[str] | None = None) -> dict:
+def run_coverage(
+    model_name: str,
+    template: str,
+    out_path: str,
+    n: int = 100,
+    seeds=(0, 1),
+    components=("description", "examples", "both"),
+    batch_size: int = 100,
+    tok_model=None,
+    task_subset: list[str] | None = None,
+) -> dict:
     """Generate ``n`` samples per coverage task, setting and seed; writes one JSONL row per (task, setting, seed)."""
     import json
 
@@ -218,16 +280,35 @@ def run_coverage(model_name: str, template: str, out_path: str, n: int = 100, se
                 task = factory()
                 t0 = time.time()
                 try:
-                    r = evaluate_model_on_task(model=model, tokenizer=tok, task=task, num_generations=n,
-                                               template=template, gen_batch_size=batch_size,
-                                               include_description=setting in ("description", "both"),
-                                               include_examples=setting in ("examples", "both"))
-                    row = {"task": task_name, "setting": setting, "seed": seed, "model": model_name,
-                           "template": template, "generations": r["generations"],
-                           "validity": [bool(v) for v in r["validity"]], "seconds": round(time.time() - t0, 1)}
+                    r = evaluate_model_on_task(
+                        model=model,
+                        tokenizer=tok,
+                        task=task,
+                        num_generations=n,
+                        template=template,
+                        gen_batch_size=batch_size,
+                        include_description=setting in ("description", "both"),
+                        include_examples=setting in ("examples", "both"),
+                    )
+                    row = {
+                        "task": task_name,
+                        "setting": setting,
+                        "seed": seed,
+                        "model": model_name,
+                        "template": template,
+                        "generations": r["generations"],
+                        "validity": [bool(v) for v in r["validity"]],
+                        "seconds": round(time.time() - t0, 1),
+                    }
                 except Exception as e:
-                    row = {"task": task_name, "setting": setting, "seed": seed, "model": model_name,
-                           "template": template, "error": f"{type(e).__name__}: {str(e)[:300]}"}
+                    row = {
+                        "task": task_name,
+                        "setting": setting,
+                        "seed": seed,
+                        "model": model_name,
+                        "template": template,
+                        "error": f"{type(e).__name__}: {str(e)[:300]}",
+                    }
                 with open(out_path, "a") as f:
                     f.write(json.dumps(row) + "\n")
                 report[f"{task_name}/{setting}/{seed}"] = row.get("error") or sum(row["validity"])

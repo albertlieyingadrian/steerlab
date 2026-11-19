@@ -13,8 +13,8 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 HERE = Path(__file__).resolve().parent
 FIG = HERE / "report" / "figures"
@@ -22,15 +22,32 @@ FIG.mkdir(parents=True, exist_ok=True)
 S = json.loads((HERE / "results" / "summary.json").read_text())
 ACCENT, CONTROL, GREY, INK = "#c9561c", "#4a86e8", "#8a9497", "#1d272a"
 FAM_LABEL = {"gemma3-12b": "Gemma-3-12B", "qwen3-8b": "Qwen3-8B", "qwen3.5-9b": "Qwen3.5-9B"}
-SHORT = {"google/gemma-3-12b-it": "Gemma-3-12B-it", "Qwen/Qwen3-8B": "Qwen3-8B", "Qwen/Qwen3.5-9B": "Qwen3.5-9B",
-         "anthropic/claude-sonnet-5.5": "Claude Sonnet 5.5", "openai/gpt-5.4-mini": "GPT-5.4 mini",
-         "google/gemini-3.8-flash": "Gemini 3.8 Flash", "google/gemma-3-12b-pt": "Gemma-3-12B-pt",
-         "Qwen/Qwen3-8B-Base": "Qwen3-8B-Base", "Qwen/Qwen3.5-9B-Base": "Qwen3.5-9B-Base",
-         "tsor13/spectrum-gemma-3-12b-v1": "Spectrum-Gemma-12B",
-         "openai/gpt-4o-2024-11-20": "GPT-4o", "anthropic/claude-haiku-5.5": "Claude Haiku 5.5",
-         "prometheus-eval/prometheus-7b-v2.0": "Prometheus-7B", "length": "Length only"}
-plt.rcParams.update({"font.family": "sans-serif", "font.size": 10, "axes.spines.top": False,
-                     "axes.spines.right": False, "axes.edgecolor": INK, "axes.labelcolor": INK})
+SHORT = {
+    "google/gemma-3-12b-it": "Gemma-3-12B-it",
+    "Qwen/Qwen3-8B": "Qwen3-8B",
+    "Qwen/Qwen3.5-9B": "Qwen3.5-9B",
+    "anthropic/claude-sonnet-5.5": "Claude Sonnet 5.5",
+    "openai/gpt-5.4-mini": "GPT-5.4 mini",
+    "google/gemini-3.8-flash": "Gemini 3.8 Flash",
+    "google/gemma-3-12b-pt": "Gemma-3-12B-pt",
+    "Qwen/Qwen3-8B-Base": "Qwen3-8B-Base",
+    "Qwen/Qwen3.5-9B-Base": "Qwen3.5-9B-Base",
+    "tsor13/spectrum-gemma-3-12b-v1": "Spectrum-Gemma-12B",
+    "openai/gpt-4o-2024-11-20": "GPT-4o",
+    "anthropic/claude-haiku-5.5": "Claude Haiku 5.5",
+    "prometheus-eval/prometheus-7b-v2.0": "Prometheus-7B",
+    "length": "Length only",
+}
+plt.rcParams.update(
+    {
+        "font.family": "sans-serif",
+        "font.size": 10,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.edgecolor": INK,
+        "axes.labelcolor": INK,
+    }
+)
 
 
 def save(fig, name):
@@ -45,12 +62,25 @@ def fig_A():
     rows = S["A"]["per_task"]
     for i, f in enumerate(fams):
         vals = [100 * r["rel_change"] for r in rows if r["family"] == f]
-        ax.scatter(vals, np.full(len(vals), i) + np.random.default_rng(i).uniform(-0.18, 0.18, len(vals)), s=12,
-                   color=GREY, alpha=0.7, zorder=2)
+        ax.scatter(
+            vals,
+            np.full(len(vals), i) + np.random.default_rng(i).uniform(-0.18, 0.18, len(vals)),
+            s=12,
+            color=GREY,
+            alpha=0.7,
+            zorder=2,
+        )
         d = fams[f]
-        ax.errorbar(100 * d["rel_change"], i,
-                    xerr=[[100 * (d["rel_change"] - d["lo"])], [100 * (d["hi"] - d["rel_change"])]],
-                    fmt="o", color=ACCENT, ms=7, capsize=3, zorder=3)
+        ax.errorbar(
+            100 * d["rel_change"],
+            i,
+            xerr=[[100 * (d["rel_change"] - d["lo"])], [100 * (d["hi"] - d["rel_change"])]],
+            fmt="o",
+            color=ACCENT,
+            ms=7,
+            capsize=3,
+            zorder=3,
+        )
         print(f"A {f}: {100 * d['rel_change']:+.1f}% [{100 * d['lo']:+.1f}, {100 * d['hi']:+.1f}]")
     ax.axvline(0, color=INK, lw=0.8)
     ax.set_yticks(range(len(fams)), [FAM_LABEL[f] for f in fams])
@@ -60,8 +90,11 @@ def fig_A():
 
 def fig_B():
     pm = S["B"]["per_model"]
-    fams = {"gemma3-12b": ["google/gemma-3-12b-pt", "google/gemma-3-12b-it", "tsor13/spectrum-gemma-3-12b-v1"],
-            "qwen3-8b": ["Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"], "qwen3.5-9b": ["Qwen/Qwen3.5-9B-Base", "Qwen/Qwen3.5-9B"]}
+    fams = {
+        "gemma3-12b": ["google/gemma-3-12b-pt", "google/gemma-3-12b-it", "tsor13/spectrum-gemma-3-12b-v1"],
+        "qwen3-8b": ["Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"],
+        "qwen3.5-9b": ["Qwen/Qwen3.5-9B-Base", "Qwen/Qwen3.5-9B"],
+    }
     settings = ["description", "examples", "both"]
     fig, axes = plt.subplots(1, 3, figsize=(9, 3), sharey=True)
     for ax, (f, ms) in zip(axes, fams.items()):
@@ -70,8 +103,13 @@ def fig_B():
             if m not in pm:
                 continue
             ys = [pm[m][f"yield_{s}"] for s in settings]
-            ax.bar(np.arange(3) + k * w - 0.4 + w / 2, ys, w, color=[GREY, ACCENT, CONTROL][k],
-                   label=["base", "instruct", "Spectrum"][k])
+            ax.bar(
+                np.arange(3) + k * w - 0.4 + w / 2,
+                ys,
+                w,
+                color=[GREY, ACCENT, CONTROL][k],
+                label=["base", "instruct", "Spectrum"][k],
+            )
             print(f"B {m}: " + ", ".join(f"{s} {y:.1f}" for s, y in zip(settings, ys)))
         ax.set_xticks(range(3), ["description", "3 examples", "both"])
         ax.set_title(FAM_LABEL[f], fontsize=10)
@@ -91,8 +129,13 @@ def fig_C():
     fig, ax = plt.subplots(figsize=(6.4, 3.8))
     for i, m in enumerate(models):
         v = np.array(rep[m])
-        ax.scatter(v, np.full(len(v), i) + np.random.default_rng(i).uniform(-0.2, 0.2, len(v)), s=6,
-                   color=ACCENT if m in inst else GREY, alpha=0.45)
+        ax.scatter(
+            v,
+            np.full(len(v), i) + np.random.default_rng(i).uniform(-0.2, 0.2, len(v)),
+            s=6,
+            color=ACCENT if m in inst else GREY,
+            alpha=0.45,
+        )
         ax.plot([pm[m]["median"]] * 2, [i - 0.3, i + 0.3], color=INK, lw=2)
         print(f"C {m}: median {pm[m]['median']:.3f}, share>0.8 {pm[m]['share_above_0.8']:.2f}")
     ax.axvline(0.8, color=INK, ls="--", lw=0.8)
@@ -116,8 +159,15 @@ def fig_D():
     im = ax.imshow(mat, cmap="Oranges", vmin=0.5, vmax=1)
     for i in range(len(models)):
         for j in range(len(models)):
-            ax.text(j, i, f"{mat[i, j]:.2f}", ha="center", va="center", fontsize=8,
-                    color="white" if mat[i, j] > 0.8 else INK)
+            ax.text(
+                j,
+                i,
+                f"{mat[i, j]:.2f}",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white" if mat[i, j] > 0.8 else INK,
+            )
     lab = [SHORT[m] for m in models]
     ax.set_xticks(range(len(models)), lab, rotation=40, ha="right")
     ax.set_yticks(range(len(models)), lab)
@@ -155,8 +205,14 @@ def cover():
     ax = fig.add_axes([0.24, 0.14, 0.66, 0.6])
     for i, m in enumerate(models):
         v = np.array(rep[m])
-        ax.scatter(v, np.full(len(v), i) + np.random.default_rng(i).uniform(-0.25, 0.25, len(v)), s=30, color=ACCENT,
-                   alpha=0.5, lw=0)
+        ax.scatter(
+            v,
+            np.full(len(v), i) + np.random.default_rng(i).uniform(-0.25, 0.25, len(v)),
+            s=30,
+            color=ACCENT,
+            alpha=0.5,
+            lw=0,
+        )
     ax.set_yticks(range(len(models)), [SHORT[m] for m in models], fontsize=15)
     ax.axvline(0.8, color=INK, ls="--", lw=1.2)
     ax.text(0.805, len(models) - 0.45, "paper's 0.8", fontsize=13, color=INK)
@@ -175,21 +231,27 @@ def cover():
     w = int(im.height * 1.5)
     x0 = min(im.width - w, 150)
     im.crop((x0, 0, x0 + w, im.height)).resize((720, 480)).save(
-        HERE.parent / "shared" / "thumbs" / "pluralism-replications.jpg", quality=86)
+        HERE.parent / "shared" / "thumbs" / "pluralism-replications.jpg", quality=86
+    )
     print("wrote og.jpg and thumbs/pluralism-replications.jpg")
 
 
 def page_data():
     """Compact data for the interactive figures, embedded in index.html between markers."""
-    d = {"A": {"families": S["A"]["families"], "per_task": S["A"]["per_task"]},
-         "B": {"per_model": S["B"]["per_model"], "per_task": S["B"]["per_task"], "families": S["B"]["families"]},
-         "C": {"per_model": S["C"]["per_model"], "floor": S["C"]["floor"], "per_prompt": {}},
-         "D": {"pairs": S["D"]["pairs"]}, "E": {k: S["E"][k] for k in ("per_judge", "ceiling", "one_rater_r", "bins")},
-         "examples": S["CD_examples"], "short": SHORT}
+    d = {
+        "A": {"families": S["A"]["families"], "per_task": S["A"]["per_task"]},
+        "B": {"per_model": S["B"]["per_model"], "per_task": S["B"]["per_task"], "families": S["B"]["families"]},
+        "C": {"per_model": S["C"]["per_model"], "floor": S["C"]["floor"], "per_prompt": {}},
+        "D": {"pairs": S["D"]["pairs"]},
+        "E": {k: S["E"][k] for k in ("per_judge", "ceiling", "one_rater_r", "bins")},
+        "examples": S["CD_examples"],
+        "short": SHORT,
+    }
     for r in S["C_per_prompt"]:
         d["C"]["per_prompt"].setdefault(r["model"], []).append(round(r["repetition"], 3))
     html = HERE / "report" / "index.html"
     if html.exists():
+
         def clean(x):  # JSON.parse rejects NaN; write null
             if isinstance(x, float) and x != x:
                 return None
@@ -200,8 +262,12 @@ def page_data():
             return x
 
         blob = json.dumps(clean(d), separators=(",", ":"), allow_nan=False).replace("</", "<\\/")
-        text = re.sub(r'(<script type="application/json" id="page-data">).*?(</script>)',
-                      lambda m: m.group(1) + blob + m.group(2), html.read_text(), flags=re.S)
+        text = re.sub(
+            r'(<script type="application/json" id="page-data">).*?(</script>)',
+            lambda m: m.group(1) + blob + m.group(2),
+            html.read_text(),
+            flags=re.DOTALL,
+        )
         html.write_text(text)
         print("embedded page data:", len(blob), "bytes")
 

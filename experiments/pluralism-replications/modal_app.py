@@ -32,14 +32,35 @@ volume = modal.Volume.from_name("pluralism-replications", create_if_missing=True
 deps = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
-        "torch==2.9.1", "transformers==5.22.2", "accelerate", "datasets==3.6.0", "trl", "numpy<2.4", "pandas",
-        "pyarrow", "fastparquet", "scipy", "pyreadstat", "requests", "huggingface_hub", "hf_transfer==0.1.9",
-        "sentencepiece", "protobuf", "wandb",
+        "torch==2.9.1",
+        "transformers==5.22.2",
+        "accelerate",
+        "datasets==3.6.0",
+        "trl",
+        "numpy<2.4",
+        "pandas",
+        "pyarrow",
+        "fastparquet",
+        "scipy",
+        "pyreadstat",
+        "requests",
+        "huggingface_hub",
+        "hf_transfer==0.1.9",
+        "sentencepiece",
+        "protobuf",
+        "wandb",
     )
     .pip_install(SPECTRUM, extra_options="--no-deps")
     .pip_install("flash-linear-attention==0.5.2")
-    .env({"HF_HOME": f"{VOL}/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1", "WANDB_MODE": "disabled",
-          "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True", "TOKENIZERS_PARALLELISM": "false"})
+    .env(
+        {
+            "HF_HOME": f"{VOL}/hf",
+            "HF_HUB_ENABLE_HF_TRANSFER": "1",
+            "WANDB_MODE": "disabled",
+            "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
+            "TOKENIZERS_PARALLELISM": "false",
+        }
+    )
 )
 image = deps.add_local_dir(HERE, remote_path="/root/exp", ignore=["results/**", "report/**", "__pycache__/**"])
 app = modal.App("pluralism-replications", image=image)
@@ -83,12 +104,23 @@ def _chat_prompt(tok, text: str, base: bool) -> str:
     if base:
         return f"User: {text}\nAssistant:"
     kw = {"enable_thinking": False} if "Qwen" in (tok.name_or_path or "") else {}
-    return tok.apply_chat_template([{"role": "user", "content": text}], tokenize=False, add_generation_prompt=True,
-                                   **kw)
+    return tok.apply_chat_template(
+        [{"role": "user", "content": text}], tokenize=False, add_generation_prompt=True, **kw
+    )
 
 
-def _generate(tok, model, prompts: list[str], n: int, max_new: int, top_p: float, temperature: float,
-              batch_seqs: int, seed: int, greedy: bool = False) -> list[list[tuple[str, int]]]:
+def _generate(
+    tok,
+    model,
+    prompts: list[str],
+    n: int,
+    max_new: int,
+    top_p: float,
+    temperature: float,
+    batch_seqs: int,
+    seed: int,
+    greedy: bool = False,
+) -> list[list[tuple[str, int]]]:
     """Left-padded batched sampling; prompts must already contain any BOS token (add_special_tokens=False)."""
     import torch
 
@@ -134,8 +166,19 @@ def run_hivemind_gen(model_name: str, prompts: list[dict], out_path: str, n: int
             for s, (text, ntok) in enumerate(samples):
                 if base:  # a base model continues the transcript; keep its first assistant turn
                     text = text.split("\nUser:")[0].split("\nAssistant:")[0]
-                f.write(json.dumps({"model": model_name, "prompt_id": p["prompt_id"], "sample": s, "text": text.strip(),
-                                    "n_tokens": ntok, "truncated": ntok >= 512}) + "\n")
+                f.write(
+                    json.dumps(
+                        {
+                            "model": model_name,
+                            "prompt_id": p["prompt_id"],
+                            "sample": s,
+                            "text": text.strip(),
+                            "n_tokens": ntok,
+                            "truncated": ntok >= 512,
+                        }
+                    )
+                    + "\n"
+                )
     return len(res) * n
 
 
@@ -152,16 +195,19 @@ def run_judge(model_name: str, items: list[dict], out_path: str, tok_model) -> i
         except Exception:  # a checkpoint without a chat template: Mistral instruct format
             text = f"<s>[INST] {msgs[0]['content']} [/INST]"
         texts.append(_with_bos(tok, text))
-    res = _generate(tok, model, texts, n=1, max_new=400, top_p=1.0, temperature=1.0, batch_seqs=16, seed=0,
-                    greedy=True)
+    res = _generate(tok, model, texts, n=1, max_new=400, top_p=1.0, temperature=1.0, batch_seqs=16, seed=0, greedy=True)
     with open(out_path, "w") as f:
         for it, [(text, _)] in zip(items, res):
-            f.write(json.dumps({"judge": model_name, "item_id": it["item_id"], "raw": text,
-                                "score": J.parse_score(text)}) + "\n")
+            f.write(
+                json.dumps({"judge": model_name, "item_id": it["item_id"], "raw": text, "score": J.parse_score(text)})
+                + "\n"
+            )
     return len(items)
 
 
-@app.function(gpu=["H100", "A100-80GB", "L40S"], timeout=6 * 60 * 60, volumes={VOL: volume}, secrets=SECRETS, max_containers=4)
+@app.function(
+    gpu=["H100", "A100-80GB", "L40S"], timeout=6 * 60 * 60, volumes={VOL: volume}, secrets=SECRETS, max_containers=4
+)
 def model_job(model_name: str, run: str, jobs: list[str], cfg: dict) -> dict:
     """jobs: any of steer:<fmt>, coverage:<template>, hivemind, hivemind_base, judge."""
     _setup()
@@ -183,17 +229,33 @@ def model_job(model_name: str, run: str, jobs: list[str], cfg: dict) -> dict:
         kind, _, arg = job.partition(":")
         try:
             if kind == "steer":
-                tasks = cfg["colon_tasks"] if (arg == "colon" and "colon_tasks" in cfg
-                                               and MODELS.get(model_name, ("", "", ""))[1] == "IT") else cfg["steer_tasks"]
-                report[job] = S.run_steerability(model_name, arg, tasks, cfg["max_eval"],
-                                                 str(out / f"steer_{arg}"), tok_model=tm)
+                tasks = (
+                    cfg["colon_tasks"]
+                    if (arg == "colon" and "colon_tasks" in cfg and MODELS.get(model_name, ("", "", ""))[1] == "IT")
+                    else cfg["steer_tasks"]
+                )
+                report[job] = S.run_steerability(
+                    model_name, arg, tasks, cfg["max_eval"], str(out / f"steer_{arg}"), tok_model=tm
+                )
             elif kind == "coverage":
-                report[job] = S.run_coverage(model_name, arg, str(out / f"coverage_{arg}.jsonl"), n=cfg["cov_n"],
-                                             seeds=tuple(cfg["cov_seeds"]), tok_model=tm,
-                                             task_subset=cfg.get("cov_tasks"))
+                report[job] = S.run_coverage(
+                    model_name,
+                    arg,
+                    str(out / f"coverage_{arg}.jsonl"),
+                    n=cfg["cov_n"],
+                    seeds=tuple(cfg["cov_seeds"]),
+                    tok_model=tm,
+                    task_subset=cfg.get("cov_tasks"),
+                )
             elif kind in ("hivemind", "hivemind_base"):
-                report[job] = run_hivemind_gen(model_name, cfg["hm_prompts"], str(out / f"{kind}.jsonl"),
-                                               cfg["hm_n"], base=kind == "hivemind_base", tok_model=tm)
+                report[job] = run_hivemind_gen(
+                    model_name,
+                    cfg["hm_prompts"],
+                    str(out / f"{kind}.jsonl"),
+                    cfg["hm_n"],
+                    base=kind == "hivemind_base",
+                    tok_model=tm,
+                )
             elif kind == "judge":
                 report[job] = run_judge(model_name, cfg["judge_items"], str(out / "judge.jsonl"), tok_model=tm)
         except Exception as e:
@@ -228,8 +290,18 @@ def _log_spend(label: str, seconds: float, gpu: str = "H100"):
     key = next((k for k in PRICE_PER_SEC if k in gpu), "H100")
     LEDGER.parent.mkdir(parents=True, exist_ok=True)
     with open(LEDGER, "a") as f:
-        f.write(json.dumps({"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": label, "gpu": gpu,
-                            "seconds": seconds, "usd": round(seconds * PRICE_PER_SEC[key], 4)}) + "\n")
+        f.write(
+            json.dumps(
+                {
+                    "t": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "label": label,
+                    "gpu": gpu,
+                    "seconds": seconds,
+                    "usd": round(seconds * PRICE_PER_SEC[key], 4),
+                }
+            )
+            + "\n"
+        )
 
 
 def _launch(run: str, plan: list[tuple[str, list[str]]], cfg: dict, projected_usd: float):
@@ -246,7 +318,9 @@ def _launch(run: str, plan: list[tuple[str, list[str]]], cfg: dict, projected_us
         except Exception as e:
             print(f"[{m}] FAILED: {e}")
             continue
-        _log_spend(f"{run}:{m}", res["report"]["seconds"] + 60, res["report"].get("gpu", "H100"))  # +60 s for container start and model download
+        _log_spend(
+            f"{run}:{m}", res["report"]["seconds"] + 60, res["report"].get("gpu", "H100")
+        )  # +60 s for container start and model download
         with tarfile.open(fileobj=io.BytesIO(res["tar"]), mode="r:gz") as tar:
             tar.extractall(raw, filter="data")
         (raw / f"{m.replace('/', '__')}.report.json").write_text(json.dumps(res["report"], indent=1))
@@ -277,9 +351,16 @@ def fetch():
 @app.local_entrypoint()
 def pilot(steer_only: bool = False):
     """Dev pilot (discarded): 2 steer tasks x 30 instances, 3 coverage tasks, 5 hivemind prompts, 20 judge items."""
-    cfg = {"steer_tasks": ["flight", "chemistry_esol"], "max_eval": 30, "cov_n": 20, "cov_seeds": [0],
-           "cov_tasks": ["rng_1_10", "us_states", "element_symbols"], "hm_prompts": _hm_prompts(5), "hm_n": 4,
-           "judge_items": _judge_items(20)}
+    cfg = {
+        "steer_tasks": ["flight", "chemistry_esol"],
+        "max_eval": 30,
+        "cov_n": 20,
+        "cov_seeds": [0],
+        "cov_tasks": ["rng_1_10", "us_states", "element_symbols"],
+        "hm_prompts": _hm_prompts(5),
+        "hm_n": 4,
+        "judge_items": _judge_items(20),
+    }
     plan = [
         ("google/gemma-3-12b-pt", ["steer:colon", "coverage:colon", "hivemind_base"]),
         ("google/gemma-3-12b-it", ["steer:chat", "coverage:chat", "hivemind"]),
@@ -288,21 +369,49 @@ def pilot(steer_only: bool = False):
     ]
     if steer_only:
         cfg["steer_tasks"] = ["flight", "chemistry_esol", "habermas_opinions", "chatbotarena_assistant"]
-        plan = [("google/gemma-3-12b-pt", ["steer:colon"]), ("google/gemma-3-12b-it", ["steer:chat", "steer:colon"]),
-                ("Qwen/Qwen3.5-9B", ["steer:chat"])]
+        plan = [
+            ("google/gemma-3-12b-pt", ["steer:colon"]),
+            ("google/gemma-3-12b-it", ["steer:chat", "steer:colon"]),
+            ("Qwen/Qwen3.5-9B", ["steer:chat"]),
+        ]
     _launch("pilot", plan, cfg, projected_usd=4.0)
 
 
 @app.local_entrypoint()
-def full(max_eval: int = 500, only: str = "", jobs_override: str = "", run: str = "", projected: float = 40.0,
-         tasks: str = "", debug: bool = False, hm_limit: int = 0, judge_limit: int = 0):
+def full(
+    max_eval: int = 500,
+    only: str = "",
+    jobs_override: str = "",
+    run: str = "",
+    projected: float = 40.0,
+    tasks: str = "",
+    debug: bool = False,
+    hm_limit: int = 0,
+    judge_limit: int = 0,
+):
     import spectrum_runner as S
 
     # IT-in-colon format control on the short tasks only (budget; see the execution log)
-    colon_tasks = ["flight", "habermas_individual_categorical", "numbergame_individual", "chatbotarena_individual_prefs",
-                   "chemistry_esol", "chemistry_oxidative", "numbergame_perc", "globaloqa"]
-    cfg = {"steer_tasks": S.SPECTRUM_TEST_TASKS, "max_eval": max_eval, "cov_n": 100, "cov_seeds": [0, 1],
-           "hm_prompts": _hm_prompts(), "hm_n": 10, "judge_items": _judge_items(), "colon_tasks": colon_tasks}
+    colon_tasks = [
+        "flight",
+        "habermas_individual_categorical",
+        "numbergame_individual",
+        "chatbotarena_individual_prefs",
+        "chemistry_esol",
+        "chemistry_oxidative",
+        "numbergame_perc",
+        "globaloqa",
+    ]
+    cfg = {
+        "steer_tasks": S.SPECTRUM_TEST_TASKS,
+        "max_eval": max_eval,
+        "cov_n": 100,
+        "cov_seeds": [0, 1],
+        "hm_prompts": _hm_prompts(),
+        "hm_n": 10,
+        "judge_items": _judge_items(),
+        "colon_tasks": colon_tasks,
+    }
     plan = []
     for m, (_, role, fmt) in MODELS.items():
         if role == "PT":

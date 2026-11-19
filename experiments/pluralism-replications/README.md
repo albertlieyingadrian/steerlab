@@ -30,14 +30,17 @@ Pre-registered replication of five claims from two papers on pluralistic alignme
 ## Using the measures in another episode
 
 ```python
-import sys; sys.path.insert(0, "experiments/pluralism-replications")
+import sys
+
+sys.path.insert(0, "experiments/pluralism-replications")
 import measures as M
 
-emb = M.embed_texts(texts, cache_path="results/cache/embeddings.jsonl")   # text-embedding-3-small via OpenRouter
-rep = M.repetition_table(df, emb)            # df: model, prompt_id, one row per sample, aligned with emb
-cov = M.coverage_stats(generations, validity) # validity, diversity, yield
-steer = M.steerability_per_instance(raw)      # raw: Spectrum per-output losses
-ci = M.bootstrap_ci(values); M.verdict(ci["lo"], ci["hi"])
+emb = M.embed_texts(texts, cache_path="results/cache/embeddings.jsonl")  # text-embedding-3-small via OpenRouter
+rep = M.repetition_table(df, emb)  # df: model, prompt_id, one row per sample, aligned with emb
+cov = M.coverage_stats(generations, validity)  # validity, diversity, yield
+steer = M.steerability_per_instance(raw)  # raw: Spectrum per-output losses
+ci = M.bootstrap_ci(values)
+M.verdict(ci["lo"], ci["hi"])
 ```
 
 On Modal, `spectrum_runner.run_steerability(model_path, fmt, tasks, max_eval, out_dir)` and
