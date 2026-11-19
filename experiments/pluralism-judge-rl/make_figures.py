@@ -16,11 +16,11 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import HERE, RESULTS  # noqa: E402
+from common import HERE, RESULTS
 
 FIG = HERE / "report" / "figures"
 ARMS = ["single", "jury", "bon", "shuffled", "clean"]
@@ -99,7 +99,7 @@ def curves(rows, task, measure, x):
 
 def fig_primary(rows, summary):
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.8))
-    for ax, task in zip(axes, ["creative", "advice"]):
+    for ax, task in zip(axes, ["creative", "advice"], strict=False):
         m = PRIMARY[task]
         for arm in ARMS:
             for i, (_, xs, ys) in enumerate(curves(rows, task, m, "drift_kl").get(arm, [])):
@@ -119,12 +119,20 @@ def fig_house(rows):
     """Exploratory: house style (similarity between replies to different prompts) against drift, full replies and first
     50 words, on creative and advice prompts, every run."""
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), sharey=True)
-    for ax, task in zip(axes, ["creative", "advice"]):
+    for ax, task in zip(axes, ["creative", "advice"], strict=False):
         for m, ls in [(f"house_{task}", "-"), (f"house50_{task}", ":")]:
             for arm in ARMS:
                 for i, (_, xs, ys) in enumerate(curves(rows, task, m, "drift_kl").get(arm, [])):
-                    ax.plot(xs, ys, ls, marker="o", ms=2.5, lw=1.6, color=COLOR[arm],
-                            label=LABEL[arm] if (i == 0 and ls == "-") else None)
+                    ax.plot(
+                        xs,
+                        ys,
+                        ls,
+                        marker="o",
+                        ms=2.5,
+                        lw=1.6,
+                        color=COLOR[arm],
+                        label=LABEL[arm] if (i == 0 and ls == "-") else None,
+                    )
         ax.set_ylim(0, 0.6)
         ax.set_xlabel("Drift: KL(base || trained) per token, neutral prompts")
         ax.set_title(f"Runs trained on {task} prompts; replies to held-out {task} prompts", fontsize=9.5, loc="left")
@@ -148,7 +156,15 @@ def fig_matched(summary):
                     continue
                 for j, s in enumerate(v["seeds"]):
                     x = i + (j - (len(v["seeds"]) - 1) / 2) * 0.22
-                    ax.errorbar(x, s["delta"], yerr=[[s["delta"] - s["lo"]], [s["hi"] - s["delta"]]], fmt="o", color=COLOR[arm], ms=4, lw=1.2)
+                    ax.errorbar(
+                        x,
+                        s["delta"],
+                        yerr=[[s["delta"] - s["lo"]], [s["hi"] - s["delta"]]],
+                        fmt="o",
+                        color=COLOR[arm],
+                        ms=4,
+                        lw=1.2,
+                    )
             ax.axhline(0, color="#7a7065", lw=0.8)
             ax.set_xticks(range(len(ARMS)))
             ax.set_xticklabels(ARMS, rotation=45, fontsize=7)
@@ -156,7 +172,11 @@ def fig_matched(summary):
                 ax.set_title(MEASURE_LABEL[m].split(" (")[0], fontsize=8)
             if col == 0:
                 ax.set_ylabel(f"{task}: change vs base")
-    fig.suptitle("Change from base at matched drift (repetition, coverage, steerability, entropy signed so positive = less plural)", fontsize=10)
+    fig.suptitle(
+        "Change from base at matched drift (repetition, coverage, steerability, entropy signed so positive = less "
+        "plural)",
+        fontsize=10,
+    )
     fig.tight_layout()
     fig.savefig(FIG / "matched.png", dpi=170)
     plt.close(fig)
@@ -164,7 +184,7 @@ def fig_matched(summary):
 
 def fig_drift(rows):
     fig, axes = plt.subplots(1, 2, figsize=(10, 3.4), sharey=True)
-    for ax, task in zip(axes, ["creative", "advice"]):
+    for ax, task in zip(axes, ["creative", "advice"], strict=False):
         for arm in ARMS:
             for i, (_, xs, ys) in enumerate(curves(rows, task, "drift_kl", "step").get(arm, [])):
                 ax.plot(xs, ys, "-o", ms=3, lw=1.5, color=COLOR[arm], label=LABEL[arm] if i == 0 else None)
@@ -183,8 +203,11 @@ def fig_jury(extras):
         return
     fig, axes = plt.subplots(1, 2, figsize=(11, 3.6))
     palette = ["#d26f2a", "#7a4fa0", "#2f8f6b", "#4a86e8"]
-    for ax, task in zip(axes, ["creative", "advice"]):
-        keys = sorted([k for k in fav if k.endswith(f"|{task}")], key=lambda k: (0 if k.startswith("base") else 1 if k.startswith("single") else 2, k))
+    for ax, task in zip(axes, ["creative", "advice"], strict=False):
+        keys = sorted(
+            [k for k in fav if k.endswith(f"|{task}")],
+            key=lambda k: (0 if k.startswith("base") else 1 if k.startswith("single") else 2, k),
+        )
         if not keys:
             continue
         bottom = np.zeros(len(keys))
@@ -232,13 +255,20 @@ def main():
         "floor": {m: {k: v[k] for k in ("delta", "lo", "hi")} for m, v in summary.get("floor_base_rerun", {}).items()},
         "labels": {"arms": LABEL, "colors": COLOR, "measures": MEASURE_LABEL},
         "jury": extras.get("jury_favourites", {}),
-        "quality": {k: {kk: v[kk] for kk in ("kind", "open", "frontier", "rho", "n")} for k, v in extras.get("quality", {}).items()},
+        "quality": {
+            k: {kk: v[kk] for kk in ("kind", "open", "frontier", "rho", "n")}
+            for k, v in extras.get("quality", {}).items()
+        },
     }
     (HERE / "report" / "data.js").write_text("window.PJR = " + json.dumps(data, separators=(",", ":")) + ";\n")
     for task, v in summary["matched"].items():
         print(f"[{task}] D* = {v['D']:.4f}")
         for arm, ms in v["arms"].items():
-            line = "  ".join(f"{m}={ms[m]['seed_mean']:+.4f}" for m in ["rep_creative", "rep_advice", "coverage", "steer", "survey_entropy"] if m in ms)
+            line = "  ".join(
+                f"{m}={ms[m]['seed_mean']:+.4f}"
+                for m in ["rep_creative", "rep_advice", "coverage", "steer", "survey_entropy"]
+                if m in ms
+            )
             print(f"   {arm:9s} {line}")
     print(f"figures in {FIG}; data.js written")
 

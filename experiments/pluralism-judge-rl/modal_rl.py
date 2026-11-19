@@ -5,7 +5,8 @@ experiments/pigment-gym/train_loop.py: right-padded batches masked with torch.wh
 
 COSTS MONEY (H100 $3.95/h + CPU/memory). Run from the repo root:
     MODAL_PROFILE=albertlieyingadrian .venv/bin/modal run experiments/pluralism-judge-rl/modal_rl.py::neutral_base
-    MODAL_PROFILE=albertlieyingadrian .venv/bin/modal run --detach experiments/pluralism-judge-rl/modal_rl.py::train_many \
+    MODAL_PROFILE=albertlieyingadrian .venv/bin/modal run --detach \
+        experiments/pluralism-judge-rl/modal_rl.py::train_many \
         --config configs/pilot.json
 
 One step, per arm (8 prompts per step; the same prompts for every arm with the same seed and task):
@@ -214,7 +215,7 @@ def run_one(cfg):
             )
             t_gen = time.time() - t0
             meta = []
-            for b, o in zip(batch, outs):
+            for b, o in zip(batch, outs, strict=False):
                 for c in o.outputs:
                     meta.append((b, list(o.prompt_token_ids), list(c.token_ids), c.text, c.finish_reason))
             juror_scores = None
@@ -256,7 +257,14 @@ def run_one(cfg):
                             weights.append(train_rewards[i] - mean_r)
                 norm = n_tok  # all reply tokens in the batch, including zero-advantage replies
             for i, (b, _, _, text, fin) in enumerate(meta):
-                row = {"step": step, "id": b["id"], "reward": rewards[i], "train_reward": train_rewards[i], "text": text, "finish": fin}
+                row = {
+                    "step": step,
+                    "id": b["id"],
+                    "reward": rewards[i],
+                    "train_reward": train_rewards[i],
+                    "text": text,
+                    "finish": fin,
+                }
                 if juror_scores:
                     row["jurors"] = juror_scores[i]
                 rollouts.write(json.dumps(row) + "\n")
@@ -303,7 +311,14 @@ def run_one(cfg):
                 print(f"{name} step {step}: non-finite grad norm, update skipped", flush=True)
             else:
                 opt.step()
-        rec.update({"loss": loss_val, "grad_norm": gnorm, "n_update_seqs": len(seqs), "t_update": round(time.time() - t_up0, 1)})
+        rec.update(
+            {
+                "loss": loss_val,
+                "grad_norm": gnorm,
+                "n_update_seqs": len(seqs),
+                "t_update": round(time.time() - t_up0, 1),
+            }
+        )
         if step % cfg["save_every"] == 0 or step == cfg["steps"]:
             kl, t_kl = checkpoint(step)
             rec.update({"drift_kl": kl, "checkpoint": True, "t_drift": round(t_kl, 1)})
@@ -362,7 +377,7 @@ def neutral_base_remote(prompts: list):
             "prompt_ids": list(o.prompt_token_ids),
             "reply_ids": list(o.outputs[0].token_ids),
         }
-        for p, o in zip(prompts, outs)
+        for p, o in zip(prompts, outs, strict=False)
     ]
 
 
@@ -377,7 +392,10 @@ def neutral_base():
     check_modal(job_cost("H100", 0.25), "neutral_base")
     rows = neutral_base_remote.remote(read_jsonl(DATA / "neutral_prompts.jsonl"))
     write_jsonl(DATA / "neutral_base.jsonl", rows)
-    print(f"wrote {len(rows)} neutral base samples; mean reply tokens {sum(len(r['reply_ids']) for r in rows) / len(rows):.0f}")
+    print(
+        f"wrote {len(rows)} neutral base samples; mean reply tokens "
+        f"{sum(len(r['reply_ids']) for r in rows) / len(rows):.0f}"
+    )
 
 
 @app.local_entrypoint()
@@ -406,7 +424,10 @@ def train_many(config: str, only: str = "", steps: int = 0, hours_each: float = 
         d.mkdir(parents=True, exist_ok=True)
         (d / "curve.jsonl").write_text("\n".join(json.dumps(r) for r in res["curve"]))
         last = [r for r in res["curve"] if r.get("checkpoint")][-1]
-        print(f"{res['name']}: {len(res['curve']) - 1} steps in {res['wall_s'] / 60:.1f} min, final drift {last['drift_kl']:.4f}")
+        print(
+            f"{res['name']}: {len(res['curve']) - 1} steps in {res['wall_s'] / 60:.1f} min, final drift "
+            f"{last['drift_kl']:.4f}"
+        )
 
 
 def spawn_deployed(config, only):

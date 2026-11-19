@@ -32,16 +32,29 @@ import modal
 from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import frontier_judge  # noqa: E402
-from budget import check_modal, job_cost  # noqa: E402
-from common import CACHE, DATA, HERE, read_jsonl  # noqa: E402
+import frontier_judge
+from budget import check_modal, job_cost
+from common import CACHE, DATA, HERE, read_jsonl
 
 LEDGER = HERE / "results" / "judge_search" / "results.tsv"
 REFUSAL = "I'm sorry, but I can't help with that request."
 COLS = [
-    "time_utc", "commit", "candidate", "split", "ka_creative", "ka_advice", "human_rho", "human_rho_within",
-    "frontier_rho_creative", "frontier_rho_advice", "len_rho_creative", "len_rho_advice", "digit_mass",
-    "passes_bars", "seconds", "note",
+    "time_utc",
+    "commit",
+    "candidate",
+    "split",
+    "ka_creative",
+    "ka_advice",
+    "human_rho",
+    "human_rho_within",
+    "frontier_rho_creative",
+    "frontier_rho_advice",
+    "len_rho_creative",
+    "len_rho_advice",
+    "digit_mass",
+    "passes_bars",
+    "seconds",
+    "note",
 ]
 
 
@@ -119,7 +132,9 @@ def main():
     for task in ["creative", "advice"]:
         idx = [i for i, r in enumerate(dev) if r["task"] == task and fr[i] is not None]
         row[f"frontier_rho_{task}"] = spearmanr([s_dev[i] for i in idx], [fr[i] for i in idx]).statistic
-        row[f"len_rho_{task}"] = spearmanr([s_dev[i] for i in idx], [len(dev[i]["reply"].split()) for i in idx]).statistic
+        row[f"len_rho_{task}"] = spearmanr(
+            [s_dev[i] for i in idx], [len(dev[i]["reply"].split()) for i in idx]
+        ).statistic
     row["seconds"] = round(time.time() - t0)
     row["note"] = args.note
     row["passes_bars"] = bool(
@@ -133,10 +148,23 @@ def main():
     if not LEDGER.exists():
         LEDGER.write_text("\t".join(COLS) + "\n")
     with LEDGER.open("a") as f:
-        f.write("\t".join(f"{row[c]:.3f}" if isinstance(row.get(c), float) else str(row.get(c, "")) for c in COLS) + "\n")
+        f.write(
+            "\t".join(f"{row[c]:.3f}" if isinstance(row.get(c), float) else str(row.get(c, "")) for c in COLS) + "\n"
+        )
     detail = HERE / "results" / "judge_search" / f"{args.candidate.split('/')[-1]}-{split}.json"
     detail.write_text(
-        json.dumps({"row": row, "human_scores": s_hum, "ka_scores": s_ka, "ka_pairs": pairs, "dev_scores": s_dev, "frontier": fr}, indent=1, default=str)
+        json.dumps(
+            {
+                "row": row,
+                "human_scores": s_hum,
+                "ka_scores": s_ka,
+                "ka_pairs": pairs,
+                "dev_scores": s_dev,
+                "frontier": fr,
+            },
+            indent=1,
+            default=str,
+        )
     )
     print(json.dumps(row, indent=1, default=str))
 

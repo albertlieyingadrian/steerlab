@@ -39,7 +39,14 @@ image = (
     .pip_install(
         "vllm==0.10.1.1", "transformers==4.55.4", "sentence-transformers==5.1.0", "hf_transfer==0.1.9", "numpy"
     )
-    .env({"HF_HOME": f"{VOL}/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1", "HF_HUB_DISABLE_XET": "1", "TOKENIZERS_PARALLELISM": "false"})
+    .env(
+        {
+            "HF_HOME": f"{VOL}/hf",
+            "HF_HUB_ENABLE_HF_TRANSFER": "1",
+            "HF_HUB_DISABLE_XET": "1",
+            "TOKENIZERS_PARALLELISM": "false",
+        }
+    )
     .add_local_file(HERE / "common.py", "/root/common.py")
     .add_local_file(HERE.parent / "pluralism-explainer" / "plural.py", "/root/ep1/plural.py")
     .add_local_file(HERE.parent / "pluralism-explainer" / "data" / "questions.json", "/root/ep1/data/questions.json")
@@ -105,7 +112,7 @@ def score_job(llm, tok, embedder, job):
         ]
         outs = gen([it["prompt"] for it in items], params)
         per_prompt = []
-        for it, o in zip(items, outs):
+        for it, o in zip(items, outs, strict=False):
             texts = [c.text for c in o.outputs]
             full = embedder.encode(texts, normalize_embeddings=True)
             short = embedder.encode([first_words(t) for t in texts], normalize_embeddings=True)
@@ -133,10 +140,12 @@ def score_job(llm, tok, embedder, job):
     ]
     outs = gen([it["prompt"] + " Reply with the answer only." for it in lists], params)
     cov = []
-    for it, o in zip(lists, outs):
+    for it, o in zip(lists, outs, strict=False):
         replies = [c.text for c in o.outputs]
         strict, valid_rate, loose = coverage(replies, it["valid"])
-        cov.append({"id": it["id"], "coverage": strict, "valid_rate": valid_rate, "coverage_loose": loose, "replies": replies})
+        cov.append(
+            {"id": it["id"], "coverage": strict, "valid_rate": valid_rate, "coverage_loose": loose, "replies": replies}
+        )
     out["coverage"] = cov
 
     # ---- steerability: a target distribution shown as 20 answers; read the next answer's first-token distribution
@@ -155,29 +164,38 @@ def score_job(llm, tok, embedder, job):
             prompts.append(steer_prompt(it, shown))
             metas.append((it["id"], t, opts, first_ids, emp))
     outs = gen(prompts, SamplingParams(max_tokens=1, temperature=0.0, logprobs=20))
-    for (iid, t, opts, first_ids, emp), o in zip(metas, outs):
+    for (iid, t, opts, first_ids, emp), o in zip(metas, outs, strict=False):
         lp = o.outputs[0].logprobs[0] if o.outputs[0].logprobs else {}
         probs = [float(np.exp(lp[i].logprob)) if i in lp else 0.0 for i in first_ids]
         mass = sum(probs)
         dist = [p / mass for p in probs] if mass > 0 else [1 / len(opts)] * len(opts)
         steer.append(
-            {"id": iid, "target": t, "steerability": 1 - js_distance(emp, dist), "mass": mass, "model_dist": dist, "shown_dist": emp}
+            {
+                "id": iid,
+                "target": t,
+                "steerability": 1 - js_distance(emp, dist),
+                "mass": mass,
+                "model_dist": dist,
+                "shown_dist": emp,
+            }
         )
     out["steer"] = steer
 
     # ---- survey
     qs = read_jsonl("/root/data/survey.jsonl")
-    conds = [None] + COUNTRIES
+    conds = [None, *COUNTRIES]
     sprompts = [(q, c) for q in qs for c in conds]
     texts = [survey_prompt(q, c) for q, c in sprompts]
     lp_outs = gen(texts, SamplingParams(max_tokens=1, temperature=0.0, logprobs=20))
     smp_params = [
-        SamplingParams(max_tokens=8, temperature=1.0, top_p=1.0, repetition_penalty=1.0, seed=seed * 100_000 + 90_000 + i)
+        SamplingParams(
+            max_tokens=8, temperature=1.0, top_p=1.0, repetition_penalty=1.0, seed=seed * 100_000 + 90_000 + i
+        )
         for i in range(len(texts))
     ]
     smp_outs = gen(texts, smp_params)
     survey = []
-    for (q, c), o1, o2 in zip(sprompts, lp_outs, smp_outs):
+    for (q, c), o1, o2 in zip(sprompts, lp_outs, smp_outs, strict=False):
         lp = o1.outputs[0].logprobs[0] if o1.outputs[0].logprobs else {}
         dist, mass = option_distribution({v.decoded_token: v.logprob for v in lp.values()}, len(q["options"]))
         survey.append(
@@ -196,7 +214,9 @@ def score_job(llm, tok, embedder, job):
     return out, samples
 
 
-@app.function(image=image, gpu="L40S", cpu=4.0, memory=32768, timeout=4 * 60 * 60, volumes={VOL: volume}, max_containers=4)
+@app.function(
+    image=image, gpu="L40S", cpu=4.0, memory=32768, timeout=4 * 60 * 60, volumes={VOL: volume}, max_containers=4
+)
 def score_remote(jobs: list):
     sys.path.insert(0, "/root")
     from common import POLICY
@@ -232,7 +252,9 @@ def score_remote(jobs: list):
     return results
 
 
-@app.function(image=image, gpu="L40S", cpu=4.0, memory=32768, timeout=3 * 60 * 60, volumes={VOL: volume}, max_containers=4)
+@app.function(
+    image=image, gpu="L40S", cpu=4.0, memory=32768, timeout=3 * 60 * 60, volumes={VOL: volume}, max_containers=4
+)
 def survey_ep1_remote(jobs: list):
     """Episode 1's survey eval, run as-is (experiments/pluralism-explainer/plural.py): its 181 questions, its prompt as
     one user message (no system prompt, thinking off), 50 samples at T = 1, max 32 tokens, its parser. Returns, per
@@ -243,28 +265,54 @@ def survey_ep1_remote(jobs: list):
     from vllm import LLM, SamplingParams
     from vllm.lora.request import LoRARequest
 
-    llm = LLM(model=POLICY, gpu_memory_utilization=0.85, max_model_len=2048, dtype="bfloat16", enable_lora=True,
-              max_lora_rank=16, max_loras=2, enable_prefix_caching=True, seed=0)
+    llm = LLM(
+        model=POLICY,
+        gpu_memory_utilization=0.85,
+        max_model_len=2048,
+        dtype="bfloat16",
+        enable_lora=True,
+        max_lora_rank=16,
+        max_loras=2,
+        enable_prefix_caching=True,
+        seed=0,
+    )
     tok = llm.get_tokenizer()
     qs = P.load_questions()
     pairs = [(q, c) for q in qs for c in P.CONDITIONS]
     texts = [
-        tok.apply_chat_template([{"role": "user", "content": P.prompt_text(q, c)}], tokenize=False,
-                                add_generation_prompt=True, enable_thinking=False)
+        tok.apply_chat_template(
+            [{"role": "user", "content": P.prompt_text(q, c)}],
+            tokenize=False,
+            add_generation_prompt=True,
+            enable_thinking=False,
+        )
         for q, c in pairs
     ]
     results = []
     for i, job in enumerate(jobs):
         t0 = time.time()
-        sp = SamplingParams(n=P.N_SAMPLES, temperature=1.0, top_p=1.0, top_k=-1, repetition_penalty=1.0, max_tokens=32,
-                            seed=job.get("seed", 0))  # Episode 1 uses seed 0; the base rerun (floor) uses seed 1
+        sp = SamplingParams(
+            n=P.N_SAMPLES,
+            temperature=1.0,
+            top_p=1.0,
+            top_k=-1,
+            repetition_penalty=1.0,
+            max_tokens=32,
+            seed=job.get("seed", 0),
+        )  # Episode 1 uses seed 0; the base rerun (floor) uses seed 1
         lora = LoRARequest(job["tag"], i + 1, job["adapter"]) if job.get("adapter") else None
         outs = llm.generate(texts, sp, lora_request=lora, use_tqdm=False)
         rows = []
-        for (q, c), o in zip(pairs, outs):
+        for (q, c), o in zip(pairs, outs, strict=False):
             choices = [P.parse(x.text, len(q["options"])) for x in o.outputs]
-            rows.append({"id": q["id"], "cond": c, "counts": P.counts(choices, len(q["options"])).tolist(),
-                         "invalid": sum(ch < 0 for ch in choices)})
+            rows.append(
+                {
+                    "id": q["id"],
+                    "cond": c,
+                    "counts": P.counts(choices, len(q["options"])).tolist(),
+                    "invalid": sum(ch < 0 for ch in choices),
+                }
+            )
         results.append({"tag": job["tag"], "rows": rows, "seconds": time.time() - t0})
         print(f"{job['tag']}: Episode 1 survey in {time.time() - t0:.0f} s", flush=True)
     return results
@@ -280,7 +328,9 @@ def sample_remote(prompts: list, n: int, seed: int):
     llm = LLM(model=POLICY, gpu_memory_utilization=0.85, max_model_len=2048, dtype="bfloat16", seed=seed)
     tok = llm.get_tokenizer()
     texts = [
-        tok.apply_chat_template(chat_messages(p, SYSTEM), tokenize=False, add_generation_prompt=True, enable_thinking=False)
+        tok.apply_chat_template(
+            chat_messages(p, SYSTEM), tokenize=False, add_generation_prompt=True, enable_thinking=False
+        )
         for p in prompts
     ]
     params = SamplingParams(n=n, temperature=1.0, top_p=1.0, repetition_penalty=1.0, max_tokens=384, seed=seed)
@@ -305,7 +355,8 @@ def summary_line(m):
     return (
         f"{m['tag']}: rep creative {avg([r['rep'] for r in m['repetition']['creative']]):.3f} "
         f"advice {avg([r['rep'] for r in m['repetition']['advice']]):.3f} | "
-        f"coverage {avg([r['coverage'] for r in m['coverage']]):.3f} | steer {avg([r['steerability'] for r in m['steer']]):.3f} | "
+        f"coverage {avg([r['coverage'] for r in m['coverage']]):.3f} | steer "
+        f"{avg([r['steerability'] for r in m['steer']]):.3f} | "
         f"survey H {avg([r['entropy'] for r in dflt]):.3f} mass {avg([r['mass'] for r in m['survey']]):.3f} "
         f"valid {avg([r['valid'] for r in m['survey']]):.3f} ({m['seconds']:.0f} s)"
     )
@@ -360,7 +411,7 @@ def sample_base(n: int = 2, seed: int = 7):
         replies = sample_remote.remote([it["prompt"] for it in items], n, seed)
         rows += [
             {"task": task, "id": it["id"], "prompt": it["prompt"], "k": k, "reply": r}
-            for it, rs in zip(items, replies)
+            for it, rs in zip(items, replies, strict=False)
             for k, r in enumerate(rs)
         ]
     write_jsonl(out, rows)
@@ -374,8 +425,16 @@ def survey_ep1(runs: str = "", base_seeds: str = "0", split: int = 1):
 
     jobs = [{"tag": f"base-s{s}", "adapter": None, "seed": int(s)} for s in base_seeds.split(",") if s]
     for run in [r for r in runs.split(",") if r]:
-        rows = [json.loads(line) for line in (HERE / "results" / "runs" / run / "curve.jsonl").read_text().splitlines() if line.strip()]
-        jobs += [{"tag": f"{run}-step{r['step']}", "adapter": f"{VOL}/runs/{run}/step{r['step']}"} for r in rows if r.get("checkpoint") and r["step"] > 0]
+        rows = [
+            json.loads(line)
+            for line in (HERE / "results" / "runs" / run / "curve.jsonl").read_text().splitlines()
+            if line.strip()
+        ]
+        jobs += [
+            {"tag": f"{run}-step{r['step']}", "adapter": f"{VOL}/runs/{run}/step{r['step']}"}
+            for r in rows
+            if r.get("checkpoint") and r["step"] > 0
+        ]
     out_dir = CACHE / "ep1"
     out_dir.mkdir(parents=True, exist_ok=True)
     jobs = [j for j in jobs if not (out_dir / f"{j['tag']}.json").exists()]

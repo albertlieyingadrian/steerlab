@@ -43,7 +43,9 @@ def modal_spend():
     buckets = {}
     # full hours since START, plus today's buckets including the current partial hour (the first query leaves it out)
     for args in (["--start", START, "--resolution", "h"], ["--for", "today", "--resolution", "h"]):
-        out = subprocess.run([MODAL_BIN, "billing", "report", *args, "--json"], capture_output=True, text=True, env=env, check=True)
+        out = subprocess.run(
+            [MODAL_BIN, "billing", "report", *args, "--json"], capture_output=True, text=True, env=env, check=True
+        )
         for r in json.loads(out.stdout):
             if r.get("description", "").startswith(APP_PREFIX):
                 key = (r["object_id"], r["interval_start"])
@@ -91,4 +93,7 @@ def check_openrouter(next_call_estimate=0.002):
 
 
 if __name__ == "__main__":
-    print(f"Modal: ${modal_spend():.2f} of ${MODAL_CAP:.0f}; OpenRouter: ${openrouter_spent():.3f} of ${OPENROUTER_CAP:.0f}")
+    print(
+        f"Modal: ${modal_spend():.2f} of ${MODAL_CAP:.0f}; OpenRouter: ${openrouter_spent():.3f} of "
+        f"${OPENROUTER_CAP:.0f}"
+    )

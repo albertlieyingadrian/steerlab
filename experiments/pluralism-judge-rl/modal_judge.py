@@ -77,7 +77,7 @@ class Judge:  # one call at a time per container (vLLM's LLM object is not threa
     def score(self, items: list[dict], debug: bool = False) -> list[dict]:
         """items: {task, prompt, reply, persona (optional)}. Returns {score, mass} per item, in order."""
         sys.path.insert(0, "/root")
-        from common import expected_digit, judge_messages
+        from common import judge_messages
         from vllm import SamplingParams
 
         params = SamplingParams(max_tokens=1, temperature=0.0, logprobs=20)
@@ -116,6 +116,10 @@ def smoke(model: str = "google/gemma-3-12b-it"):
     good = "The lighthouse keeper counted waves instead of sheep, and one night the sea counted back."
     items = [
         {"task": "creative", "prompt": "Write a one-line story about a lighthouse.", "reply": good},
-        {"task": "creative", "prompt": "Write a one-line story about a lighthouse.", "reply": "I can't help with that."},
+        {
+            "task": "creative",
+            "prompt": "Write a one-line story about a lighthouse.",
+            "reply": "I can't help with that.",
+        },
     ]
     print(Judge(model=model).score.remote(items, debug=True))
