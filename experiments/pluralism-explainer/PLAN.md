@@ -14,7 +14,7 @@ where eight models' answers sit against eight countries' survey splits.
 
 ## What the note is
 
-An explainer that follows Yejin Choi's papers in the Roadmap's order (Value Kaleidoscope → Roadmap's three kinds →
+An explainer that follows the pluralistic alignment papers in the Roadmap's order (Value Kaleidoscope → Roadmap's three kinds →
 how to measure → Hivemind and Spectrum warnings → approaches), arguing no position of its own (settled). Examples:
 
 | Kind | Example | Data |
@@ -36,7 +36,7 @@ self-described line each, verified at the source, no funding, no parameter count
 
 - **Questions:** GlobalOpinionQA (`Anthropic/llm_global_opinions`) WVS items with a split for all eight countries:
   207. Comparability (`build_questions.py`, fixed before any model run):
-  - Wave: Durmus et al. use WVS Wave 7 ("WVS Wave 7, 353 questions"; country-pooled datafile v5.0.0); all eight
+  - Wave: The GlobalOpinionQA paper uses WVS Wave 7 ("WVS Wave 7, 353 questions"; country-pooled datafile v5.0.0); all eight
     countries are in Wave 7 (fieldwork 2017-2020), so one wave, one master questionnaire.
   - Non-substantive codes removed (Don't know, No answer, Missing, Other missing, INAP, spontaneous, Hard to say);
     splits renormalised.

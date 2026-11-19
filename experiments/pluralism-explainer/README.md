@@ -1,11 +1,11 @@
 # What is pluralistic alignment? Eight models against eight countries' survey answers
 
-Pluralism series, Episode 1. An explainer of Overton, steerable and distributional pluralism, following Yejin Choi's
-group's papers (Value Kaleidoscope, A Roadmap to Pluralistic Alignment, Modular Pluralism, Artificial Hivemind,
+Pluralism series, Episode 1. An explainer of Overton, steerable and distributional pluralism, following the papers
+(Value Kaleidoscope, A Roadmap to Pluralistic Alignment, Modular Pluralism, Artificial Hivemind,
 Spectrum Tuning), backed by one experiment. Note: [`report/index.html`](report/index.html).
 
 **The experiment.** 181 World Values Survey (Wave 7) questions from GlobalOpinionQA
-([`Anthropic/llm_global_opinions`](https://huggingface.co/datasets/Anthropic/llm_global_opinions), Durmus et al.
+([`Anthropic/llm_global_opinions`](https://huggingface.co/datasets/Anthropic/llm_global_opinions),
 2023) that have a split for all eight countries (US, Philippines, Singapore, Malaysia, Indonesia, Taiwan, Brazil, South
 Korea), after a comparability filter. Eight models answer each question 50 times at temperature 1, with no country in
 the prompt and with "I live in <country>." for each country: Qwen3.5-9B-Base, Qwen3.5-9B, Qwen-SEA-LION-v5-9B,
