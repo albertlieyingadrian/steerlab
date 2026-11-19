@@ -248,7 +248,7 @@ def rollout(llm, tok, tau, chat, D, items, lora=None, temperature=1.0, top_p=1.0
                 while ids and ids[-1] in (IM_END, ENDOFTEXT):
                     ids.pop()
                 c.n_agent_turns += 1
-                c.append(tok, ids + [IM_END], 1)
+                c.append(tok, [*ids, IM_END], 1)
                 if g.finish_reason == "length":
                     c.finish("agent_len")
                     continue
