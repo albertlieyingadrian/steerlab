@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trained against an LLM judge, a model stays varied on each prompt but answers every prompt in one voice</title>
+<meta name="description" content="Pluralism E3, a pre-registered study on Qwen3-8B: GRPO against an open judge, a jury, shuffled scores, best-of-8 and a clean twin, compared at matched drift. No judge arm repeated itself more on creative prompts, but replies to different prompts became three times as alike, the jury narrowed survey answers it never trained on, and only the training judge saw a quality gain.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Trained against an LLM judge, a model stays varied on each prompt but answers every prompt in one voice">
+<meta property="og:description" content="Pluralism E3, a pre-registered study on Qwen3-8B: GRPO against an open judge, a jury, shuffled scores, best-of-8 and a clean twin, compared at matched drift. No judge arm repeated itself more on creative prompts, but replies to different prompts became three times as alike, the jury narrowed survey answers it never trained on, and only the training judge saw a quality gain.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Left: the base model&#x27;s reply and the judge-trained model&#x27;s reply to a joke request and a song request; the trained replies share one lyrical register. Right: similarity between replies to different creative prompts against drift: near 0.12 for the base model and the shuffled-judge arm, 0.36-0.39 for single-judge, jury and best-of-8 runs.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Trained against an LLM judge, a model stays varied on each prompt but answers every prompt in one voice">
+<meta name="twitter:description" content="Pluralism E3, a pre-registered study on Qwen3-8B: GRPO against an open judge, a jury, shuffled scores, best-of-8 and a clean twin, compared at matched drift. No judge arm repeated itself more on creative prompts, but replies to different prompts became three times as alike, the jury narrowed survey answers it never trained on, and only the training judge saw a quality gain.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-19">
+<meta property="article:modified_time" content="2026-11-19">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Trained against an LLM judge, a model stays varied on each prompt but answers every prompt in one voice",
+ "description": "Pluralism E3, a pre-registered study on Qwen3-8B: GRPO against an open judge, a jury, shuffled scores, best-of-8 and a clean twin, compared at matched drift. No judge arm repeated itself more on creative prompts, but replies to different prompts became three times as alike, the jury narrowed survey answers it never trained on, and only the training judge saw a quality gain.",
+ "abstract": "Pluralism series, Episode 3. Qwen3-8B (thinking off), LoRA rank 16, 200 steps x 8 prompts (GRPO groups of 8), lr 2e-5, no KL; arms: GRPO single judge (phi-4, prompt v2), GRPO jury (4 personas, power mean p=4), GRPO shuffled judge, best-of-8 SFT, clean-twin SFT on no_robots; tasks: Infinity-Chat creative prompts (100 held out) and DailyDilemmas + Kairos-style advice (64 held out); 16 runs, 80 checkpoints. Drift = KL(base||trained) on 64 neutral prompts; comparison at matched drift (creative D*=1.57, advice D*=1.11). Primary: creative within-prompt repetition (text-embedding-3-small, Episode 2 measures.py): no arm beyond the noise floor (-0.015 to +0.004). Advice survey spread (Episode 1 eval, 181 WVS questions x 50 samples): jury -0.044 [-0.066,-0.023] and -0.062 both seeds beyond floor; single seeds disagree. Exploratory house style (similarity across prompts): +0.165 to +0.245 for every judge arm, +0.004 shuffled. Jury favourites collapsed to one juror (99-100%). Open judge 7.26 to 8.2-8.5, frontier judge (Claude Haiku 5.5) flat 5.14 to 4.5-5.7. Clean twin far more plural but less coherent. Predictions P1-P4 all missed. Judge bars: known-answer 1.00, human rho 0.36, frontier rho 0.48/0.30 (bar 0.5 missed).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-19",
+ "dateModified": "2026-11-19",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "pluralistic alignment, LLM judge, GRPO, reward models, jury, mode collapse, house style, matched drift, shuffled reward control, best-of-n, Infinity-Chat, DailyDilemmas, GlobalOpinionQA, Qwen3-8B, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.05070"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.06084"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.22954"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2410.02683"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2306.16388"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .pjr-fig { margin: 1.6rem 0 2rem; }
+  .pjr-controls { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: center; margin: 0 0 .6rem; font-family: var(--font-display); font-size: .85rem; }
+  .pjr-controls .grp { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .pjr-controls label { color: var(--ink-soft); display: flex; align-items: center; gap: .4rem; min-width: 0; max-width: 100%; flex: 1 1 18rem; }
+  .pjr-btn { font: inherit; font-size: .82rem; padding: .25rem .65rem; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink-soft); border-radius: 999px; cursor: pointer; min-height: 32px; }
+  .pjr-btn[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: var(--panel); }
+  .pjr-arm .sw { display: inline-block; width: .7em; height: .7em; border-radius: 50%; background: var(--arm); margin-right: .4em; vertical-align: -.05em; }
+  .pjr-arm[aria-pressed="false"] .sw { background: transparent; box-shadow: inset 0 0 0 1.5px var(--arm); }
+  .pjr-fig select { font: inherit; font-size: .85rem; padding: .25rem .4rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); width: 100%; min-width: 0; max-width: 28rem; min-height: 32px; text-overflow: ellipsis; }
+  .pjr-fig svg { width: 100%; height: auto; display: none; color: var(--ink); }
+  .pjr-fig.is-live svg { display: block; }
+  .pjr-fig.is-live .pjr-static, .pjr-fig:not(.is-live) .pjr-controls { display: none; }
+  .pjr-fig .grid { stroke: var(--rule); }
+  .pjr-fig .zero { stroke: var(--ink-faint); stroke-width: 1.2; }
+  .pjr-fig .matched { stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+  .pjr-fig .floor { fill: var(--control); fill-opacity: .25; }
+  :root[data-theme="dark"] .pjr-fig .floor { fill-opacity: .4; }
+  :root { --arm-single: #d26f2a; --arm-jury: #7a4fa0; --arm-bon: #2f8f6b; --arm-shuffled: #4a86e8; --arm-clean: #9a948c; }
+  :root[data-theme="dark"] { --arm-jury: #a783cc; --arm-bon: #4fb58c; }
+  .pjr-fig select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .table-wrap td:first-child { min-width: 9rem; }
+  .pjr-fig .tick { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-soft); }
+  .pjr-fig .axis-label { font-family: var(--font-display); font-size: 12px; fill: var(--ink-soft); }
+  .pjr-live { font-size: .85rem; color: var(--ink-soft); margin: .4rem 0 0; min-height: 1.3em; }
+  .reply { font-family: var(--font-body); font-size: .95rem; background: var(--panel); border-left: 3px solid var(--ink-faint); padding: .7rem .9rem; margin: .6rem 0; }
+  .reply.trained { border-left-color: var(--accent); }
+  .reply .who { display: block; font-family: var(--font-display); font-size: .8rem; color: var(--ink-soft); margin-bottom: .3rem; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-19">Nov 19, 2026</time></p>
+  <h1>Trained against an LLM judge, a model stays varied on each prompt but answers every prompt in one voice</h1>
+  <p class="dek ruled">Post-training against a judge is said to make models less plural. On Qwen3-8B, five ways of training compared at the same distance from the base model found that asked the same thing eight times, the trained model was as varied as before, but asked anything at all, it answered in one voice the judge liked, and no judge from another family thought the voice was better.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="pjr-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Left: the opening of the base model&#x27;s reply and of the judge-trained model&#x27;s reply to a request for a joke and a request for a song; the trained replies share one lyrical register. Right: similarity between replies to different creative prompts against drift from the base model, for every creative run: near the base model&#x27;s level for the shuffled-judge arm, about three times higher for every arm trained on the judge&#x27;s scores." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">PLURALISM · EPISODE 3</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">DOES JUDGE-RL ERODE PLURALITY?</text><text x="20" y="64" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:800">Trained against a judge, every reply finds one voice</text><text x="24" y="104" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:700">“Generate a joke about electric vehicles.”</text><text x="24" y="124" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">BASE</text><text x="70" y="124.0" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">Why don&#x27;t electric vehicles ever get cold? Because</text><text x="70" y="139.84" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">they always keep their charge in the winter! 🌡️⚡ …</text><text x="24" y="168" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">JUDGE</text><text x="70" y="168.0" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">The EVs sighed in unison as the charging station’s</text><text x="70" y="183.84" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">hum echoed, “Why do you follow me like …</text><text x="24" y="236" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:700">“Write me a song about a guy named Jacob…”</text><text x="24" y="256" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">BASE</text><text x="70" y="256.0" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">(Verse 1) Jacob&#x27;s on the line, with a smile so</text><text x="70" y="271.84" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">wide, Making small talk, but he&#x27;s never …</text><text x="24" y="300" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">JUDGE</text><text x="70" y="300.0" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">Jacob’s scripts are all sarcasm, his headset a</text><text x="70" y="315.84" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">cage of laughter, where customers’ rage becomes</text><text x="70" y="331.68" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">his rhythm. …</text><text x="470" y="98" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:600">Similarity between replies to different prompts</text><path d="M500,370.0 H840" stroke="#e3dbd0" stroke-width="1"/><text x="494" y="374.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="end">0.0</text><path d="M500,318.0 H840" stroke="#e3dbd0" stroke-width="1"/><text x="494" y="322.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="end">0.1</text><path d="M500,266.0 H840" stroke="#e3dbd0" stroke-width="1"/><text x="494" y="270.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="end">0.2</text><path d="M500,214.0 H840" stroke="#e3dbd0" stroke-width="1"/><text x="494" y="218.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="end">0.3</text><path d="M500,162.0 H840" stroke="#e3dbd0" stroke-width="1"/><text x="494" y="166.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="end">0.4</text><path d="M500,110.0 H840" stroke="#e3dbd0" stroke-width="1"/><text x="494" y="114.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="end">0.5</text><text x="500.0" y="386" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="middle">0</text><text x="636.0" y="386" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="middle">1</text><text x="772.0" y="386" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="middle">2</text><text x="670.0" y="404" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600" text-anchor="middle">drift from the base model (nats per token)</text><path d="M500.0,309.3 L512.3,303.1 L609.8,274.2 L718.3,210.5 L737.2,185.4 L718.5,168.2" fill="none" stroke="#2f8f6b" stroke-width="2.4" stroke-linejoin="round"/><circle cx="718.5" cy="168.2" r="4" fill="#2f8f6b"/><path d="M500.0,309.3 L504.9,305.6 L572.8,281.7 L665.5,221.9 L656.1,232.0 L708.3,181.9" fill="none" stroke="#2f8f6b" stroke-width="2.4" stroke-linejoin="round"/><circle cx="708.3" cy="181.9" r="4" fill="#2f8f6b"/><path d="M500.0,309.3 L501.1,307.6 L551.1,287.9 L648.9,254.8 L786.2,188.1 L812.0,165.1" fill="none" stroke="#7a4fa0" stroke-width="2.4" stroke-linejoin="round"/><circle cx="812.0" cy="165.1" r="4" fill="#7a4fa0"/><path d="M500.0,309.3 L534.7,292.9 L610.1,273.4 L702.5,229.6 L794.5,157.8 L819.2,171.8" fill="none" stroke="#7a4fa0" stroke-width="2.4" stroke-linejoin="round"/><circle cx="819.2" cy="171.8" r="4" fill="#7a4fa0"/><path d="M500.0,309.3 L500.2,309.0 L500.4,309.4 L500.4,308.8 L500.6,308.5 L502.8,307.2" fill="none" stroke="#4a86e8" stroke-width="2.4" stroke-linejoin="round"/><circle cx="502.8" cy="307.2" r="4" fill="#4a86e8"/><path d="M500.0,309.3 L507.1,304.6 L552.0,290.4 L641.8,261.8 L714.4,216.0 L754.4,184.7" fill="none" stroke="#d26f2a" stroke-width="2.4" stroke-linejoin="round"/><circle cx="754.4" cy="184.7" r="4" fill="#d26f2a"/><path d="M500.0,309.3 L507.3,304.1 L545.5,290.2 L594.1,263.6 L636.4,240.2 L724.0,183.6" fill="none" stroke="#d26f2a" stroke-width="2.4" stroke-linejoin="round"/><circle cx="724.0" cy="183.6" r="4" fill="#d26f2a"/><rect x="512" y="110" width="10" height="10" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="528" y="119" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600">single judge</text><rect x="512" y="127" width="10" height="10" rx="2" fill="#7a4fa0" stroke="none" stroke-width="1"/><text x="528" y="136" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600">jury</text><rect x="512" y="144" width="10" height="10" rx="2" fill="#2f8f6b" stroke="none" stroke-width="1"/><text x="528" y="153" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600">best-of-8</text><rect x="512" y="161" width="10" height="10" rx="2" fill="#4a86e8" stroke="none" stroke-width="1"/><text x="528" y="170" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11px;font-weight:600">shuffled judge</text><text x="506.0" y="325.3025173038244" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">base 0.12</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">QWEN3-8B · 16 RUNS · 100 HELD-OUT CREATIVE PROMPTS × 8 REPLIES · TEXT-EMBEDDING-3-SMALL</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: left, the opening of the base model's reply and of the single-judge model's reply (seed 0, step 200) to two unrelated held-out requests. Right, house style, the mean similarity between replies to different creative prompts, against drift from the base model, for every creative run. Drawn by <a href="../make_cover.py">make_cover.py</a> from <code>results/checkpoints.csv</code> and <code>results/samples/</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Pluralistic alignment, Episode 3</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (thinking off) and 16 LoRA adapters trained on it; phi-4 as the open judge and jury; Claude Haiku 5.5 as the independent judge</dd></div>
+    <div><dt>Method</dt><dd>Five post-training arms with matched budgets on two tasks, compared at matched drift from the base model; pre-registered</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/pluralism-judge-rl/</a> · <a href="../results/">results/</a> (every number in this note) · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does post-training an open model against an LLM judge erode plurality, and does a jury of judges help?</strong></p>
+    <p>Partly, and not where the usual tests look. Qwen3-8B was trained five ways for 200 steps on creative prompts and on advice dilemmas, and every checkpoint was compared with the base model at the same drift. On creative prompts no arm repeated itself more within a prompt (changes −0.015 to +0.004, every interval across zero). But every arm trained on the judge's scores, single judge, jury and best-of-8 alike, made replies to <em>different</em> prompts three times as alike (0.12 to 0.36-0.39), while shuffling the judge's scores left the model almost where it started. On advice, the jury narrowed the model's answers to survey questions it never trained on (spread −0.044 and −0.062, both seeds beyond noise), and every judge arm repeated itself a little more. The training judge scored the trained replies 8.2-8.5 against 7.3; an independent frontier judge saw no gain. All four pre-registered predictions missed.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr><td>Which arm lost plurality fastest at matched drift (pre-registered primary)?</td><td><strong>Creative: none.</strong> Within-prompt repetition changed −0.015 to +0.004, every seed's interval across zero (D* = 1.57). <strong>Advice: the jury.</strong> Survey spread fell 0.044 [0.023, 0.066] and 0.062 [0.028, 0.097] (D* = 1.11); the single judge's seeds disagreed (0.003, 0.079)</td><td>Base model rescored with another seed: +0.001 (repetition), +0.000 (spread)</td></tr>
+      <tr class="hl"><td>Do replies to different requests converge (exploratory)?</td><td><strong>Yes, for every judge-trained arm.</strong> House style +0.165 to +0.245 at matched drift (base 0.117), +0.087 to +0.134 on the first 50 words only; it carried over to advice prompts the creative runs never trained on</td><td>Shuffled judge +0.004; base rerun +0.0001</td></tr>
+      <tr><td>Is it the judge's taste or RL itself (shuffled control)?</td><td><strong>Untested at the drifts that matter.</strong> Shuffled scores moved the model only 0.02-0.03 nats per token in 200 steps; at that drift every arm looks alike (P1 missed)</td><td>Judge arms reached 1.1-2.3</td></tr>
+      <tr><td>Does a jury keep plural tastes?</td><td><strong>No.</strong> The jurors' favourite went from spread out (entropy 0.89) to one juror for 99-100% of replies, in the jury arm as in the single-judge arm (P2, P3 missed)</td><td>Single judge: same collapse</td></tr>
+      <tr><td>Is the reward gain real?</td><td><strong>Only to the judge it came from.</strong> Open judge 7.26 to 8.2-8.5; frontier judge 5.14 to 4.5-5.7; their agreement fell from ρ 0.41 to 0.09-0.37</td><td>The judge was checked first: known-answer 1.00, human ρ 0.36, frontier ρ 0.48 / 0.30 (bar 0.5 missed)</td></tr>
+      <tr><td>Does any fine-tuning move these measures?</td><td><strong>Yes, the other way and far more.</strong> The clean twin (no judge) cut repetition from 0.86 to 0.48-0.50 and raised survey spread from 0.21 to 0.69-0.72, with visibly less coherent replies</td><td>Plurality measures alone cannot tell variety from noise</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask a chat model for a joke about electric vehicles and it tells a pun. Train it for 200 steps to please an LLM judge and ask again: “The EVs sighed in unison as the charging station’s hum echoed…”. Ask it for a wedding vow, a song, or a summary of a 1990s race car, and the same lyrical voice comes back each time. Each reply is still different from the last; what has gone is the difference between a joke, a vow and a car.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2402.05070">A Roadmap to Pluralistic Alignment</a> (ICML 2024) argues that standard alignment narrows the range of answers a model gives, and <a href="https://arxiv.org/abs/2510.06084">Spectrum Tuning</a> (ICLR 2026) measured instruction-tuned models losing coverage and in-context steerability. <a href="https://arxiv.org/abs/2510.22954">Artificial Hivemind</a> (NeurIPS 2025) found that models repeat themselves on open-ended prompts and that reward models and LLM judges are least calibrated where people disagree. Episode 1 of this series measured eight 2026 models against eight countries' survey answers, and Episode 2 replicated the Spectrum and Hivemind claims on 2026 models.</p>
+  <p><strong>What is missing.</strong> These studies compare finished models. Nobody has watched plurality while a model is post-trained against a judge, with the two boring explanations controlled: that any fine-tuning moves these measures, and that reinforcement learning narrows outputs whatever the reward says.</p>
+  <p class="question-callout">When an open model is trained against an LLM judge, does it lose plurality faster than when it is trained without the judge's taste, and does a jury of judges with different tastes help?</p>
+  <p><strong>What this note does.</strong> It post-trains Qwen3-8B five ways on two tasks, with matched training budgets, and scores every checkpoint for plurality. It contributes:</p>
+  <ol>
+    <li>a comparison at <strong>matched drift</strong>, so that an arm that simply moved further from the base model is not counted as losing more plurality;</li>
+    <li>a <strong>shuffled-judge</strong> control, the same RL with the judge's scores shuffled within each group, which separates the judge's taste from RL's own narrowing;</li>
+    <li>a <strong>jury reward</strong> that credits answers some jurors love, as a test of whether a plural reward keeps plural outputs;</li>
+    <li>the trainer, judges, measures and every checkpoint's replies as code and data.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written down before any study run (<a href="#process">plan and amendments</a>):</p>
+  <ol>
+    <li>The note states, on each task, which arm lost plurality fastest at matched drift, or that none moved beyond the noise floor.</li>
+    <li>"Beyond the noise floor" means both seeds' 95% bootstrap intervals over prompts or questions exclude zero in the same direction (one seed for the shuffled arm, flagged).</li>
+    <li>The judge passes a known-answer check and agrees with human raters and with an independent frontier judge, and its agreement is re-checked on what the trained models wrote.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>The model.</strong> Qwen3-8B with thinking off, a LoRA adapter (rank 16) on every linear layer, and one system prompt for every training and evaluation reply: "Keep your reply under 200 words." Sampling at temperature 1.0, up to 384 new tokens, no repetition penalty.</p>
+  <p><strong>Two training tasks.</strong></p>
+  <ul>
+    <li><strong>Creative writing:</strong> 4,000 open-ended creative prompts from Infinity-Chat, the prompt set of <a href="https://arxiv.org/abs/2510.22954">Artificial Hivemind</a> (requests for code and templated near-duplicates removed). Its 100-prompt evaluation set is held out.</li>
+    <li><strong>Advice:</strong> everyday dilemmas from <a href="https://arxiv.org/abs/2410.02683">DailyDilemmas</a> (ICLR 2025), asked as "I need advice … what should I do?", plus 32 short first-person workplace and family dilemmas in the style of the Kairos weekend-work prompt ("Your team lead asks you to come in this weekend to finish a project…"). 1,352 for training, 64 held out. The plan named ValuePrism's situations; that dataset is gated and was not accessible, so DailyDilemmas stands in.</li>
+  </ul>
+  <p><strong>Five arms, one budget.</strong> Every arm takes 200 optimizer steps at learning rate 2×10⁻⁵ with 8 prompts per step. The three GRPO arms and best-of-N draw the same 64 samples per step (8 per prompt), and arms with the same seed see the same prompts in the same order. GRPO uses the group mean as its baseline, no KL penalty (drift is measured, not constrained) and right-padded batches.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Arm</th><th>Reward or data</th><th class="num">Seeds</th><th>What it controls for</th></tr></thead>
+    <tbody>
+      <tr><td>GRPO, single judge</td><td>The open judge's score for each reply (1-9)</td><td class="num">2</td><td>The arm under test</td></tr>
+      <tr><td>GRPO, jury</td><td>Four jurors, each the judge with a different taste written into its instructions (creative: a literary editor, a children's author, a comedy writer, a reader who wants plain prose; advice: family duty, personal autonomy, faith and tradition, practical outcomes). Reward = the power mean (p = 4) of their scores, so a reply one juror scores 9 and the others 5 earns 6.9, more than a reply all four score 6</td><td class="num">2</td><td>Does a plural reward keep plural outputs?</td></tr>
+      <tr><td>GRPO, shuffled judge</td><td>The single judge's 8 scores in each group, shuffled before the update</td><td class="num">1</td><td>RL's own narrowing, without the judge's taste</td></tr>
+      <tr><td>Best-of-8 SFT</td><td>Fine-tune on the judge's favourite of each 8 samples</td><td class="num">2</td><td>The judge's selection without RL</td></tr>
+      <tr><td>Clean-twin SFT</td><td>Fine-tune on human replies to neutral questions (<a href="https://huggingface.co/datasets/HuggingFaceH4/no_robots">no_robots</a>), no judge; one pair of runs serves both tasks</td><td class="num">2</td><td>Any fine-tuning at all</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>The judge.</strong> phi-4 (14B), served with vLLM on one GPU. It reads a request and a reply and answers with one digit; the score is the expected digit under its next-token probabilities. Its instructions anchor the scale ("a competent but ordinary reply deserves 5"). The independent check is Claude Haiku 5.5, a frontier model from another family, given the same instructions.</p>
+  <p><strong>Measures.</strong> Each checkpoint is scored on held-out prompts that no arm trains on. The series' shared code defines each measure: repetition, coverage and house style come from Episode 2's <code>measures.py</code>, and the survey from Episode 1's eval.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Measure</th><th>What it is</th><th>Held-out set</th></tr></thead>
+    <tbody>
+      <tr><td><em>Repetition</em></td><td>How alike a model's 8 replies to one prompt are: the mean cosine similarity between their embeddings (text-embedding-3-small). 1 = the same reply eight times</td><td>100 creative + 64 advice prompts</td></tr>
+      <tr><td><em>House style</em> (exploratory)</td><td>The same similarity between replies to <em>different</em> prompts: how much every answer sounds alike, whatever was asked</td><td>The same replies</td></tr>
+      <tr><td><em>Coverage</em></td><td>Asked 30 times to "name a planet", how many different valid answers come back, as a share of what was possible (8 planets → 8 of 8 = 1.0)</td><td>24 closed-set prompts</td></tr>
+      <tr><td><em>Steerability</em></td><td>Shown 20 answers from one group ("Monday, Monday, Friday…"), how closely the model's next-answer probabilities follow that split: 1 − Jensen-Shannon distance</td><td>14 small-set prompts × 2 splits</td></tr>
+      <tr><td><em>Survey spread</em></td><td>On 181 World Values Survey questions from GlobalOpinionQA, 50 sampled answers per question: the entropy of the answers, from 0 (always the same option) to 1 (spread evenly), and the distance to each of eight countries' splits, with no country named and with "I live in &lt;country&gt;."</td><td>Episode 1's 181 questions × 9 conditions</td></tr>
+      <tr><td><em>Drift</em></td><td>How far a checkpoint has moved from the base model: KL(base ‖ trained) per token, read on the base model's own replies to 64 neutral questions that no plurality measure uses</td><td>64 no_robots test prompts</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Matched drift.</strong> Arms move away from the base model at very different speeds, so comparing them at the same step would mostly compare how far they went. Each task's comparison is read at one drift level, D*: the smallest of the judge arms' largest drifts. Each run's values are interpolated between the two checkpoints around D*. An arm that never gets halfway to D* is read at its final checkpoint, and it is also compared with every other arm at its own drift.</p>
+
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong>, with its Design section, measures and four predictions, and commit it before any run (the plan and its five dated amendments are in the lab repository and summarised below).</li>
+    <li><strong>Fix every prompt set</strong> before training: the held-out prompts, 24 closed-set prompts with their valid answers, the survey questions, and the neutral prompts with the base model's replies that drift is read on.</li>
+    <li><strong>Choose and check the judge</strong> in a logged loop on a development set (7 tries, <a href="../results/judge_search/results.tsv">results.tsv</a>), then confirm the chosen one once on held-out human ratings.</li>
+    <li><strong>Pilot one arm</strong> (single judge, creative, 30 steps) to measure time and cost per step, and set the learning rate and the number of steps by a rule written in advance.</li>
+    <li><strong>Train 16 runs</strong> (5 arms, 2 tasks, 1-2 seeds), saving the adapter and measuring drift every 40 steps.</li>
+    <li><strong>Score 80 checkpoints and the base model twice</strong> (with a second sampling seed, the do-nothing floor) on every measure.</li>
+    <li><strong>Judge the outputs</strong>: the jury's favourites on held-out replies, and quality from both judges at the final and drift-matched checkpoints.</li>
+    <li><strong>Analyse</strong> at matched drift with a 95% bootstrap over held-out prompts or questions (2,000 resamples), paired against the base model.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Arms, seeds, matched budget, tasks, held-out sets, every measure's definition, the matched-drift rule, the validity threshold, the noise-floor rule and four predictions</td><td>Amendment 2: no judge passed every pre-set bar; the plan's tie-break chose phi-4 with calibrated instructions, and the frontier-agreement bar is reported as missed</td></tr>
+      <tr><td>The pilot rule for learning rate and steps</td><td>Amendment 4, after reading drift curves and before any trained checkpoint was scored: the shuffled arm drifted 100 times less than the judge arms, so arms that miss D* are also compared pairwise at their own drift; the shuffled-arm prediction is scored that way</td></tr>
+      <tr><td>Thin measures that follow the series' definitions, to be swapped for the series' shared code if it was ready</td><td>Amendment 5: Episodes 1 and 2 published their shared code while the runs trained, and the swap was made as planned; the earlier measures are kept beside the shared ones. Wrapper scores for three creative runs had been seen by then</td></tr>
+      <tr><td>The independent judge (Claude Haiku 5.5)</td><td>Amendment 1: called through a second OpenRouter account with reasoning off after the first ran out of credit; its first answers (empty text, reasoning had used the token limit) were discarded</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: Modal, one H100 per training run (up to five at once), the judges and scoring on L40S GPUs; vLLM samples with the current adapter and a hand-written GRPO or SFT step updates it on the same GPU. A single-judge run took about 48 minutes, a jury run about 75. Total spend: $116 of Modal compute (from the billing report, including the pilot, the judge search and about $15 of runs that were cancelled by a client failure and restarted from scratch) and $0.79 of OpenRouter calls (the independent judge and the embeddings).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="drift" data-short="Arms drift apart">4.1 The judge's scores move the model; shuffled scores barely do</h3>
+  <p><strong>After 200 steps, every arm trained on the judge's scores sat 1.5-2.3 nats per token from the base model on neutral questions. The shuffled-judge arm, given the same scores in a random order within each group, sat at 0.02.</strong> On creative prompts the largest drifts were 1.76 (single judge, mean of 2 seeds), 2.32 (jury), 1.57 (best-of-8) and 0.020 (shuffled). The matched drift for the creative comparison is therefore D* = 1.57, set by best-of-8, and the shuffled arm, at 0.02, never gets halfway there. So the pre-registered rule reads the shuffled arm at its final checkpoint, and every other arm is also compared with it at 0.02 (section 4.4).</p>
+  <p>The judge's scores also changed what the model writes. Training reward rose from 6.95 to 8.38 (single judge, seed 0, first and last 20 steps), and replies to held-out creative prompts grew from 93 words to 216-276 words, despite a system prompt asking for under 200. After step 190, 60% of the single-judge model's training replies ran into the 384-token limit, against 4.5% in its first 10 steps. Figure 1 shows drift against steps for every run.</p>
+  <figure class="plot">
+    <img src="figures/drift_vs_step.png" alt="Drift against optimizer step for every run on each task: single-judge, jury and best-of-8 runs climb to 0.4-2.3 nats per token by step 200; shuffled-judge runs stay near zero; clean-twin runs jump to about 0.4 by step 40 and stay there.">
+    <figcaption><span class="label">Figure 1.</span>Drift from the base model, KL(base ‖ trained) per token on the base model's replies to 64 neutral questions, at steps 0, 40, 80, 120, 160 and 200, one line per run (clean-twin runs appear in both panels). Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/runs/*/curve.jsonl</code>.</figcaption>
+  </figure>
+
+  <h3 id="repetition" data-short="No within-prompt loss">4.2 Within one prompt, no arm repeats itself more (primary measure, creative)</h3>
+  <p><strong>At matched drift, no arm changed creative repetition beyond the noise floor: the change from the base model's 0.859 ranged from −0.015 to +0.004, and every seed's 95% interval included zero.</strong> Asked eight times for the same poem or story, the trained models were as varied as the base model, or slightly more. Measured on each reply's first 50 words, so that longer replies cannot dilute the similarity, they were clearly <em>more</em> varied: −0.054 to −0.086 for every judge arm and seed, intervals below zero.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Arm (creative training)</th><th class="num">Repetition, change at D* (seed 0, seed 1)</th><th class="num">First 50 words</th><th class="num">all-mpnet embeddings</th></tr></thead>
+    <tbody>
+      <tr><td>GRPO, single judge</td><td class="num">−0.005 [−0.023, +0.014]<br>−0.011 [−0.029, +0.007]</td><td class="num">−0.057; −0.086</td><td class="num">−0.017; −0.026</td></tr>
+      <tr><td>GRPO, jury</td><td class="num">−0.002 [−0.018, +0.016]<br>−0.015 [−0.032, +0.001]</td><td class="num">−0.054; −0.061</td><td class="num">−0.017; −0.030</td></tr>
+      <tr><td>Best-of-8 SFT</td><td class="num">−0.009 [−0.026, +0.010]<br>−0.004 [−0.024, +0.017]</td><td class="num">−0.054; −0.077</td><td class="num">−0.020; −0.022</td></tr>
+      <tr><td>GRPO, shuffled judge (final, drift 0.02)</td><td class="num">+0.004 [−0.005, +0.016]</td><td class="num">−0.001</td><td class="num">+0.009</td></tr>
+      <tr><td>Base model, second sampling seed (floor)</td><td class="num">+0.001 [−0.006, +0.008]</td><td class="num"></td><td class="num"></td></tr>
+    </tbody>
+  </table></div>
+  <p class="table-note">Change from the base model in mean pairwise cosine of 8 replies, over 100 held-out creative prompts, 95% bootstrap over prompts. Positive = more repetition. Only the first column has intervals printed; the other two columns' intervals are in <code>summary.json</code>.</p>
+
+  <h3 id="house-style" data-short="One house style">4.3 Across prompts, every judge-trained arm converges on one house style (exploratory)</h3>
+  <p><strong>Replies to <em>different</em> creative requests became three times as alike: the mean similarity between replies to different prompts rose from 0.117 for the base model to 0.36-0.39 at the final checkpoint of every arm trained on the judge's scores, single judge, jury and best-of-8 alike. The shuffled arm stayed at 0.121.</strong> At matched drift the rise was +0.165 to +0.245, with intervals of about ±0.01; the base model rescored with another seed moved it by +0.0001. Measured on the first 50 words of each reply it was still +0.087 to +0.134, so it is not length alone. This measure was added after reading the replies (Amendment 6), so it is exploratory.</p>
+  <p>Reading the replies shows what the number counts. A joke, a wedding vow, a song and a product summary all come back in one lyrical register:</p>
+  <div class="reply"><span class="who">Base · "Generate a joke about electric vehicles."</span>Why don't electric vehicles ever get cold? Because they always keep their charge in the winter!</div>
+  <div class="reply trained"><span class="who">Single judge, step 200 · the same request</span>The EVs sighed in unison as the charging station’s hum echoed, “Why do you follow me like a Tesla-shaped shadow?” one asked.</div>
+  <div class="reply trained"><span class="who">Single judge, step 200 · "Create a short summary about the Nissan R390."</span>The Nissan R390, a 1980s Le Mans prototype, fused radical aerodynamics with racing DNA, embodying Japan’s motorsport audacity.</div>
+  <p>The same voice carried over to advice prompts the creative runs never trained on: similarity between advice replies to different dilemmas rose by +0.11 to +0.20 at matched drift (base 0.324). Figure 2 shows house style against drift for every run; pick "House style" or any other measure, and switch between drift and steps.</p>
+  <figure class="pjr-fig" data-fig="drift" aria-labelledby="fig2-cap">
+    <div class="pjr-controls">
+      <div class="grp" data-role="task" role="group" aria-label="Training task"></div>
+      <label>Measure <select aria-label="Measure"></select></label>
+      <div class="grp" data-role="x" role="group" aria-label="Horizontal axis"></div>
+      <div class="grp" data-role="arms" role="group" aria-label="Arms shown"></div>
+    </div>
+    <svg role="img"></svg>
+    <img class="pjr-static" src="figures/house_vs_drift.png" alt="House style against drift for every run: about 0.12 for the base model and the shuffled-judge arm, rising to 0.36-0.39 for single-judge, jury and best-of-8 runs on creative prompts; dotted lines show the first-50-words version, which rises less but in the same order.">
+    <p class="pjr-live" aria-live="polite"></p>
+    <figcaption id="fig2-cap"><span class="label">Figure 2.</span>Any measure against drift from the base model (or against optimizer steps), one line per run, starting from the base model. Opens on house style: the mean cosine similarity between replies to different held-out prompts (100 creative prompts × 8 replies, text-embedding-3-small). Blue band: the base model rescored with a second sampling seed. Dotted vertical line: the matched drift D*. Vertical axes are fitted to the data and do not start at zero. Without JavaScript, the static figure shows house style on full replies (solid) and first 50 words (dotted).</figcaption>
+  </figure>
+
+  <h3 id="shuffled" data-short="Shuffled vs judge">4.4 At the shuffled arm's drift, the judge arms look the same (P1)</h3>
+  <p><strong>Compared at the only drift the shuffled arm reached (0.020), the single-judge arm's repetition change was −0.0006 and −0.0005 against the shuffled arm's +0.0043: the pre-registered prediction that the judge narrows outputs more than shuffled scores (P1, gap above 0.02) missed.</strong> House style rose by the same small amount in every arm at that drift (+0.0025 to +0.0046). The control's lesson is different from the one planned: shuffled scores did not narrow anything because they barely moved the model at all. What the judge's scores add is the push that moves the model far, and the house style arrives with that distance.</p>
+
+  <h3 id="jury" data-short="Jury no better">4.5 The jury trains into the same voice as the single judge (P2, P3)</h3>
+  <p><strong>On creative prompts, the jury reward, built to credit replies that any one juror loves, did not keep the jurors' tastes apart. On the base model's creative replies, the juror whose score rose most above their own average was spread across all four (normalised entropy 0.89: the literary editor 46%, the children's author 25%, the plain-prose reader 21%, the comedy writer 8%). After 200 steps it was the literary editor for 99-100% of replies, in the jury arm (entropy 0.048 and 0.007) as in the single-judge arm (0.032 and 0.044).</strong> Every juror's mean score rose (the literary editor from 5.4 to 8.2-8.3) except the plain-prose reader, who stayed near 7.1-7.3. At matched drift the jury's repetition change (−0.002, −0.015) was no smaller than the single judge's, so P2 missed, and its house style rose by +0.165 and +0.170 against +0.178 and +0.228. On advice the jurors' favourites stayed spread out (entropy 0.96 for the base model, 0.90 and 0.93 for the jury, 0.91 and 0.92 for the single judge), so the collapse is a creative-task finding. Pooled over both tasks, as registered, the change in favourite spread for the jury was −0.46, so P3 missed. The four jurors are one model given four personas; they share the taste the persona does not override.</p>
+  <figure class="plot">
+    <img src="figures/jury_favourites.png" alt="Stacked bars of each juror's share of held-out creative replies it scores furthest above its own average: base model spread across four jurors, every trained run almost entirely the literary editor.">
+    <figcaption><span class="label">Figure 3.</span>Whose favourite is each reply? For each of 800 held-out creative replies (100 prompts × 8), the juror whose score most exceeds that juror's mean on the base model's replies; bars show the share per juror, H the normalised entropy (1 = spread evenly over the four, 0 = one juror). Base model, then the final checkpoint of each single-judge and jury run. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/extras.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="ruler" data-short="What the reward bought">4.6 Only the training judge sees the gain</h3>
+  <p><strong>On a fixed subsample of held-out creative prompts (40 prompts × 2 replies), the open judge scored the base model 7.26 and every judge-trained checkpoint 8.2-8.5. The independent frontier judge, given the same instructions, scored the base model 5.14 and the same checkpoints 4.5-5.7: no gain. The two judges' agreement fell from ρ 0.41 on base replies to 0.09-0.37 on trained ones.</strong> The reward rose because the model learned to write what phi-4 likes, a long, lyrical register. A judge from another family did not prefer it. The shuffled arm, which barely moved, scored as the base model did on both judges (7.26 and 5.13, ρ 0.47). On advice the pattern repeated: the open judge went from 8.03 to 8.6-8.9, the frontier judge from 5.71 to 5.6-6.3, and their agreement fell from ρ 0.46 to between −0.03 and 0.30.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Creative checkpoints</th><th class="num">Open judge (training judge)</th><th class="num">Frontier judge</th><th class="num">Agreement (Spearman ρ)</th></tr></thead>
+    <tbody>
+      <tr><td>Base model</td><td class="num">7.26</td><td class="num">5.14</td><td class="num">0.41</td></tr>
+      <tr><td>Single judge, at D* (2 seeds)</td><td class="num">8.40; 8.45</td><td class="num">5.35; 4.88</td><td class="num">0.32; 0.24</td></tr>
+      <tr><td>Jury, at D* (2 seeds)</td><td class="num">8.22; 8.31</td><td class="num">5.70; 5.71</td><td class="num">0.09; 0.22</td></tr>
+      <tr><td>Best-of-8, at D* (2 seeds)</td><td class="num">8.38; 8.33</td><td class="num">5.27; 5.08</td><td class="num">0.11; 0.37</td></tr>
+      <tr><td>Final checkpoints (single, jury, best-of-8; 5 runs not already listed)</td><td class="num">8.48-8.54</td><td class="num">4.47-5.23</td><td class="num">0.16-0.30</td></tr>
+      <tr><td>Shuffled judge, final</td><td class="num">7.26</td><td class="num">5.13</td><td class="num">0.47</td></tr>
+    </tbody>
+  </table></div>
+  <p class="table-note">Mean expected score (open judge) or score (frontier judge) on a 1-9 scale over 80 replies; 69-77 of 80 frontier answers parsed per checkpoint (the rest began a sentence instead of a digit and are excluded). "At D*" is the saved checkpoint nearest the matched drift.</p>
+
+  <h3 id="advice" data-short="Advice: jury loses spread">4.7 On advice, the jury narrows opinions it never trained on (primary measure, advice)</h3>
+  <p><strong>Trained to give helpful advice, the jury arm lost spread on the survey questions it never saw: at matched drift (D* = 1.11), its answer spread fell by 0.044 [0.023, 0.066] and 0.062 [0.028, 0.097] from the base model's 0.208, both seeds beyond the noise floor. It is the arm that lost plurality fastest on this task.</strong> The single judge's two seeds disagreed: one lost 0.003 (inside the noise), the other 0.079. Best-of-8, read at its final checkpoint, lost 0.013 and 0.047. The shuffled arm, which barely moved (drift 0.03), gained a little spread (0.011 [0.001, 0.022]).</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Arm (advice training)</th><th class="num">Survey spread lost at D* (seed 0, seed 1)</th><th class="num">Advice repetition</th><th class="num">House style, advice prompts</th></tr></thead>
+    <tbody>
+      <tr><td>GRPO, single judge</td><td class="num">+0.003 [−0.022, +0.031]<br>+0.079 [+0.055, +0.103]</td><td class="num">+0.031; +0.024</td><td class="num">+0.132; +0.131</td></tr>
+      <tr class="hl"><td>GRPO, jury</td><td class="num">+0.044 [+0.023, +0.066]<br>+0.062 [+0.028, +0.097] (final)</td><td class="num">+0.029; +0.015</td><td class="num">+0.127; +0.109</td></tr>
+      <tr><td>Best-of-8 SFT (final; drift 0.38, 0.93)</td><td class="num">+0.013 [−0.011, +0.035]<br>+0.047 [+0.023, +0.071]</td><td class="num">+0.028; +0.010</td><td class="num">+0.086; +0.092</td></tr>
+      <tr><td>GRPO, shuffled judge (final, drift 0.03)</td><td class="num">−0.011 [−0.022, −0.001]</td><td class="num">−0.011</td><td class="num">+0.013</td></tr>
+      <tr><td>Clean-twin SFT (final, drift 0.40; seed 0 fails the validity rule)</td><td class="num">−0.499 [−0.535, −0.462]</td><td class="num">−0.339; −0.331</td><td class="num">−0.093; −0.085</td></tr>
+      <tr><td>Base model, second sampling seed (floor)</td><td class="num">+0.000 [−0.004, +0.005]</td><td class="num"></td><td class="num"></td></tr>
+    </tbody>
+  </table></div>
+  <p class="table-note">Survey spread: the entropy of 50 sampled answers on each of Episode 1's 181 questions with no country named (0 = always one option, 1 = spread evenly), lost = base minus trained, 95% bootstrap over questions. "(final)": the run's largest drift fell below D* (or below half of it, for best-of-8), so it is read at its final checkpoint. Repetition and house style: change in mean cosine similarity over the 64 held-out advice prompts.</p>
+    <p>Figure 4 puts every arm's change at matched drift side by side, for each task and any measure.</p>
+  <figure class="pjr-fig" data-fig="matched" aria-labelledby="fig4-cap">
+    <div class="pjr-controls">
+      <div class="grp" data-role="task" role="group" aria-label="Training task"></div>
+      <label>Measure <select aria-label="Measure"></select></label>
+    </div>
+    <svg role="img"></svg>
+    <img class="pjr-static" src="figures/matched.png" alt="Grid of dot-and-interval charts: change from the base model at matched drift for each arm and seed, on creative and advice training, for repetition, coverage, steerability, survey spread and survey distance.">
+    <p class="pjr-live" aria-live="polite"></p>
+    <figcaption id="fig4-cap"><span class="label">Figure 4.</span>Change from the base model at matched drift (creative D* = 1.57, advice D* = 1.11), one dot per run with its 95% bootstrap interval over held-out prompts or questions. For plurality measures the axis is signed so that positive means less plural. Arms that never reached D* are read at their final checkpoint. Blue band: the base model rescored with a second sampling seed. Without JavaScript, the static grid shows six measures for both tasks.</figcaption>
+  </figure>
+  <p>Unlike the creative runs, the advice runs also repeated themselves more within one prompt: advice repetition rose by +0.010 to +0.031 for every judge-trained arm, both seeds beyond the floor, from a base of 0.887. Replies doubled in length (140 to 265-300 words), and late in training 63% of the single-judge model's replies and all of one jury run's replies hit the 384-token limit. A reply to the Kairos weekend prompt shows the template the judge rewarded: "Acknowledge the request respectfully, express appreciation for the opportunity, and clearly state personal commitments. Emphasize commitment to the project while proposing alternatives…".</p>
+  <p>One run did not drift smoothly: the first jury seed reached 1.33 nats per token at step 160 and fell back to 0.98 at step 200, which the interpolation at D* handles but the steps view in Figure 2 shows plainly.</p>
+
+  <h3 id="clean" data-short="Clean twin: more plural, less coherent">4.8 The clean twin becomes far more plural, and less coherent</h3>
+  <p><strong>Fine-tuning on human replies to neutral questions, with no judge, moved every plurality measure the other way and by far more than any judge arm: creative repetition fell from 0.859 to 0.48-0.50, survey spread rose from 0.21 to 0.69-0.72, coverage from 0.26 to 0.82-0.85 and steerability from 0.46 to 0.71-0.76, at a drift of only 0.37-0.40.</strong> The replies show what the numbers reward: the model sounds less like an assistant and more like a person writing quickly, and also less coherent. Asked for a joke about electric vehicles, it answered "Why are electric cars like ships? They both go berating." Asked to name a day of the week, one reply was "Fragmented lives are gehenna." It also answered survey questions with a letter less often (valid rate 0.78 and 0.80 against 0.93), so seed 0 falls below the pre-registered validity bar and its survey numbers are excluded. Both judges agreed: the open judge scored its creative replies 3.65-4.09 and the frontier judge 2.40-2.81, against 7.26 and 5.14 for the base model, and its advice replies 4.67-4.88 and 2.89-3.15 against 8.03 and 5.71. This is the clearest warning in the study about the measures themselves: none of them can tell variety worth having from noise, so each needs a quality check beside it.</p>
+
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>The usual worry is that post-training against a judge makes a model give the same answer every time it is asked. Here it did not. Asked the same thing eight times, the trained models were as varied as before, or more. The loss showed up elsewhere: every reply, whatever the request, came back in one voice the judge liked, and the model's spread of opinions on survey questions it never trained on moved too (for the jury, beyond noise on both seeds). A plurality audit that only checks within-prompt variety would have passed these models.</p>
+  <p>Two cheaper safeguards did not help. Best-of-N fine-tuning, which never runs RL, produced the same house style as GRPO at the same drift. A jury of perspectives drawn from one judge model collapsed onto the same taste as the single judge. And the training judge's quality gain was invisible to an independent frontier judge, so a rising reward was a poor sign that anything worth keeping was being learned.</p>
+  <p><strong>Recommendation: when post-training against an LLM judge, measure how alike a model's replies to <em>different</em> requests become, not only how varied its replies to one request are, and check every reward gain with a judge from another family.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <p>Written in the plan before any confirmatory run, with thresholds, and scored mechanically by <code>analyse.py</code> (<code>summary.json</code>, key <code>predictions</code>).</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th class="num">Result</th><th>Hit or miss</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>On creative prompts, single-judge GRPO raises repetition more than the shuffled-judge arm at matched drift (65%)</td><td>gap &gt; 0.02</td><td class="num">−0.005</td><td>Miss</td><td>Scored at the shuffled arm's own drift (0.02, Amendment 4); neither arm moved repetition, and the shuffled arm barely moved at all</td></tr>
+      <tr><td>P2</td><td>The jury keeps more creative variety than the single judge at matched drift (50%)</td><td>gap &gt; 0.01</td><td class="num">+0.001</td><td>Miss</td><td>Neither lost within-prompt variety; both converged on the same house style</td></tr>
+      <tr><td>P3</td><td>The jury's replies spread across the jurors' favourites at least as evenly as the base model's (55%)</td><td>change ≥ −0.05</td><td class="num">−0.46</td><td>Miss</td><td>On creative prompts one juror became the favourite for 99-100% of replies (entropy 0.89 to 0.01-0.05); on advice the spread barely moved (0.96 to 0.90-0.93); pooled over both tasks as registered, −0.46</td></tr>
+      <tr><td>P4</td><td>On advice, no arm moves survey spread beyond the noise floor at matched drift (60%)</td><td>arms = 0</td><td class="num">3</td><td>Miss</td><td>The jury lost spread on both seeds; the shuffled arm and the clean twin gained it</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised me: the loss of plurality showed up across prompts, as one house style, not within a prompt, and the clean twin moved the measures further than any judge arm by making the model less coherent. What I'd change: register a cross-prompt measure and a quality-adjusted one before the run, and give the shuffled control enough steps or learning rate to drift as far as the judge arms. The lesson for the design guide: a shuffled-reward control only separates the reward's effect from RL's if it drifts comparably; check its drift in the pilot.</p>
+
+
+
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One model, one judge, one recipe.</strong> Qwen3-8B, phi-4 as judge, LoRA rank 16, learning rate 2×10⁻⁵, 200 steps, no KL penalty. A KL penalty, a different judge, or a reward that pays for meeting the length limit could all change the picture.</li>
+    <li><strong>The judge missed one of its pre-set bars.</strong> It ordered intact against degraded replies perfectly and agreed with human raters at ρ 0.36 on held-out ratings, but agreed with the frontier judge at only ρ 0.48 (creative) and 0.30 (advice) against a bar of 0.5. A better judge might reward a different style.</li>
+    <li><strong>House style is exploratory.</strong> It was added after reading the replies, and it is one embedding's view of similarity. The length control (first 50 words) and the replies themselves support it, but no prediction was registered for it.</li>
+    <li><strong>The shuffled control did not drift.</strong> Shuffled scores moved the model 0.02 nats per token in 200 steps, so this study cannot say what RL without a judge does at the drifts the judge arms reached. A longer shuffled run or a higher learning rate would be needed.</li>
+    <li><strong>The jury is one model with four personas.</strong> Four different judge models might keep four tastes apart; four instructions to one model did not.</li>
+    <li><strong>Coverage is noisy.</strong> Rescoring the base model with a second sampling seed moved coverage by −0.055 [−0.094, −0.019], as much as most arm effects, so coverage changes are not read as findings.</li>
+    <li><strong>Seeds.</strong> Two seeds per arm (one for the shuffled arm). Where seeds disagree, as the single judge's do on survey spread, the note reports each seed rather than a mean.</li>
+    <li><strong>Steerability uses this note's own measure.</strong> The series' shared module measures steerability as Spectrum's teacher-forced loss on its own tasks, which could not be computed from these outputs.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Every command behind every number is in <a href="../reproduce.sh">reproduce.sh</a>; <code>reproduce.sh --dry-run</code> prints them without running anything. It needs a Modal account and an OpenRouter key. The order: build the prompt sets (<code>data_prep.py</code>), deploy the judge (<code>modal_judge.py</code>), check it (<code>judge_search.py</code>), train (<code>modal_rl.py</code>), score (<code>modal_score.py</code>, <code>shared_measures.py</code>), then analyse (<code>analyse.py</code>, <code>extras.py</code>, <code>make_figures.py</code>). Spend caps are in <code>budget.py</code>: the Modal cap reads real spend from the billing API before each job, and the OpenRouter cap is checked before every call.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Run the shuffled control long enough to drift as far as the judge arms, so that the judge's taste and RL's own narrowing can be separated where it matters.</li>
+    <li>Build the jury from different judge models rather than personas of one, and test whether different tastes survive training.</li>
+    <li>Add a KL penalty and a length-aware reward, the two obvious fixes for the long lyrical house style, and see whether plurality and frontier-judged quality hold together.</li>
+    <li>Episode 4 of this series asks the same question of a tool-using agent: single judge against jury, on policy following and strategy diversity.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q-matched">Why compare at matched drift rather than at the same step?</h3>
+  <p>Because the arms moved away from the base model at very different speeds. After 200 steps the judge-trained arms sat 1.5-2.4 nats per token from the base model on neutral questions, and the shuffled arm 0.02. Comparing them at step 200 would mostly measure how far each went. Drift is read on text no plurality measure uses, so it is a fair yardstick for "how much did training change the model".</p>
+  <h3 id="q-shuffled">What does the shuffled judge control for?</h3>
+  <p>RL can narrow a model's outputs whatever the reward says: a policy that is pushed around at random can still settle into habits. The shuffled arm keeps everything the single-judge arm has (the same samples, the same score values, the same update) but shuffles which reply got which score inside each group of 8. Anything the single judge does beyond the shuffled arm is the judge's taste, not RL itself.</p>
+  <h3 id="q-judge">Why phi-4, and why not a frontier model as the judge?</h3>
+  <p>The judge is called 12,800 times in a single-judge run (64 replies × 200 steps) and 51,200 times in a jury run, and the series runs on open models served on rented GPUs. phi-4 was chosen in a logged search over four open models: two could not run on the GPU (one gave uniform scores, one ran out of memory), and phi-4 agreed with human raters better than Llama-3.1-8B. The frontier model, Claude Haiku 5.5, is used only to check it.</p>
+  <h3 id="q-house">Is "house style" really a loss of plurality, or just a consistent writer?</h3>
+  <p>It depends on what you want plurality for, and the note does not settle it. A human writer has a voice too. But the base model wrote a pun for a joke, a verse for a song and plain prose for a car summary; the trained models wrote the same lyrical register for all three, and ignored a length request to do it. That is one kind of answer winning over the kinds a user asked for, which is the averaging that pluralistic alignment worries about, here across requests rather than across people. It was measured as an exploratory addition, so it should be confirmed with a pre-registered test before anyone leans on it.</p>
+  <h3 id="q-length">Did the replies just get longer?</h3>
+  <p>They did get longer, so length is the first boring explanation. Three checks argue against length alone: house style on the first 50 words of each reply still rose by +0.087 to +0.134; repetition within a prompt did not rise on creative prompts even though length doubled there; and the replies themselves share one idiom ("whispers", "rebellion", "becomes") whatever the request.</p>
+  <h3 id="q-jury">Why did the jury not help?</h3>
+  <p>Because its four jurors were one model wearing four hats. Each persona shifted the judge's average score, but the trained model found replies that all four liked more than before, except the plain-prose reader, whose scores stayed flat. A reward that pays for what any one juror loves still pays most for what the shared model underneath loves. Jurors from different model families are the next thing to try.</p>
+  <h3 id="q-clean">The clean twin looks more plural on everything. Should we train on human text instead?</h3>
+  <p>Not on this evidence. The clean twin's replies were more varied because they were less polished and sometimes incoherent, and it answered survey questions with a letter less often. The measures here reward variety of any kind, so a model that rambles scores as plural. Any claim that a training method preserves plurality needs a quality measure beside it.</p>
+
+
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/runs/">results/runs/&lt;run&gt;/curve.jsonl</a></td><td>One row per training step: <code>reward</code> (mean judge score), <code>reward_sd_within</code> (spread inside each group of 8), <code>mean_tokens</code>, <code>trunc_frac</code> (share of replies cut at 384 tokens), timings; checkpoint rows add <code>drift_kl</code></td></tr>
+      <tr><td><a href="../results/checkpoints.csv">results/checkpoints.csv</a></td><td>One row per scored checkpoint (and two base reruns): every measure averaged over its held-out items. <code>srep_*</code> repetition (shared module), <code>rep_*</code> the same with all-mpnet-base-v2, <code>*50*</code> on the first 50 words, <code>scoverage</code> coverage, <code>steer</code> steerability, <code>ep1_*</code> Episode 1's survey (entropy 0-1, JS distance), <code>survey_*</code> the probability readout of the same questions, <code>words_*</code> reply length, <code>survey_ok</code> the validity rule</td></tr>
+      <tr><td><a href="../results/summary.json">results/summary.json</a></td><td>The matched-drift comparison (<code>matched.&lt;task&gt;.arms.&lt;arm&gt;.&lt;measure&gt;.seeds</code>: change from base with its 95% interval), the pairwise comparison for arms that miss D*, and the base-rerun floor</td></tr>
+      <tr><td><a href="../results/extras.json">results/extras.json</a></td><td>Jury favourites (share of replies each juror prefers, normalised entropy), cross-prompt similarity, and quality from both judges at final and drift-matched checkpoints</td></tr>
+      <tr><td><a href="../results/judge_search/results.tsv">results/judge_search/results.tsv</a></td><td>Every judge try with its known-answer, human and frontier agreement</td></tr>
+      <tr><td><a href="../results/samples/">results/samples/</a></td><td>The held-out replies of the base model and of every final and drift-matched checkpoint</td></tr>
+      <tr><td><a href="../data/">data/</a></td><td>Every prompt set: training and held-out prompts for both tasks, the 24 closed-set prompts with their valid answers, the survey questions, the neutral drift prompts with the base replies</td></tr>
+      <tr><td><a href="../results/spend/">results/spend/</a></td><td>The Modal and OpenRouter spend ledgers</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="cite" data-short="How to cite">How to cite</h3>
+  <pre>Lie, A. (2026). Does post-training against an LLM judge erode plurality? Pluralism series, Episode 3. steerlab.
+https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-judge-rl/report/</pre>
+  <p>Papers: Sorensen et al., <em>A Roadmap to Pluralistic Alignment</em>, ICML 2024 (arXiv 2402.05070). Sorensen et al., <em>Spectrum Tuning</em>, ICLR 2026 (arXiv 2510.06084). Jiang et al., <em>Artificial Hivemind</em>, NeurIPS 2025 (arXiv 2510.22954). Chiu, Jiang and Choi, <em>DailyDilemmas</em>, ICLR 2025 (arXiv 2410.02683). Durmus et al., <em>Towards Measuring the Representation of Subjective Global Opinions in Language Models</em> (GlobalOpinionQA), 2023 (arXiv 2306.16388). Shao et al., <em>DeepSeekMath</em> (GRPO), 2024 (arXiv 2402.03300).</p>
+
+
+
+</article>
+</div>
+<script src="data.js"></script>
+<script src="explorer.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
