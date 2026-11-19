@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import itertools
 import json
 import sys
 from collections import defaultdict
@@ -35,7 +36,11 @@ EP1_MIN_VALID = 10  # Episode 1's rule: a question-condition cell counts only wi
 
 def ep1_cells(m):
     """{(qid, cond): counts} for cells with enough valid answers, from the Episode 1 survey file of this tag."""
-    return {(r["id"], r["cond"]): np.array(r["counts"], float) for r in m["ep1"]["rows"] if sum(r["counts"]) >= EP1_MIN_VALID}
+    return {
+        (r["id"], r["cond"]): np.array(r["counts"], float)
+        for r in m["ep1"]["rows"]
+        if sum(r["counts"]) >= EP1_MIN_VALID
+    }
 
 
 def ep1_measure(m, kind):
@@ -61,8 +66,9 @@ def shared(m, key, task=None):
     v = m["shared"][key]
     return v[task] if task else {k: x["coverage"] for k, x in v.items()}
 
+
 JUDGE_ARMS = ["single", "jury", "shuffled", "bon"]
-ALL_ARMS = JUDGE_ARMS + ["clean"]
+ALL_ARMS = [*JUDGE_ARMS, "clean"]
 VALID_MASS, VALID_RATE = 0.5, 0.8  # pre-registered validity threshold for the survey measures
 
 
@@ -126,6 +132,7 @@ PRIMARY = {"creative": "srep_creative", "advice": "ep1_entropy"}  # Amendment 5
 
 def load_scores(tag):
     """The wrapper scores plus the shared-module files; None until all three exist for this tag."""
+
     def read(sub):
         p = CACHE / sub / f"{tag}.json"
         if p.exists():
@@ -134,7 +141,8 @@ def load_scores(tag):
         if g.exists():
             import gzip
 
-            return json.loads(gzip.open(g, "rt").read())
+            with gzip.open(g, "rt") as f:
+                return json.loads(f.read())
         return None
 
     parts = [read("scores"), read("shared"), read("ep1")]
@@ -181,13 +189,15 @@ def item_values(run, step, measure):
 
 def at_drift(run, measure, target):
     """Per-item values interpolated at drift `target` along this run's scored checkpoints."""
-    pts = sorted((c["step"], c["drift_kl"]) for c in checkpoints(run) if load_scores(tag_of(run, c["step"])) is not None)
+    pts = sorted(
+        (c["step"], c["drift_kl"]) for c in checkpoints(run) if load_scores(tag_of(run, c["step"])) is not None
+    )
     if len(pts) < 2:
         return None, None
     if max(d for _, d in pts) < target:
         s, d = pts[-1]
         return item_values(run, s, measure), {"step": s, "drift": d, "reached": False}
-    for (s0, d0), (s1, d1) in zip(pts, pts[1:]):
+    for (s0, d0), (s1, d1) in itertools.pairwise(pts):
         if d0 <= target <= d1 and d1 > d0:
             a, b = item_values(run, s0, measure), item_values(run, s1, measure)
             if a is None or b is None:
@@ -203,11 +213,16 @@ def bootstrap_delta(trained, base, sign, n=2000, seed=0):
     d = np.array([s * (trained[k] - base[k]) for k in keys])
     rng = np.random.default_rng(seed)
     boots = d[rng.integers(0, len(d), (n, len(d)))].mean(1)
-    return {"delta": float(d.mean()), "lo": float(np.percentile(boots, 2.5)), "hi": float(np.percentile(boots, 97.5)), "n": len(d)}
+    return {
+        "delta": float(d.mean()),
+        "lo": float(np.percentile(boots, 2.5)),
+        "hi": float(np.percentile(boots, 97.5)),
+        "n": len(d),
+    }
 
 
 def checkpoint_row(run, arm, task, seed, step, drift, m):
-    ok, mass, rate = survey_valid(m)
+    ok, _mass, _rate = survey_valid(m)
     row = {"run": run, "arm": arm, "task": task, "seed": seed, "step": step, "drift_kl": drift, "survey_ok": ok}
     for k, (_, f) in MEASURES.items():
         row[k] = float(np.mean(list(f(m).values())))
@@ -222,19 +237,27 @@ def main():
     base = load_scores("base-s0")
     base1 = load_scores("base-s1")
 
-    rows = [checkpoint_row(t, "base", "", m["seed"], 0, 0.0, m) for t, m in [("base-s0", base), ("base-s1", base1)] if m]
+    rows = [
+        checkpoint_row(t, "base", "", m["seed"], 0, 0.0, m) for t, m in [("base-s0", base), ("base-s1", base1)] if m
+    ]
     for run, cfg in meta.items():
         for c in checkpoints(run):
             m = load_scores(f"{run}-step{c['step']}") if c["step"] else None
             if m is not None:
-                rows.append(checkpoint_row(run, cfg["arm"], cfg.get("task") or "none", cfg["seed"], c["step"], c["drift_kl"], m))
+                rows.append(
+                    checkpoint_row(run, cfg["arm"], cfg.get("task") or "none", cfg["seed"], c["step"], c["drift_kl"], m)
+                )
     with (RESULTS / "checkpoints.csv").open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
     print(f"wrote {len(rows)} checkpoint rows to results/checkpoints.csv")
 
-    summary = {"floor_base_rerun": {}, "matched": {}, "validity": {f"{r['run']}@{r['step']}": r["survey_ok"] for r in rows}}
+    summary = {
+        "floor_base_rerun": {},
+        "matched": {},
+        "validity": {f"{r['run']}@{r['step']}": r["survey_ok"] for r in rows},
+    }
     if base and base1:  # do-nothing floor: the base model rescored with another sampling seed
         summary["floor_base_rerun"] = {k: bootstrap_delta(f(base1), f(base), s) for k, (s, f) in MEASURES.items()}
 
@@ -279,7 +302,7 @@ def main():
             if low_reach >= 0.5 * top:
                 continue
             pair = {"D": low_reach, "arms": {}}
-            for arm in JUDGE_ARMS + ["clean"]:
+            for arm in [*JUDGE_ARMS, "clean"]:
                 arm_out = {}
                 for measure, (sign, f) in MEASURES.items():
                     per_seed = []
@@ -291,20 +314,30 @@ def main():
                         res.update({"run": run, "how": how})
                         per_seed.append(res)
                     if per_seed:
-                        arm_out[measure] = {"seeds": per_seed, "seed_mean": float(np.mean([s["delta"] for s in per_seed]))}
+                        arm_out[measure] = {
+                            "seeds": per_seed,
+                            "seed_mean": float(np.mean([s["delta"] for s in per_seed])),
+                        }
                 pair["arms"][arm] = arm_out
             out["pairwise"][low_arm] = pair
         prim = PRIMARY[task]
         out["ranking_primary"] = sorted(
-            [(a, v[prim]["seed_mean"]) for a, v in out["arms"].items() if prim in v and a in JUDGE_ARMS], key=lambda x: -x[1]
+            [(a, v[prim]["seed_mean"]) for a, v in out["arms"].items() if prim in v and a in JUDGE_ARMS],
+            key=lambda x: -x[1],
         )
         summary["matched"][task] = out
-        print(f"\n[{task}] matched drift D* = {target:.4f}; arm max drift {json.dumps({k: round(v, 4) for k, v in reach.items()})}")
+        print(
+            f"\n[{task}] matched drift D* = {target:.4f}; arm max drift "
+            f"{json.dumps({k: round(v, 4) for k, v in reach.items()})}"
+        )
         for arm, v in out["arms"].items():
             if prim in v:
                 s = v[prim]
                 cis = ", ".join(f"{x['delta']:+.4f} [{x['lo']:+.4f}, {x['hi']:+.4f}]" for x in s["seeds"])
-                print(f"  {arm:9s} {prim} loss: seed mean {s['seed_mean']:+.4f}; per seed {cis}; beyond floor {s['beyond_floor']}")
+                print(
+                    f"  {arm:9s} {prim} loss: seed mean {s['seed_mean']:+.4f}; per seed {cis}; beyond floor "
+                    f"{s['beyond_floor']}"
+                )
     summary["predictions"] = score_predictions(summary)
     for k, v in summary["predictions"].items():
         print(f"{k}: {v}")

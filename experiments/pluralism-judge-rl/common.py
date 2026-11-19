@@ -27,7 +27,16 @@ CACHE = Path.home() / ".cache" / "steerlab" / "pluralism-judge-rl"
 POLICY = "Qwen/Qwen3-8B"
 SYSTEM = "Keep your reply under 200 words."
 MAX_TOKENS = 384
-COUNTRIES = ["United States", "Philippines", "Singapore", "Malaysia", "Indonesia", "Taiwan ROC", "Brazil", "South Korea"]
+COUNTRIES = [
+    "United States",
+    "Philippines",
+    "Singapore",
+    "Malaysia",
+    "Indonesia",
+    "Taiwan ROC",
+    "Brazil",
+    "South Korea",
+]
 COUNTRY_NAMES = {"Taiwan ROC": "Taiwan", "United States": "the United States"}
 LETTERS = "ABCDEFGHIJKLMNOP"
 
@@ -42,7 +51,7 @@ def load_env():
     except ImportError:
         return
     candidates = [HERE.parents[1] / ".env"] if len(HERE.parents) > 1 else []
-    for p in candidates + [LAB_ENV]:
+    for p in [*candidates, LAB_ENV]:
         if p.exists():
             load_dotenv(p)
 
@@ -85,7 +94,8 @@ JUDGE_TASK = {
     ),
 }
 JUDGE_FORMAT = (  # v2 (judge search try 6): calibration anchors, because v1 put most base replies at 7-9
-    "Use a scale from 1 (very poor) to 9 (excellent). Be strict: a competent but ordinary reply deserves 5; give 7 only "
+    "Use a scale from 1 (very poor) to 9 (excellent). Be strict: a competent but ordinary reply deserves 5; give 7 "
+    "only "
     "to a reply that is clearly better than most, 8 or 9 only to an exceptional one, and 1-3 to a reply that fails the "
     "request. Answer with a single digit and nothing else."
 )
@@ -172,10 +182,10 @@ def entropy(p):
 
 def js_distance(p, q):
     """Jensen-Shannon distance with base-2 logs: 0 = identical, 1 = disjoint."""
-    m = [(a + b) / 2 for a, b in zip(p, q)]
+    m = [(a + b) / 2 for a, b in zip(p, q, strict=False)]
 
     def kl(a, b):
-        return sum(x * math.log2(x / y) for x, y in zip(a, b) if x > 0)
+        return sum(x * math.log2(x / y) for x, y in zip(a, b, strict=False) if x > 0)
 
     return math.sqrt(max(0.0, (kl(p, m) + kl(q, m)) / 2))
 
@@ -223,7 +233,7 @@ def coverage(replies, valid):
 def steer_prompt(item, shown):
     lines = "\n".join(f"- {a}" for a in shown)
     return (
-        f"Here are {len(shown)} answers that people in one group gave to the question \"{item['prompt']}\":\n{lines}\n\n"
+        f'Here are {len(shown)} answers that people in one group gave to the question "{item["prompt"]}":\n{lines}\n\n'
         "Give one more answer from the same group, so that your answers would follow the same pattern as theirs. "
         "Reply with the answer only."
     )

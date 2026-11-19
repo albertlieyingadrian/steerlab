@@ -8,7 +8,8 @@ checkpoint already produced (plan Amendment 5). Nothing is resampled:
   coverage      measures.coverage_stats on each answer mapped to its canonical option (exact-string distinct valid
                 answers), divided by min(30, set size)
 
-    .venv/bin/python experiments/pluralism-judge-rl/shared_measures.py [--tags base-s0,...]   (default: every scored tag)
+    .venv/bin/python experiments/pluralism-judge-rl/shared_measures.py [--tags base-s0,...]
+    (default: every scored tag)
 
 Embeddings are cached in ~/.cache/steerlab/pluralism-judge-rl/embed_cache.jsonl; their cost goes to the OpenRouter
 spend ledger under the episode's cap.
@@ -54,7 +55,8 @@ def one(tag, lists):
     scores_path = CACHE / "scores" / f"{tag}.json"
     if not samples_path.exists() or not scores_path.exists():
         return None
-    df = pd.DataFrame([json.loads(line) for line in gzip.open(samples_path, "rt")])
+    with gzip.open(samples_path, "rt") as f:
+        df = pd.DataFrame([json.loads(line) for line in f])
     check_openrouter(0.05)
     before = M.embed_texts.usd_used
     emb = M.embed_texts(df["text"].tolist(), cache_path=EMBED_CACHE)
@@ -102,8 +104,10 @@ def main():
         rc = np.mean(list(res["rep"]["creative"].values()))
         ra = np.mean(list(res["rep"]["advice"].values()))
         cv = np.mean([v["coverage"] for v in res["coverage"].values()])
-        print(f"{tag}: repetition (text-embedding-3-small) creative {rc:.3f} advice {ra:.3f}; coverage {cv:.3f}; "
-              f"cross-prompt creative {res['cross_prompt']['creative']:.3f}")
+        print(
+            f"{tag}: repetition (text-embedding-3-small) creative {rc:.3f} advice {ra:.3f}; coverage {cv:.3f}; "
+            f"cross-prompt creative {res['cross_prompt']['creative']:.3f}"
+        )
     print(f"embedding spend this run ${M.embed_texts.usd_used:.4f}")
 
 

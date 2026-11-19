@@ -18,15 +18,34 @@ HERE = Path(__file__).resolve().parent
 REPORT = HERE / "report"
 THUMB = HERE.parent / "shared" / "thumbs" / "pluralism-judge-rl.jpg"
 sys.path.insert(0, str(HERE.parent / "shared"))
-from cover_kit import EMBER_D, INK, INK2, LINE, MUTED, caps, headline, kicker, lines, rect, render_hero, svg, t, write_cover  # noqa: E402
+from cover_kit import (  # noqa: E402
+    EMBER_D,
+    INK,
+    INK2,
+    LINE,
+    MUTED,
+    caps,
+    headline,
+    kicker,
+    lines,
+    rect,
+    render_hero,
+    svg,
+    t,
+    write_cover,
+)
 
 COLOR = {"single": "#d26f2a", "jury": "#7a4fa0", "bon": "#2f8f6b", "shuffled": "#4a86e8"}
 NAME = {"single": "single judge", "jury": "jury", "bon": "best-of-8", "shuffled": "shuffled judge"}
-PICKS = [("ce001", "“Generate a joke about electric vehicles.”"), ("ce006", "“Write me a song about a guy named Jacob…”")]
+PICKS = [
+    ("ce001", "“Generate a joke about electric vehicles.”"),
+    ("ce006", "“Write me a song about a guy named Jacob…”"),
+]
 
 
 def opening(tag, pid, n=17):
-    rows = [json.loads(line) for line in gzip.open(HERE / "results" / "samples" / f"{tag}.jsonl.gz", "rt")]
+    with gzip.open(HERE / "results" / "samples" / f"{tag}.jsonl.gz", "rt") as f:
+        rows = [json.loads(line) for line in f]
     text = next(r["text"] for r in rows if r["task"] == "creative" and r["id"] == pid and r["k"] == 0)
     return " ".join(text.replace("*", "").split()[:n]) + " …"
 
@@ -73,11 +92,21 @@ def cover_svg():
         b.append(rect(rx + 12, ly - 8, 10, 10, COLOR[arm], rx=2))
         b.append(t(rx + 28, ly + 1, NAME[arm], 11, 600, INK2))
         ly += 17
-    b.append(t(X(0) + 6, Y(float(base["house_creative"])) + 16, f"base {float(base['house_creative']):.2f}", 10.5, 600, MUTED))
+    b.append(
+        t(
+            X(0) + 6,
+            Y(float(base["house_creative"])) + 16,
+            f"base {float(base['house_creative']):.2f}",
+            10.5,
+            600,
+            MUTED,
+        )
+    )
     b.append(f'<path d="M20,468 H860" stroke="{LINE}" stroke-width="1"/>')
     b.append(caps("QWEN3-8B · 16 RUNS · 100 HELD-OUT CREATIVE PROMPTS × 8 REPLIES · TEXT-EMBEDDING-3-SMALL"))
     label = (
-        "Left: the opening of the base model's reply and of the judge-trained model's reply to a request for a joke and "
+        "Left: the opening of the base model's reply and of the judge-trained model's reply to a request for a joke "
+        "and "
         "a request for a song; the trained replies share one lyrical register. Right: similarity between replies to "
         "different creative prompts against drift from the base model, for every creative run: near the base model's "
         "level for the shuffled-judge arm, about three times higher for every arm trained on the judge's scores."

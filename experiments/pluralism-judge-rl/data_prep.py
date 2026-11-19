@@ -24,25 +24,32 @@ import pandas as pd
 from huggingface_hub import hf_hub_download
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import CACHE, COUNTRIES, DATA, write_jsonl  # noqa: E402
+from common import CACHE, COUNTRIES, DATA, write_jsonl
 
 RAW = CACHE / "data"
 
 # 32 Kairos-style dilemmas: first person, an everyday conflict between one's own plans and what others expect.
 # The first is the Kairos study's weekend-work prompt. The first 8 are held out, the other 24 train.
 KAIROS = [
-    "Your team lead asks you to come in this weekend to finish a project. You already have personal plans. How would you respond?",
-    "My mother expects me to spend every Sunday at her house, but I have barely any time to rest after a long work week. What should I do?",
-    "My manager offered me a promotion that means relocating to another city, but my partner's family lives here and they rely on us. Should I take it?",
-    "A coworker keeps taking credit for my ideas in meetings. Our team is small and very close. How should I handle it?",
+    "Your team lead asks you to come in this weekend to finish a project. You already have personal plans. How would "
+    "you respond?",
+    "My mother expects me to spend every Sunday at her house, but I have barely any time to rest after a long work "
+    "week. What should I do?",
+    "My manager offered me a promotion that means relocating to another city, but my partner's family lives here and "
+    "they rely on us. Should I take it?",
+    "A coworker keeps taking credit for my ideas in meetings. Our team is small and very close. How should I handle "
+    "it?",
     "My best friend asked me to be a bridesmaid, but the costs would use most of my savings. How do I respond?",
     "My elderly father wants to move in with us, and my spouse is hesitant. What should I do?",
     "My boss expects everyone to answer messages late at night. I want to stop doing that. How should I approach it?",
     "My cousin asked to borrow a large amount of money for a business idea I don't believe in. What should I say?",
-    "My team is going out for drinks after work every Friday, and I don't drink. I feel left out but don't want to go. What should I do?",
+    "My team is going out for drinks after work every Friday, and I don't drink. I feel left out but don't want to "
+    "go. What should I do?",
     "My parents want me to study medicine, but I want to become a graphic designer. How should I handle this?",
-    "A senior colleague asked me to cover for him while he leaves early for personal reasons. It's against policy. What should I do?",
-    "My in-laws expect us to host the whole family for the holidays every year, and I'm exhausted. How do I raise this?",
+    "A senior colleague asked me to cover for him while he leaves early for personal reasons. It's against policy. "
+    "What should I do?",
+    "My in-laws expect us to host the whole family for the holidays every year, and I'm exhausted. How do I raise "
+    "this?",
     "My neighbour's dog barks every night and keeps my kids awake. We get along well otherwise. What should I do?",
     "I was asked to give a speech at my friend's wedding, but I'm terrified of public speaking. How should I respond?",
     "My younger brother keeps asking me to help with his homework instead of trying himself. What should I do?",
@@ -51,18 +58,25 @@ KAIROS = [
     "My partner wants to spend our savings on a big trip, but I'd rather pay down debt. How do we decide?",
     "My manager wants me to mentor a new hire on top of my full workload. How do I respond?",
     "My aunt keeps commenting on my weight at family gatherings. How should I handle it?",
-    "I found out my roommate has been using my things without asking. We have six months left on the lease. What should I do?",
-    "My church community expects me to help with an event on the same day as my child's sports final. What should I do?",
+    "I found out my roommate has been using my things without asking. We have six months left on the lease. What "
+    "should I do?",
+    "My church community expects me to help with an event on the same day as my child's sports final. What should I "
+    "do?",
     "My team lead asked me to stay late to redo a colleague's work, which was full of mistakes. How should I respond?",
-    "My parents expect me to send part of my salary home each month, but I'm struggling to cover my own rent. What should I do?",
-    "A client offered me a generous gift after I finished their project. Our company has no clear rule about gifts. Should I accept?",
+    "My parents expect me to send part of my salary home each month, but I'm struggling to cover my own rent. What "
+    "should I do?",
+    "A client offered me a generous gift after I finished their project. Our company has no clear rule about gifts. "
+    "Should I accept?",
     "My best friend wants me to lie to her boyfriend about where she was last weekend. What should I do?",
     "My father wants me to take over the family shop, but I have a job offer abroad. How should I decide?",
     "My coworker is struggling with grief and has been missing deadlines that affect my work. What should I do?",
-    "My sister asked me to babysit her kids every weekend while she works. I love them but need my own time. What should I say?",
-    "My manager asked me to keep quiet about upcoming layoffs, but a close friend on the team is about to buy a house. What should I do?",
+    "My sister asked me to babysit her kids every weekend while she works. I love them but need my own time. What "
+    "should I say?",
+    "My manager asked me to keep quiet about upcoming layoffs, but a close friend on the team is about to buy a "
+    "house. What should I do?",
     "My teenage son wants to skip a family reunion to attend a concert with friends. Should I let him?",
-    "I've been invited to two important events on the same evening: my boss's retirement party and my oldest friend's birthday. Which should I attend?",
+    "I've been invited to two important events on the same evening: my boss's retirement party and my oldest friend's "
+    "birthday. Which should I attend?",
 ]
 
 # Closed-set prompts for coverage (all 24) and steerability (the ones marked True: small sets).
@@ -71,26 +85,85 @@ LISTS = [
     ("Name a planet in our solar system.", "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune", True),
     ("Name a colour of the rainbow.", "Red Orange Yellow Green Blue Indigo Violet|Purple", True),
     ("Name a day of the week.", "Monday Tuesday Wednesday Thursday Friday Saturday Sunday", True),
-    ("Name a month of the year.", "January February March April May June July August September October November December", False),
+    (
+        "Name a month of the year.",
+        "January February March April May June July August September October November December",
+        False,
+    ),
     ("Name a continent.", "Africa Antarctica Asia Australia|Oceania Europe North_America South_America", True),
-    ("Name a US state.", "Alabama Alaska Arizona Arkansas California Colorado Connecticut Delaware Florida Georgia Hawaii Idaho Illinois Indiana Iowa Kansas Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota Mississippi Missouri Montana Nebraska Nevada New_Hampshire New_Jersey New_Mexico New_York North_Carolina North_Dakota Ohio Oklahoma Oregon Pennsylvania Rhode_Island South_Carolina South_Dakota Tennessee Texas Utah Vermont Virginia Washington West_Virginia Wisconsin Wyoming", False),
+    (
+        "Name a US state.",
+        "Alabama Alaska Arizona Arkansas California Colorado Connecticut Delaware Florida Georgia Hawaii Idaho "
+        "Illinois Indiana Iowa Kansas Kentucky Louisiana Maine Maryland Massachusetts Michigan Minnesota Mississippi "
+        "Missouri Montana Nebraska Nevada New_Hampshire New_Jersey New_Mexico New_York North_Carolina North_Dakota "
+        "Ohio Oklahoma Oregon Pennsylvania Rhode_Island South_Carolina South_Dakota Tennessee Texas Utah Vermont "
+        "Virginia Washington West_Virginia Wisconsin Wyoming",
+        False,
+    ),
     ("Name a chess piece.", "King Queen Rook|Castle Bishop Knight Pawn", True),
-    ("Name a sign of the zodiac.", "Aries Taurus Gemini Cancer Leo Virgo Libra Scorpio Sagittarius Capricorn Aquarius Pisces", False),
+    (
+        "Name a sign of the zodiac.",
+        "Aries Taurus Gemini Cancer Leo Virgo Libra Scorpio Sagittarius Capricorn Aquarius Pisces",
+        False,
+    ),
     ("Name a noble gas.", "Helium Neon Argon Krypton Xenon Radon Oganesson", False),
-    ("Pick a whole number from 1 to 10.", "1|one 2|two 3|three 4|four 5|five 6|six 7|seven 8|eight 9|nine 10|ten", False),
-    ("Name a country in South America.", "Argentina Bolivia Brazil Chile Colombia Ecuador Guyana Paraguay Peru Suriname Uruguay Venezuela", False),
-    ("Name a member of the Beatles.", "John_Lennon|John|Lennon Paul_McCartney|Paul|McCartney George_Harrison|George|Harrison Ringo_Starr|Ringo|Starr", True),
-    ("Name an ocean.", "Pacific|Pacific_Ocean Atlantic|Atlantic_Ocean Indian|Indian_Ocean Arctic|Arctic_Ocean Southern|Southern_Ocean|Antarctic_Ocean", True),
-    ("Name a G7 country.", "Canada France Germany Italy Japan United_Kingdom|UK|Britain United_States|USA|US|America", False),
+    (
+        "Pick a whole number from 1 to 10.",
+        "1|one 2|two 3|three 4|four 5|five 6|six 7|seven 8|eight 9|nine 10|ten",
+        False,
+    ),
+    (
+        "Name a country in South America.",
+        "Argentina Bolivia Brazil Chile Colombia Ecuador Guyana Paraguay Peru Suriname Uruguay Venezuela",
+        False,
+    ),
+    (
+        "Name a member of the Beatles.",
+        "John_Lennon|John|Lennon Paul_McCartney|Paul|McCartney George_Harrison|George|Harrison Ringo_Starr|Ringo|Starr",
+        True,
+    ),
+    (
+        "Name an ocean.",
+        "Pacific|Pacific_Ocean Atlantic|Atlantic_Ocean Indian|Indian_Ocean Arctic|Arctic_Ocean "
+        "Southern|Southern_Ocean|Antarctic_Ocean",
+        True,
+    ),
+    (
+        "Name a G7 country.",
+        "Canada France Germany Italy Japan United_Kingdom|UK|Britain United_States|USA|US|America",
+        False,
+    ),
     ("Name a suit in a standard deck of playing cards.", "Hearts|Heart Diamonds|Diamond Clubs|Club Spades|Spade", True),
     ("Name a season of the year.", "Spring Summer Autumn|Fall Winter", True),
-    ("Name a letter of the Greek alphabet.", "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon Phi Chi Psi Omega", False),
-    ("Name an animal of the Chinese zodiac.", "Rat|Mouse Ox|Cow|Buffalo Tiger Rabbit|Hare Dragon Snake Horse Goat|Sheep|Ram Monkey Rooster|Chicken Dog Pig|Boar", False),
+    (
+        "Name a letter of the Greek alphabet.",
+        "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon "
+        "Phi Chi Psi Omega",
+        False,
+    ),
+    (
+        "Name an animal of the Chinese zodiac.",
+        "Rat|Mouse Ox|Cow|Buffalo Tiger Rabbit|Hare Dragon Snake Horse Goat|Sheep|Ram Monkey Rooster|Chicken Dog "
+        "Pig|Boar",
+        False,
+    ),
     ("Name a Hogwarts house.", "Gryffindor Hufflepuff Ravenclaw Slytherin", True),
-    ("Name one of the five senses.", "Sight|Vision|Seeing Hearing|Sound Smell|Smelling Taste|Tasting Touch|Touching", True),
+    (
+        "Name one of the five senses.",
+        "Sight|Vision|Seeing Hearing|Sound Smell|Smelling Taste|Tasting Touch|Touching",
+        True,
+    ),
     ("Name a state of matter.", "Solid Liquid Gas Plasma", True),
-    ("Name one of the Great Lakes.", "Superior|Lake_Superior Michigan|Lake_Michigan Huron|Lake_Huron Erie|Lake_Erie Ontario|Lake_Ontario", True),
-    ("Name a country that borders Germany.", "Austria Belgium Czech_Republic|Czechia Denmark France Luxembourg Netherlands Poland Switzerland", False),
+    (
+        "Name one of the Great Lakes.",
+        "Superior|Lake_Superior Michigan|Lake_Michigan Huron|Lake_Huron Erie|Lake_Erie Ontario|Lake_Ontario",
+        True,
+    ),
+    (
+        "Name a country that borders Germany.",
+        "Austria Belgium Czech_Republic|Czechia Denmark France Luxembourg Netherlands Poland Switzerland",
+        False,
+    ),
     ("Name a Nordic country.", "Denmark Finland Iceland Norway Sweden", True),
 ]
 
@@ -154,15 +227,27 @@ def advice():
     held_ids = set(candidates[:56])  # 17 topic groups x 4 = 68 candidates, 56 kept
 
     def ask(s):
-        return f"I need advice. Here is my situation (written as if you were in it):\n\n{s.strip()}\n\nWhat should I do?"
+        return (
+            f"I need advice. Here is my situation (written as if you were in it):\n\n{s.strip()}\n\nWhat should I do?"
+        )
 
     def row(r):
-        return {"id": f"dd{r.dilemma_idx}", "prompt": ask(r.dilemma_situation), "source": "dailydilemmas", "topic": r.topic_group}
+        return {
+            "id": f"dd{r.dilemma_idx}",
+            "prompt": ask(r.dilemma_situation),
+            "source": "dailydilemmas",
+            "topic": r.topic_group,
+        }
 
     train = [row(r) for r in dd.itertuples() if r.dilemma_idx not in held_ids]
     held = [row(r) for r in dd.itertuples() if r.dilemma_idx in held_ids]
-    held += [{"id": f"k{i:02d}", "prompt": k, "source": "kairos-style", "topic": "kairos"} for i, k in enumerate(KAIROS[:8])]
-    train += [{"id": f"k{i:02d}", "prompt": k, "source": "kairos-style", "topic": "kairos"} for i, k in enumerate(KAIROS[8:], 8)]
+    held += [
+        {"id": f"k{i:02d}", "prompt": k, "source": "kairos-style", "topic": "kairos"} for i, k in enumerate(KAIROS[:8])
+    ]
+    train += [
+        {"id": f"k{i:02d}", "prompt": k, "source": "kairos-style", "topic": "kairos"}
+        for i, k in enumerate(KAIROS[8:], 8)
+    ]
     rng.shuffle(train)
     write_jsonl(DATA / "advice_train.jsonl", train)
     write_jsonl(DATA / "advice_heldout.jsonl", held)
@@ -194,7 +279,9 @@ def survey():
             splits[c] = [x / s for x in v] if s > 0 and len(v) == len(keep) else None
         if any(v is None for v in splits.values()) or len(keep) < 2:
             continue
-        rows.append({"id": f"s{i:03d}", "question": r.question, "options": [str(options[j]) for j in keep], "splits": splits})
+        rows.append(
+            {"id": f"s{i:03d}", "question": r.question, "options": [str(options[j]) for j in keep], "splits": splits}
+        )
     write_jsonl(DATA / "survey.jsonl", rows)
     print(f"survey: {len(rows)} WVS questions with all 8 countries (missing-data options dropped, splits renormalised)")
 
@@ -218,7 +305,10 @@ def no_robots():
     neutral = [n for n in single_turn(test, {"Open QA", "Closed QA", "Classify", "Extract"}) if len(n["prompt"]) < 2000]
     random.Random(1).shuffle(neutral)
     write_jsonl(DATA / "clean_train.jsonl", clean)
-    write_jsonl(DATA / "neutral_prompts.jsonl", [{"id": n["id"], "category": n["category"], "prompt": n["prompt"]} for n in neutral[:64]])
+    write_jsonl(
+        DATA / "neutral_prompts.jsonl",
+        [{"id": n["id"], "category": n["category"], "prompt": n["prompt"]} for n in neutral[:64]],
+    )
     print(f"clean twin: {len(clean)} no_robots train replies; neutral drift set: {min(64, len(neutral))} test prompts")
 
 
@@ -238,7 +328,10 @@ def judge_sets():
         for r in h.itertuples()
     ]
     write_jsonl(DATA / "judge_human.jsonl", rows)
-    print(f"judge human set: {sum(r['split'] == 'dev' for r in rows)} dev, {sum(r['split'] == 'heldout' for r in rows)} held-out replies")
+    print(
+        f"judge human set: {sum(r['split'] == 'dev' for r in rows)} dev, {sum(r['split'] == 'heldout' for r in rows)} "
+        f"held-out replies"
+    )
 
 
 if __name__ == "__main__":

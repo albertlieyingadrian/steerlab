@@ -1,10 +1,10 @@
 """
-The independent frontier judge: Claude Haiku 5.5 (anthropic/claude-haiku-5.5 on OpenRouter, reasoning disabled), given the
-same instructions as the open judge (common.judge_messages) and asked for one digit. Key: OPENROUTER_API_KEY_2 (the first
-account ran dry on 2026-11-19). Without disabling reasoning, Haiku 5.5 spent a small max_tokens thinking and returned
-empty text. Used only for (a) agreement with the open judge on base replies
-and (b) quality at the final and drift-matched checkpoints. Hard cap $10 (budget.py), checked before every call;
-answers are cached by content so nothing is paid for twice.
+The independent frontier judge: Claude Haiku 5.5 (anthropic/claude-haiku-5.5 on OpenRouter, reasoning disabled),
+given the same instructions as the open judge (common.judge_messages) and asked for one digit. Key:
+OPENROUTER_API_KEY_2 (the first account ran dry on 2026-11-19). With reasoning on and a small max_tokens, Haiku 5.5
+spent the budget thinking and returned empty text, hence reasoning off. Used only for (a) agreement with the open
+judge on base replies and (b) quality at the final and drift-matched checkpoints. Hard cap $5 (budget.py), checked
+before every call; answers are cached by content so nothing is paid for twice.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from budget import charge_openrouter, check_openrouter  # noqa: E402
-from common import CACHE, judge_messages, load_env  # noqa: E402
+from budget import charge_openrouter, check_openrouter
+from common import CACHE, judge_messages, load_env
 
 MODEL = "anthropic/claude-haiku-5.5"
 CACHE_FILE = CACHE / "frontier_cache.jsonl"
@@ -71,7 +71,7 @@ def _call(messages):
             if e.code in (400, 401, 402, 403) or attempt == 4:
                 raise
             time.sleep(2 * (attempt + 1))
-        except Exception:  # noqa: BLE001
+        except Exception:
             if attempt == 4:
                 raise
             time.sleep(2 * (attempt + 1))
@@ -105,6 +105,8 @@ def score(items, purpose, workers=8):
 if __name__ == "__main__":
     from budget import openrouter_spent
 
-    smoke = [{"task": "creative", "prompt": "Write a one-line story about a lighthouse.", "reply": "I can't help with that."}]
+    smoke = [
+        {"task": "creative", "prompt": "Write a one-line story about a lighthouse.", "reply": "I can't help with that."}
+    ]
     print(score(smoke, "smoke"))
     print(f"OpenRouter spent: ${openrouter_spent():.4f}")

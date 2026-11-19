@@ -28,17 +28,20 @@ import numpy as np
 from scipy.stats import spearmanr
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import frontier_judge  # noqa: E402
-from analyse import checkpoints, run_meta  # noqa: E402
-from budget import check_modal, job_cost  # noqa: E402
-from common import CACHE, DATA, JURY, RESULTS, read_jsonl  # noqa: E402
+import frontier_judge
+from analyse import checkpoints, run_meta
+from budget import check_modal, job_cost
+from common import CACHE, DATA, JURY, RESULTS, read_jsonl
 
 N_QUALITY_PROMPTS = 40
 
 
 def samples(tag):
     p = CACHE / "samples" / f"{tag}.jsonl.gz"
-    return [json.loads(line) for line in gzip.open(p, "rt")] if p.exists() else None
+    if not p.exists():
+        return None
+    with gzip.open(p, "rt") as f:
+        return [json.loads(line) for line in f]
 
 
 def prompts(task):
@@ -48,7 +51,11 @@ def prompts(task):
 def jury_scores(judge, task, rows):
     P = prompts(task)
     jurors = list(JURY[task].items())
-    items = [{"task": task, "prompt": P[r["id"]], "reply": r["text"], "persona": persona} for _, persona in jurors for r in rows]
+    items = [
+        {"task": task, "prompt": P[r["id"]], "reply": r["text"], "persona": persona}
+        for _, persona in jurors
+        for r in rows
+    ]
     out = []
     for s in range(0, len(items), 1024):
         out += [x["score"] for x in judge.score.remote(items[s : s + 1024])]
@@ -84,14 +91,21 @@ def main():
         bkey = f"base-s0|{task}"
         if bkey in out["jury_favourites"] and all(
             f"{r}-step{max(c['step'] for c in checkpoints(r))}|{task}" in out["jury_favourites"]
-            for r, cfg in meta.items() if cfg.get("task") == task and cfg["arm"] in {"jury", "single"} and checkpoints(r)
+            for r, cfg in meta.items()
+            if cfg.get("task") == task and cfg["arm"] in {"jury", "single"} and checkpoints(r)
         ):
             print(f"{task}: jury favourites already computed")
             continue
         bscores, names = jury_scores(judge, task, brows)
         bmeans = bscores.mean(axis=0)
         h, p = favourites(bscores, bmeans)
-        out["jury_favourites"][f"base-s0|{task}"] = {"entropy": h, "share": p, "jurors": names, "juror_means": bmeans.tolist(), "n": len(brows)}
+        out["jury_favourites"][f"base-s0|{task}"] = {
+            "entropy": h,
+            "share": p,
+            "jurors": names,
+            "juror_means": bmeans.tolist(),
+            "n": len(brows),
+        }
         print(f"base-s0|{task}: favourite spread {h:.3f} {np.round(p, 2).tolist()}")
         for run, cfg in meta.items():
             if cfg.get("task") != task or cfg["arm"] not in {"jury", "single"}:
@@ -104,7 +118,13 @@ def main():
                 continue
             sc, _ = jury_scores(judge, task, rows)
             h, p = favourites(sc, bmeans)
-            out["jury_favourites"][f"{tag}|{task}"] = {"entropy": h, "share": p, "jurors": names, "juror_means": sc.mean(axis=0).tolist(), "n": len(rows)}
+            out["jury_favourites"][f"{tag}|{task}"] = {
+                "entropy": h,
+                "share": p,
+                "jurors": names,
+                "juror_means": sc.mean(axis=0).tolist(),
+                "n": len(rows),
+            }
             print(f"{tag}: favourite spread {h:.3f} {np.round(p, 2).tolist()}")
         out_path.write_text(json.dumps(out, indent=1))
 
@@ -167,7 +187,7 @@ def main():
         items = [{"task": task, "prompt": P[r["id"]], "reply": r["text"]} for r in sub]
         open_s = [x["score"] for x in judge.score.remote(items)]
         fr = frontier_judge.score(items, f"quality {tag} {task}")
-        ok = [(a, b) for a, b in zip(open_s, fr) if b is not None]
+        ok = [(a, b) for a, b in zip(open_s, fr, strict=False) if b is not None]
         out["quality"][key] = {
             "kind": kind,
             "open": float(np.mean(open_s)),
