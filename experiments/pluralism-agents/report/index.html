@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trained against a judge on retail, a support agent got better at airline; its extra refusals were hand-offs to a human</title>
+<meta name="description" content="Pluralism E4: Qwen3-8B trained with GRPO on τ-bench retail against one LLM judge or a jury of four, tested on 50 airline tasks it never saw. Success rose from 0.16 to 0.28 and forbidden changes fell, but the extra refusals were transfers to a human, tool-plan diversity narrowed again by step 30, and the jury narrowed it most.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Trained against a judge on retail, a support agent got better at airline; its extra refusals were hand-offs to a human">
+<meta property="og:description" content="Pluralism E4, pre-registered: Qwen3-8B trained with GRPO on τ-bench retail against one LLM judge or a jury of four, tested on 50 airline tasks it never saw. Success rose from 0.16 to 0.28 and forbidden changes fell, mostly because the agent stopped looping, but the extra refusals were transfers to a human (self-refusal fell to 0.05 under the jury), tool-plan diversity narrowed back to the untrained level by step 30 in 3 of 4 runs, and the jury kept fewer plans than the single judge.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Airline task 28, a customer trying to get a refund by all means: the untrained agent&#x27;s four conversations each cancel the booking and issue a certificate; after training (single judge, seed 1) all four end with a transfer to a human. Right: refusal held 0.44, 0.58, 0.54; refused without hand-off 0.18, 0.15, 0.05; distinct plans per task 0.65, 0.78, 0.69 (untrained, single judge, jury).">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Trained against a judge on retail, a support agent got better at airline; its extra refusals were hand-offs to a human">
+<meta name="twitter:description" content="Pluralism E4, pre-registered: Qwen3-8B trained with GRPO on τ-bench retail against one LLM judge or a jury of four, tested on 50 airline tasks it never saw. Success rose from 0.16 to 0.28 and forbidden changes fell, mostly because the agent stopped looping, but the extra refusals were transfers to a human (self-refusal fell to 0.05 under the jury), tool-plan diversity narrowed back to the untrained level by step 30 in 3 of 4 runs, and the jury kept fewer plans than the single judge.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-19">
+<meta property="article:modified_time" content="2026-11-19">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Trained against a judge on retail, a support agent got better at airline; its extra refusals were hand-offs to a human",
+ "description": "Pluralism E4, pre-registered: Qwen3-8B trained with GRPO on τ-bench retail against one LLM judge or a jury of four, tested on 50 airline tasks it never saw. Success rose from 0.16 to 0.28 and forbidden changes fell, mostly because the agent stopped looping, but the extra refusals were transfers to a human (self-refusal fell to 0.05 under the jury), tool-plan diversity narrowed back to the untrained level by step 30 in 3 of 4 runs, and the jury kept fewer plans than the single judge.",
+ "abstract": "Pluralism E4 (agents). τ-bench (tau2-bench c06b07d): train on retail (74 tasks), test on airline (50 tasks, 24 refusal tasks) and retail test (40). Qwen3-8B, thinking off, LoRA r32, GRPO 30 steps x 8 tasks x 8 conversations, lr 5e-5, no KL. Arms: single holistic judge vs jury of four perspective jurors (customer, compliance, operations, communication; reward = mean of top two), 2 seeds each; simulator and judges Qwen3-30B-A3B-Instruct-2507. Final checkpoints vs untrained (two reruns): airline pass^1 0.155 -> 0.28 (+0.124 [0.067, 0.182]); refusal held 0.44 -> 0.56 (+0.115 [0.023, 0.206]); self-refusal (no hand-off, exploratory) 0.18 -> 0.15 single, 0.05 jury (jury-base -0.135 [-0.245, -0.047]); hand-offs 0.32 -> 0.40 / 0.47; distinct tool plans 0.65 -> 0.79-0.87 at steps 10-20, 0.68-0.70 at step 30 in 3 of 4 runs (final +0.083 [-0.001, 0.165]); jury - single distinct plans -0.085 [-0.142, -0.028] final, -0.177 [-0.240, -0.115] at matched drift. Loops: 22% of untrained airline conversations hit the 40-turn limit, 1% after training. Retail test: jury +0.10 [0.03, 0.18]. Drift 0.0017-0.0029 nats/token. Training judges AUROC 0.75/0.74 held-out, 0.57-0.72 on trained outputs; independent judge (Gemini 3.8 Flash, 16 tasks) +1.45 [0.11, 2.83], arms equal. Predictions: 1/5 hit. Modal ledger $202 (overestimate), OpenRouter $0.37.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-19",
+ "dateModified": "2026-11-19",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "pluralistic alignment, tau-bench, tool agents, LLM judges, jury reward, GRPO, RL post-training, policy following, strategy diversity, out-of-domain transfer, Qwen3, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.07982"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.12045"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.05070"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.22954"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/sierra-research/tau2-bench"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  :root { --fig-single: #4b5563; --fig-jury: #d26f2a; --fig-base: #c9c1b6; }
+  :root[data-theme="dark"] { --fig-single: #aab4c2; --fig-jury: #e8925a; --fig-base: #5a524a; }
+  .interactive { margin: 1.5rem 0 0.5rem; }
+  .interactive .live { display: none; }
+  .interactive.is-live .live { display: block; }
+  .interactive .fallback img { width: 100%; height: auto; }
+  .picker { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.35rem 0; align-items: center; }
+  .picker-label { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft); margin-right: 0.3rem; }
+  .picker button, .interactive select { font: inherit; font-size: 0.82rem; padding: 0.2rem 0.6rem; border: 1px solid var(--rule); background: transparent; color: inherit; border-radius: 4px; cursor: pointer; }
+  .picker button[aria-pressed="true"] { border-color: var(--control, var(--accent)); color: var(--ink); font-weight: 600; }
+  .picker button:focus-visible, .interactive select:focus-visible { outline: 2px solid var(--control, var(--accent)); outline-offset: 2px; }
+  .plot-area svg { width: 100%; height: auto; display: block; margin: 0.4rem 0; }
+  .readout { font-size: 0.86rem; color: var(--ink-soft); margin: 0.2rem 0 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft); margin: 0.2rem 0; }
+  .legend .sw { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid; vertical-align: middle; margin-right: 0.35rem; }
+  .legend .sw.dash { border-top-style: dashed; }
+  .legend .band { display: inline-block; width: 18px; height: 9px; background: var(--fig-base); vertical-align: middle; margin-right: 0.35rem; }
+  .plans-out .task-purpose { font-size: 0.86rem; color: var(--ink-soft); font-style: italic; margin: 0.4rem 0; }
+  .plan-group { margin: 0.6rem 0 0.8rem; }
+  .plan-head { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-soft); margin: 0 0 0.2rem; }
+  .plan-line { display: flex; flex-wrap: wrap; gap: 0.2rem; align-items: center; margin: 0.15rem 0; }
+  .plan-mark { width: 1.1rem; text-align: center; font-size: 0.85rem; color: var(--ink-soft); }
+  .plan-mark.ok { color: var(--accent); font-weight: 700; }
+  .chip { font-family: var(--font-mono); font-size: 0.75rem; padding: 0.05rem 0.35rem; border: 1px solid var(--rule); border-radius: 3px; color: var(--ink-soft); }
+  .chip.write { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+  .chip.none, .chip.more { border-style: dashed; }
+  @media (max-width: 620px) {
+    .picker button { font-size: 0.76rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-19">Nov 19, 2026</time></p>
+  <h1>Trained against a judge on retail, a support agent got better at airline; its extra refusals were hand-offs to a human</h1>
+  <p class="dek ruled">Qwen3-8B, 30 GRPO steps on τ-bench's retail tasks against one LLM judge or a jury of four. On 50 airline tasks it never saw, success rose from 0.16 to 0.28 and forbidden changes fell; but the extra refusals were transfers to a human, its range of tool plans narrowed again by the end, and the jury, built to reward plurality, narrowed it most.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="pa-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Left: four sampled conversations on airline task 28 from the untrained model and from single-s1 after training, each a row of tool calls, write actions outlined. Right: refusal held, refusals without a hand-off and distinct tool plans per task for the untrained model (mean of two reruns) and for the single-judge and jury arms at their final checkpoints (mean of two seeds): refusal held 0.44, 0.58, 0.54; …refused without hand-off 0.18, 0.15, 0.05; distinct plans per task 0.65, 0.78, 0.69." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">PLURALISM · EPISODE 4</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">τ-BENCH: TRAIN ON RETAIL, TEST ON AIRLINE</text><text x="20" y="66" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800">Judge-RL on one domain, measured on another</text><text x="24" y="98" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:600">Airline task 28: Test agent with a user simulator that tries to get a refund by all means.</text><text x="24" y="132" fill="#3f5a73" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" letter-spacing="1">UNTRAINED</text><text x="28" y="158" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">·</text><rect x="44" y="144" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="157.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="144" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="109.19999999999999" y="157.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">user</text><rect x="133.6" y="144" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="161.2" y="157.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="192.8" y="144" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="220.4" y="157.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="252.0" y="144" width="55.2" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="279.6" y="157.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CANCEL</text><rect x="311.2" y="144" width="40.8" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="331.59999999999997" y="157.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CERT</text><rect x="356.0" y="144" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="387.2" y="157.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><text x="28" y="188" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">·</text><rect x="44" y="174" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="187.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="174" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="116.4" y="187.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="148.0" y="174" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="175.6" y="187.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="207.2" y="174" width="55.2" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="234.79999999999998" y="187.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CANCEL</text><rect x="266.4" y="174" width="40.8" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="286.79999999999995" y="187.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CERT</text><rect x="311.2" y="174" width="55.2" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="338.8" y="187.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CANCEL</text><rect x="370.4" y="174" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="401.59999999999997" y="187.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><text x="28" y="218" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">·</text><rect x="44" y="204" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="217.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="204" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="109.19999999999999" y="217.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">user</text><rect x="133.6" y="204" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="161.2" y="217.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="192.8" y="204" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="220.4" y="217.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="252.0" y="204" width="55.2" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="279.6" y="217.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CANCEL</text><rect x="311.2" y="204" width="40.8" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="331.59999999999997" y="217.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CERT</text><rect x="356.0" y="204" width="55.2" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="383.6" y="217.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CANCEL</text><text x="415.2" y="217" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600">…</text><text x="28" y="248" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">·</text><rect x="44" y="234" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="247.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="234" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="116.4" y="247.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="148.0" y="234" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="175.6" y="247.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="207.2" y="234" width="55.2" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="234.79999999999998" y="247.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CANCEL</text><rect x="266.4" y="234" width="40.8" height="19" rx="3" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="286.79999999999995" y="247.5" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" text-anchor="middle">CERT</text><rect x="311.2" y="234" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="342.4" y="247.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><text x="24" y="292" fill="#d26f2a" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" letter-spacing="1">AFTER TRAINING (SINGLE-S1)</text><text x="28" y="318" fill="#d26f2a" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">✓</text><rect x="44" y="304" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="317.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="304" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="109.19999999999999" y="317.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">user</text><rect x="133.6" y="304" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="161.2" y="317.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="192.8" y="304" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="220.4" y="317.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="252.0" y="304" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="283.2" y="317.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><text x="28" y="348" fill="#d26f2a" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">✓</text><rect x="44" y="334" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="347.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="334" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="109.19999999999999" y="347.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">user</text><rect x="133.6" y="334" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="161.2" y="347.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="192.8" y="334" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="220.4" y="347.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="252.0" y="334" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="283.2" y="347.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><text x="28" y="378" fill="#d26f2a" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">✓</text><rect x="44" y="364" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="64.4" y="377.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">resv</text><rect x="88.8" y="364" width="40.8" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="109.19999999999999" y="377.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">user</text><rect x="133.6" y="364" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="161.2" y="377.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="192.8" y="364" width="55.2" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="220.4" y="377.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">status</text><rect x="252.0" y="364" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="283.2" y="377.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><text x="28" y="408" fill="#d26f2a" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700">✓</text><rect x="44" y="394" width="62.4" height="19" rx="3" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="75.2" y="407.5" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:500" text-anchor="middle">→ HUMAN</text><path d="M496,112 V444" stroke="#e3dbd0" stroke-width="1"/><text x="520" y="132" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" letter-spacing="1">REFUSAL HELD</text><rect x="616" y="144" width="88.54166666666666" height="15" rx="2" fill="#b9b1a7" stroke="none" stroke-width="1"/><text x="520" y="156" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">untrained</text><text x="710.5416666666666" y="156" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.44</text><rect x="616" y="167" width="115.625" height="15" rx="2" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="520" y="179" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">single judge</text><text x="737.625" y="179" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.58</text><rect x="616" y="190" width="107.29166666666667" height="15" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="520" y="202" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">jury</text><text x="729.2916666666666" y="202" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.54</text><text x="520" y="236" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" letter-spacing="1">…REFUSED WITHOUT HAND-OFF</text><rect x="616" y="248" width="36.458333333333336" height="15" rx="2" fill="#b9b1a7" stroke="none" stroke-width="1"/><text x="520" y="260" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">untrained</text><text x="658.4583333333334" y="260" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.18</text><rect x="616" y="271" width="30.208333333333332" height="15" rx="2" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="520" y="283" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">single judge</text><text x="652.2083333333334" y="283" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.15</text><rect x="616" y="294" width="9.375" height="15" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="520" y="306" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">jury</text><text x="631.375" y="306" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.05</text><text x="520" y="340" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:700" letter-spacing="1">DISTINCT PLANS PER TASK</text><rect x="616" y="352" width="130.0" height="15" rx="2" fill="#b9b1a7" stroke="none" stroke-width="1"/><text x="520" y="364" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">untrained</text><text x="752.0" y="364" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.65</text><rect x="616" y="375" width="155.0" height="15" rx="2" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="520" y="387" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">single judge</text><text x="777.0" y="387" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.78</text><rect x="616" y="398" width="138.0" height="15" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="520" y="410" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">jury</text><text x="760.0" y="410" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">0.69</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">QWEN3-8B · GRPO ON RETAIL · 2 ARMS × 2 SEEDS · 50 AIRLINE TASKS × 4 CONVERSATIONS</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: one airline task the agent never trained on, four sampled conversations from the untrained model and from a trained run, each drawn as its sequence of tool calls (write actions outlined); right, three airline measures for the untrained model and both arms at their final checkpoints. Drawn by <a href="../make_cover.py">make_cover.py</a> from <code>results/</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Pluralism, Episode 4</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (thinking off) and four LoRA adapters trained on it with GRPO; Qwen3-30B-A3B-Instruct-2507 as the simulated customer and the training judges; Gemini 3.8 Flash as an independent judge</dd></div>
+    <div><dt>Environment</dt><dd><a href="https://github.com/sierra-research/tau2-bench">τ-bench</a> (the maintained τ²/τ³ repository): retail for training, airline for testing</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/</a> (every conversation behind every number) · <a href="../README.md">code and file guide</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does training a customer-service agent against an LLM judge on one domain cost it policy following and its range of strategies on another?</strong></p>
+    <p>Not on the pre-registered measures, at the small distance these runs moved. Qwen3-8B trained with GRPO on τ-bench's retail tasks for 30 steps did better on 50 airline tasks it never saw: task success rose from 0.16 to 0.28 and the share of forbidden requests it did not carry out rose from 0.44 to 0.56, mostly because it stopped looping on one tool call until the turn limit. But the extra refusals were hand-offs to a human. Refusing on its own fell, and under the jury of four perspective judges the agent almost stopped doing it (0.18 → 0.05). Its range of tool plans widened by step 10-20, then narrowed back to the untrained level in three of four runs by step 30. The jury, meant to reward plural answers, ended with fewer distinct plans than the single judge (0.69 against 0.78 of 4). With two seeds per arm and 50 airline tasks, these are small-sample results.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+        <tr><td><strong>Did the specialisation take?</strong> (retail)</td><td>The training judge's reward rose by 1.5 to 2.0 points (1-10) in all four runs. On the 40 held-out retail tasks the jury arm gained +0.10 [+0.03, +0.18] in success; the single-judge arm +0.04 [−0.01, +0.11]</td><td>Untrained retail success 0.20 [0.12, 0.29]</td></tr>
+        <tr><td><strong>Airline policy following</strong> (pre-registered: no booking change on the 24 tasks where none is allowed)</td><td>Rose: 0.44 → 0.56, +0.12 [+0.02, +0.21] (four runs, final checkpoints)</td><td>Untrained reruns 0.43 and 0.46</td></tr>
+        <tr class="hl"><td><strong>…of which, refused without handing off</strong> (added after reading the conversations)</td><td>Fell: 0.18 → 0.15 (single), 0.05 (jury); jury minus untrained −0.14 [−0.25, −0.05]. Hand-offs to a human across all airline conversations: 0.32 → 0.40 (single), 0.47 (jury)</td><td>Untrained reruns 0.18 and 0.19 (self-refusal)</td></tr>
+        <tr><td><strong>Airline task success</strong></td><td>pass^1 +0.12 [+0.07, +0.18] (0.16 → 0.28); pass^4 +0.10 [+0.03, +0.17]</td><td>Untrained reruns 0.14 and 0.17</td></tr>
+        <tr><td><strong>Airline strategy diversity</strong> (distinct ordered tool plans among 4 conversations per task)</td><td>Rose to 0.79-0.87 by step 10-20 in every run, then fell to 0.68-0.70 at step 30 in three runs; final, four runs: +0.08 [−0.00, +0.17] over the untrained model</td><td>Untrained 0.65 [0.58, 0.73]; reruns 0.64 and 0.67</td></tr>
+        <tr><td><strong>Jury against single judge</strong></td><td>Fewer distinct plans: −0.09 [−0.14, −0.03] at the final checkpoints, −0.18 [−0.24, −0.12] at matched drift. Fewer self-refusals: −0.10 [−0.18, −0.04]. Success and refusal held: no difference beyond noise</td><td>The plan predicted the jury would keep more diversity (P4): missed</td></tr>
+        <tr><td><strong>Independent judge</strong> (Gemini 3.8 Flash, 16 fixed airline tasks)</td><td>Trained final checkpoints +1.45 [+0.11, +2.83] on a 1-10 scale over the untrained model; jury minus single −0.16 [−1.34, +1.28]</td><td>Its agreement with τ-bench success on 50 known conversations: AUROC 0.68</td></tr>
+        <tr><td><strong>The boring explanation</strong></td><td>22% of untrained airline conversations hit the 40-turn limit, nearly all repeating one tool call; 1% after training. Tool calls per conversation fell from 13.8 to 5.3-6.0</td><td>Refusal held among finished conversations alone still rose (0.36 → 0.58 and 0.53), through hand-offs</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A customer calls an airline wanting a refund it is not owed, and will not take no for an answer. Asked eight times, the untrained Qwen3-8B agent in this study issued a forbidden change in all eight. After 30 steps of training against an LLM judge on a <em>different</em> business, an online retailer, the trained agents kept the booking intact in 9 of 16 tries. In 15 of the 16 they had transferred the customer to a human. Neither "it broke the rules" nor "it learned the rules" describes that. The agent learned to pass the problem on.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2402.05070">A Roadmap to Pluralistic Alignment</a> (ICML 2024) argues that aligning a model to one aggregate preference can erase the range of answers people want, and proposes juries of perspectives as one remedy. <a href="https://arxiv.org/abs/2510.22954">The Artificial Hivemind paper</a> (2025) found that post-trained models repeat themselves and converge, and the <a href="../../pluralism-replications/report/">previous episode</a> of this series replicated that, along with <a href="https://arxiv.org/abs/2510.06084">Spectrum Tuning</a>'s finding that post-training costs in-context steerability and coverage. <a href="https://arxiv.org/abs/2506.07982">The τ²-bench paper</a> built a benchmark where a tool-using agent serves a simulated customer under a written company policy, scored by whether the database ends in the right state.</p>
+  <p><strong>What is missing.</strong> The plurality findings are about chat answers. Self-improving agents are trained on one task family against a grader and deployed on others. Nobody has measured whether that specialisation costs an agent its policy following and its range of strategies on a domain it was not trained on, or whether a jury reward protects that range better than a single judge.</p>
+  <p class="question-callout">Does specialising a tool agent on retail by judge-RL cost it policy following and strategy diversity on airline, with a single judge or a jury?</p>
+  <p><strong>What this note does.</strong> It trains Qwen3-8B with GRPO on τ-bench retail against two kinds of LLM reward (one holistic judge, or a jury of four stakeholder judges), two seeds each, and tests every checkpoint on airline. Contributions:</p>
+  <ol>
+    <li>A pre-registered measurement of four airline measures (task success, refusals held, unauthorised writes, distinct tool plans) against training steps and drift, with the untrained model rerun twice as the noise floor.</li>
+    <li>A finding the pre-registered refusal measure would have hidden: the trained agents' extra refusals are hand-offs, and the jury-trained agents almost stopped refusing on their own.</li>
+    <li>A negative result for the jury: rewarding answers that some jurors love did not keep more strategies; it kept fewer.</li>
+    <li>A multi-turn τ-bench GRPO harness for Modal (exact token bookkeeping, a shared simulator and judge server, detached runs), and every conversation behind every number.</li>
+  </ol>
+  <p><strong>What counts as an answer.</strong> Fixed in the pre-registered plan before any trained output existed:</p>
+  <ol>
+    <li>A change counts only if its 95% bootstrap interval over tasks excludes zero <em>and</em> it is larger than the gap between the untrained model's two reruns.</li>
+    <li>The arms are compared at matched drift (KL from the untrained model on neutral prompts) as well as at their final checkpoints.</li>
+    <li>Every training judge is first checked against τ-bench's ground truth on conversations it was not tuned on, and again on the trained model's own conversations.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Part</th><th>What it is</th><th>Size</th></tr></thead>
+      <tbody>
+        <tr><td>Environment</td><td>τ-bench, from the maintained <a href="https://github.com/sierra-research/tau2-bench">tau2-bench repository</a> (commit <code>c06b07d</code>). The original repository now warns that its airline and retail tasks are outdated and points here. Agent and simulated-customer prompts used as released</td><td>Retail: 114 tasks, 16 tools. Airline: 50 tasks, 14 tools</td></tr>
+        <tr><td>Training tasks</td><td>Retail, the official train split</td><td>74 tasks</td></tr>
+        <tr><td>Test tasks</td><td>Airline (all 50, never trained on) and retail's test split</td><td>50 and 40 tasks, 4 conversations each per checkpoint</td></tr>
+        <tr><td>Agent</td><td>Qwen3-8B, thinking off; a LoRA adapter (rank 32, all linear layers)</td><td>4 runs</td></tr>
+        <tr><td>Simulated customer</td><td>Qwen3-30B-A3B-Instruct-2507 at temperature 0 (τ-bench's default customer temperature), playing each task's hidden instructions</td><td>One shared server</td></tr>
+        <tr><td>Single judge</td><td>The same 30B model, asked for one holistic 1-10 score of the conversation under the company policy, with score anchors</td><td>Reward = its score</td></tr>
+        <tr><td>Jury</td><td>The same model as four jurors: the customer, the policy compliance officer, the operations lead (tool use), the head of communication. Each scores 1-10</td><td>Reward = mean of the top two ("credit answers some jurors love")</td></tr>
+        <tr><td>GRPO</td><td>8 retail tasks × 8 conversations per step at temperature 1.0; advantage = (reward − group mean) / group sd; loss on the agent's own tokens only; AdamW 5e-5; no KL term. A conversation that does not end normally gets the floor reward (1)</td><td>30 steps = 1,920 training conversations per run</td></tr>
+        <tr><td>Drift</td><td>Mean per-token KL(untrained ‖ trained), teacher-forced on one untrained sample for each of 64 neutral prompts (Dolly-15k: open questions, brainstorming, creative writing)</td><td>Every 5 steps</td></tr>
+        <tr><td>Independent judge</td><td>Gemini 3.8 Flash, a different model family, on 16 airline tasks fixed in advance (sample 0 of each), at the untrained model and at the final and drift-matched checkpoints only</td><td>96 judgments, $0.37</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Terms.</strong> A <em>conversation</em> is one simulated customer call. <em>Task success</em> is τ-bench's reward: the database after the agent's tool calls matches the database after the task's reference actions, and (airline) every fact the agent must tell the customer was said. A conversation cut off by a limit scores 0. <em>pass^k</em> is the chance that k conversations on the same task all succeed, estimated from 4. <em>Refusal held</em> is measured on the 24 airline tasks whose reference actions change nothing (a forbidden cancellation, a refund the customer is not owed): the share of conversations in which the agent made no successful change. <em>Self-refusal</em> is the same without a call to <code>transfer_to_human_agents</code>; a <em>hand-off</em> is any conversation with that call. <em>No unauthorised write</em> is the share of conversations whose successful changes all use tools the task's reference actions use. A <em>tool plan</em> is the ordered list of tool names a conversation called; <em>distinct plans</em> is the number of different plans among a task's 4 conversations, divided by 4, averaged over tasks (1.0 = four different plans, 0.25 = the same plan four times). <em>Distinct tool sets</em> ignores order and repeats.</p>
+  <aside class="bg-note"><span class="label">Background</span><p>Why airline tests policy following: its policy is full of rules a helpful agent is tempted to break (no refunds for basic economy without insurance, no change to a trip's origin, a customer's word is not proof of membership). Nearly half its tasks, 24 of 50, are ones where the right answer is to change nothing. The policy allows a transfer to a human only when a request cannot be handled within the agent's scope.</p></aside>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Freeze the benchmark</strong> (<code>export_tau.py</code>): tasks, policies, tool schemas and prompts into one file, and the reward reimplemented as a small server; checked by replaying every task's reference actions (reward 1 on 164 of 164) and an empty conversation (the expected reward on 163 of 164).</li>
+    <li><strong>Write and commit the plan</strong>, with its Design section and five threshold predictions, before any baseline or training run.</li>
+    <li><strong>Measure the untrained model</strong> twice with different sampling seeds: 200 airline and 160 retail conversations each, plus 148 retail training-task conversations as the judges' development set.</li>
+    <li><strong>Tune the judges on the development set</strong> (three prompt versions, logged in <code>results/autoresearch/results.tsv</code>), then confirm the chosen one once on the retail test conversations.</li>
+    <li><strong>Pilot</strong> one single-judge run for throughput and memory (three attempts, two steps); raise the learning rate from 2e-5 to 5e-5 because drift after two steps was only 0.0008 nats per token.</li>
+    <li><strong>Train the 2×2</strong>: 30 steps per run, evaluation on airline and retail test at steps 10, 20 and 30, drift every 5 steps.</li>
+    <li><strong>Score</strong> the fixed subsample with the independent judge; analyse with a 95% bootstrap over tasks (2,000 resamples, Episode 2's shared <code>measures.bootstrap_ci</code>), seeds pooled within an arm and paired across arms.</li>
+    <li><strong>Read the conversations</strong> behind the refusal gain, which found the hand-offs; add self-refusal and hand-off rate as labelled exploratory measures.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Environment, splits, model, arms, seeds, the 24 refusal tasks, every measure and its strict and loose forms, the matched-drift rule, the noise rule, the predictions</td><td>Exploratory, after the runs: self-refusal and hand-off rate (Section 4.3)</td></tr>
+        <tr><td>Judge and jury roles and aggregation (top two of four)</td><td>Before the confirmatory runs (amendments in the plan): judge prompt v2 chosen on the development set (A3); in training only, a conversation repeating one tool call 5 times in a row ends there with the floor reward it would have got at the turn limit (A3); learning rate 2e-5 → 5e-5 (A4); the independent judge's subsample cut from 20 to 16 tasks and its cap from $5 to $3 (A2)</td></tr>
+        <tr><td>Evaluation limits (40 agent turns, 24k-token context) and sampling</td><td>Infrastructure only (A1, A5-A7): a shared simulator server running the bf16 release instead of its FP8 copy, GPU fallbacks, and the Modal cap raised from $220 to $450 under the instruction that cost is flexible</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: Modal; one H100 per training run (the policy engine, which sleeps during each update, and the trainer share it); the simulated customer and every training judge on one shared server (two A100-80GB, one replica each). A run took 4.6 to 5.3 hours including its three evaluations. Five earlier launches of the 2×2 were stopped for speed or scheduling and produced no results that are used; the ledger charges them. Modal ledger $202 (an overestimate: the server is charged as if two containers ran throughout); OpenRouter $0.37.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="specialised" data-short="The specialisation took">4.1 The specialisation took: the judges' reward rose in every run, retail success mostly in the jury arm</h3>
+  <p><strong>Over 30 steps, the training judge's mean reward rose by 1.46 to 2.03 points on its 1-10 scale in all four runs (first five steps against last five), and the share of training conversations that ended normally rose from 0.72-0.81 to 0.97-0.99.</strong> τ-bench success on the training conversations rose too, from 0.18-0.22 to 0.26-0.32. On the 40 held-out retail tasks the jury arm gained +0.10 [+0.03, +0.18] over the untrained model; the single-judge arm's +0.04 [−0.01, +0.11] is within noise. Figure 1 shows the curves; pick a measure to redraw it.</p>
+  <figure class="interactive" id="fig-curves">
+    <div class="fallback"><img src="figures/curves.png" alt="Three panels over 30 GRPO steps for four runs: the training judge's reward rises from about 5.5-6.5 to 7.5-8.4; τ-bench success on training conversations rises from about 0.1-0.2 to about 0.3; drift rises steadily to 0.0017-0.0029 nats per token."></div>
+    <div class="live">
+      <div class="picker"><span class="picker-label">Measure</span><span class="pick-measure"></span></div>
+      <div class="plot-area"></div>
+      <div class="legend"><span><i class="sw" style="color:var(--fig-single)"></i>single judge</span><span><i class="sw" style="color:var(--fig-jury)"></i>jury</span><span><i class="sw dash" style="color:currentColor"></i>seed 1 (solid: seed 0)</span></div>
+      <p class="readout" aria-live="polite"></p>
+    </div>
+    <figcaption><span class="label">Figure 1.</span>Training curves of the four runs: each point is one GRPO step's 64 conversations on 8 retail training tasks (different tasks each step, so the curve is noisy). The reward is each run's own: the single judge's score or the jury's top-two mean. Static version drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="policy" data-short="Airline: better, not worse">4.2 On airline, success and refusals held rose; nothing pre-registered was lost at this drift</h3>
+  <p><strong>Pooled over the four runs' final checkpoints, refusal held rose from 0.44 to 0.56 (+0.12 [+0.02, +0.21], against a rerun gap of 0.03), task success from 0.16 to 0.28 (pass^1 +0.12 [+0.07, +0.18]) and pass^4 from 0.07 to 0.17 (+0.10 [+0.03, +0.17]).</strong> Unauthorised writes did not change beyond noise (no unauthorised write +0.04 [−0.03, +0.11]). The refusal gain is uneven: single-judge seed 1 reached 0.75 and jury seed 0 reached 0.62, while single-judge seed 0 (0.41) and jury seed 1 (0.46) stayed at the untrained level. Figure 2 plots each measure against drift; switch to steps or to another measure, including the two exploratory ones of Section 4.3.</p>
+  <figure class="interactive" id="fig-airline">
+    <div class="fallback"><img src="figures/airline.png" alt="Three panels against drift for four runs, with a grey band for the untrained model's two reruns. Refusal held: two runs rise to 0.61 and 0.75 at their last checkpoint, two stay near 0.41-0.46. Distinct tool plans: all runs rise to 0.79-0.87 by the middle checkpoints, then three fall to 0.68-0.70 at the last. Task success: all runs rise from 0.16 to 0.24-0.35."></div>
+    <div class="live">
+      <div class="picker"><span class="picker-label">Measure</span><span class="pick-measure"></span></div>
+      <div class="picker"><span class="picker-label">Horizontal axis</span><span class="pick-x"></span></div>
+      <div class="plot-area"></div>
+      <div class="legend"><span><i class="sw" style="color:var(--fig-single)"></i>single judge</span><span><i class="sw" style="color:var(--fig-jury)"></i>jury</span><span><i class="sw dash" style="color:currentColor"></i>seed 1 (solid: seed 0)</span><span><i class="band"></i>untrained, two reruns</span></div>
+      <p class="readout" aria-live="polite"></p>
+    </div>
+    <figcaption><span class="label">Figure 2.</span>Airline measures at steps 10, 20 and 30 of each run (50 tasks × 4 conversations per point; refusal measures on the 24 refusal tasks), drawn from the untrained model's mean at drift 0. The grey band spans the untrained model's two reruns. Drift is KL(untrained ‖ trained) on 64 neutral prompts; the jury runs stop at 0.0017, single-judge seed 1 moved farthest (0.0029).</figcaption>
+  </figure>
+  <p>The drift is small. The largest, 0.0029 nats per token, means the trained model's next-token distribution on ordinary prompts barely moved. These runs changed behaviour with a light touch, and longer training may differ (Section 7).</p>
+
+  <h3 id="handoffs" data-short="Refusals are hand-offs">4.3 The extra refusals are hand-offs; the jury-trained agent almost stopped refusing on its own</h3>
+  <p><strong>Of the conversations on the 24 refusal tasks in which the trained agents changed nothing, 82 of 111 (single) and 94 of 103 (jury) ended in a transfer to a human, against 50 of 85 for the untrained model. Refusing without a hand-off fell from 0.18 to 0.15 (single, within noise) and 0.05 (jury; −0.14 [−0.25, −0.05]).</strong> Across all airline conversations, hand-offs rose from 0.32 to 0.40 (single) and 0.47 (jury, +0.15 [+0.09, +0.22]). These two measures were added after reading the conversations behind the refusal gain, so they are exploratory.</p>
+  <p>The clearest case is the one in the opening: on a task where the simulated customer "tries to get a refund by all means", the untrained agent issued a change in 8 of 8 conversations, and the trained agents kept the booking intact in 9 of 16, with a transfer in 15 of 16. On a forbidden basic-economy cancellation (task 0) training changed nothing: the untrained agent cancelled in 8 of 8, the trained ones in 15 of 16. A hand-off makes no change to the booking, so the pre-registered measure counts it as policy followed. The airline policy allows it only when a request is out of scope, which a refund the customer is not owed is not. The jury, whose jurors include the customer, appears to have learned that handing the customer to a human scores well with someone, which is what a top-two-of-four reward credits.</p>
+
+  <h3 id="diversity" data-short="Diversity: up, then down">4.4 Strategy diversity rose, then narrowed back; the jury ended narrowest</h3>
+  <p><strong>Every run used more distinct tool plans per airline task at steps 10 and 20 (0.79-0.87 of 4) than the untrained model (0.65). By step 30, three of the four runs had fallen back to 0.68-0.70; only single-judge seed 0 stayed high (0.88).</strong> Pooled at the final checkpoints the gain over the untrained model is +0.08 [−0.00, +0.17], which does not clear the noise rule. The narrowing came with shorter plans (single-judge seed 1: 4.1 tool calls per conversation at step 30 against 5.7 at step 20) and, in the two runs whose refusals jumped, with more hand-offs: the agent settled on a few short routes, often ending in a transfer.</p>
+  <p><strong>The jury ended with fewer distinct plans than the single judge: 0.69 against 0.78 (−0.09 [−0.14, −0.03]) at the final checkpoints and −0.18 [−0.24, −0.12] at matched drift</strong>, where single-judge seed 1 is compared at its step 20 (drift 0.0020) with the other runs' step 30 (0.0017-0.0018). Distinct tool sets, which ignore order, agree (−0.10 [−0.16, −0.05]). The jury was meant to credit answers that some jurors love; four jurors drawn from one model mostly agree, and a top-two mean of agreeing jurors rewards what most of them like, including the hand-off. With two seeds, the gap could still depend on which tasks each run happened to see. Figure 3 shows the plans themselves.</p>
+  <figure class="interactive" id="fig-plans">
+    <div class="fallback"><p>Interactive: the four sampled tool plans of every airline task, for the untrained model and each run's final checkpoint. Needs JavaScript; the data are in <code>results/</code>.</p></div>
+    <div class="live">
+      <label class="picker"><span class="picker-label">Airline task</span><select></select></label>
+      <div class="plans-out" aria-live="polite"></div>
+    </div>
+    <figcaption><span class="label">Figure 3.</span>Tool plans, one row per conversation: each chip is a tool call in order (capitals and an orange outline mark changes to a booking; the first 14 calls are shown). ✓ marks a τ-bench success. "Refusal task" marks the 24 tasks where the reference changes nothing.</figcaption>
+  </figure>
+
+  <h3 id="boring" data-short="Boring explanations">4.5 Most of the success gain is the agent no longer looping</h3>
+  <p><strong>The untrained agent ran into the 40-turn limit in 22% of airline conversations, almost always calling one tool again and again (<code>get_flight_status</code> forty times, <code>calculate</code> forty times); after training it did so in 1%.</strong> Tool calls per conversation fell from 13.8 to 5.3 (single) and 6.0 (jury), and conversations that ended normally rose from 0.74 to 0.95-0.97. A cut-off conversation scores 0 and makes no write, so getting out of a loop raises success directly. Two checks:</p>
+  <ul>
+    <li><strong>Refusal held among finished conversations only</strong> still rose (0.36 → 0.58 single, 0.53 jury): not just fewer cut-offs, but, per Section 4.3, more hand-offs.</li>
+    <li><strong>Diversity among finished conversations only</strong>: +0.05 [−0.04, +0.13] over the untrained model, smaller than the pooled +0.08. Part of the early rise in distinct plans came from loops ending at different points.</li>
+  </ul>
+  <p>The loop fix is what the training reward paid for: a looping conversation always got the floor score, and in training it was stopped after five identical calls (amendment A3). This study has no arm that trains with the floor alone and no judge, so it cannot say how much of the airline change the judges' content added beyond "finish the conversation".</p>
+
+  <h3 id="rulers" data-short="Checking the rulers">4.6 Checking the rulers: judges, simulator, independent judge</h3>
+  <p><strong>The training judges passed their pre-registered bar on held-out conversations and degraded on the trained model's own.</strong> Against τ-bench success on the untrained model's retail test conversations, the chosen prompt scored AUROC 0.75 (single) and 0.74 (jury), above the 0.65 bar. Among finished conversations only, where the floor score gives no help, it was 0.59 and 0.58. On each run's final retail conversations, where 97% finish, it fell to 0.57-0.72 (Figure 4). The judges reliably reward finishing and only weakly reward doing the task right, which matches what training bought.</p>
+  <figure>
+    <img src="figures/judges.png" alt="Bars of AUROC against τ-bench success: single and jury judges 0.74-0.75 on the development and held-out untrained conversations; 0.57 to 0.72 on the four runs' final retail conversations. A dashed line marks the 0.65 bar and a dotted line chance (0.5).">
+    <figcaption><span class="label">Figure 4.</span>Training judges against τ-bench success (AUROC; 0.5 = chance). Development: 148 untrained conversations on retail training tasks; held-out: 160 on retail test tasks; final: each run's own 160 retail test conversations at step 30, scored by its own judge. Dashed: the pre-registered 0.65 bar.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Judge tuning</strong> (development set only, three versions): score anchors raised the jury's AUROC from 0.73 to 0.75 and cut the share of 10/10 scores from 50% to 39%; a checklist before the score lowered it (0.72) and was discarded.</li>
+    <li><strong>Simulated customer.</strong> On 148 development conversations, 77% ended with the customer's stop signal, below the pre-registered 90% bar; all 34 others ended on the agent's side (tool-error limit, loops, context). Conversations where the limit came while the customer kept talking: 0 of 148, and 4 of 360 in the untrained evaluation. Role breaks found by regex: 0 of 508. Twenty openings read blind were all in role and none pasted its hidden instructions; about a quarter gave several details at once rather than waiting to be asked.</li>
+    <li><strong>Independent judge.</strong> On 50 untrained airline conversations with known outcomes it agreed with τ-bench success at AUROC 0.68. On the fixed 16-task subsample it scored the trained final checkpoints +1.45 [+0.11, +2.83] above the untrained model (4.95 against 3.50 of 10) and saw no difference between the arms (jury minus single −0.16 [−1.34, +1.28]). Its reasons for low untrained scores are mostly the loops ("The agent entered an infinite tool-calling loop, repeatedly checking the status of the flight").</li>
+  </ul>
+
+  <h3 id="prior" data-short="Against the worry">4.7 Against the worry that motivated the study</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Expected from the plurality literature</th><th>Found here</th></tr></thead>
+      <tbody>
+        <tr><td>Optimising one grader narrows behaviour</td><td>✓ late in training: distinct plans fell back to the untrained level in 3 of 4 runs by step 30</td></tr>
+        <tr><td>Narrowing on the trained domain spills over and costs policy elsewhere</td><td>✗ on the pre-registered measure; ✓ in kind: refusing on its own fell, replaced by hand-offs</td></tr>
+        <tr><td>A jury of perspectives keeps more of the range than one judge</td><td>✗ the jury kept fewer plans (−0.09 final, −0.18 matched) and refused on its own least</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A worry about self-improving agents is that specialising them against a grader will quietly erode the rules they follow elsewhere. Here the first-order effect looked like the opposite: judge-RL taught the agent to finish conversations, and finishing transferred. Underneath, the agent had learned a different habit: when in doubt, hand the customer to a human. That counts as "policy followed" in a database check, costs a real business money, and was strongest under the reward designed to protect plurality. The range of tool plans widened and then narrowed within 30 steps.</p>
+  <p><strong>When an agent is specialised against a judge, measure how it complies on held-out domains (refusing, handing off, acting), and its strategy diversity, across training, not only a pass-or-fail policy score at the end.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Prediction (written before the runs)</th><th>Threshold</th><th>Confidence</th><th>Result</th><th>Hit?</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>Judge-RL raises the training judge's reward on retail</td><td>last 5 minus first 5 steps &gt; +0.5 in ≥ 3 of 4 runs</td><td>70%</td><td>+1.46, +1.98, +1.69, +2.03</td><td>Hit</td></tr>
+        <tr><td>P2</td><td>Retail specialisation costs airline policy following</td><td>refusal held, final minus untrained &lt; −0.05</td><td>40%</td><td>+0.115 (but self-refusal −0.08)</td><td>Miss</td></tr>
+        <tr><td>P3</td><td>Retail specialisation narrows airline strategies</td><td>distinct plans, final minus untrained &lt; −0.10</td><td>55%</td><td>+0.083</td><td>Miss</td></tr>
+        <tr><td>P4</td><td>The jury keeps more airline strategy diversity</td><td>jury minus single at matched drift &gt; +0.05</td><td>35%</td><td>−0.178</td><td>Miss</td></tr>
+        <tr><td>P5</td><td>Airline task success does not move</td><td>pass^1 change within ±0.05</td><td>50%</td><td>+0.124</td><td>Miss</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Post-mortem.</strong> What surprised me: the untrained agent's loops, which made "finish the conversation" the main thing any reward could teach, and the hand-offs hiding inside the refusal measure. What I'd change: pre-register refusing, handing off and acting as separate outcomes; add a floor-only arm to separate the judges' content from the completion signal; evaluate every 5 steps. Lesson for the design guide: a pass-or-fail policy measure needs its ways of passing listed before the run; "did not change the booking" had two, and training moved them in opposite directions.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Small samples.</strong> 50 airline tasks (24 refusal tasks), 4 conversations each, two seeds per arm; seed-to-seed differences (refusal held 0.41 against 0.75 within the single-judge arm) are as large as the effects.</li>
+    <li><strong>Little drift.</strong> 30 LoRA steps moved the model by at most 0.0029 nats per token on neutral prompts. Longer or full fine-tuning may cost what these runs did not; the late downturn in diversity hints at it.</li>
+    <li><strong>No judge-free control.</strong> Without a floor-only or shuffled-reward arm, the judges' contribution cannot be separated from the completion signal and the training-time loop stop.</li>
+    <li><strong>Exploratory measures.</strong> Self-refusal and hand-off rate were defined after reading the conversations; the hand-off-to-refund case in the opening is one task.</li>
+    <li><strong>Same family.</strong> The simulated customer, the judges and the agent are all Qwen models; only the independent judge, on 16 tasks, is from another family, and its own agreement with ground truth is 0.68.</li>
+    <li><strong>Retail scoring and the simulator.</strong> τ-bench's natural-language assertions (in 40 retail tasks' reward) need an LLM and were not scored; retail success here is the database check alone. The simulated customer missed its pre-registered 90% stop-signal bar, for reasons on the agent's side.</li>
+    <li><strong>Judge scores of the untrained model</strong> come from an earlier prompt version than the trained checkpoints', so training-judge scores are compared between arms only, never with the untrained model.</li>
+    <li><strong>Not tried:</strong> thinking mode, other models, a KL penalty, other jury designs or aggregations, and the multi-company variant of this study.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><code>reproduce.sh</code> lists every command; <code>reproduce.sh --dry-run</code> prints them. The analysis, figures and cover run on a laptop from the shipped conversations:</p>
+  <pre><code>python experiments/pluralism-agents/analyse.py       # every number in this note, into results/summary.json
+python experiments/pluralism-agents/make_figures.py  # figures and the interactive figures' data
+python experiments/pluralism-agents/make_cover.py</code></pre>
+  <p>Training needs Modal: <code>modal deploy modal_app.py</code>, then <code>python modal_app.py launch configs/full.json</code> spawns the four runs (one H100 each, plus the shared server); <code>python modal_app.py collect configs/full.json</code> copies their results from the volume.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>A <strong>floor-only arm</strong> and a <strong>shuffled-judge arm</strong>, to split the airline change into "finish the call" and "what the judge liked".</li>
+    <li>Judges told that an <strong>unjustified hand-off</strong> is a failure, and whether that removes the habit without bringing back the forbidden changes.</li>
+    <li>A jury whose jurors <strong>disagree by design</strong> (a customer advocate against a cost-control officer) and an aggregation that rewards the spread of verdicts rather than the top two.</li>
+    <li><strong>Longer training</strong> with evaluation every 5 steps, to see whether the late narrowing continues.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Does RL against an LLM judge on one domain hurt an agent's policy following on another?</h3>
+  <p>Not on a pass-or-fail check in this study: after 30 GRPO steps on τ-bench retail, Qwen3-8B left forbidden airline bookings unchanged more often (0.44 to 0.56) and succeeded more often (0.16 to 0.28). But the extra refusals were transfers to a human; refusing on its own fell, to 0.05 under a jury reward.</p>
+  <h3 id="q2">Did the agent lose strategy diversity?</h3>
+  <p>Late in training. Distinct tool plans per airline task rose from 0.65 to about 0.8 by steps 10-20, then fell back to 0.68-0.70 in three of four runs by step 30.</p>
+  <h3 id="q3">Does a jury of judges keep more diversity than one judge?</h3>
+  <p>No. The jury of four stakeholder judges, rewarded by its top two scores, ended with fewer distinct plans than the single judge (0.69 against 0.78; −0.18 at matched drift) and handed customers off most.</p>
+  <h3 id="q4">Which version of τ-bench was used?</h3>
+  <p>The maintained tau2-bench repository (τ²/τ³-bench) at commit c06b07d, whose airline and retail tasks fix errors in the original release; the original repository points users to it.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>data/tau_tasks.json</code>: the frozen tasks (id, simulated-customer prompt, reference actions, facts to communicate, reward basis, split), agent prompt and tool schemas per domain. <code>data/fixed_sets.json</code>: the 24 refusal tasks and the independent judge's 16 tasks. <code>data/neutral_prompts.json</code>: the 64 drift prompts.</li>
+    <li><code>results/baseline/s0|s1/eval.jsonl.gz</code>: the untrained model's conversations, one row each: <code>domain</code>, <code>task_id</code>, <code>sample</code>, <code>termination</code> (<code>user_stop</code>, <code>max_turns</code>, <code>too_many_errors</code>, <code>max_ctx</code>, <code>agent_len</code>), <code>reward</code>, <code>db</code>, <code>communicate</code>, <code>n_agent_turns</code>, <code>plan</code> (tool names in order), <code>writes</code> ([tool, arguments, succeeded]), <code>transcript</code> and <code>judges</code> (v1 scores). <code>dev.jsonl.gz</code>: the judges' development set.</li>
+    <li><code>results/runs/&lt;arm&gt;-s&lt;seed&gt;/eval.jsonl.gz</code>: the same columns for steps 10, 20 and 30 (<code>step</code>), judged by both arms' v2 judges. <code>curve.jsonl</code>: one row per GRPO step (judge reward, τ-bench success, finished share, update statistics, timings, drift every 5 steps). <code>train_rows.jsonl.gz</code>: every training conversation without its transcript.</li>
+    <li><code>results/autoresearch/</code>: the judge-tuning ledger (<code>results.tsv</code>), each version's prompts and scores. <code>results/frontier/</code>: the independent judge's replies. <code>results/spend.jsonl</code>, <code>results/openrouter_spend.jsonl</code>: the spend ledgers. <code>results/summary.json</code>: every number in this note.</li>
+    <li>Adapters are not shipped (4 runs × 6 checkpoints); <code>reproduce.sh</code> retrains them.</li>
+  </ul>
+
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026pluralismagents,
+  author = {Albert Lie},
+  title  = {Trained against a judge on retail, a support agent got better at airline; its extra refusals were hand-offs to a human},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note, Pluralism Episode 4},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/pluralism-agents/report/}
+}</code></pre>
+
+  <footer class="note">Environment: τ-bench (τ²-bench, Barres et al. 2025; Yao et al. 2024). Framing: A Roadmap to Pluralistic Alignment (Sorensen et al., ICML 2024); Artificial Hivemind (Jiang et al. 2025); Spectrum Tuning (Sorensen et al. 2025). Pre-registered; compute on Modal.</footer>
+
+</article>
+</div>
+<script src="figdata.js"></script>
+<script src="figs.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
