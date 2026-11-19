@@ -136,7 +136,7 @@ def main():
         for name, rr in runs.items():
             st = RUN_STYLE[name]
             pts = [(rr["drift"][s], S["runs"][name]["by_step"][str(s)]["airline"][k]) for s in rr["steps"]]
-            pts = [(0.0, sum(b) / len(b))] + pts
+            pts = [(0.0, sum(b) / len(b)), *pts]
             ax[i].plot([p[0] for p in pts], [p[1] for p in pts], color=st["color"], ls=st["ls"], marker="o", ms=3,
                        label=st["label"])  # fmt: skip
             print(k, name, [(round(x, 4), round(y, 3)) for x, y in pts])
