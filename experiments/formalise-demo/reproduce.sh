@@ -22,5 +22,6 @@ run $MODAL run $X/modal_gen.py --model qwen3-8b --seed 1 --jobs baggage:heldout:
 run $MODAL run $X/modal_gen.py --model qwen3-32b --jobs baggage:heldout:a,baggage:heldout:b0,baggage:heldout:b,contrast:heldout:a,contrast:heldout:b
 # 5. score (the checker arm runs here, on arm b's traces), figures and cover
 run $PY $X/score.py
+run $PY $X/review_effort.py      # the review-effort illustration (counts, not a user study)
 run $PY $X/make_figures.py
 run $PY $X/make_cover.py

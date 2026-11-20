@@ -150,6 +150,35 @@
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .proof { font-size: 0.78rem; }
   .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pe-stepper { margin-top: 0.8rem; border-top: 1px solid var(--rule); }
+  #pe-stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; margin: 0.8rem 0; }
+  #pe-stages button { font-family: var(--font-display); font-size: 0.82rem; text-align: left; display: grid; grid-template-columns: auto 1fr; gap: 0.4rem; align-items: center; min-height: 44px; padding: 0.35rem 0.5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink-soft); cursor: pointer; }
+  #pe-stages button[aria-selected="true"] { border-color: var(--ink); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+  #pe-stages .pe-n { font-family: var(--font-mono); font-size: 0.72rem; width: 1.4rem; height: 1.4rem; border-radius: 50%; display: inline-grid; place-items: center; border: 1px solid currentColor; }
+  #pe-stages button:focus-visible, .pe-nav button:focus-visible, #pe-panel:focus-visible, #pe-claim:focus-visible, .pe-follow input:focus-visible { outline: 2px solid var(--control); outline-offset: 2px; }
+  #pe-panel h4 { font-family: var(--font-display); font-size: 1rem; margin: 0.4rem 0 0.4rem; }
+  #pe-panel p { font-size: 0.92rem; }
+  #pe-panel .pe-small { font-size: 0.8rem; color: var(--ink-meta); }
+  .pe-formal > li { border-top: 1px solid var(--rule); padding: 0.35rem 0; list-style: none; }
+  .pe-formal > li > .pe-rule { padding: 0; }
+  .pe-formal code { display: block; font-size: 0.7rem; color: var(--ink-soft); white-space: pre-wrap; word-break: break-word; margin-top: 0.2rem; }
+  .pe-typed { font-size: 0.78rem; overflow-x: auto; }
+  .pe-checks, .pe-solve, .pe-explain { font-size: 0.88rem; padding-left: 1.2rem; }
+  .pe-checks { list-style: none; padding-left: 0; }
+  .pe-checks li { display: grid; grid-template-columns: 1.4rem 1fr; }
+  .pe-ok .pe-mark { color: var(--ink-meta); } .pe-bad .pe-mark { color: var(--accent-text); font-weight: 600; }
+  .pe-explain q { font-style: italic; }
+  .pe-stamp { display: inline-block; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-text); border: 1.5px solid var(--accent); border-radius: 4px; padding: 0.25rem 0.6rem; margin: 0.6rem 0; }
+  .pe-claim { display: flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; flex-wrap: wrap; }
+  #pe-claim { font: inherit; width: 7rem; min-height: 34px; padding: 0.2rem 0.4rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); }
+  .pe-verdict { font-size: 0.9rem; margin: 0.5rem 0; padding-left: 0.6rem; border-left: 2px solid var(--rule); }
+  .pe-verdict.is-bad { border-left-color: var(--accent); }
+  .pe-nav { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+  .pe-nav button { font: inherit; font-size: 0.85rem; min-height: 34px; padding: 0.2rem 0.7rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); cursor: pointer; }
+  .pe-nav button:disabled { opacity: 0.45; cursor: default; }
+  .pe-follow { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-meta); }
+  .refs li { margin-bottom: 0.4rem; } .refs a { overflow-wrap: anywhere; }
+  @media (max-width: 600px) { #pe-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 </style>
 </head>
 <body>
@@ -174,7 +203,7 @@
   <dl class="meta">
     <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
     <div><dt>Series</dt><dd>Taste, Episode 4</dd></div>
-    <div><dt>Models</dt><dd>Qwen3-8B and Qwen3-32B (FP8), thinking on, served with vLLM</dd></div>
+    <div><dt>Models</dt><dd><a href="https://arxiv.org/abs/2505.09388">Qwen3</a>-8B and -32B (FP8), thinking on, served with <a href="https://arxiv.org/abs/2309.06180">vLLM</a></dd></div>
     <div><dt>Rulebooks</dt><dd><a href="https://github.com/SkyRiver-2000/RuleArena">RuleArena</a> airline bags; <a href="https://design-system.service.gov.uk/styles/colour/">GOV.UK colour</a> + <a href="https://www.w3.org/TR/WCAG22/">WCAG 2.2</a></dd></div>
     <div><dt>Code and data</dt><dd><a href="../">experiments/formalise-demo/</a> · <a href="../results/summary.json">results/</a> (every number in this note; <a href="../README.md">file guide</a>) · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
   </dl>
@@ -197,6 +226,7 @@
       <tr class="hl"><td>Does a checker built from the formal rules help more?</td><td><strong>Yes.</strong> 164/200 [0.765, 0.87] and 191/200 [0.925, 0.98]; +0.41 [0.335, 0.48] and +0.37 [0.30, 0.44] over rules pasted, paired. It never passed a wrong answer, and turned 3 and 2 right answers wrong</td><td>The checker alone, reading facts with a regex: 200/200</td></tr>
       <tr><td>Where do wrong answers start (rules pasted)?</td><td><strong>With a wrong rule.</strong> First failure was a wrong rule for 76 of 117 and 72 of 82 wrong answers with a usable trace; 116/117 and 81/82 cited at least one wrong line. Right rules with wrong arithmetic: 0 and 1 (7 and 15 if near-miss citations count as right)</td><td>A random line of the right section is the right one 4.8% of the time</td></tr>
       <tr><td>What can the checker not fix?</td><td><strong>The facts it is handed.</strong> 25 of Qwen3-8B's 36 remaining errors come from listing the carry-on as a checked bag</td><td>The checker alone applies the carry-on rule to the question's own dimensions and makes none of these errors</td></tr>
+      <tr><td>Does the proof make review cheaper?</td><td><strong>In this illustration, yes.</strong> Checking a proof means checking a median of 47 fields per question, each against a quoted line; recomputing the fee from the rulebook means reading 138 candidate lines and doing 7 operations</td><td>Counts of things to read or compute, not a user study</td></tr>
       <tr><td>Does it carry over to a design rulebook?</td><td><strong>Yes.</strong> GOV.UK colour + WCAG contrast, 120 held-out elements: verdict and rule right 33/120 and 42/120 with the rules pasted; 120/120 with the checker. The pasted arm got the contrast ratio within 0.05 for 43 and 26 of 120</td><td>"Always not compliant": 68/120 on the verdict alone; no rules: 67 and 65</td></tr>
       </tbody>
     </table></div>
@@ -205,7 +235,7 @@
 
   <h2 id="introduction"><span class="num">01</span>Introduction</h2>
   <p>Daniel flies Premium Economy from Chicago to Berlin with a backpack and three checked bags, two of them far over the size limit. Qwen3-8B, with every line of the airline's baggage rules pasted into its prompt, charged $200 for each of those two: the fee in line 361, for flights within the U.S. and Canada. For Europe, line 367 says $150. A checker built from the same lines, rewritten as code, marked those two steps as failed, named the line the model should have used, and returned $1,177 instead of $1,277.</p>
-  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2412.08972">RuleArena</a> (ACL 2025) asked language models to apply three real rulebooks (airline baggage fees, NBA transactions, U.S. income tax) and found them weak at it: they pick the wrong rule, and miscompute even when they pick the right one. One response is to <em>formalise</em> the domain: turn the rulebook into rules a program can check, each traced to its source, and have the program return a proof a person can inspect instead of an answer they have to trust.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2412.08972">RuleArena</a> (ACL 2025) asked language models to apply three real rulebooks (airline baggage fees, NBA transactions, U.S. income tax) and found them weak at it: they pick the wrong rule, and miscompute even when they pick the right one. <a href="https://arxiv.org/abs/2212.08073">Constitutional AI</a> sits at one end: a model's rules stay natural-language principles, and a model judges answers against them. The other end is to <em>formalise</em> the domain, the approach <a href="https://pramaanalabs.ai/">Pramaana Labs</a> describes as a verification stack: turn the rulebook into rules a program can check, each traced to its source, and have the program return a proof a person can inspect instead of an answer they have to trust.</p>
 
   <section class="cs-gate" aria-labelledby="coming-soon">
     <p class="cs-label">Coming soon</p>
@@ -233,7 +263,18 @@
     <li>the same holds on a second, unrelated rulebook.</li>
   </ol>
 
-  <h2 id="formalising" data-short="What formalising means"><span class="num">02</span>What formalising a rule means</h2>
+  <h2 id="formalising" data-short="The four stages"><span class="num">02</span>The four stages, built for one rulebook</h2>
+  <p>The <a href="https://pramaanalabs.ai/">verification stack</a> that goes "from human knowledge to machine-checkable truth" has four stages. This note builds each of them for the baggage rules (Table 1); the interactive in section 5.6 walks one bag through all four.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 1: the four stages and how this demo builds each</caption>
+    <thead><tr><th>Stage</th><th>What it does</th><th>In this demo</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 Domain formaliser</strong></td><td>Converts rule text into "precise formal representations": definitions, conditions, exceptions, dependencies and source traceability, built from a type system, axioms, rule statements, operators and boundaries</td><td><a href="../formalise.py">formalise.py</a>: 158 rulebook lines become 162 typed rules, each with its kind, conditions, outcome, what it overrides and its source line; the slice's boundaries (six regions, up to three bags, 115 in, 70 or 100 lb) are part of the spec</td></tr>
+      <tr><td><strong>2 Auto-formaliser</strong></td><td>A model "proposes structure. The formal system disciplines it"</td><td>Here the rulebook was formalised by hand. The model formalises the <em>case</em>: its trace turns a question into typed facts and cited rules, and the types and the parser reject what does not fit</td></tr>
+      <tr><td><strong>3 Solver</strong></td><td>Searches the formalised domain and "returns either a proof certificate or a counterexample tied to a violated constraint"</td><td><a href="../checker.py">checker.py</a>: searches the one open choice (which bag counts as first), looks up exactly one rule per fee, checks every constraint, and on a model's answer returns the first step that fails</td></tr>
+      <tr><td><strong>4 Prover and explainer</strong></td><td>"Turns formal outputs into explanations that domain experts can read, inspect, challenge, and sign off on. Review shifts from redoing the work to checking the proof."</td><td>The proof artifact: each rule that fired with its quoted line, its inputs, each check passed or failed, where a model's answer fails, and a verified stamp (section 5.3, and stage 4 of the explorer)</td></tr>
+    </tbody>
+  </table></div>
   <p>A rulebook written for people is a list of sentences. Formalising it means rewriting each sentence as a rule a program can apply, without losing track of where it came from. Each formal rule here has five parts:</p>
   <ul>
     <li><strong>A kind</strong>: a <em>definition</em> (what "size" means), a <em>condition</em> (a fee that applies when its conditions hold), an <em>exception</em> (a rule that overrides another for some cases) or a <em>combination</em> (how two fees add up).</li>
@@ -263,9 +304,9 @@
     <figcaption><span class="label">Figure 1.</span> One rule, three forms. Left, the rulebook's sentence. Middle, the rule built from it (<a href="../spec/baggage_spec.json">spec/baggage_spec.json</a>): it overrides the ordinary 50 lb allowance (line L274) for Business and First when the bag is free. Right, the step the checker writes into its proof for this bag: 62 lb is within the 70 lb allowance, so there is no overweight fee. The bag's other steps cite L100 (base fee $0: in Business the first bag to Japan is free), L368 (64 inches is oversize: $30) and L283 ("the higher fee between oversize and overweight applies"), so the bag costs $0 + max($0, $30) = $30.</figcaption>
   </figure>
   <p><strong>A proof artifact</strong> is the list of such steps for a whole question: every rule used, the inputs it read and the value it decided, and, when it checks someone else's answer, the first step that failed. It replaces a number nobody can audit with a record a person can read line by line, the way a reviewer checks a tax return.</p>
-  <p><strong>What the formaliser had to decide.</strong> The slice (six of RuleArena's 21 regions, all six fare classes, one to three checked bags) became 162 rules from 158 source lines: 150 conditions, 3 definitions, 4 exceptions, 1 combination rule, and 4 rules the text does not settle (Table 1).</p>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, scrolls sideways on narrow screens"><table>
-    <caption class="sr-only">Table 1: the four rules the text does not settle</caption>
+  <p><strong>What the formaliser had to decide.</strong> The slice (six of RuleArena's 21 regions, all six fare classes, one to three checked bags) became 162 rules from 158 source lines: 150 conditions, 3 definitions, 4 exceptions, 1 combination rule, and 4 rules the text does not settle (Table 2).</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 2: the four rules the text does not settle</caption>
     <thead><tr><th>Rule</th><th>What the text leaves open</th><th>What the spec says, and where from</th></tr></thead>
     <tbody>
       <tr><td><code>X-ORDER</code> (unstated)</td><td>Which of three bags counts as the first, second and third checked bag. It matters: in Business the first two are free and may weigh 70 lb; the third is charged and may weigh 50</td><td>Free positions go to the bags whose overweight fee falls most when free, the order that gives the lowest total. Only RuleArena's answer code says so (<code>compute_answer.py</code>, lines 52-63)</td></tr>
@@ -285,8 +326,8 @@
 
 David's flight ticket is $100.</code></pre>
   <p>The model must find the carry-on (item 1 fits the 22 × 14 × 9 inch sizer), price the two checked bags and add the ticket. The answer, $215, comes from RuleArena's own answer code, unchanged. Questions and answers were generated and their hashes recorded before any model replied (<a href="../data/manifest.json">data/manifest.json</a>).</p>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, scrolls sideways on narrow screens"><table>
-    <caption class="sr-only">Table 2: the question sets</caption>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 3: the question sets</caption>
     <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th><th>File</th></tr></thead>
     <tbody>
       <tr><td>Baggage, dev</td><td>Generated questions, seed 1</td><td class="num">40</td><td>Tuning the parser and the scorer</td><td><a href="../data/baggage_dev.jsonl">baggage_dev.jsonl</a></td></tr>
@@ -317,8 +358,8 @@ David's flight ticket is $100.</code></pre>
     <li><strong>Run held-out once</strong>: both models, every arm, plus the second Qwen3-8B sample.</li>
     <li><strong>Score</strong> with a 95% bootstrap over questions (10,000 resamples), and paired bootstraps for differences between arms on the same questions.</li>
   </ol>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3, scrolls sideways on narrow screens"><table>
-    <caption class="sr-only">Table 3: what was fixed and what changed</caption>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 4: what was fixed and what changed</caption>
     <thead><tr><th>Fixed before any trial</th><th>Changed after reading dev replies</th></tr></thead>
     <tbody>
       <tr><td>The slice, the spec, the questions and answers, the arms, the prompts, both models and their settings, the strict identification measure, the first-failure order, four predictions</td><td>The parser also reads a trace written without a code fence (13 of 40 dev traces had none)</td></tr>
@@ -360,8 +401,8 @@ David's flight ticket is $100.</code></pre>
 
   <h3 id="proof" data-short="One proof, step by step">5.3 What a proof shows: one wrong answer, step by step</h3>
   <p>The opening example, as the checker reports it (<a href="../results/scored/baggage_heldout_qwen3-8b_b.jsonl">results/scored</a>, question <code>heldout-098</code>). Each row is one step of the model's trace; the checker re-derives it from the model's own facts. The base fees of items 3 and 4 (both right) and the per-bag sums (wrong where a size fee was) are left out.</p>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4, scrolls sideways on narrow screens"><table class="proof">
-    <caption class="sr-only">Table 4: the proof for question heldout-098</caption>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5, scrolls sideways on narrow screens"><table class="proof">
+    <caption class="sr-only">Table 5: the proof for question heldout-098</caption>
     <thead><tr><th>Step</th><th>Model cited</th><th>Spec uses</th><th class="num">Model</th><th class="num">Spec</th><th>Pass</th></tr></thead>
     <tbody>
       <tr><td>Facts (Premium Economy, Europe, $647, three checked bags)</td><td></td><td></td><td></td><td></td><td class="ok">✓</td></tr>
@@ -375,6 +416,7 @@ David's flight ticket is $100.</code></pre>
     </tbody>
   </table></div>
   <p>Two kinds of failure sit side by side. Two citations are slips that cost nothing (the fee is right; the line is one off), and two are a wrong rule that costs $100 (the U.S. oversize fee on a flight to Europe). A score would only say "wrong by $100". The proof says which line, which bag and why, and the strict and loose identification measures in section 5.2 count the two kinds separately.</p>
+  <p><strong>Review shifts from redoing the work to checking the proof: a measured illustration</strong> (counts of things to read or compute, not a user study; <a href="../review_effort.py">review_effort.py</a>, <a href="../results/review_effort.json">review_effort.json</a>). To recompute one answer from the rulebook, a reviewer reads the candidate lines of every section the question touches to find the one that applies, then does the arithmetic: a median of 145 items per question (138 lines and 7 operations). To check the proof, they compare each step's cited line, inputs and value: a median of 47 fields, each against a line quoted beside it rather than looked up. By the number of checked bags: 111 against 28 for one, 145 against 48 for two, 168 against 66 for three.</p>
 
   <h3 id="facts" data-short="What the checker can't fix">5.4 The checker cannot fix the facts it is handed</h3>
   <p>The checker arm evaluates the spec on the facts the model wrote into its trace. When those facts are wrong, the checker computes the right fees for the wrong passenger. Qwen3-8B's 36 remaining errors with the checker break down as:</p>
@@ -386,7 +428,7 @@ David's flight ticket is $100.</code></pre>
   <p>The carry-on rule is a definition (line 20: a carry-on fits 22 × 14 × 9 inches). The trace asked the model for each bag's total size, not its three dimensions, so the model applied that definition and handed the checker its conclusion. The regex baseline, which reads the dimensions, makes no such error. The lesson for the pipeline is to hand the checker raw facts, and let it apply every rule it can.</p>
 
   <h3 id="design" data-short="Design rulebook">5.5 A design rulebook: the same pattern, sharper</h3>
-  <p>The bridge to brand rules uses the GOV.UK Design System's colour page and the WCAG 2.2 lines it points to: the palette rule ("Always use the GOV.UK colour palette"), the focus colour rule ("Only use this colour to indicate which element is focused on"), and contrast at 4.5:1 for text, 3:1 for large text, with exemptions for inactive controls and logos. Formalised, it is 12 rules: 10 traced to source lines (<a href="../vendor/design_rules/source.txt">source.txt</a>) and 2 interpretations the text needs, points converted to CSS pixels (WCAG gives points; 18 pt is 24 px) and which elements count as exempt. Each question gives an element, its size and weight, and two colours (120 held-out; 52 compliant).</p>
+  <p>The bridge to brand rules uses the GOV.UK Design System's colour page and the WCAG 2.2 lines it points to: the palette rule ("Always use the GOV.UK colour palette"), the focus colour rule ("Only use this colour to indicate which element is focused on"), and contrast at 4.5:1 for text, 3:1 for large text, with exemptions for inactive controls and logos. Formalised, it is 12 rules: 10 traced to source lines (<a href="../vendor/design_rules/source.txt">source.txt</a>) and 2 interpretations the text needs, points converted to CSS pixels (WCAG gives points; its <a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html">Understanding page</a> puts 18 pt at 24 px) and which elements count as exempt. Each question gives an element, its size and weight, and two colours (120 held-out; 52 compliant).</p>
   <figure class="plot">
     <img src="figures/fig3_contrast.png" alt="Horizontal bar chart for 120 held-out design questions. Qwen3-8B: no rules, verdict right 67; rules pasted, verdict 82, verdict and rule 33; checker 120. Qwen3-32B: 65; 95, 42; 120. Always 'not compliant': 68 on the verdict." width="1520" height="928" loading="lazy">
     <figcaption><span class="label">Figure 4.</span> The design-system bridge, 120 held-out elements. "Verdict" counts compliant or not; "verdict and rule" also needs the list of rules broken to match. 95% bootstrap intervals. The constant answer "not compliant" is right on the verdict 68 times.</figcaption>
@@ -394,13 +436,13 @@ David's flight ticket is $100.</code></pre>
   <ul>
     <li><strong>Without the rules the verdict is a coin toss</strong>: 67 and 65 of 120, level with always answering "not compliant" (68).</li>
     <li><strong>With the rules, the verdict improves and the reasons do not</strong>: 82 and 95 verdicts right, but the verdict and the broken rules both right for only 33 and 42 (+0.125 [0.017, 0.233] and +0.25 [0.142, 0.358] over no rules on the verdict). The models named the right contrast rule for 90 and 77 elements, and computed the contrast ratio within 0.05 for only 43 and 26: the luminance formula raises each colour channel to the power 2.4, which is hard to do in one's head. Near the thresholds (within 1.0 of 4.5 or 3), verdicts were right 31 and 33 times out of 51.</li>
-    <li><strong>The checker gets all 120 right for both models</strong>: every model copied the colours, size and weight into its trace correctly (after the dev fix in Table 3), so nothing was left for the checker to inherit.</li>
+    <li><strong>The checker gets all 120 right for both models</strong>: every model copied the colours, size and weight into its trace correctly (after the dev fix in Table 4), so nothing was left for the checker to inherit.</li>
     <li><strong>A note on strictness.</strong> Many replies listed D3, the line requiring WCAG 1.4.3, beside the contrast line that failed. The pre-registered score counts that as a mismatch. Read as naming the same rule (an exploratory reading added after seeing the replies), the pasted arm gets 57 of 120 for both models; the checker's lead stays large either way.</li>
   </ul>
 
 
-  <h3 id="explorer" data-short="Try it: proof explorer">5.6 Try it: change a bag and watch the proof</h3>
-  <p>The checker runs in this page, on the same spec (a JavaScript port that agrees with the Python checker on 5,000 of 5,000 random passengers, every step's rules included). Change the fare, the route or a bag's weight and size: each step shows the lines it used, exceptions and rules the text never states are marked in orange, and the proof artifact below is what the checker would return. Nothing is sent anywhere.</p>
+  <h3 id="explorer" data-short="Try it: four stages">5.6 Try it: one bag through the four stages</h3>
+  <p>The checker runs in this page, on the same spec (a JavaScript port that agrees with the Python checker on 5,000 of 5,000 random passengers, every step's rules included). Pick a fare, a route and the bags, choose the bag to follow, then step through the four stages of Table 1: the rules it needs as formal rules, the case as typed facts, the solver's search and checks, and the proof a person reads, where you can type an answer and see where it fails. Exceptions and rules the text never states are marked in orange. Nothing is sent anywhere.</p>
   <figure id="proof-explorer" aria-label="Figure 5: the proof explorer">
     <div class="pe-live-only">
       <div class="pe-controls">
@@ -411,14 +453,18 @@ David's flight ticket is $100.</code></pre>
       </div>
       <div id="pe-bags"></div>
       <p id="pe-total"></p>
-      <ol id="pe-trace" aria-label="Rule trace"></ol>
+      <div class="pe-stepper">
+        <div id="pe-stages" role="tablist" aria-label="The four stages"></div>
+        <div id="pe-panel" role="tabpanel" tabindex="0"></div>
+        <div class="pe-nav"><button type="button" id="pe-prev">Previous stage</button><button type="button" id="pe-next">Next stage</button></div>
+      </div>
       <details><summary>The proof artifact (JSON)</summary><pre id="pe-json"></pre></details>
       <p id="pe-live" class="sr-only" aria-live="polite"></p>
     </div>
     <div class="pe-static">
       <p><strong>Business, U.S. to Japan, three checked bags</strong> (62 lb / 64 in, 48 lb / 58 in, 74 lb / 90 in): bag 1 $0 base (L100) + max($0 overweight under the 70 lb Business allowance (L275, an exception), $30 oversize (L368)) = $30; bag 2 $0 (L161; within both allowances); bag 3 $200 base (L187) + max($450 overweight over 70 lb to Japan (L354), $200 oversize (L369)) = $650. Fees $680. Turn on JavaScript to change the bags.</p>
     </div>
-    <figcaption><span class="label">Figure 5.</span> The proof explorer, from <a href="checker.js">checker.js</a>, <a href="spec.js">spec.js</a> (the spec, generated from <code>spec/baggage_spec.json</code>) and <a href="interactive.js">interactive.js</a>. Weights over 70 lb are not offered to Europe or Australia, where the rulebook refuses such bags, nor to Cuba, where the slice has no line for them; Cuba allows two checked bags, as in the questions.</figcaption>
+    <figcaption><span class="label">Figure 5.</span> The proof explorer: one bag through the four stages, from <a href="checker.js">checker.js</a>, <a href="spec.js">spec.js</a> (the spec, generated from <code>spec/baggage_spec.json</code>) and <a href="interactive.js">interactive.js</a>. Weights over 70 lb are not offered to Europe or Australia, where the rulebook refuses such bags, nor to Cuba, where the slice has no line for them; Cuba allows two checked bags, as in the questions.</figcaption>
   </figure>
 
   <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
@@ -428,8 +474,8 @@ David's flight ticket is $100.</code></pre>
 
   <h2 id="predictions"><span class="num">07</span>Predictions</h2>
   <p>Written in the plan before any held-out run, with thresholds, and scored on held-out questions for Qwen3-8B as registered.</p>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5, scrolls sideways on narrow screens"><table>
-    <caption class="sr-only">Table 5: predictions and outcomes</caption>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 6: predictions and outcomes</caption>
     <thead><tr><th>#</th><th>Prediction (confidence)</th><th>Threshold</th><th class="num">Result</th><th>Hit or miss</th><th>Reason</th></tr></thead>
     <tbody>
       <tr><td>P1</td><td>Pasting the rules helps a lot: exact accuracy (b) − (a) (75%)</td><td>≥ +0.25</td><td class="num">+0.355</td><td>Hit</td><td>[0.285, 0.425]; Qwen3-32B +0.48</td></tr>
@@ -457,7 +503,7 @@ David's flight ticket is $100.</code></pre>
   <h2 id="next" data-short="What's next"><span class="num">10</span>What’s next</h2>
   <ul>
     <li>A brand book as the rulebook: tokens, conditional rules and exceptions traced to the brand book's lines, a checker that returns a proof per page, and the same three arms (the next episode).</li>
-    <li>Let a model draft the formalisation, and score it on whether it flags the rules the text does not settle, not only on whether its rules run.</li>
+    <li>Stage 2 for the rulebook itself: let a model draft the formalisation, and score it on whether it flags the rules the text does not settle, not only on whether its rules run.</li>
     <li>Ask for raw facts (each bag's dimensions) so the checker applies the carry-on rule itself, and measure what is left.</li>
     <li>RuleArena's harder levels, where small models score near zero with the rules pasted, to see whether the checker's lead grows.</li>
   </ul>
@@ -467,7 +513,7 @@ David's flight ticket is $100.</code></pre>
   <h3 id="q-key">Isn't the checker just an answer key?</h3>
   <p>For this slice, yes, and that is the point. Once the rules are formal, every fee can be computed, so the checker alone gets every question right when it reads the facts correctly (the regex baseline in Figure 2). What it adds over an answer key is the record: each answer comes with the rules used, the inputs read and the step that failed, so a person can check it without redoing the work. The model's job shrinks to what is still hard to formalise: reading messy input into facts, and, in a real system, drafting the formal rules for a person to check.</p>
   <h3 id="q-auto">Why formalise by hand rather than ask a model to do it?</h3>
-  <p>Because the formal rules are the ruler for everything else, and a ruler has to be right before it measures anything. Doing it by hand also shows what an automatic formaliser would have to get right: 158 lines mapped to 162 rules, a route phrase mapped to regions for every line, two copy-paste slips in the headings, and four rules the text does not settle (Table 1), one of which only the answer code states. A model that formalises a rulebook should be judged on whether it flags those four, not only on whether its rules run.</p>
+  <p>Because the formal rules are the ruler for everything else, and a ruler has to be right before it measures anything. Doing it by hand also shows what an automatic formaliser would have to get right: 158 lines mapped to 162 rules, a route phrase mapped to regions for every line, two copy-paste slips in the headings, and four rules the text does not settle (Table 2), one of which only the answer code states. A model that formalises a rulebook should be judged on whether it flags those four, not only on whether its rules run.</p>
   <h3 id="q-bags">Why one to three checked bags, when RuleArena uses four to ten?</h3>
   <p>To leave room to see a difference. RuleArena's paper reports low accuracy for strong models even at its easiest level, and with four or more bags a small open model would be near zero in every arm, which says nothing about where it goes wrong. The note claims nothing about longer questions.</p>
   <h3 id="q-ids">Do the line labels in the pasted rules help the model?</h3>
@@ -476,8 +522,8 @@ David's flight ticket is $100.</code></pre>
   <p>A brand book is a rulebook with exceptions ("the accent colour only on calls to action"; "no gradients, except in hero art"). The next episode applies the same three steps to one: formal rules traced to the brand book's lines, a checker that returns a proof for each page instead of a score, and the same three-arm test of whether a model applies the brand's rules without the checker. The design-system bridge in section 5.5 is the first small step.</p>
 
   <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
-  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6, scrolls sideways on narrow screens"><table>
-    <caption class="sr-only">Table 6: data files</caption>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 7, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 7: data files</caption>
     <thead><tr><th>File</th><th>What it holds</th></tr></thead>
     <tbody>
       <tr><td><a href="../spec/baggage_spec.json">spec/baggage_spec.json</a></td><td>Every rule: <code>id</code> (the source line, <code>L97</code>, or <code>X-…</code> for the four the text does not settle), <code>kind</code>, <code>role</code> (definition, condition, exception, combination, unstated, interpretation, gap), <code>when</code> (regions, direction, class, bag position, weight or size band), <code>fee</code>, <code>line</code> and <code>text</code></td></tr>
@@ -494,7 +540,17 @@ David's flight ticket is $100.</code></pre>
   <h3 id="cite" data-short="How to cite">How to cite</h3>
   <pre>Lie, A. (2026). What does it mean to formalise a domain? Airline bag rules, a checker and its proofs. Taste series, Episode 4. steerlab.
 https://albertlieyingadrian.github.io/steerlab/experiments/formalise-demo/report/</pre>
-  <p>Sources: Zhou et al., <em>RuleArena: A Benchmark for Rule-Guided Reasoning with LLMs in Real-World Scenarios</em>, ACL 2025 (arXiv 2412.08972; code and data MIT). GOV.UK Design System, <em>Colour</em> (Open Government Licence v3.0). W3C, <em>Web Content Accessibility Guidelines (WCAG) 2.2</em> (W3C Document License).</p>
+
+  <h2 id="references"><span class="num">R</span>References</h2>
+  <ul class="refs">
+    <li><em>RuleArena: A Benchmark for Rule-Guided Reasoning with LLMs in Real-World Scenarios</em>, ACL 2025: <a href="https://arxiv.org/abs/2412.08972">arxiv.org/abs/2412.08972</a>; code and data (MIT): <a href="https://github.com/skyriver-2000/rulearena">github.com/skyriver-2000/rulearena</a></li>
+    <li>Pramaana Labs, the verification stack ("From human knowledge to machine-checkable truth"): <a href="https://pramaanalabs.ai/">pramaanalabs.ai</a></li>
+    <li><em>Constitutional AI: Harmlessness from AI Feedback</em>, 2022: <a href="https://arxiv.org/abs/2212.08073">arxiv.org/abs/2212.08073</a></li>
+    <li><em>Qwen3 Technical Report</em>, 2025: <a href="https://arxiv.org/abs/2505.09388">arxiv.org/abs/2505.09388</a></li>
+    <li><em>Efficient Memory Management for Large Language Model Serving with PagedAttention</em> (vLLM), SOSP 2023: <a href="https://arxiv.org/abs/2309.06180">arxiv.org/abs/2309.06180</a></li>
+    <li>GOV.UK Design System, <em>Colour</em> (Open Government Licence v3.0): <a href="https://design-system.service.gov.uk/styles/colour/">design-system.service.gov.uk/styles/colour</a></li>
+    <li><em>Web Content Accessibility Guidelines (WCAG) 2.2</em>, W3C Recommendation (W3C Document License): <a href="https://www.w3.org/TR/WCAG22/">w3.org/TR/WCAG22</a>; <em>Understanding SC 1.4.3: Contrast (Minimum)</em>: <a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html">w3.org/WAI/WCAG22/Understanding/contrast-minimum</a></li>
+  </ul>
 
   </div>
 </article>

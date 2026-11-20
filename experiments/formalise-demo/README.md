@@ -22,6 +22,7 @@ Run everything with `reproduce.sh` (`--dry-run` prints the commands). The genera
 | `modal_gen.py` | Generates replies with Qwen3 under vLLM on a Modal H100, through a spend ledger with a cap |
 | `parse.py` | Reads a reply: the final answer and the JSON trace |
 | `score.py` | Scores every reply, runs the checker arm, writes `results/summary.json` |
+| `review_effort.py` | Counts what a reviewer handles: recomputing a fee from the rulebook vs checking the proof artifact (an illustration, not a user study) |
 | `make_figures.py` | Draws the figures and writes `report/spec.js` from the results |
 | `make_cover.py` | Draws the cover from the results |
 | `results.tsv` | Every dev tuning try (autoresearch ledger) |
@@ -36,3 +37,4 @@ Run everything with `reproduce.sh` (`--dry-run` prints the commands). The genera
 | `results/summary.json` | Every rate as k/n with a 95% bootstrap interval, paired differences, the first-failure breakdown and the baselines |
 | `results/ruler.json` | The pass-bar checks |
 | `results/spend.jsonl` | The Modal spend ledger |
+| `results/review_effort.json` | Per question: lines and operations to recompute the fee, fields to check in the proof, and their medians |
