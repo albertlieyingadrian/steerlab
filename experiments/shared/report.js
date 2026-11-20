@@ -19,10 +19,21 @@
   document.body.append(button);
 })();
 
+// Coming-soon teaser gate (see .cs-gate in report.css): on the author's machine (localhost, 127.0.0.1 or a file:
+// page) remove the "Full note coming soon" block and show the hidden sections. Runs before the contents rail is built,
+// so the rail lists only what the reader can see.
 (() => {
-  const headings = [...document.querySelectorAll("article h2[id]")].filter((h) => !h.closest(".key"));
+  const local = location.protocol === "file:" || ["localhost", "127.0.0.1", "[::1]", "::1"].includes(location.hostname);
+  if (!local) return;
+  document.documentElement.classList.add("cs-open");
+  for (const gate of document.querySelectorAll(".cs-gate")) gate.remove();
+})();
+
+(() => {
+  const shown = (h) => !h.closest(".key") && (!h.closest(".cs-hidden") || document.documentElement.classList.contains("cs-open"));
+  const headings = [...document.querySelectorAll("article h2[id]")].filter(shown);
   for (const h of document.querySelectorAll("article h2[id], article h3[id]")) {
-    if (h.closest(".key")) continue;
+    if (!shown(h)) continue;
     const a = document.createElement("a");
     a.className = "anchor";
     a.href = `#${h.id}`;

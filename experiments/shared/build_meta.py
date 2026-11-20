@@ -13,7 +13,10 @@ image `report/figures/og.jpg`, cropped from its cover. On the research page it a
 cover from that card. A note with `"pin_day": true` (at most one per day) leads its day as a spotlight: a wide
 cover and large title, with the day's other notes as compact rows. A series card's cover with
 `data-anim="shared/thumbs/<name>"` (a muted loop in `<name>.webm` and `<name>.mp4`, its poster the card's image) keeps
-that attribute in the Latest view. Edit `notes.json`, then rerun; never edit the blocks by hand.
+that attribute in the Latest view. A note with `"coming_soon": true` is a teaser (its page hides everything after the
+opening behind a "Full note coming soon" block, see `.cs-gate` in report.css): its rows in the Latest and series views
+get a "Coming soon" tag, and it may not have `pin_day` or a Start-here pin. Edit `notes.json`, then rerun; never edit
+the blocks by hand.
 """
 
 from __future__ import annotations
@@ -192,6 +195,8 @@ PIN_SVG = (
     "0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 "
     '1z"/></svg>'
 )
+SOON_LG = '<span class="lg-soon">Coming soon</span> <span class="lg-sep" aria-hidden="true">·</span> '
+SOON_CARD = '<span class="soon-tag" data-cs>Coming soon</span>'
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 TOKEN = re.compile(
     r'<li class="note series"|<h2>(?P<series>[^<]+)</h2>|<h3 class="season">(?P<season>[^<]+)</h3>'
@@ -258,13 +263,14 @@ def latest_block(page: str, meta: dict) -> str:
             c = info[n["name"]]
             li_cls = ' class="is-pinned"' if n.get("pin_day") else ""
             pin = f'<span class="lg-pin">{PIN_SVG}Pinned</span> <span class="lg-sep" aria-hidden="true">·</span> '
+            soon = SOON_LG if n.get("coming_soon") else ""
             anim = f' data-anim="{attr(c["anim"])}"' if c["anim"] else ""
             parts.append(
                 f'<li{li_cls} data-tags="{attr(c["tags"])}"><a class="lg-row" href="{n["name"]}/report/">'
                 f'<img class="lg-thumb" src="{attr(c["thumb"])}"{anim} alt="" width="720" height="480" loading="lazy">'
                 f'<span class="lg-text"><span class="lg-t">{html.escape(n["title"])}</span>'
                 f'<span class="lg-find">{html.escape(finding(n["description"]))}</span>'
-                f'<span class="lg-meta">{pin if n.get("pin_day") else ""}'
+                f'<span class="lg-meta">{pin if n.get("pin_day") else ""}{soon}'
                 f'<span class="lg-series">{html.escape(c["series"])}</span> '
                 f'<span class="lg-sep" aria-hidden="true">·</span> <span>{html.escape(c["ep"])}</span></span>'
                 f"</span></a></li>"
@@ -272,6 +278,24 @@ def latest_block(page: str, meta: dict) -> str:
         parts.append("</ol></section>")
     parts.append("</div>")
     return "\n".join(parts)
+
+
+def with_soon_cards(page: str, meta: dict) -> str:
+    """Tag each teaser's series card "Coming soon" (and untag a released one). Teasers may not be pinned anywhere."""
+    soon = {n["name"] for n in meta["notes"] if n.get("coming_soon")}
+    for n in meta["notes"]:
+        if n["name"] in soon and n.get("pin_day"):
+            raise SystemExit(f"{n['name']}: a coming-soon note cannot have pin_day")
+        if n["name"] in soon and f'<a class="ep-card" href="{n["name"]}/report/">' not in page:
+            raise SystemExit(f"{n['name']}: a coming-soon note needs a series card to carry its tag")
+        if n["name"] in soon and re.search(rf'<a [^>]*href="{re.escape(n["name"])}/report/"[^>]*data-find=', page):
+            raise SystemExit(f"{n['name']}: a coming-soon note cannot be in Start here")
+
+    def tag(m: re.Match) -> str:
+        card = m.group(0).replace(SOON_CARD, "")
+        return card[: -len("</a>")] + SOON_CARD + "</a>" if m.group("slug") in soon else card
+
+    return re.sub(r'<a class="ep-card" href="(?P<slug>[a-z0-9-]+)/report/">.*?</a>', tag, page, flags=re.DOTALL)
 
 
 def with_latest(page: str, meta: dict) -> str:
@@ -336,7 +360,7 @@ def outputs(meta: dict) -> dict[Path, str]:
     """Every text file this script owns, with the content it should have."""
     files: dict[Path, str] = {}
     index = EXPERIMENTS / "index.html"
-    files[index] = with_latest(with_block(index.read_text(), research_block(meta)), meta)
+    files[index] = with_latest(with_soon_cards(with_block(index.read_text(), research_block(meta)), meta), meta)
     for note in meta["notes"]:
         page = EXPERIMENTS / note["name"] / "report" / "index.html"
         files[page] = with_dates(with_block(page.read_text(), note_block(meta, note)), note)
