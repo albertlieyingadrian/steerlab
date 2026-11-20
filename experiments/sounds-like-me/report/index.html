@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can any model sound like you? Building a reward for writing with no answer key</title>
+<meta name="description" content="Sounds Like Me, Episode 1: 8 models, 6 signals and a voice-vector study, scored on 30 held-out public writers with a voice ruler anchored between a different human and the same human. No model got past a different human; most of what samples bought was sounding less like an assistant, not more like the person.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Can any model sound like you? Building a reward for writing with no answer key">
+<meta property="og:description" content="Sounds Like Me E1, a pre-registered benchmark: 8 models and 6 signals on 30 held-out public writers, scored on a voice scale between a different human and the same human. The best reached a stranger&#x27;s level and no further; most of what samples bought was sounding less like an assistant, not more like the person, and a paraphraser that never saw the author fooled the voice score.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Left: how a held-out author opens an email, how Qwen3-8B opens a synthetic sales email with no help, and how it opens with the author&#x27;s voice vector added. Right: mean voice position from a different human (0) to the same human (1): every contestant sits at or below a different human; a paraphraser that never saw the author scores as well as Gemini with 8 samples.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can any model sound like you? Building a reward for writing with no answer key">
+<meta name="twitter:description" content="Sounds Like Me E1, a pre-registered benchmark: 8 models and 6 signals on 30 held-out public writers, scored on a voice scale between a different human and the same human. The best reached a stranger&#x27;s level and no further; most of what samples bought was sounding less like an assistant, not more like the person, and a paraphraser that never saw the author fooled the voice score.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-20">
+<meta property="article:modified_time" content="2026-11-20">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Can any model sound like you? Building a reward for writing with no answer key",
+ "description": "Sounds Like Me E1, a pre-registered benchmark: 8 models and 6 signals on 30 held-out public writers, scored on a voice scale between a different human and the same human. The best reached a stranger's level and no further; most of what samples bought was sounding less like an assistant, not more like the person, and a paraphraser that never saw the author fooled the voice score.",
+ "abstract": "Sounds Like Me series, Episode 1 (benchmark and reward). 30 held-out writers (24 Enron, 6 Blog; Catch Me If You Can splits) x 4 synthetic sales briefs (freight, industrial, construction) x 6 signals (k0, 3 random, 3 situation-matched, 8 random samples, style note, 3 samples + simulated edits). Contestants: Gemini 4 Carbon, Claude Sonnet 5.5 (batch), Gemma 3 27B, Qwen3-32B, Qwen3-8B (+Base), Llama-3.1-8B (+Base), DIPPER and a rewrite prompt as humanizers. Voice ruler: LUAR on 4-draft episodes, strict (format-blind) position 0 = different human, 1 = same human (AUROC 0.974); specificity = similarity to the author minus to 29 others (human 0.172). Best: Llama-3.1-8B Base k3 -0.004 [-0.14, 0.12], Gemini k3+edits -0.04; k0 -0.27 to -0.98. Gemini specificity 0.070, others 0.01-0.05. DIPPER: detector -0.37, position +0.62, specificity -0.002, unsupported claims 1.7% to 14%. Style note beat 8 samples for 5/6 instruct models. Base minus instruct +0.29 position, no specificity gain, more invented claims. Steering (Qwen3-8B layer 24, 0.4x norm): own vector minus norm-matched random +0.46 [0.27, 0.69], perplexity not matched, 46% of steered drafts loop; loop-free +0.43, 80-word +0.29; own specificity 0.025. Honesty extractor F-score 0.875 tuning, 0.667 fresh (rates are lower bounds). Private board (aggregate real use of a freight sales tool): unedited-send 22-84% by writer. Predictions: P1, P2, P7 hit; P4 hit on the number with perplexity unmatched; P3, P6 miss; P5 not scored (mock arena).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-20",
+ "dateModified": "2026-11-20",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "personalised writing, authorship, voice imitation, LUAR, AI-text detection, humanizers, steering vectors, reward design, unverifiable rewards, LLM leaderboard, Enron, Blog Authorship Corpus, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://aclanthology.org/2021.emnlp-main.70/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2509.14543"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2608.19746"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2303.13408"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2611.00359"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06681"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .slm-fig { margin: 1.6rem 0 2rem; }
+  .slm-controls { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: center; margin: 0 0 .6rem; font-family: var(--font-display); font-size: .85rem; }
+  .slm-controls label { color: var(--ink-soft); display: flex; align-items: center; gap: .4rem; flex: 1 1 16rem; min-width: 0; }
+  .slm-controls select { font: inherit; font-size: .85rem; padding: .25rem .4rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); width: 100%; min-width: 0; min-height: 32px; }
+  .slm-controls select:focus-visible, .slm-btn:focus-visible, .slm-fig g.row:focus-visible, .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .slm-btns { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .slm-btn { font: inherit; font-size: .8rem; padding: .25rem .65rem; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink-soft); border-radius: 999px; cursor: pointer; min-height: 32px; }
+  .slm-btn[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: var(--panel); }
+  .slm-btn .sw { display: inline-block; width: .7em; height: .7em; border-radius: 50%; background: var(--sw); margin-right: .35em; vertical-align: -.05em; }
+  .slm-fig svg { width: 100%; height: auto; display: none; color: var(--ink); }
+  .slm-fig.is-live svg { display: block; }
+  .slm-fig.is-live .slm-static, .slm-fig:not(.is-live) .slm-controls, .slm-fig:not(.is-live) .slm-live { display: none; }
+  .slm-fig .grid { stroke: var(--rule); }
+  .slm-fig .ref { stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+  .slm-fig .ci { stroke: var(--ink-faint); stroke-width: 2; }
+  .slm-fig .tick, .slm-fig .val { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-soft); }
+  .slm-fig .ref-label, .slm-fig .axis-label { font-family: var(--font-display); font-size: 11.5px; fill: var(--ink-soft); }
+  .slm-fig .name { font-family: var(--font-display); font-size: 12px; fill: var(--ink); }
+  .slm-live { font-size: .85rem; color: var(--ink-soft); margin: .4rem 0 0; min-height: 2.6em; }
+  .draft { font-family: var(--font-body); font-size: .93rem; background: var(--panel); border-left: 3px solid var(--ink-faint); padding: .7rem .9rem; margin: .6rem 0; white-space: pre-line; }
+  .draft.steered { border-left-color: var(--accent); }
+  .draft .who { display: block; font-family: var(--font-display); font-size: .8rem; color: var(--ink-soft); margin-bottom: .3rem; white-space: normal; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap td:first-child { min-width: 9rem; }
+  .arena-link { font-family: var(--font-display); font-size: .95rem; margin: 1rem 0 1.5rem; }
+  .arena-link a { font-weight: 650; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Sounds Like Me · RL for unverifiable writing<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-20">Nov 20, 2026</time></p>
+  <h1>Can any model sound like you? Building a reward for writing with no answer key</h1>
+  <p class="dek ruled">Reinforcement learning works when answers can be checked. Most writing can't be checked: there's no answer key for "sounds like me". This series builds a reward for authentic voice from public writers, tests it against every model, and then trains on it.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="slm-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Left: how one held-out author opens an email, how Qwen3-8B opens a synthetic sales email with no help (&quot;I hope you&#x27;re doing well. My name is…&quot;), and how it opens with the author&#x27;s voice vector added. Right: mean voice position on a scale from a different human (0) to the same human (1): every contestant sits at or below a different human; a paraphraser that never saw the author scores as well as Gemini with 8 samples." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">SOUNDS LIKE ME · EPISODE 1</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">RL FOR UNVERIFIABLE WRITING</text><text x="20" y="64" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:26px;font-weight:800">Can any model sound like you?</text><text x="24" y="102" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">AUTHOR A, THEIR OWN EMAIL</text><text x="24" y="120.0" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">Attached are the following drafts: 1. Amendment to</text><text x="24" y="135.84" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">Compressor Services Agreement 2. Amendment to Operation</text><text x="24" y="151.68" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">and Maintenance Agreement … Please review.</text><text x="24" y="180" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">QWEN3-8B, SAME BRIEF, NO HELP</text><text x="24" y="198.0" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">Hi Elena, I hope you&#x27;re doing well. My name is [Your</text><text x="24" y="213.84" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">Name], and I&#x27;m with Lanebridge Logistics. We specialize in</text><text x="24" y="229.68" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400">asset-light truckload …</text><text x="24" y="258" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">WITH THE AUTHOR&#x27;S VOICE VECTOR ADDED</text><text x="24" y="276.0" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">Elena: This is the first contact, so I am not sure if you</text><text x="24" y="291.84" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:italic">have seen this before. The aggregates shipping season is …</text><text x="494" y="106" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:600">Voice position, 30 held-out authors</text><path d="M500,140 H830" stroke="#e3dbd0" stroke-width="2"/><path d="M657.1,132 V390" stroke="#e3dbd0" stroke-width="1" stroke-dasharray="3 3"/><text x="657.1428571428571" y="128" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600" text-anchor="middle">a different human (0)</text><path d="M814.3,132 V390" stroke="#e3dbd0" stroke-width="1" stroke-dasharray="3 3"/><text x="820.2857142857142" y="128" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600" text-anchor="end">the same human (1)</text><text x="500.0" y="406" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="middle">-1.0</text><text x="578.5714285714286" y="406" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="middle">-0.5</text><text x="735.7142857142858" y="406" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:500" text-anchor="middle">+0.5</text><path d="M500.0,170 H591.9" stroke="#7a7065" stroke-width="2" stroke-opacity="0.35"/><circle cx="591.9" cy="170" r="6" fill="#7a7065"/><text x="500.0" y="160" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">Qwen3-8B, no samples  -0.42</text><path d="M500.0,216 H566.5" stroke="#7a7065" stroke-width="2" stroke-opacity="0.35"/><circle cx="566.5" cy="216" r="6" fill="#7a7065"/><text x="500.0" y="206" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">Claude Sonnet 5.5, 8 samples  -0.58</text><path d="M500.0,262 H631.0" stroke="#5a5048" stroke-width="2" stroke-opacity="0.35"/><circle cx="631.0" cy="262" r="6" fill="#5a5048"/><text x="500.0" y="252" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">Gemini 4 Carbon, 8 samples  -0.17</text><path d="M500.0,308 H629.0" stroke="#3f5a73" stroke-width="2" stroke-opacity="0.35"/><circle cx="629.0" cy="308" r="6" fill="#3f5a73"/><text x="500.0" y="298" fill="#3f5a73" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">DIPPER paraphrase (never saw the author)  -0.18</text><path d="M500.0,354 H651.1" stroke="#d26f2a" stroke-width="2" stroke-opacity="0.35"/><circle cx="651.1" cy="354" r="6" fill="#d26f2a"/><text x="500.0" y="344" fill="#d26f2a" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">Qwen3-8B + own voice vector  -0.04</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">8 MODELS · 6 SIGNALS · 30 HELD-OUT ENRON AND BLOG AUTHORS · 30 SYNTHETIC SALES BRIEFS · LUAR VOICE RULER</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: left, the opening of a held-out author's own email, of Qwen3-8B's draft for a synthetic freight brief with no help, and of the same model's draft with that author's voice vector added. Right, the mean voice position of five contestants over 30 held-out authors, on a scale from a different human (0) to the same human (1). Drawn by <a href="../make_cover.py">make_cover.py</a> from <code>report/data.js</code> and <code>results/leaderboard.json</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Sounds Like Me, Episode 1 of 3 (benchmark and reward); Episode 2 builds a harness on it, Episode 3 trains on it</dd></div>
+    <div><dt>Models</dt><dd>Gemini 4 Carbon and Claude Sonnet 5.5 (batch API); Gemma 3 27B, Qwen3-32B, Qwen3-8B and Qwen3-8B Base, Llama-3.1-8B Instruct and Base (self-hosted); DIPPER and a rewrite prompt as humanizers; Qwen3-8B with voice vectors</dd></div>
+    <div><dt>Method</dt><dd>Pre-registered benchmark: 30 held-out public writers × 4 synthetic sales briefs × 6 signals, scored on voice, specificity, AI-ness, honesty, copying and task; plus a steering study with random and wrong-author controls</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/sounds-like-me/</a> · <a href="../results/leaderboard.json">results/</a> (every number in this note; <a href="../README.md">file guide</a>) · <a href="../reproduce.sh">reproduce.sh</a> · <a href="../arena/">the arena (mock)</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a model write a sales email that sounds like a specific person, and what would a reward for "sounds like you" have to check?</strong></p>
+    <p>Not yet, and a reward that only checks "sounds human" is easy to fool. On a voice scale anchored between a different human (0) and the same human (1), the best contestants sat at about 0, the level of a stranger: Llama-3.1-8B Base at −0.00 [−0.14, 0.12] and Gemini 4 Carbon at −0.04 [−0.18, 0.11]. Most of what samples bought was losing the assistant's register, not gaining the person's: a paraphraser that never saw the author moved Gemini from −0.80 to −0.18 while getting no closer to the right author than to 29 others. Adding an author's voice vector inside Qwen3-8B beat random vectors of the same size by +0.46, but half the steered drafts looped. Four of six scored predictions hit; one is waiting for votes.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>Does any model reach a different human's level (P1)?</td><td><strong>At best, just.</strong> The best model and signal reach 0: Llama-3.1-8B Base with 3 samples −0.00 [−0.14, 0.12], Gemini 4 Carbon with 3 samples and simulated edits −0.04 [−0.18, 0.11]. With no samples every model sits at −0.27 to −0.98</td><td>The author's own emails pasted in: 0.92 (loose); 0 = a different human</td></tr>
+      <tr><td>Is the gain "more like this person" or "less like an assistant"?</td><td><strong>Mostly the second.</strong> Specificity (closer to the author than to 29 others) is 0.070 for Gemini with samples, 0.03-0.04 for the rest, and 0 with no samples</td><td>The author's own unseen emails: 0.172</td></tr>
+      <tr><td>Do samples help (P2)? Does a style note do less (P6)?</td><td><strong>Samples help some models and hurt others; a note helps more often.</strong> Gemini +0.63 from 8 samples, Llama-3.1-8B Base +0.26; Qwen3-8B −0.14. A written style note beat 8 samples for 5 of 6 instruct models</td><td>Situation-matched samples did no better than random ones</td></tr>
+      <tr><td>Does the assistant persona pull voice away (P7)?</td><td><strong>Base beats instruct by +0.29 in position, not in specificity.</strong> Base models also covered the task less (0.38-0.54 vs 0.75-0.85) and made unsupported claims in 40-61% of drafts</td><td>Instruct twins at 8 samples: 15-19%</td></tr>
+      <tr><td>Does a voice vector carry voice (P4)?</td><td><strong>It moves position, mostly by dropping the assistant register.</strong> Own vector minus norm-matched random +0.46 [0.27, 0.69]; with looping drafts removed +0.43, cut to 80 words +0.29. Specificity 0.025. 46% of steered drafts loop</td><td>Another author's vector −0.31; random −0.42 to −0.66; perplexity not matched</td></tr>
+      <tr><td>Do humanizers hide AI without adding voice (P3)?</td><td><strong>DIPPER hides AI and fools the voice scale too.</strong> Detector −0.37, position +0.62, specificity −0.002, unsupported claims 1.7% → 14%</td><td>A "sound human" rewrite prompt: no change on any measure</td></tr>
+      <tr><td>Real use of a freight sales tool (private board, aggregate only)</td><td><strong>Reps sent 22% to 84% of first drafts unedited, depending on the writer model</strong> (4 cells, 50-451 drafts, 6-31 reps each)</td><td>Observational: writers met different reps and situations</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <p class="arena-link">See it as a reader would: <a href="../arena/">the Sounds Like Me arena</a>, a mock vote page with four held-out writers and four drafts each (live voting is coming later).</p>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A contracts lawyer writes "Attached are the following drafts: 1. … 2. … Please review." Give a chat model the same lawyer's sales brief and it writes "Hi Elena, I hope you're doing well. My name is [Your Name]…". That opening is fluent, correct and nobody's: it is the assistant's voice. Every reader can hear the difference, yet there is no answer key for it, which is why reinforcement learning, so good at maths and code, has little to train on here.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2509.14543">Catch Me If You Can? Not Yet</a> (EMNLP Findings 2025) found that models given a few samples imitate structured writing such as email better than blogs and forums, and stay detectable as AI. <a href="https://arxiv.org/abs/2608.19746">PersonalBench</a> (2026) anchored an authorship model between a cross-author floor and a same-author ceiling and found every personalisation method below the floor. Humanizer tools rewrite text to pass AI detectors and change checkable facts in a third to two-thirds of documents (<a href="https://arxiv.org/abs/2611.00359">Humanized but Still True?</a>, 2026).</p>
+  <p><strong>What is missing.</strong> These studies score imitation; none asks what a <em>reward</em> for "sounds like you" would need. A reward is only useful if gaming it is caught: copying the samples, sounding generically human, or inventing facts to be persuasive. Nobody has put those rulers side by side on the same drafts, with the boring explanations controlled, nor asked whether a direction inside the model carries a person's voice.</p>
+  <p class="question-callout">How close does any model get to a specific person's voice, which signals does it follow, and which parts of a "sounds like you" score can be gamed?</p>
+  <p><strong>What this note does.</strong> It runs 8 models through 6 signals on 30 held-out public writers, scores every draft on six rulers at once, and tests a voice vector against random and wrong-author vectors. It contributes:</p>
+  <ol>
+    <li>a <strong>voice scale with human anchors</strong> (0 = a different human, 1 = the same human) and a <strong>specificity</strong> control that separates "sounds like this person" from "sounds like a person";</li>
+    <li>a <strong>leaderboard</strong> of 8 models and 2 humanizers, with honesty, AI-ness, copying, task coverage and cost beside voice;</li>
+    <li>a <strong>steering study</strong> on Qwen3-8B with norm-matched random and wrong-author controls, and the loop and length checks that change its reading;</li>
+    <li>a <strong>private board</strong> of aggregate signals from real use of a freight sales-writing tool, and a mock <a href="../arena/">arena</a> for votes;</li>
+    <li>the rulers as code, which Episode 3 turns into a reward.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written down before the runs (plan and amendments in the repository):</p>
+  <ol>
+    <li>Every ruler passes a known-answer check first (pass bars in <a href="#rulers">3.1</a>), or the note says it did not and how the claim changes.</li>
+    <li>Everything tuned (prompt template, steering layer and strength, detector cut-off) is tuned on 15 development authors and reported on 30 others.</li>
+    <li>Every effect sits beside its control: random and wrong-author vectors for steering, a paraphraser that never sees the author for "voice", a copy filter for copying.</li>
+  </ol>
+
+  <aside class="bg-note" aria-label="Background: the three tools this note uses">
+    <span class="label">Background · the tools in this note</span>
+    <p>One analogy throughout: a model writing an email is a cook making a dish.</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Background table"><table>
+      <thead><tr><th>Tool</th><th>What it is</th><th>Analogy</th><th>Reads or changes the model?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Authorship model</strong> (LUAR)</td><td>A separate model that turns a few texts into a style fingerprint; two fingerprints close together suggest the same writer</td><td>A taster who can tell which cook made a dish, without caring whether it is good</td><td>Neither: it judges the output. Here it is the voice ruler</td></tr>
+        <tr><td><strong>Small classifier</strong> (the AI detector)</td><td>A small model trained to answer one question about a text: was it written by AI?</td><td>A food thermometer: one cheap reading, no opinion about anything else</td><td>Neither: it reads the text</td></tr>
+        <tr><td><strong>Steering vector</strong></td><td>A direction in the model's activations (here, the average of an author's emails minus the average of the model's own drafts) added while it writes</td><td>A pinch of salt while the dish cooks: no new recipe, just a nudge</td><td>Changes it, at run time and reversibly; nothing is trained</td></tr>
+      </tbody>
+    </table></div>
+    <p>A probe reads inside the model, a vector pushes from inside, an authorship model asks <em>who</em> wrote it. Persona vectors and preference models join in Episodes 2 and 3.</p>
+  </aside>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Voices.</strong> Public human writing only: sent mail from the Enron corpus (work email, the closest public match to outreach) and the Blog Authorship Corpus, using the train and test splits released with <a href="https://github.com/jaaack-wang/llms-implicit-writing-styles-imitation">Catch Me If You Can</a>. Each author has 12 <em>samples</em> (what a model may see), 5 <em>profile</em> texts (what the voice is scored against) and 5 <em>ceiling</em> texts (the author's own unseen writing). Authors are named "Author A" and so on in this note.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, the data, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Set</th><th>What it is</th><th class="num">Size</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><td>Development authors</td><td>Enron senders</td><td class="num">15</td><td>Tuning the prompt template, steering layer and strength, detector cut-off</td></tr>
+      <tr><td>Held-out authors</td><td>Enron senders and bloggers</td><td class="num">24 + 6</td><td>Every number in Results</td></tr>
+      <tr><td>Floor pool</td><td>Other Enron senders</td><td class="num">50</td><td>The "different human" anchor</td></tr>
+      <tr><td>Briefs</td><td>Synthetic sales briefs: 10 freight, 10 industrial manufacturing, 10 construction and trades; invented prospects and companies, each with a fact list and a known relationship (cold, follow-up, customer)</td><td class="num">30 (4 per author)</td><td>The task; the honesty check</td></tr>
+    </tbody>
+  </table></div>
+  <p>A brief reads like this (freight): "Write an email from an account executive at Lanebridge Logistics to Dana, the logistics manager at Ridgeline Orchards (Yakima, WA). Why now: their cherry shipping season (Jun to Aug) is approaching. Ask for: a 15-minute call next week. Facts you may use (nothing else): … This is the first contact." Freight facts (season, equipment) come from public commodity guides. The design draws on my experience building sales AI for freight; no customer email, edit or reply is used or quoted.</p>
+  <p><strong>Signals</strong> (research question 2), one per arm, with the same system prompt for every model ("Match their voice … use only the facts in the brief … 60 to 200 words"):</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, the arms, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Arm</th><th>What the model sees besides the brief</th></tr></thead>
+    <tbody>
+      <tr><td>no samples (k0)</td><td>Nothing about the author: the do-nothing baseline</td></tr>
+      <tr><td>3 random / 8 random samples</td><td>3 or 8 of the author's 12 samples, drawn at random</td></tr>
+      <tr><td>3 situation-matched samples</td><td>The 3 samples most similar to the brief (TF-IDF)</td></tr>
+      <tr><td>style note</td><td>A written note on how the author writes, made once per author from 8 samples by an open model</td></tr>
+      <tr><td>3 samples + simulated edits</td><td>3 samples plus 3 pairs of (draft → the same draft edited toward the author), labelled as simulated edits. An open model plays the editor; its edit sizes were checked against aggregate edit rates from the private board (mean similarity 0.94 against a real range of 0.68-0.98)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Base models get a completion prompt ("The following emails were all written by the same person. Email 1: … Email 4 (to Dana, …):") with no style note or edit arms. Controls: the author's own ceiling emails pasted in (a positive control: copying should score high and be caught), and the author's own greeting and sign-off pasted onto a no-samples draft ("surface tics").</p>
+  <p><strong>Rulers</strong> (each draft is scored on all of them):</p>
+  <ul>
+    <li><strong>Voice position.</strong> LUAR-MUD embeds one contestant's 4 drafts for one author (an <em>episode</em>) and compares it with the author's profile. The similarity is placed on a line where 0 is the mean similarity of 30 other people's emails and 1 is the author's own unseen emails. Below 0 means further from the author than a stranger. The <em>strict</em> version strips greetings and sign-offs and collapses whitespace; episodes flagged for copying are left out of it.</li>
+    <li><strong>Specificity</strong> (added as amendment A4, see <a href="#process">3</a>). The episode's similarity to this author minus its mean similarity to the other 29 held-out authors. Positive means closer to this person than to people in general.</li>
+    <li><strong>AI-ness.</strong> A 380M-parameter AI-text detector run locally; a draft is <em>flagged</em> above the score that flags 5% of real human email (0.10).</li>
+    <li><strong>Copying.</strong> A draft is flagged when it shares a 12-word run with the samples, or 20% of its 8-word sequences.</li>
+    <li><strong>Honesty.</strong> An open model (Qwen3-32B) lists the draft's claims about the sender, offer and relationship that the fact list does not support, plus rules for phone numbers, "Re:" on a first email and invented history. A draft is <em>unsupported</em> if it has one.</li>
+    <li><strong>Task.</strong> The share of the brief's three parts (offer, why now, the ask) the draft mentions.</li>
+  </ul>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong> with a Design section and seven predictions, then freeze authors, briefs and fact lists before any generation.</li>
+    <li><strong>Check each ruler</strong> on known answers (<a href="#rulers">3.1</a>); three needed amendments, written before the confirmatory runs.</li>
+    <li><strong>Pilot</strong> Qwen3-8B (100 drafts) and both closed models (50 each) on development authors to measure cost per draft.</li>
+    <li><strong>Tune on development authors</strong>, logged try by try: 3 prompt templates (the one that won: "These are emails this person sent … Write the next email they send"), and 12 steering settings (layers 12, 18, 24 × strengths 0.1-1.2).</li>
+    <li><strong>Generate held-out drafts</strong>: 30 authors × 4 briefs × 6 arms = 720 per instruct model (480 per base model), 120 per humanizer, 960 for steering.</li>
+    <li><strong>Score</strong> every draft on every ruler; 95% bootstrap over authors (2,000 resamples).</li>
+    <li><strong>Read the drafts</strong>, which found the steering loops; the loop and length checks were added then and are labelled as added after results.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Authors and splits, briefs and fact lists, arms, contestants, the voice scale's anchors, the copy rule, seven predictions</td><td>A1: LUAR failed its bar on single texts (AUROC 0.815 &lt; 0.85), so the unit became the 4-draft episode (0.980). The claim and predictions are unchanged</td></tr>
+      <tr><td>The ruler pass bars</td><td>A2: LUAR reads layout: an author's own emails scored about 0.95 with their line breaks and −0.1 without. The strict score became format-blind (0.974); the raw-layout score is reported as "loose"</td></tr>
+      <tr><td>The honesty extractor's 60-draft check (F-score ≥ 0.8)</td><td>A3: it passed on the 60 drafts it was tuned on (0.875) and failed a fresh check of 30 (0.667, 2 of 4 caught, no false alarms), so honesty rates are lower bounds</td></tr>
+      <tr><td>Voice position as the headline</td><td>A4, after the interim leaderboard: DIPPER raised Gemini's position without seeing the author, so specificity was added beside position (headline unchanged)</td></tr>
+      <tr><td>Steering layer and strength, chosen on development authors (layer 24, 0.4 × the mean activation norm)</td><td>After reading held-out drafts: the loop count, a loop-free re-score and a length-matched re-score of the same drafts</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: open models with vLLM on Modal H100s, temperature 0.7, up to 400 new tokens; closed models through the providers' batch APIs with reasoning off or low and output capped at 400 tokens; steering with a forward hook on Qwen3-8B (thinking off). Spend: $3.98 of OpenRouter (cap $8, enforced in code) and about $10.50 of Modal compute.</p>
+
+  <h3 id="rulers" data-short="Rulers checked first">3.1 Every ruler was checked first, and two needed changes</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4, ruler checks, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Ruler</th><th>Known-answer check</th><th>Bar</th><th class="num">Result</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Voice (LUAR), single texts</td><td>Same vs different author, 45 held-out authors</td><td>AUROC ≥ 0.85</td><td class="num">0.815</td><td>Failed → A1</td></tr>
+      <tr><td>Voice (LUAR), 4-text episodes</td><td>45 same-author vs 900 different-author episodes</td><td>AUROC ≥ 0.85</td><td class="num">0.980</td><td>Passed</td></tr>
+      <tr><td>Voice, strict (format-blind)</td><td>The same, greetings stripped, whitespace collapsed</td><td>AUROC ≥ 0.85</td><td class="num">0.974</td><td>Passed</td></tr>
+      <tr><td>Voice, on generated text</td><td>The copy-paste control must score high and be caught</td><td>High, flagged</td><td class="num">0.92 loose, 30/30 flagged</td><td>Passed</td></tr>
+      <tr><td>AI detector</td><td>150 human emails vs 75 no-samples drafts (development authors)</td><td>AUROC ≥ 0.85</td><td class="num">1.000</td><td>Passed; cut 0.10</td></tr>
+      <tr><td>Honesty, tuning set</td><td>60 drafts with reference labels (a second reading, not a human gold standard)</td><td>F-score ≥ 0.8</td><td class="num">0.875</td><td>Passed</td></tr>
+      <tr><td>Honesty, fresh set</td><td>30 drafts labelled after the extractor was frozen</td><td>F-score ≥ 0.8</td><td class="num">0.667</td><td>Failed → A3 (lower bounds)</td></tr>
+    </tbody>
+  </table></div>
+  <p>The two misses on the fresh honesty set were "our season runs Mar to Nov" (the recipient's season recast as the sender's) and "we bid on the county road project". Neither is caught by a rule, and both read as plausible business talk, which is why invented facts are hard to police.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="leaderboard" data-short="No model past a stranger">4.1 No model writes more like the person than a stranger does (P1)</h3>
+  <p>Figure 1 is the leaderboard. Each row is a model at its best signal, placed on the voice scale with its 95% interval over authors. The two best, Llama-3.1-8B Base with 3 samples (−0.00 [−0.14, 0.12]) and Gemini 4 Carbon with 3 samples plus simulated edits (−0.04 [−0.18, 0.11]), reach the level of a different human and no further. With no samples every model sits between −0.27 and −0.98: further from the author than 30 strangers are. The pre-registered prediction (best model below 0) is a hit on the point estimate, with an interval that includes 0.</p>
+  <figure class="slm-fig" data-fig="board" aria-labelledby="fig1-cap">
+    <div class="slm-controls">
+      <label>Measure <select id="slm-metric">
+        <option value="pos">Voice position (strict)</option>
+        <option value="spec">Specificity</option>
+        <option value="ai">AI-detector score</option>
+        <option value="uns">Unsupported claims</option>
+        <option value="task">Task coverage</option>
+        <option value="loop">Looping drafts</option>
+        <option value="words">Words per draft</option>
+        <option value="usd">Cost per draft</option>
+      </select></label>
+      <label>Signal <select id="slm-arm"><option value="best">Each model's best signal</option></select></label>
+      <div class="slm-btns" role="group" aria-label="Contestant groups">
+        <button type="button" class="slm-btn" data-kind="closed" style="--sw: var(--ink)"><span class="sw"></span>Closed</button>
+        <button type="button" class="slm-btn" data-kind="open" style="--sw: var(--ink-soft)"><span class="sw"></span>Open</button>
+        <button type="button" class="slm-btn" data-kind="steer" style="--sw: var(--accent)"><span class="sw"></span>Steered</button>
+        <button type="button" class="slm-btn" data-kind="humanizer" style="--sw: var(--ink-faint)"><span class="sw"></span>Humanizers</button>
+        <button type="button" class="slm-btn" data-kind="control" style="--sw: var(--control)"><span class="sw"></span>Controls</button>
+      </div>
+    </div>
+    <svg role="list" aria-label="Leaderboard chart; each row is a contestant"></svg>
+    <p class="slm-live" aria-live="polite"></p>
+    <img class="slm-static" src="figures/fig1_leaderboard.png" alt="Voice position for eight models with no samples, 8 samples and a style note: every point is below 0 except Gemini and Llama Base with samples, which reach about 0.">
+    <figcaption id="fig1-cap"><strong>Figure 1.</strong> The leaderboard. Default view: each model at the signal where its strict voice position is highest, with the humanizers; dots are means over 30 held-out authors (4 drafts each), lines 95% bootstrap intervals. Switch the measure to see the same contestants on specificity, AI-ness, honesty, task, loops, length or cost, or pick one signal. Orange is steering, blue the controls. Without JavaScript: no samples, 8 samples and the style note per model.</figcaption>
+  </figure>
+  <p>The best open model is the least usable. Llama-3.1-8B Base with 3 samples covered 35% of the brief's parts, made an unsupported claim in 58% of drafts and invented a past relationship in 31%; 7 of its 30 episodes were copy-flagged and left out of its score. Gemini 4 Carbon covered 96% with unsupported claims in under 2%. Cost per draft ranged from $0.0002 (Qwen3-8B on a rented GPU) to $0.0028 (Claude Sonnet 5.5, batch).</p>
+
+  <h3 id="specificity" data-short="Less assistant, not more you">4.2 Most of the gain is "less like an assistant", not "more like you"</h3>
+  <p>Voice position mixes two things: sounding like a person and sounding like <em>this</em> person. A text loses the model's fingerprint and moves toward every human at once. Specificity separates them, and Figure 2 plots one against the other. The author's own unseen emails score 0.172. Gemini with samples reaches 0.070 (closer to the right author than to the others for 90% of authors), every other model with samples 0.01-0.05, and every model with no samples about 0.</p>
+  <figure class="plot">
+    <img src="figures/fig2_specificity.png" alt="Scatter of voice position against specificity for every contestant and signal: most points between 0 and 0.05 specificity; Gemini with samples at 0.07; DIPPER at position −0.18 with specificity 0; the human reference line at 0.172.">
+    <figcaption><strong>Figure 2.</strong> Voice position (x) against specificity (y) for every contestant and signal; 30 held-out authors each. Dark grey: no samples; light grey: with a signal; black: humanizers; orange: own voice vector; blue: random and wrong-author vectors. Dashed line: the authors' own unseen emails (0.172). A point far right but at specificity 0 sounds human without sounding like anyone in particular.</figcaption>
+  </figure>
+  <p>The clearest case is DIPPER, a paraphraser that never sees the author: it moves Gemini's no-samples drafts from −0.80 to −0.18, as far as Gemini gets with 8 samples, at specificity −0.002. A reward built on position alone would pay a paraphraser for voice it does not have.</p>
+
+  <h3 id="signals" data-short="Which signals work">4.3 Samples help some models and hurt others; a written note helps more often (P2, P6)</h3>
+  <figure class="plot">
+    <img src="figures/fig4_signals.png" alt="Heatmap of voice position for eight models by six signals. Gemini improves from −0.80 to about −0.05 with samples; Qwen3-8B gets worse with samples; the style note is the best signal for most instruct models.">
+    <figcaption><strong>Figure 3.</strong> Strict voice position for every model and signal, 30 held-out authors. Base models have no style-note or edit arms (n/a).</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Samples (P2, hit).</strong> Gemini gains +0.63 from 8 samples and Llama-3.1-8B Base +0.26 (the model the pre-registered rule picks). Claude Sonnet 5.5 gains +0.15, and Qwen3-8B loses 0.14: given samples, it gets further from the author, a drop seen on development authors and again on held-out ones.</li>
+    <li><strong>More samples, or better-chosen ones, add nothing.</strong> 3 random samples came within 0.11 of 8 for every model, and were ahead for four of eight (Gemini −0.06 vs −0.17), and samples matched to the situation did no better than random ones.</li>
+    <li><strong>A style note (P6, miss).</strong> For Gemini the note gained +0.41 against +0.63 for samples, more than the half the prediction allowed. For 5 of the 6 instruct models the note did <em>better</em> than 8 samples (Qwen3-32B −0.42 vs −0.71, Claude Sonnet 5.5 −0.41 vs −0.58), and raised specificity as well (Qwen3-8B 0.041 vs 0.012).</li>
+    <li><strong>Simulated edits</strong> added nothing over the 3 samples that came with them (Gemini −0.04 vs −0.06).</li>
+  </ul>
+
+  <h3 id="base" data-short="Base vs instruct">4.4 Base models sound more human than their instruct twins, not more like the author (P7)</h3>
+  <p>With the same 8 samples, Qwen3-8B Base sits 0.33 above Qwen3-8B and Llama-3.1-8B Base 0.25 above Llama-3.1-8B Instruct (mean +0.29, P7 hit). That fits the idea that the assistant persona pulls drafts toward one register. But specificity does not move (Qwen 0.009 vs 0.012, Llama 0.034 vs 0.037), so the base models lose the assistant's voice without finding the author's, as DIPPER does. They also do the job worse: task coverage 0.38-0.54 against 0.75-0.85, unsupported claims in 40-61% of drafts against 15-19%, and 6 of 30 episodes copy-flagged against 0-3.</p>
+
+  <h3 id="steering" data-short="Steering: real but loopy">4.5 A voice vector moves drafts away from the assistant, partly toward the author, and often into loops (P4)</h3>
+  <p>For each author, the voice vector is the mean activation of Qwen3-8B (layer 24) over the author's 12 samples minus its mean over the model's own no-samples drafts, added at 0.4 × the layer's mean activation norm (chosen on development authors). Figure 4 compares it with three random vectors of the same size and with another author's vector, on the same 30 held-out authors and briefs.</p>
+  <figure class="plot">
+    <img src="figures/fig3_steering.png" alt="Three panels of voice position by steering arm. As scored, own vector −0.04 against random −0.42 to −0.66 and another author's −0.31. With looping drafts removed, own −0.11. With drafts cut to 80 words, own −0.08 against random −0.27 to −0.54.">
+    <figcaption><strong>Figure 4.</strong> Strict voice position for Qwen3-8B with no vector, three norm-matched random vectors, another author's vector, the author's own vector, and 8 samples with and without the own vector; 30 held-out authors. Left as scored; middle with looping drafts removed (an author is kept only with 2+ loop-free drafts: 21 for the own vector, 17 for another author's); right with every draft cut to its first 80 words. The middle and right panels were added after reading the drafts.</figcaption>
+  </figure>
+  <p><strong>The pre-registered number is a hit.</strong> Own vector minus random: +0.46 [0.27, 0.69] against a threshold of 0.05. <strong>Its condition is not met.</strong> The prediction asked for matched perplexity; the steered drafts have <em>lower</em> perplexity under the unsteered model (mean NLL 2.04 against 2.50 for random vectors), and 18% of them sit below 1.0, where text repeats itself. Reading the drafts confirmed it: 46% of own-vector drafts and 52% of wrong-author drafts loop, against none with random vectors. One for Author A, a follow-up about drywall crews:</p>
+  <p class="draft steered"><span class="who">Qwen3-8B + Author A's vector · position for this author's 4 drafts: +1.09 · loops</span>Ray,
+I am trying to get to the bottom of why they are behind on the hospital job. I think that maybe they need some drywall labor staffing for peak months. I think that maybe they need some drywall labor staffing for peak months. I think that maybe they need some drywall labor staffing for peak months. …</p>
+  <p>Three checks keep part of the effect. Without the looping drafts, the own vector still beats random by +0.43 [0.21, 0.69] (21 authors). With every draft cut to 80 words, which also matches length (steered drafts run 162 words against 111), it beats random by +0.29 [0.09, 0.49] and another author's vector by +0.32 [0.07, 0.57]. On the 6 authors whose steered perplexity falls inside the random range, the gap is +0.96 [0.36, 1.66]. The fluent drafts show what the vector does:</p>
+  <p class="draft"><span class="who">Qwen3-8B, no vector · Author A, a freight brief · detector 0.75</span>Hi Elena,
+I hope you're doing well. My name is [Your Name], and I'm with Lanebridge Logistics. We specialize in asset-light truckload brokerage with a vetted carrier network, and we're reaching out because we noticed your shipping season for aggregates is approaching from March to November. … I'd love to schedule a 15-minute call next week to discuss how we can support your needs.
+Looking forward to connecting.</p>
+  <p class="draft steered"><span class="who">Qwen3-8B + Author A's vector · same brief · detector 0.26</span>Elena:
+This is the first contact, so I am not sure if you have seen this before. The aggregates shipping season is approaching and the usual equipment is end-dump or hopper. Lanebridge Logistics offers asset-light truckload brokerage with a vetted carrier network. We can quote end-dump or hopper capacity out of the OR area. … We would like to schedule a 15-minute call next week. Please let us know if that is acceptable.</p>
+  <p>The colon after the name, the flat declaratives and "Please let us know if that is acceptable" are this author's habits, and nothing was trained. But the author-specific part is small on average. Any author's vector drops the detector from 0.79 to about 0.18, and the own vector's specificity is 0.025 (positive for 67% of authors) against −0.006 for another author's vector and 0.172 for the author's own writing. The vector mostly carries "a terse human at a desk", with some of this author on top. Its effect on honesty was not measured: the honesty check of the steered drafts could not run before publication.</p>
+
+  <h3 id="humanizers" data-short="Humanizers">4.6 A paraphraser hides AI, fools the voice scale, and adds false claims (P3)</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5, humanizers, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Applied to Gemini's no-samples drafts</th><th class="num">Detector</th><th class="num">Position</th><th class="num">Specificity</th><th class="num">Unsupported</th><th class="num">Task</th></tr></thead>
+    <tbody>
+      <tr><td>Source drafts</td><td class="num">0.78</td><td class="num">−0.80</td><td class="num">0.000</td><td class="num">1.7%</td><td class="num">0.99</td></tr>
+      <tr class="hl"><td>DIPPER paraphrase</td><td class="num">0.41</td><td class="num">−0.18</td><td class="num">−0.002</td><td class="num">14.2%</td><td class="num">0.79</td></tr>
+      <tr><td>"Rewrite this so it sounds human" (Gemini prompt)</td><td class="num">0.77</td><td class="num">−0.81</td><td class="num">−0.001</td><td class="num">5.0%</td><td class="num">0.99</td></tr>
+    </tbody>
+  </table></div>
+  <p>P3 predicted a humanizer would lower the detector by 0.2 or more while moving voice by less than 0.05. As written it misses for both: DIPPER lowered the detector by 0.37 but raised position by 0.62, and the rewrite prompt changed nothing. The idea behind it survives on specificity, which DIPPER left at zero. DIPPER also made unsupported claims eight times as often as its source, the pattern <a href="https://arxiv.org/abs/2611.00359">Humanized but Still True?</a> reports for commercial humanizers.</p>
+
+  <h3 id="honesty" data-short="Honesty and AI-ness">4.7 The closed models stay honest; the ones that sound most human invent the most</h3>
+  <p>Unsupported claims (lower bounds, see A3) were rare for the closed models (Claude Sonnet 5.5 0-1.7% of drafts, Gemini 0.8-1.7% except 10% with the style note), moderate for the instruct open models (Qwen3-32B 7-18%, Qwen3-8B 13-23%, Gemma 6-18%, Llama Instruct 7-36%), and common for the base models (24-66%), which also invented a past relationship with the prospect in up to 31% of drafts. The AI detector flagged 91-100% of every instruct model's no-samples drafts, 78-85% of Gemini's drafts with samples, 42-58% of the base models' and 60% of the steered ones. The ranking by "sounds human" and the ranking by "tells the truth" run in opposite directions, which is the trade a reward for authentic writing has to price.</p>
+
+  <h3 id="private-board" data-short="Private board">4.8 In real use, how often reps send a draft untouched depends on the writer</h3>
+  <p>Based on my experience building sales AI for freight, the honest signal of "sounds like me" is the edit: reps rarely complain, they change the opener and send. The private board reads real use of a freight sales-writing tool, read-only and aggregate-only: first emails written one to one and then sent from the tool, 1 September to 20 November 2026. A cell is shown only with at least 20 sent drafts from at least 5 reps; no text, names or companies leave the database.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6, the private board, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Writer</th><th class="num">Drafts sent</th><th class="num">Reps</th><th class="num">Sent unedited</th><th class="num">Similarity, sent to draft</th><th class="num">Length, sent / draft</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Opus 5.5</td><td class="num">451</td><td class="num">31</td><td class="num">42.8%</td><td class="num">0.84</td><td class="num">1.19</td></tr>
+      <tr><td>A reused earlier draft (no writer call)</td><td class="num">408</td><td class="num">18</td><td class="num">78.7%</td><td class="num">0.97</td><td class="num">1.01</td></tr>
+      <tr><td>Claude Sonnet 5.5</td><td class="num">65</td><td class="num">8</td><td class="num">21.5%</td><td class="num">0.68</td><td class="num">1.35</td></tr>
+      <tr><td>Claude Haiku 4.5</td><td class="num">50</td><td class="num">6</td><td class="num">84.0%</td><td class="num">0.98</td><td class="num">1.01</td></tr>
+    </tbody>
+  </table></div>
+  <p>Reps sent Claude Haiku 4.5's drafts untouched 84% of the time and Claude Sonnet 5.5's 22% of the time; when they edited, they lengthened (sent text 1.19-1.35 times the draft). This is observational: writers were assigned to different reps and situations, so it does not rank the models. Reply rates are not included, because replies are not yet joined to drafts in a way that survives aggregation; nothing in this note claims anything about replies.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>"Sounds like me" is a reward with no answer key, and this episode shows three ways it gets gamed before any training starts. A paraphraser raises a voice score by erasing the model's fingerprint, not by finding the person. A steering vector raises it partly by looping the author's register. And the contestants that sound most human (base models, the paraphraser) invent the most facts. A policy trained on position alone would be paid for all three. The specificity control, the copy filter, the honesty check and a loop count each caught one of them, and each is cheap.</p>
+  <p><strong>Score "sounds like you" as closeness to the person relative to other people, with copying, invented facts and loops scored beside it, never as human-likeness alone.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <p>Seven predictions were written in the plan before the runs. A <em>hit</em> means the pre-registered metric crossed its threshold.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 7, predictions, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th class="num">Confidence</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>No model reaches the floor between different humans</td><td>best mean position &lt; 0</td><td class="num">70%</td><td><strong>Hit</strong>, barely: −0.004 [−0.14, 0.12] (Llama-3.1-8B Base, 3 samples)</td></tr>
+      <tr><td>P2</td><td>Examples help</td><td>k8 − k0 &gt; 0.15, best model</td><td class="num">75%</td><td><strong>Hit</strong>: +0.26 (Llama-3.1-8B Base); Gemini +0.63</td></tr>
+      <tr><td>P3</td><td>Humanizers hide AI without adding voice</td><td>detector −0.2 or more and voice change &lt; 0.05</td><td class="num">60%</td><td><strong>Miss</strong>: DIPPER detector −0.37 but voice +0.62 (specificity −0.002); the rewrite prompt did nothing</td></tr>
+      <tr><td>P4</td><td>The voice vector carries voice</td><td>own − random &gt; 0.05 at matched perplexity</td><td class="num">45%</td><td><strong>Hit on the number, condition unmet</strong>: +0.46 [0.27, 0.69], perplexity not matched (NLL 2.04 vs 2.50), 46% of drafts loop; loop-free +0.43, length-matched +0.29</td></tr>
+      <tr><td>P5</td><td>Human picks don't track measured voice</td><td>Spearman ρ &lt; 0.5</td><td class="num">55%</td><td><strong>Not scored</strong>: the arena is a mock with no votes; carried to its live phase</td></tr>
+      <tr><td>P6</td><td>A written style note does less than samples</td><td>note gain &lt; half the samples gain</td><td class="num">65%</td><td><strong>Miss</strong>: +0.41 vs +0.63 (Gemini); the note beat samples for 5 of 6 instruct models</td></tr>
+      <tr><td>P7</td><td>The assistant persona pulls instruct models away from the voice</td><td>base − instruct &gt; 0.05 at k8</td><td class="num">50%</td><td><strong>Hit</strong>: +0.29 (Qwen +0.33, Llama +0.25), with no gain in specificity</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Whether sounding like you gets replies.</strong> Every brief is synthetic and no reply is simulated. The outcome question is pre-registered for opt-in real data; the private board does not include replies.</li>
+    <li><strong>Whether people agree with the voice scale.</strong> No votes were collected; the <a href="../arena/">arena</a> is a mock. LUAR is one authorship model, trained on Reddit; a second attributer is planned for Episode 2.</li>
+    <li><strong>Honesty rates are lower bounds.</strong> The extractor missed 2 of 4 unsupported claims on its fresh check (with no false alarms), and the steered drafts were not checked at all.</li>
+    <li><strong>Steering at matched fluency.</strong> The steered drafts loop and are longer; the loop-free and 80-word re-scores were added after reading them, and only 6 authors fall in the matched-perplexity range.</li>
+    <li><strong>Small samples.</strong> 30 authors × 4 briefs, one sample per cell (the plan's 3 samples per cell were cut to fit the $8 budget), 24 of the 30 from one company's email in 2000-2001. Six blog authors are too few to compare domains.</li>
+    <li><strong>The private board is observational</strong> and from one tool; its writers met different reps and situations.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh">reproduce.sh</a> lists every step in order; <code>reproduce.sh --dry-run</code> prints the commands. The analysis steps run on a laptop from the scored drafts: <code>python analyze.py</code> (leaderboard and predictions), <code>python specificity.py</code>, <code>python robustness.py</code>, <code>python make_figures.py</code>. Generation needs a Modal account (open models, DIPPER, steering) and an OpenRouter key for the two closed models; the raw corpora and drafts are regenerated, not committed. The private board needs read access to the tool's database and is not reproducible from outside.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>Episode 2: a harness on the reward.</strong> Retrieve samples, infer a style profile, draft, critique against these rulers, revise and pick the best of N, judged on rulers it never optimised (a second authorship model, held-out authors). The same episode climbs a no-training ladder: harness, then harness plus voice steering, then plus a persona direction that turns down the assistant, to see whether steering adds anything a harness cannot.</li>
+    <li><strong>Episode 3: train on it.</strong> SFT on public authors, DPO from simulated edits, then RL on voice and honesty minus detector and copying, with every ruler checked on outputs training produced and the vectors from this episode watched as early warnings of a hack.</li>
+    <li><strong>The arena's live phase:</strong> votes on the same static drafts, to score P5.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions readers ask</h2>
+  <h3 id="q-authorship">What does an authorship model actually measure?</h3>
+  <p>It turns a handful of texts into one style fingerprint and compares fingerprints. For one held-out Enron author, a lawyer who writes terse, list-like emails ("Attached are the following drafts: 1. Amendment to…"), other people's emails match the profile at a similarity of 0.746, and the author's own unseen emails at 0.812. Those two numbers are the 0 and the 1 of the scale; a draft is placed on the line between them, and can fall below 0.</p>
+  <h3 id="q-steering">What does a steering vector do to a real email?</h3>
+  <p>The two Author A drafts in <a href="#steering">4.5</a> are the example: the same model, the same brief and nothing trained, with the opener, the colon and the closing line changed by adding one direction. The author's 4 steered drafts score +1.09 on the scale, past their own other emails, which suggests caricature, and one of the four is a loop. Averaged over 30 authors the picture is quieter: −0.46 with no vector, −0.04 with the author's own and −0.31 with another author's. One vivid author is not the typical one.</p>
+  <h3 id="q-probe">What does a small classifier read?</h3>
+  <p>The AI detector in this note is a small classifier on the text: 0.75 for the default freight draft above, 0.26 for the steered one. A <em>probe</em> does the same job on the model's internal activations instead of its text, with one linear layer trained in minutes. A later steerlab series tests whether probes like that make trustworthy judges of style.</p>
+  <h3 id="q-persona">What's a persona vector, and where does it come in?</h3>
+  <p>A steering vector for a character trait, built from a written description of the trait (<a href="https://arxiv.org/abs/2507.21509">Persona Vectors</a>). One such direction separates the default assistant from other characters (<a href="https://proceedings.mlr.press/v306/lu26g.html">The Assistant Axis</a>). Episode 2 builds an "assistant-ness" direction to test whether turning it down removes the "I hope you're doing well. My name is…" opener, and whether that raises specificity or only human-likeness, as DIPPER and the base models did here.</p>
+  <h3 id="q-preference">What would a preference model learn from?</h3>
+  <p>Pairs where one side won. The simulated pairs in this episode are an example: a draft ("…My name is Jordan, and I'm an account executive with Lanebridge Logistics. I reached out because we wanted to introduce our services…") and its edit ("Jordan, account executive with Lanebridge Logistics."). The edit wins. Over thousands of pairs a model learns that shorter, with no throat-clearing, scores higher. That is <em>a</em> preference, not <em>your</em> voice, which is why Episode 3 checks it against the authorship model.</p>
+  <h3 id="q-why-sales">Why sales email, and why public writers?</h3>
+  <p>Sales email is where people already use AI drafts and already notice the robot voice, and its facts can be checked against a brief. The voices have to be real people, or the benchmark only measures how well models copy models; public corpora are the only real voices that can be shared. The briefs are invented so no customer's data is involved.</p>
+  <h3 id="q-length">Did the steered drafts score higher just by being longer?</h3>
+  <p>Partly possible, so it was checked: with every draft cut to its first 80 words, the own vector still beat random vectors by +0.29 [0.09, 0.49] and another author's vector by +0.32. Cutting also helped the unsteered drafts (−0.46 to −0.28), so shorter text reads as closer to these authors in general.</p>
+
+  <h2 id="references"><span class="num">11</span>References</h2>
+  <ul>
+    <li><a href="https://aclanthology.org/2021.emnlp-main.70/">Learning Universal Authorship Representations</a> (LUAR), EMNLP 2021: the voice ruler.</li>
+    <li><a href="https://arxiv.org/abs/2509.14543">Catch Me If You Can? Not Yet: LLMs Still Struggle to Imitate the Implicit Writing Styles of Everyday Authors</a>, EMNLP Findings 2025, and its <a href="https://github.com/jaaack-wang/llms-implicit-writing-styles-imitation">data splits</a>.</li>
+    <li><a href="https://arxiv.org/abs/2608.19746">PersonalBench: Measuring the Authorship Gap in LLM Personalization</a>, 2026: the floor-and-ceiling scale.</li>
+    <li><a href="https://arxiv.org/abs/2303.13408">Paraphrasing evades detectors of AI-generated text</a> (DIPPER), 2023.</li>
+    <li><a href="https://arxiv.org/abs/2611.00359">Humanized but Still True? Auditing Facts and Detection in AI-Text Humanizers</a>, 2026.</li>
+    <li><a href="https://arxiv.org/abs/2312.06681">Steering Llama 2 via Contrastive Activation Addition</a>, 2023: difference-of-means steering.</li>
+    <li><a href="https://arxiv.org/abs/2507.21509">Persona Vectors: Monitoring and Controlling Character Traits in Language Models</a>, 2025.</li>
+    <li><a href="https://proceedings.mlr.press/v306/lu26g.html">The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models</a>, ICML 2026.</li>
+    <li><a href="https://arxiv.org/abs/2505.23815">Aligning LLMs by Predicting Preferences from User Writing Samples</a> (PROSE), 2025: Episode 2's style profile.</li>
+    <li><a href="https://arxiv.org/abs/2403.04132">Chatbot Arena: An Open Platform for Evaluating LLMs by Human Preference</a>, 2024, and <a href="https://arxiv.org/abs/2504.20879">The Leaderboard Illusion</a>, 2025: the arena's design and its limits.</li>
+    <li><a href="https://arxiv.org/abs/2411.15124">Tülu 3</a>, 2024: reinforcement learning with verifiable rewards, the setting this series moves beyond.</li>
+    <li><a href="https://www.cs.cmu.edu/~enron/">The Enron Email Dataset</a> and <a href="https://u.cs.biu.ac.il/~koppel/BlogCorpus.htm">The Blog Authorship Corpus</a>: the voices.</li>
+  </ul>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 8, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/leaderboard.json">results/leaderboard.json</a></td><td>One row per contestant and arm: <code>voice_strict</code> and <code>voice_loose</code> (mean and 95% interval over authors), <code>copy_flagged</code> (episodes), <code>words</code>, <code>ai_score</code> (mean detector score), <code>ai_flagged</code> (share above 0.10), <code>task</code>, <code>unsupported</code> and <code>invented_relationship</code> (shares of drafts), <code>usd_per_draft</code></td></tr>
+      <tr><td><a href="../results/specificity.json">results/specificity.json</a></td><td>Specificity per contestant and arm (<code>mean</code>, <code>share_positive</code>), and the authors' own emails (<code>human_ceiling</code>)</td></tr>
+      <tr><td><a href="../results/predictions.json">results/predictions.json</a></td><td>P1-P7 with their metric, value, threshold and verdict; P4 carries the perplexity, loop and length checks</td></tr>
+      <tr><td><a href="../results/robustness.json">results/robustness.json</a></td><td>Loop rate for every contestant and arm; the steering arms re-scored loop-free and at 80 words</td></tr>
+      <tr><td><a href="../results/partc_choice.json">results/partc_choice.json</a></td><td>The steering grid on development authors (position and NLL per layer and strength) and the frozen choice</td></tr>
+      <tr><td><a href="../results/ruler_luar_episode.json">results/ruler_*.json</a></td><td>Every ruler check in Table 4</td></tr>
+      <tr><td><a href="../results/private_board.json">results/private_board.json</a></td><td>The private board's cells (aggregate only)</td></tr>
+      <tr><td><a href="../results.tsv">results.tsv</a></td><td>Every tuning try on development authors</td></tr>
+      <tr><td><a href="../data/briefs.json">data/briefs.json</a></td><td>The 30 synthetic briefs with fact lists and relationships</td></tr>
+      <tr><td><a href="../data/spend.jsonl">data/spend.jsonl</a></td><td>Every paid call (OpenRouter and Modal)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="cite" data-short="How to cite">How to cite</h3>
+  <pre>Lie, A. (2026). Can any model sound like you? Building a reward for writing with no answer key.
+Sounds Like Me, Episode 1. steerlab.
+https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/report/</pre>
+</article>
+</div>
+<script src="data.js"></script>
+<script src="explorer.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
