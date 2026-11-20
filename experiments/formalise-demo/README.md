@@ -1,6 +1,6 @@
 # What does it mean to formalise a domain? A small demo
 
-Code and data for the steerlab note `report/index.html` (the Taste series, Episode 4). A slice of RuleArena's airline
+Code and data for the steerlab note `report/index.html` (The Taste Stack, Episode 4). A slice of RuleArena's airline
 baggage rules is turned into machine-checkable rules, each traced to its source line, and an open LLM is compared
 three ways on held-out questions with exact answers: alone, with the rules pasted in, and with a checker that verifies
 its answer and emits a proof artifact. A bridge applies the same treatment to a tiny design-system rulebook (GOV.UK
