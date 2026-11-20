@@ -32,9 +32,7 @@ from common import (
 
 # the repo root's .env files; in a worktree under .claude/worktrees/ the main checkout's root is three levels further up
 _ROOTS = [Path(__file__).resolve().parents[2], Path(__file__).resolve().parents[5]]
-ENV_FILES = [
-    r / n for r in _ROOTS if (r / ".git").exists() for n in (".env", ".env.local")
-]
+ENV_FILES = [r / n for r in _ROOTS if (r / ".git").exists() for n in (".env", ".env.local")]
 
 
 def exa_key() -> str:
@@ -89,12 +87,7 @@ def main():
     done_q = {(r["cls"], r["query"]) for r in seen.values()}
     jobs = []
     if args.only in (None, "human"):
-        jobs += [
-            ("human", cat, q + reg)
-            for cat, qs in CATEGORIES.items()
-            for q in qs
-            for reg in REGIONS
-        ]
+        jobs += [("human", cat, q + reg) for cat, qs in CATEGORIES.items() for q in qs for reg in REGIONS]
     if args.only in (None, "ai"):
         jobs += [("ai", cat, q) for cat, qs in CATEGORIES.items() for q in qs]
     with out.open("a") as f:
@@ -107,9 +100,7 @@ def main():
                 d = domain_of(r["url"])
                 if not d or d in seen:
                     continue
-                if cls == "human" and (
-                    registrable(d) in PLATFORM_HOSTS or is_ai_host(d)
-                ):
+                if cls == "human" and (registrable(d) in PLATFORM_HOSTS or is_ai_host(d)):
                     continue
                 if cls == "ai" and not is_ai_host(d):
                     continue

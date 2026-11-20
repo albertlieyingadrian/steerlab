@@ -39,9 +39,7 @@ def fetch(url: str) -> list | None:
                 body = r.read().decode() or "[]"
                 return json.loads(body)
         except urllib.error.HTTPError as e:
-            if (
-                e.code in (400, 403)
-            ):  # the archive refusing this client: not "no captures"; retry on a later run
+            if e.code in (400, 403):  # the archive refusing this client: not "no captures"; retry on a later run
                 print(f"  HTTP {e.code}: refused, not recorded")
                 return None
             if e.code in (429, 500, 502, 503, 504):
@@ -83,20 +81,14 @@ def main():
         help="random domains per category (seeded); 0 = all",
     )
     args = ap.parse_args()
-    seeds = [
-        json.loads(line) for line in (CACHE / "seeds.jsonl").read_text().splitlines()
-    ]
+    seeds = [json.loads(line) for line in (CACHE / "seeds.jsonl").read_text().splitlines()]
     seeds = [s for s in seeds if s["cls"] == "human"]
     if args.per_cat:  # a fixed random draw per category, so the panel is not the first queries' results
         rng = random.Random(0)
         by = {}
         for s in seeds:
             by.setdefault(s["category"], []).append(s)
-        seeds = [
-            s
-            for cat in sorted(by)
-            for s in rng.sample(by[cat], min(args.per_cat, len(by[cat])))
-        ]
+        seeds = [s for cat in sorted(by) for s in rng.sample(by[cat], min(args.per_cat, len(by[cat])))]
         rng.shuffle(seeds)
     out = CACHE / "cdx.jsonl"
     done = set()

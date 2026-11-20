@@ -47,9 +47,7 @@ gpu_image = (
         "huggingface_hub==0.26.5",
         "hf_transfer==0.1.9",
     )
-    .env(
-        {"HF_HOME": "/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1", "HF_HUB_DISABLE_XET": "1"}
-    )
+    .env({"HF_HOME": "/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1", "HF_HUB_DISABLE_XET": "1"})
     .add_local_file(HERE / "features.py", "/root/features.py")
 )
 SIGLIP = "google/siglip-base-patch16-224"
@@ -96,8 +94,9 @@ WBUI_CTRL = {
 
 @app.function(image=cpu_image, volumes={VOL: volume}, cpu=4, memory=8192, timeout=3600)
 def hand_batch(pids: list[str]) -> list[dict]:
-    from features import page_features
     from PIL import Image
+
+    from features import page_features
 
     out = []
     for pid in pids:
@@ -134,13 +133,9 @@ class Embedder:
         from transformers import AutoModel, AutoProcessor, CLIPModel, CLIPProcessor
 
         self.torch = torch
-        self.sig = (
-            AutoModel.from_pretrained(SIGLIP, torch_dtype=torch.float16).cuda().eval()
-        )
+        self.sig = AutoModel.from_pretrained(SIGLIP, torch_dtype=torch.float16).cuda().eval()
         self.sig_p = AutoProcessor.from_pretrained(SIGLIP)
-        self.uic = (
-            CLIPModel.from_pretrained(UICLIP, torch_dtype=torch.float16).cuda().eval()
-        )
+        self.uic = CLIPModel.from_pretrained(UICLIP, torch_dtype=torch.float16).cuda().eval()
         self.uic_p = CLIPProcessor.from_pretrained(UICLIP_PROC)
 
     def __call__(self, imgs):
@@ -148,21 +143,11 @@ class Embedder:
 
         t = self.torch
         with t.no_grad():
-            a = (
-                self.sig_p(images=imgs, return_tensors="pt")["pixel_values"]
-                .cuda()
-                .half()
-            )
+            a = self.sig_p(images=imgs, return_tensors="pt")["pixel_values"].cuda().half()
             s = self.sig.get_image_features(pixel_values=a)
-            b = (
-                self.uic_p(images=imgs, return_tensors="pt")["pixel_values"]
-                .cuda()
-                .half()
-            )
+            b = self.uic_p(images=imgs, return_tensors="pt")["pixel_values"].cuda().half()
             u = self.uic.get_image_features(pixel_values=b)
-        norm = lambda x: (
-            (x / x.norm(dim=-1, keepdim=True)).float().cpu().numpy().astype(np.float16)
-        )
+        norm = lambda x: (x / x.norm(dim=-1, keepdim=True)).float().cpu().numpy().astype(np.float16)
         return norm(s), norm(u)
 
 
@@ -198,15 +183,7 @@ def _wbui_boxes(labels, boxes):
         except (TypeError, ValueError):
             continue
         ls = set(lab or [])
-        ch = (
-            2
-            if ls & WBUI_CTRL
-            else 1
-            if ls & WBUI_MEDIA
-            else 0
-            if ls & WBUI_TEXT
-            else None
-        )
+        ch = 2 if ls & WBUI_CTRL else 1 if ls & WBUI_MEDIA else 0 if ls & WBUI_TEXT else None
         if ch is not None and x2 > x1 and y2 > y1:
             out.append((x1, y1, x2 - x1, y2 - y1, ch))
     return out
@@ -239,15 +216,10 @@ def waybackui_shard(filename: str) -> list[dict]:
     from features import occupancy, palette
 
     # spawn, not fork: forking after torch has started OpenMP threads deadlocks scikit-learn's k-means in the children
-    with ProcessPoolExecutor(
-        7, mp_context=multiprocessing.get_context("spawn")
-    ) as pool:
+    with ProcessPoolExecutor(7, mp_context=multiprocessing.get_context("spawn")) as pool:
         for start in range(0, tab.num_rows, 256):
             batch = tab.slice(start, 256).to_pylist()
-            imgs = [
-                Image.open(io.BytesIO(r["image"]["bytes"])).convert("RGB")
-                for r in batch
-            ]
+            imgs = [Image.open(io.BytesIO(r["image"]["bytes"])).convert("RGB") for r in batch]
             s, u = emb(imgs)
             pals = list(pool.map(palette, [im.resize((160, 100)) for im in imgs]))
             for j, r in enumerate(batch):
@@ -286,11 +258,7 @@ def ours(chunk: int = 300):
     out_path = CACHE / "feats" / "ours.pkl"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     have = pickle.loads(out_path.read_bytes()) if out_path.exists() else {}
-    pids = sorted(
-        e.path.split("/")[-1][:-4]
-        for e in volume.listdir("shots")
-        if e.path.endswith(".jpg")
-    )
+    pids = sorted(e.path.split("/")[-1][:-4] for e in volume.listdir("shots") if e.path.endswith(".jpg"))
     todo = [p for p in pids if p not in have]
     print(f"{len(pids)} shots, {len(todo)} new")
     if not todo:
