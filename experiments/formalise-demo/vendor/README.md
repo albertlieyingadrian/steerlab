@@ -2,9 +2,9 @@
 
 ## `rulearena_airline/`
 
-From RuleArena (Zhou et al., "RuleArena: A Benchmark for Rule-Guided Reasoning with LLMs in Real-World Scenarios",
-ACL 2025), https://github.com/SkyRiver-2000/RuleArena at commit `59f60f6b4eb93a9b6d187ec781349d4f15618903`,
-MIT licence (`rulearena_airline/LICENSE`, copyright 2024 Ruiwen Zhou).
+From the RuleArena paper ("RuleArena: A Benchmark for Rule-Guided Reasoning with LLMs in Real-World Scenarios",
+ACL 2025, https://arxiv.org/abs/2412.08972), https://github.com/SkyRiver-2000/RuleArena at commit `59f60f6b4eb93a9b6d187ec781349d4f15618903`,
+MIT licence (the notice is kept in `rulearena_airline/LICENSE`, as the licence requires).
 
 | File | Use here | Changed? |
 |---|---|---|
