@@ -59,44 +59,30 @@ async def render_one(ctx, job, js, state, out):
     from PIL import Image
 
     pid = job["pid"]
-    url = (
-        wayback_url(job["ts"], job["domain"])
-        if job["mode"] == "wayback"
-        else job["url"]
-    )
+    url = wayback_url(job["ts"], job["domain"]) if job["mode"] == "wayback" else job["url"]
     page = await ctx.new_page()
     counts = {"req": 0, "failed": 0, "blocked": 0, "http_err": 0}
 
     async def route(r):
         host = r.request.url.split("/")[2] if "://" in r.request.url else ""
-        if job["mode"] == "wayback" and not (
-            host.endswith("archive.org") or r.request.url.startswith("data:")
-        ):
+        if job["mode"] == "wayback" and not (host.endswith("archive.org") or r.request.url.startswith("data:")):
             counts["blocked"] += 1
             await r.abort()
         elif r.request.resource_type == "media":
-            await (
-                r.abort()
-            )  # video and audio are never needed for a first-screen picture
+            await r.abort()  # video and audio are never needed for a first-screen picture
         else:
             await r.continue_()
 
     await page.route("**/*", route)
     page.on("request", lambda r: counts.__setitem__("req", counts["req"] + 1))
-    page.on(
-        "requestfailed", lambda r: counts.__setitem__("failed", counts["failed"] + 1)
-    )
+    page.on("requestfailed", lambda r: counts.__setitem__("failed", counts["failed"] + 1))
     page.on(
         "response",
-        lambda r: counts.__setitem__(
-            "http_err", counts["http_err"] + (r.status >= 400)
-        ),
+        lambda r: counts.__setitem__("http_err", counts["http_err"] + (r.status >= 400)),
     )
 
     def on_429(r):
-        if (
-            r.status == 429 and job["mode"] == "wayback"
-        ):  # an asset rate-limited: slow every navigation down too
+        if r.status == 429 and job["mode"] == "wayback":  # an asset rate-limited: slow every navigation down too
             state["pause_until"] = max(state["pause_until"], time.time() + 30)
 
     page.on("response", on_429)
@@ -132,9 +118,7 @@ async def render_one(ctx, job, js, state, out):
     except Exception as e:  # noqa: BLE001 - a failed page is recorded, not fatal
         rec["error"] = f"{e.__class__.__name__}: {str(e)[:200]}"
         if job["mode"] == "wayback" and "ERR_CONNECTION_REFUSED" in rec["error"]:
-            rec["rate_limited"] = (
-                True  # the archive refuses connections when it is protecting itself
-            )
+            rec["rate_limited"] = True  # the archive refuses connections when it is protecting itself
     finally:
         rec["elapsed"] = round(time.time() - t0, 2)
         rec.update({f"n_{k}": v for k, v in counts.items()})
@@ -148,9 +132,7 @@ async def robots_ok(ctx, domain: str) -> bool:
     import urllib.robotparser
 
     try:
-        resp = await ctx.request.get(
-            f"https://{domain}/robots.txt", timeout=15000, max_redirects=5
-        )
+        resp = await ctx.request.get(f"https://{domain}/robots.txt", timeout=15000, max_redirects=5)
     except Exception:  # noqa: BLE001 - DNS or TLS failure: the homepage will fail too; let the render record it
         return True
     if 400 <= resp.status < 500:
@@ -179,9 +161,7 @@ async def run_jobs(jobs, concurrency, gap):
         async def one(job):
             async with sem:
                 if job["mode"] == "live":
-                    rctx = await browser.new_context(
-                        user_agent=UA, ignore_https_errors=True
-                    )
+                    rctx = await browser.new_context(user_agent=UA, ignore_https_errors=True)
                     allowed = await robots_ok(rctx, job["domain"])
                     await rctx.close()
                     if not allowed:
@@ -195,12 +175,8 @@ async def run_jobs(jobs, concurrency, gap):
                         results.append(rec)
                         return
                 for attempt in range(3):
-                    async with (
-                        lock
-                    ):  # spaces navigation starts across all workers in this container
-                        wait = (
-                            max(state["next_nav"], state["pause_until"]) - time.time()
-                        )
+                    async with lock:  # spaces navigation starts across all workers in this container
+                        wait = max(state["next_nav"], state["pause_until"]) - time.time()
                         if wait > 0:
                             await asyncio.sleep(wait)
                         state["next_nav"] = time.time() + gap + random.random() * 0.5
@@ -243,13 +219,7 @@ async def run_jobs(jobs, concurrency, gap):
 )
 def render_wayback(jobs: list[dict]) -> list[dict]:
     recs = asyncio.run(run_jobs(jobs, concurrency=3, gap=2.0))
-    return [
-        {
-            k: r.get(k)
-            for k in ("pid", "ok", "status", "elapsed", "error", "rate_limited")
-        }
-        for r in recs
-    ]
+    return [{k: r.get(k) for k in ("pid", "ok", "status", "elapsed", "error", "rate_limited")} for r in recs]
 
 
 @app.function(
@@ -262,25 +232,17 @@ def render_wayback(jobs: list[dict]) -> list[dict]:
 )
 def render_live(jobs: list[dict]) -> list[dict]:
     recs = asyncio.run(run_jobs(jobs, concurrency=6, gap=0.2))
-    return [
-        {k: r.get(k) for k in ("pid", "ok", "status", "elapsed", "error")} for r in recs
-    ]
+    return [{k: r.get(k) for k in ("pid", "ok", "status", "elapsed", "error")} for r in recs]
 
 
 @app.local_entrypoint()
 def main(jobs: str, chunk: int = 400, skip_done: bool = True):
     from budget import check_modal
 
-    rows = [
-        json.loads(line) for line in Path(jobs).read_text().splitlines() if line.strip()
-    ]
+    rows = [json.loads(line) for line in Path(jobs).read_text().splitlines() if line.strip()]
     if skip_done:
         try:
-            done = {
-                e.path.split("/")[-1][:-5]
-                for e in volume.listdir("dom")
-                if e.path.endswith(".json")
-            }
+            done = {e.path.split("/")[-1][:-5] for e in volume.listdir("dom") if e.path.endswith(".json")}
         except Exception:  # noqa: BLE001 - first run: no dom/ directory yet
             done = set()
         rows = [r for r in rows if r["pid"] not in done]
@@ -300,9 +262,7 @@ def main(jobs: str, chunk: int = 400, skip_done: bool = True):
         res = render_wayback.remote(way[i : i + chunk])
         summary += res
         n429 = sum(bool(r.get("rate_limited")) for r in res)
-        print(
-            f"wayback chunk {i // chunk}: {sum(r['ok'] for r in res)}/{len(res)} ok, {n429} rate-limited"
-        )
+        print(f"wayback chunk {i // chunk}: {sum(r['ok'] for r in res)}/{len(res)} ok, {n429} rate-limited")
         if n429 > 0.3 * len(res):
             print("more than 30% rate-limited: stopping (plan's scale rule)")
             break

@@ -128,9 +128,7 @@ def fig_centre():
             ("human_new", "New human sites (2023+)"),
         ):
             if g in q:
-                rows.append(
-                    (SPACE_LABEL[sp], lab, q[g]["ratio"], q[g]["ci"], q[g]["n"])
-                )
+                rows.append((SPACE_LABEL[sp], lab, q[g]["ratio"], q[g]["ci"], q[g]["n"]))
                 print(
                     "centre",
                     sp,
@@ -160,12 +158,7 @@ def wire(layout) -> str:
     c control) when covered at least 15%, else '.'."""
     import numpy as np
 
-    g = (
-        np.asarray(layout, np.float32)
-        .reshape(3, 30, 32)
-        .reshape(3, 15, 2, 16, 2)
-        .mean((2, 4))
-    )
+    g = np.asarray(layout, np.float32).reshape(3, 30, 32).reshape(3, 15, 2, 16, 2).mean((2, 4))
     best = g.argmax(0)
     out = []
     for i in range(15):
@@ -185,17 +178,14 @@ def export_data():
     import random
 
     import numpy as np
+
     from analyse import _unit, slop_scores
     from dataset import load
 
     rs = load()
     data = {}
     # 1. year slider: our held-out panel, stable sites, even years
-    panel = [
-        r
-        for r in rs
-        if r["source"] == "wayback" and r["split"] == "held" and r["stable"]
-    ]
+    panel = [r for r in rs if r["source"] == "wayback" and r["split"] == "held" and r["stable"]]
     q = load_json("q1_ours")
     years = sorted({r["year"] for r in panel})
     rng = random.Random(0)
@@ -210,12 +200,7 @@ def export_data():
             "palettes": [pal(r) for r in pick],
             "heat": [
                 round(float(v), 3)
-                for v in mean.reshape(3, 30, 32)
-                .sum(0)
-                .clip(0, 1)
-                .reshape(15, 2, 16, 2)
-                .mean((1, 3))
-                .ravel()
+                for v in mean.reshape(3, 30, 32).sum(0).clip(0, 1).reshape(15, 2, 16, 2).mean((1, 3)).ravel()
             ],
         }
         for sp in ("layout", "palette", "siglip", "dom"):
@@ -228,29 +213,21 @@ def export_data():
                 ]
         data["years"].append(entry)
     # 2. nearest-neighbour explorer: pages and their nearest pages from other categories (DOM graph = structure)
-    pool = [
-        r for r in rs if r["source"] in ("human", "ai_host", "generated", "template")
-    ]
+    pool = [r for r in rs if r["source"] in ("human", "ai_host", "generated", "template")]
     _, rep, _ = slop_scores(pool, "dom")
     X = _unit(np.stack([r["dom"] for r in pool]))
     cats = np.array([r["category"] for r in pool])
     held = [i for i, r in enumerate(pool) if r["split"] == "held"]
     picks = []
     for src, n in (("human", 30), ("ai_host", 30), ("generated", 15), ("template", 15)):
-        ids = sorted(
-            (i for i in held if pool[i]["source"] == src), key=lambda i: pool[i]["pid"]
-        )
+        ids = sorted((i for i in held if pool[i]["source"] == src), key=lambda i: pool[i]["pid"])
         picks += rng.sample(ids, min(n, len(ids)))
     zrep = rep  # already z-scored against dev human pages by slop_scores
     items = []
     for i in picks:
         sims = X @ X[i]
         mask = cats != cats[i]
-        order = [
-            j
-            for j in np.argsort(-sims)
-            if mask[j] and pool[j]["domain"] != pool[i]["domain"]
-        ][:5]
+        order = [j for j in np.argsort(-sims) if mask[j] and pool[j]["domain"] != pool[i]["domain"]][:5]
         items.append(
             {
                 "cls": pool[i]["source"],
@@ -271,9 +248,7 @@ def export_data():
             }
         )
     data["explorer"] = items
-    (HERE / "report" / "data.js").write_text(
-        "window.DI_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n"
-    )
+    (HERE / "report" / "data.js").write_text("window.DI_DATA = " + json.dumps(data, separators=(",", ":")) + ";\n")
     print("data.js:", len(data["years"]), "years;", len(items), "explorer pages")
 
 

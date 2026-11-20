@@ -28,9 +28,7 @@ hf = modal.Volume.from_name("design-index-hf", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install("vllm==0.10.1.1", "transformers==4.55.4", "hf_transfer==0.1.9")
-    .env(
-        {"HF_HOME": "/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1", "HF_HUB_DISABLE_XET": "1"}
-    )
+    .env({"HF_HOME": "/hf", "HF_HUB_ENABLE_HF_TRANSFER": "1", "HF_HUB_DISABLE_XET": "1"})
     .add_local_file(HERE / "common.py", "/root/common.py")
 )
 MODELS = {
@@ -55,12 +53,8 @@ def generate(model_key: str, prompts: list[dict]) -> list[dict]:
     from vllm import LLM, SamplingParams
 
     llm = LLM(MODELS[model_key], max_model_len=8192, gpu_memory_utilization=0.9)
-    sp = SamplingParams(
-        temperature=0.8, top_p=0.95, max_tokens=6000, n=N_SAMPLES, seed=0
-    )
-    msgs = [
-        [{"role": "user", "content": PROMPT.format(desc=p["desc"])}] for p in prompts
-    ]
+    sp = SamplingParams(temperature=0.8, top_p=0.95, max_tokens=6000, n=N_SAMPLES, seed=0)
+    msgs = [[{"role": "user", "content": PROMPT.format(desc=p["desc"])}] for p in prompts]
     outs = llm.chat(msgs, sp)
     Path(f"{VOL}/html").mkdir(parents=True, exist_ok=True)
     rows = []

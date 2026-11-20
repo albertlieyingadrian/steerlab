@@ -16,6 +16,7 @@ import pickle
 from collections import Counter
 
 import numpy as np
+
 from common import CACHE, RESULTS
 from dataset import load
 
@@ -63,10 +64,7 @@ def build():
         "dim": int(X.shape[1]),
         "by_source": dict(Counter(r["source"] for r in rows)),
         "by_source_year": {
-            f"{s}/{y}": n
-            for (s, y), n in sorted(
-                Counter((r["source"], r["year"]) for r in rows).items()
-            )
+            f"{s}/{y}": n for (s, y), n in sorted(Counter((r["source"], r["year"]) for r in rows).items())
         },
     }
     (RESULTS / "index_summary.json").write_text(json.dumps(summary, indent=1))
@@ -78,10 +76,7 @@ def query(pid: str, k: int = 8):
     import faiss
 
     index = faiss.read_index(str(CACHE / "index" / "siglip.faiss"))
-    rows = [
-        json.loads(line)
-        for line in (CACHE / "index" / "meta.jsonl").read_text().splitlines()
-    ]
+    rows = [json.loads(line) for line in (CACHE / "index" / "meta.jsonl").read_text().splitlines()]
     i = next(j for j, r in enumerate(rows) if r["id"] == pid)
     v = index.reconstruct(i)[None, :]
     sims, ids = index.search(v, k + 1)

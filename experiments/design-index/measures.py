@@ -46,9 +46,7 @@ def palette_matrix(recs) -> np.ndarray:
     n = len(recs)
     D = np.zeros((n, n), np.float32)
     for i in range(n):
-        d = np.linalg.norm(
-            C[i][None, :, None, :] - C[:, None, :, :], axis=-1
-        )  # n,5(i),5(j)
+        d = np.linalg.norm(C[i][None, :, None, :] - C[:, None, :, :], axis=-1)  # n,5(i),5(j)
         a = (W[i][None, :] * d.min(2)).sum(1)  # i's colours to nearest in j
         b = (W * d.min(1)).sum(1)  # j's colours to nearest in i
         D[i] = 0.5 * (a + b)
@@ -64,11 +62,7 @@ def distance_matrix(recs, space: str, spacing_stats=None) -> np.ndarray:
         return palette_matrix(recs)
     if space == "spacing":
         X = np.stack([r["spacing"] for r in recs]).astype(np.float32)
-        mu, sd = (
-            spacing_stats
-            if spacing_stats is not None
-            else (np.nanmean(X, 0), np.nanstd(X, 0) + 1e-6)
-        )
+        mu, sd = spacing_stats if spacing_stats is not None else (np.nanmean(X, 0), np.nanstd(X, 0) + 1e-6)
         Z = np.nan_to_num((X - mu) / sd)
         Z = np.clip(Z, -4, 4)  # one extreme page should not dominate a set's spread
         sq = (Z**2).sum(1)
@@ -76,9 +70,7 @@ def distance_matrix(recs, space: str, spacing_stats=None) -> np.ndarray:
     raise ValueError(space)
 
 
-def boot_weights(
-    domains: list[str], B: int, seed: int = 0
-) -> tuple[list[str], np.ndarray]:
+def boot_weights(domains: list[str], B: int, seed: int = 0) -> tuple[list[str], np.ndarray]:
     """Domain list and a (B+1) x n_domains count matrix; row 0 is the observed sample (all ones)."""
     uniq = sorted(set(domains))
     rng = np.random.default_rng(seed)
@@ -88,9 +80,7 @@ def boot_weights(
     return uniq, W
 
 
-def mean_pair_distance(
-    D: np.ndarray, page_domains: list[str], uniq: list[str], W: np.ndarray
-) -> np.ndarray:
+def mean_pair_distance(D: np.ndarray, page_domains: list[str], uniq: list[str], W: np.ndarray) -> np.ndarray:
     """Mean distance over pairs of pages from different domains, for each bootstrap row of W. Returns (B+1,)."""
     ix = {d: i for i, d in enumerate(uniq)}
     cols = np.array([ix[d] for d in page_domains])
@@ -105,11 +95,7 @@ def mean_pair_distance(
 
 def ci(x: np.ndarray, lo: float = 2.5, hi: float = 97.5):
     x = x[np.isfinite(x)]
-    return (
-        (float(np.percentile(x, lo)), float(np.percentile(x, hi)))
-        if len(x)
-        else (float("nan"), float("nan"))
-    )
+    return (float(np.percentile(x, lo)), float(np.percentile(x, hi))) if len(x) else (float("nan"), float("nan"))
 
 
 def auroc(pos: np.ndarray, neg: np.ndarray) -> float:
@@ -129,9 +115,7 @@ def two_segment_breakpoint(years: np.ndarray, vals: np.ndarray, candidates) -> i
     """Year at which a continuous two-segment linear fit has the lowest squared error."""
     best, best_err = None, np.inf
     for k in candidates:
-        X = np.stack(
-            [np.ones_like(years, float), years - k, np.clip(years - k, 0, None)], 1
-        )
+        X = np.stack([np.ones_like(years, float), years - k, np.clip(years - k, 0, None)], 1)
         coef, *_ = np.linalg.lstsq(X, vals, rcond=None)
         err = ((X @ coef - vals) ** 2).sum()
         if err < best_err:

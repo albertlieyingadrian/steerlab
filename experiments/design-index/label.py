@@ -14,9 +14,10 @@ import json
 import random
 import sys
 
+from PIL import Image, ImageDraw
+
 from common import CACHE, RESULTS
 from dataset import load
-from PIL import Image, ImageDraw
 
 N = 60
 
@@ -26,11 +27,7 @@ def pick(which):
     if which == "r1":
         pool = [r for r in recs if r["source"] == "wayback" and r["split"] == "dev"]
     else:
-        pool = [
-            r
-            for r in recs
-            if r["source"] == "human" and r["split"] == "dev" and r["keep"]
-        ]
+        pool = [r for r in recs if r["source"] == "human" and r["split"] == "dev" and r["keep"]]
     pool.sort(key=lambda r: r["pid"])
     return random.Random(0).sample(pool, min(N, len(pool)))
 
@@ -43,14 +40,10 @@ def sheet(which):
         W = Image.new("RGB", (4 * 480, 3 * 330), "white")
         d = ImageDraw.Draw(W)
         for k, r in enumerate(rs[s : s + 12]):
-            im = Image.open(CACHE / "vol" / "shots" / f"{r['pid']}.jpg").resize(
-                (480, 300)
-            )
+            im = Image.open(CACHE / "vol" / "shots" / f"{r['pid']}.jpg").resize((480, 300))
             x, y = (k % 4) * 480, (k // 4) * 330
             W.paste(im, (x, y + 30))
-            cap = f"{s + k}: {r['pid'][:8]}" + (
-                f" {r['year']}" if which == "r1" else f" [{r['category']}]"
-            )
+            cap = f"{s + k}: {r['pid'][:8]}" + (f" {r['year']}" if which == "r1" else f" [{r['category']}]")
             d.text((x + 6, y + 8), cap, fill="black")
         W.save(out / f"{which}_{s // 12}.jpg", quality=80)
     (out / f"{which}_index.json").write_text(json.dumps([r["pid"] for r in rs]))
