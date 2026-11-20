@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sounds Like Me arena</title>
+<meta name="description" content="A mock vote page for Sounds Like Me: read three emails by a real public writer, then pick which of four drafts sounds most like them, and see how the voice ruler scored each one. Live voting is coming later; nothing on this page is sent anywhere.">
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me/arena/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  body { background: var(--canvas); }
+  .arena { max-width: 64rem; margin: 0 auto; padding: 3.5rem 1rem 4rem; }
+  .arena h1 { font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: 1.1; margin: .4rem 0 .6rem; }
+  .arena .lede { font-size: 1.05rem; color: var(--ink-soft); max-width: 44rem; margin: 0 0 1.2rem; }
+  .banner { display: flex; gap: .75rem; align-items: baseline; flex-wrap: wrap; border: 1px solid var(--rule); border-left: 3px solid var(--control); background: var(--panel); padding: .7rem .9rem; margin: 0 0 1.5rem; font-family: var(--font-display); font-size: .9rem; }
+  .banner strong { color: var(--ink); }
+  .banner span { color: var(--ink-soft); font-family: var(--font-body); }
+  .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 1rem; }
+  .tab { font: inherit; font-family: var(--font-display); font-size: .88rem; padding: .35rem .8rem; border: 1px solid var(--rule); border-radius: 999px; background: var(--canvas); color: var(--ink-soft); cursor: pointer; min-height: 36px; }
+  .tab[aria-selected="true"] { border-color: var(--ink); color: var(--ink); background: var(--panel); }
+  .tab .done { color: var(--accent); margin-left: .3em; }
+  .tab:focus-visible, .pick:focus-visible, .more:focus-visible, .reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .match { display: grid; grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+  @media (max-width: 760px) { .match { grid-template-columns: minmax(0, 1fr); } }
+  .who { position: sticky; top: 1rem; }
+  @media (max-width: 760px) { .who { position: static; } }
+  .who h2 { font-family: var(--font-display); font-size: 1.15rem; margin: 0 0 .2rem; }
+  .who .role { color: var(--ink-soft); font-size: .92rem; margin: 0 0 .8rem; }
+  .excerpt { font-size: .9rem; border-left: 2px solid var(--ink-faint); padding: .1rem 0 .1rem .7rem; margin: 0 0 .8rem; }
+  .brief { font-size: .85rem; color: var(--ink-soft); margin-top: 1rem; }
+  .brief summary { cursor: pointer; font-family: var(--font-display); color: var(--ink); }
+  .brief ul { padding-left: 1.1rem; margin: .4rem 0 0; }
+  .label { font-family: var(--font-mono); font-size: .69rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 .4rem; }
+  .drafts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+  @media (max-width: 980px) { .drafts { grid-template-columns: minmax(0, 1fr); } }
+  .card { border: 1px solid var(--rule); border-radius: 8px; padding: .8rem .9rem; display: flex; flex-direction: column; gap: .6rem; background: var(--canvas); }
+  .card.chosen { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .card h3 { font-family: var(--font-display); font-size: .95rem; margin: 0; }
+  .text { font-size: .9rem; white-space: pre-line; max-height: 15rem; overflow: hidden; position: relative; overflow-wrap: anywhere; }
+  .text.clamped::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.5rem; background: linear-gradient(transparent, var(--canvas)); }
+  .text.open { max-height: none; }
+  .more, .reset { font: inherit; font-family: var(--font-display); font-size: .8rem; background: none; border: none; color: var(--ink-soft); text-decoration: underline; cursor: pointer; padding: .2rem 0; align-self: flex-start; min-height: 32px; }
+  .pick { font: inherit; font-family: var(--font-display); font-size: .88rem; padding: .45rem .8rem; border: 1px solid var(--ink); border-radius: 6px; background: var(--canvas); color: var(--ink); cursor: pointer; min-height: 40px; }
+  .pick:disabled { cursor: default; opacity: .55; }
+  .reveal { font-family: var(--font-body); font-weight: 400; font-size: .85rem; color: var(--ink-soft); border-top: 1px solid var(--rule); padding-top: .5rem; display: none; }
+  .revealed .reveal { display: block; }
+  .reveal b { color: var(--ink); font-weight: 650; font-family: var(--font-display); }
+  .reveal p { margin: .3rem 0 0; }
+  .scale { position: relative; height: 8px; background: var(--rule); border-radius: 4px; margin: .45rem 0 .2rem; }
+  .scale .z { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink-faint); }
+  .scale .dot { position: absolute; top: -3px; width: 14px; height: 14px; border-radius: 50%; background: var(--ink-soft); transform: translateX(-50%); }
+  .scale .dot.steer { background: var(--accent); }
+  .verdict { margin: 1rem 0 0; font-size: .95rem; min-height: 1.4em; }
+  .board { margin-top: 3rem; }
+  .board h2 { font-family: var(--font-display); font-size: 1.3rem; margin: 0 0 .4rem; }
+  .board p { max-width: 46rem; }
+  .bar { display: inline-block; height: .55em; background: var(--ink-soft); border-radius: 2px; margin-right: .5em; vertical-align: .05em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .back { font-family: var(--font-display); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main class="arena">
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Sounds Like Me · RL for unverifiable writing<span class="sep">·</span>Arena</p>
+  <h1>Which draft sounds like them?</h1>
+  <p class="lede">Read three emails by a real public writer. Then pick the one of four drafts, each written by a model for the same invented sales brief, that sounds most like that person. Your pick reveals who wrote each draft and where the voice ruler placed it.</p>
+  <div class="banner" role="note"><strong>Live voting coming soon.</strong><span>This page is a mock: picks stay in your browser and are not sent or counted anywhere. Every draft was written offline before publication; nothing here generates text.</span></div>
+
+  <div class="tabs" role="tablist" aria-label="Writers"></div>
+  <section id="match" class="match" role="tabpanel" aria-live="polite">
+    <noscript><p>This page needs JavaScript to show the drafts. The results behind it are in <a href="../report/">the Episode 1 note</a>.</p></noscript>
+  </section>
+  <p class="verdict" id="verdict"></p>
+
+  <section class="board" aria-labelledby="board-h">
+    <h2 id="board-h">Private board: real usage of a freight sales tool</h2>
+    <p>Real preference signals, aggregated locally and never as text: how often reps sent a first email exactly as the tool drafted it, by the model that wrote the draft. Based on my experience building sales AI for freight, the edit is the honest signal: reps rarely say a draft sounds wrong, they just change it. Cells appear only with at least <span id="min-sent">20</span> sent drafts from at least <span id="min-reps">5</span> reps; no names, companies or email text leave the database. It is observational (writers met different reps and situations) and a different task from the votes above, so it is a separate board.</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Private board table, scrolls sideways on narrow screens"><table>
+      <thead><tr><th>Writer</th><th class="num">Drafts sent</th><th class="num">Reps</th><th class="num">Sent unedited</th><th class="num">Similarity, sent to draft</th><th class="num">Length, sent / draft</th></tr></thead>
+      <tbody id="board-rows"></tbody>
+    </table></div>
+    <p class="label" id="board-window"></p>
+  </section>
+
+  <p class="back"><a href="../report/">Read Episode 1: Can any model sound like you?</a> · <a href="../">Code and data</a></p>
+</main>
+<script src="data.js"></script>
+<script src="arena.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
