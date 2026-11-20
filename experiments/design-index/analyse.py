@@ -18,6 +18,7 @@ import pickle
 from collections import defaultdict
 
 import numpy as np
+
 from common import CACHE, CATEGORIES, RESULTS, split_of
 from dataset import load
 from measures import (
@@ -96,20 +97,14 @@ def summarise(div, first=FIRST, last=LAST):
     late = [i for i, y in enumerate(years) if y >= 2022]
     if len(early) >= 3 and len(late) >= 3:
         sl = np.array(
-            [
-                slope(yrs[late], norm[late, b]) - slope(yrs[early], norm[early, b])
-                for b in range(norm.shape[1])
-            ]
+            [slope(yrs[late], norm[late, b]) - slope(yrs[early], norm[early, b]) for b in range(norm.shape[1])]
         )
         res["slope_early"] = slope(yrs[early], norm[early, 0])
         res["slope_late"] = slope(yrs[late], norm[late, 0])
         res["slope_diff"] = float(sl[0])
         res["slope_diff_ci"] = ci(sl[1:])
         cands = [y for y in years if years[0] + 2 <= y <= years[-1] - 2]
-        bps = [
-            two_segment_breakpoint(yrs, norm[:, b], cands)
-            for b in range(0, norm.shape[1], 5)
-        ]
+        bps = [two_segment_breakpoint(yrs, norm[:, b], cands) for b in range(0, norm.shape[1], 5)]
         res["breakpoint"] = int(bps[0])
         vals, counts = np.unique(bps[1:], return_counts=True)
         res["breakpoint_dist"] = {int(v): int(c) for v, c in zip(vals, counts)}
@@ -123,9 +118,7 @@ def shuffled_year_null(recs, space, sstats, n_perm=200, seed=0):
     for i, r in enumerate(recs):
         by_dom[r["domain"]].append(i)
     uniq, W = boot_weights([r["domain"] for r in recs], 0)
-    D = distance_matrix(
-        recs, space, sstats
-    )  # computed once; a permutation only moves year labels
+    D = distance_matrix(recs, space, sstats)  # computed once; a permutation only moves year labels
     doms = [r["domain"] for r in recs]
     out = []
     for _ in range(n_perm):
@@ -139,9 +132,7 @@ def shuffled_year_null(recs, space, sstats, n_perm=200, seed=0):
             ii = np.where(year_of == y)[0]
             if len(ii) < 8:
                 continue
-            div[y] = mean_pair_distance(
-                D[np.ix_(ii, ii)], [doms[i] for i in ii], uniq, W
-            )
+            div[y] = mean_pair_distance(D[np.ix_(ii, ii)], [doms[i] for i in ii], uniq, W)
         a, b = window(div, FIRST), window(div, LAST)
         out.append(float(((a - b) / a)[0]))
     return out
@@ -151,28 +142,16 @@ def q1(split, loose=False):
     """loose=True keeps captures the filter dropped as unstyled or with failed assets (the render-check sensitivity test)."""
     everything = load(apply_filter=not loose)
     if loose:
-        everything = [
-            r
-            for r in everything
-            if r["keep"] or r["why"] in ("unstyled", "assets_failed")
-        ]
+        everything = [r for r in everything if r["keep"] or r["why"] in ("unstyled", "assets_failed")]
     recs = [r for r in everything if r["source"] == "wayback" and r["split"] == split]
     recs = one_per(recs, lambda r: (r["domain"], r["year"]))
-    sst = spacing_stats(
-        [
-            r
-            for r in everything
-            if r["split"] == "dev" and r["source"] in ("wayback", "human")
-        ]
-    )
+    sst = spacing_stats([r for r in everything if r["split"] == "dev" and r["source"] in ("wayback", "human")])
     years = list(range(2014, 2027))
     stable = [r for r in recs if r["stable"]]
     yrs_of = defaultdict(set)
     for r in stable:
         yrs_of[r["domain"]].add(r["year"])
-    both = {
-        d for d, ys in yrs_of.items() if ys & set(FIRST) and ys & set(LAST)
-    }  # seen in both windows
+    both = {d for d, ys in yrs_of.items() if ys & set(FIRST) and ys & set(LAST)}  # seen in both windows
     sets = {
         "stable": [r for r in stable if r["domain"] in both],
         "all": [r for r in recs if r["all_sample"]],
@@ -180,10 +159,7 @@ def q1(split, loose=False):
     out = {
         "n_pages": {k: len(v) for k, v in sets.items()},
         "n_domains": {k: len({r["domain"] for r in v}) for k, v in sets.items()},
-        "n_per_year": {
-            k: {y: sum(r["year"] == y for r in v) for y in years}
-            for k, v in sets.items()
-        },
+        "n_per_year": {k: {y: sum(r["year"] == y for r in v) for y in years} for k, v in sets.items()},
     }
     boots = {}
     for name, rs in sets.items():
@@ -205,9 +181,7 @@ def q1(split, loose=False):
             r = a / b
             out[f"ratio_stable_all/{sp}"] = {"ratio": float(r[0]), "ci": ci(r[1:])}
     if not loose:
-        out["shuffled_year_null/siglip/stable"] = shuffled_year_null(
-            sets["stable"], "siglip", sst
-        )
+        out["shuffled_year_null/siglip/stable"] = shuffled_year_null(sets["stable"], "siglip", sst)
     out["broken_by_year"] = broken_by_year(split)
     save("q1_ours_loose" if loose else "q1_ours", out, split)
 
@@ -221,9 +195,7 @@ def broken_by_year(split):
     rs = [
         r
         for r in load(apply_filter=False)
-        if r["source"] == "wayback"
-        and r["split"] == split
-        and (r["stable"] or r["all_sample"])
+        if r["source"] == "wayback" and r["split"] == split and (r["stable"] or r["all_sample"])
     ]
     out = {}
     for y in sorted({r["year"] for r in rs}):
@@ -231,11 +203,7 @@ def broken_by_year(split):
         out[y] = {
             "n": len(ys),
             "dropped": sum(not r["keep"] for r in ys),
-            "why": {
-                w: sum(r["why"] == w for r in ys)
-                for w in sorted({r["why"] for r in ys})
-                if w != "ok"
-            },
+            "why": {w: sum(r["why"] == w for r in ys) for w in sorted({r["why"] for r in ys}) if w != "ok"},
         }
     return out
 
@@ -251,18 +219,10 @@ def wbui(split):
         ("1920-1080", range(2021, 2025)),
     ):
         seg = list(seg)
-        rs = [
-            r
-            for r in rows
-            if r["res"] == res_name and r["year"] in seg and r["n_boxes"] > 0
-        ]
+        rs = [r for r in rows if r["res"] == res_name and r["year"] in seg and r["n_boxes"] > 0]
         for r in rs:
-            r["domain"] = (
-                r["base_url"].lower().rstrip("/").split("//")[-1].removeprefix("www.")
-            )
-        rs = one_per(
-            sorted(rs, key=lambda r: r["ts"]), lambda r: (r["domain"], r["year"])
-        )
+            r["domain"] = r["base_url"].lower().rstrip("/").split("//")[-1].removeprefix("www.")
+        rs = one_per(sorted(rs, key=lambda r: r["ts"]), lambda r: (r["domain"], r["year"]))
         rs = [r for r in rs if split_of(r["domain"]) == split]
         per_dom = defaultdict(set)
         for r in rs:
@@ -281,18 +241,13 @@ def wbui(split):
         out[res_name] = {
             "years": seg,
             "n_domains": {k: len({r["domain"] for r in v}) for k, v in sets.items()},
-            "n_per_year": {
-                k: {y: sum(r["year"] == y for r in v) for y in seg}
-                for k, v in sets.items()
-            },
+            "n_per_year": {k: {y: sum(r["year"] == y for r in v) for y in seg} for k, v in sets.items()},
         }
         print(res_name, out[res_name]["n_domains"])
         for name, s in sets.items():
             uniq, W = boot_weights([r["domain"] for r in s], B, seed=2)
             for sp in ("siglip", "uiclip", "layout", "palette"):
-                res = summarise(
-                    yearly(s, sp, seg, uniq, W, None), tuple(seg[:2]), tuple(seg[-2:])
-                )
+                res = summarise(yearly(s, sp, seg, uniq, W, None), tuple(seg[:2]), tuple(seg[-2:]))
                 res.pop("_conv_boot", None)
                 out[res_name][f"{name}/{sp}"] = res
                 print(
@@ -320,35 +275,21 @@ def q2(split, space="siglip", reps=500):
             c = json.loads(line)
             # looked up and never archived counts as new (9999); domains never looked up are left out of human_new
             first_cap[c["domain"]] = int(min(c["captures"])) if c["captures"] else 9999
-    live = [
-        r
-        for r in allr
-        if r["source"] in ("human", "ai_host", "generated", "curated")
-        and r["split"] == split
-    ]
+    live = [r for r in allr if r["source"] in ("human", "ai_host", "generated", "curated") and r["split"] == split]
     hum = [r for r in live if r["source"] == "human"]
     rng = np.random.default_rng(3)
     out = {
         "space": space,
-        "n": {
-            s: sum(r["source"] == s for r in live)
-            for s in ("human", "ai_host", "generated")
-        },
+        "n": {s: sum(r["source"] == s for r in live) for s in ("human", "ai_host", "generated")},
     }
     groups = {
         "ai_host": lambda r: r["source"] == "ai_host",
         "generated": lambda r: r["source"] == "generated",
         "curated": lambda r: r["source"] == "curated",
-        "human_new": lambda r: (
-            r["source"] == "human"
-            and r["domain"] in first_cap
-            and first_cap[r["domain"]] >= 2023
-        ),
+        "human_new": lambda r: r["source"] == "human" and r["domain"] in first_cap and first_cap[r["domain"]] >= 2023,
     }
     ratios = {g: [] for g in groups}  # resampled splits: the interval
-    plain = {
-        g: [] for g in groups
-    }  # splits without resampling: the point estimate (their median)
+    plain = {g: [] for g in groups}  # splits without resampling: the point estimate (their median)
     per_cat = {g: {} for g in groups}
     for it in range(2 * reps):
         rep = it % 2  # 0 = plain split, 1 = split + resampling
@@ -364,18 +305,12 @@ def q2(split, space="siglip", reps=500):
             cen_set = {id(h[i]) for i in cen_ix}
             scored_h = [h[i] for i in sc_ix]
             if rep > 0:
-                scored_h = [
-                    scored_h[i] for i in rng.integers(0, len(scored_h), len(scored_h))
-                ]
+                scored_h = [scored_h[i] for i in rng.integers(0, len(scored_h), len(scored_h))]
             dh = 1 - _unit(np.stack([r[space] for r in scored_h])) @ centre
             med = np.median(dh)
             dists["human"] += list(dh / med)
             for g, f in groups.items():
-                xs = [
-                    r
-                    for r in live
-                    if r["category"] == cat and f(r) and id(r) not in cen_set
-                ]
+                xs = [r for r in live if r["category"] == cat and f(r) and id(r) not in cen_set]
                 if not xs:
                     continue
                 if rep > 0:
@@ -386,9 +321,7 @@ def q2(split, space="siglip", reps=500):
                     per_cat[g].setdefault(cat, []).append(float(np.median(d)))
         for g in groups:
             if dists[g]:
-                (plain if rep == 0 else ratios)[g].append(
-                    np.median(dists[g]) / np.median(dists["human"])
-                )
+                (plain if rep == 0 else ratios)[g].append(np.median(dists[g]) / np.median(dists["human"]))
     for g in groups:  # noqa: PLC0206
         if ratios[g]:
             per_cat[g] = {c: float(np.median(v)) for c, v in per_cat[g].items()}
@@ -412,9 +345,7 @@ def slop_scores(pool, space="siglip", k=10):
     cats = np.array([r["category"] for r in pool])
     doms = np.array([r["domain"] for r in pool])
     is_h = np.array([r["source"] == "human" for r in pool])
-    is_h = is_h & np.array(
-        [r["split"] == "dev" for r in pool]
-    )  # centres, medians and z from dev humans only
+    is_h = is_h & np.array([r["split"] == "dev" for r in pool])  # centres, medians and z from dev humans only
     S = X @ X.T
     cent = np.zeros(len(pool))
     for c in set(cats):
@@ -439,11 +370,7 @@ def slop_scores(pool, space="siglip", k=10):
 
 def q3(split):
     allr = load()
-    pool = [
-        r
-        for r in allr
-        if r["source"] in ("human", "ai_host", "generated", "template", "curated")
-    ]
+    pool = [r for r in allr if r["source"] in ("human", "ai_host", "generated", "template", "curated")]
     out = {}
     for space in ("siglip", "layout", "uiclip", "dom"):
         c, rp, s = slop_scores(pool, space)
@@ -456,12 +383,8 @@ def q3(split):
         hum = [r for r in pool if r["source"] == "human" and r["split"] == split]
         res = {}
         groups = {
-            "template": lambda r: (
-                r["source"] == "template" and r.get("template") in ("A", "B", "C", "D")
-            ),
-            "template_fresh": lambda r: (
-                r["source"] == "template" and r.get("template") in ("E", "F")
-            ),
+            "template": lambda r: r["source"] == "template" and r.get("template") in ("A", "B", "C", "D"),
+            "template_fresh": lambda r: r["source"] == "template" and r.get("template") in ("E", "F"),
             "ai_host": lambda r: r["source"] == "ai_host",
             "generated": lambda r: r["source"] == "generated",
             "curated": lambda r: r["source"] == "curated",
@@ -471,15 +394,11 @@ def q3(split):
             if not xs:
                 continue
             res[name] = {
-                k: auroc(
-                    [r[f"{k}_{space}"] for r in xs], [r[f"{k}_{space}"] for r in hum]
-                )
+                k: auroc([r[f"{k}_{space}"] for r in xs], [r[f"{k}_{space}"] for r in hum])
                 for k in ("slop", "cent", "rep")
             }
             res[name]["n"] = len(xs)
-            res[name]["median_slop"] = float(
-                np.median([r[f"slop_{space}"] for r in xs])
-            )
+            res[name]["median_slop"] = float(np.median([r[f"slop_{space}"] for r in xs]))
         res["human_median_slop"] = float(np.median([r[f"slop_{space}"] for r in hum]))
         res["n_human"] = len(hum)
         out[space] = res
@@ -496,18 +415,11 @@ def house(split, reps=1000):
     rng = np.random.default_rng(4)
     cats = np.array([r["category"] for r in rs])
     src = np.array([r["source"] for r in rs])
-    host = np.array(
-        [
-            ".".join(r["domain"].split(".")[-2:]) if r["source"] == "ai_host" else ""
-            for r in rs
-        ]
-    )
+    host = np.array([".".join(r["domain"].split(".")[-2:]) if r["source"] == "ai_host" else "" for r in rs])
     held = np.array([r["split"] == split for r in rs])
     from collections import Counter
 
-    main_host = Counter(host[src == "ai_host"]).most_common(1)[0][
-        0
-    ]  # the builder with most sites (83%)
+    main_host = Counter(host[src == "ai_host"]).most_common(1)[0][0]  # the builder with most sites (83%)
     out = {
         "ai_share_of_pool": float((src == "ai_host").mean()),
         "n": {s: int((held & (src == s)).sum()) for s in ("human", "ai_host")},
@@ -522,9 +434,7 @@ def house(split, reps=1000):
             m = (cats != cats[i]) & (doms != doms[i])
             idx = np.where(m)[0]
             nn[i] = idx[np.argmax(S[i, idx])]
-            chance[i] = (
-                src[idx] == "ai_host"
-            ).mean()  # the rate if source labels were shuffled
+            chance[i] = (src[idx] == "ai_host").mean()  # the rate if source labels were shuffled
         res = {}
         for s, f in (
             ("ai_host", src == "ai_host"),
@@ -536,25 +446,18 @@ def house(split, reps=1000):
             ii = np.where(held & f)[0]
             hit = (src[nn[ii]] == "ai_host").astype(float)
             same_host = (host[nn[ii]] == host[ii]).astype(float)
-            boot = [
-                hit[rng.integers(0, len(hit), len(hit))].mean() for _ in range(reps)
-            ]
+            boot = [hit[rng.integers(0, len(hit), len(hit))].mean() for _ in range(reps)]
             res[s] = {
                 "rate": float(hit.mean()),
                 "ci": ci(np.array(boot)),
                 "n": len(ii),
                 "chance": float(chance[ii].mean()),
-                "same_host_rate": float(same_host.mean())
-                if s.startswith("ai")
-                else None,
+                "same_host_rate": float(same_host.mean()) if s.startswith("ai") else None,
             }
         out[sp] = res
         print(
             sp,
-            {
-                k: (round(v["rate"], 3), [round(x, 3) for x in v["ci"]], v["n"])
-                for k, v in res.items()
-            },
+            {k: (round(v["rate"], 3), [round(x, 3) for x in v["ci"]], v["n"]) for k, v in res.items()},
         )
     save("house", out, split)
 
@@ -577,29 +480,15 @@ def curated(split, reps=1000):
             sim[cats == c] = X[cats == c] @ cen
         res = {}
         for g in ("curated", "human", "ai_host"):
-            v = np.array(
-                [
-                    sim[i]
-                    for i, r in enumerate(rs)
-                    if r["source"] == g and r["split"] == split
-                ]
-            )
+            v = np.array([sim[i] for i, r in enumerate(rs) if r["source"] == g and r["split"] == split])
             boot = [v[rng.integers(0, len(v), len(v))].mean() for _ in range(reps)]
             res[g] = {
                 "mean_sim_to_ai_cluster": float(v.mean()),
                 "ci": ci(np.array(boot)),
                 "n": len(v),
             }
-        cur = [
-            sim[i]
-            for i, r in enumerate(rs)
-            if r["source"] == "curated" and r["split"] == split
-        ]
-        hum = [
-            sim[i]
-            for i, r in enumerate(rs)
-            if r["source"] == "human" and r["split"] == split
-        ]
+        cur = [sim[i] for i, r in enumerate(rs) if r["source"] == "curated" and r["split"] == split]
+        hum = [sim[i] for i, r in enumerate(rs) if r["source"] == "human" and r["split"] == split]
         res["auroc_curated_vs_human"] = auroc(np.array(cur), np.array(hum))
         out[sp] = res
         print(
@@ -621,14 +510,8 @@ def curated(split, reps=1000):
 def rulers(split):
     allr = load()
     out = {}
-    live = {
-        r["domain"]: r for r in allr if r["source"] == "human" and r["split"] == split
-    }
-    wb = {
-        r["domain"]: r
-        for r in allr
-        if r["source"] == "wayback" and r["year"] == 2026 and r["split"] == split
-    }
+    live = {r["domain"]: r for r in allr if r["source"] == "human" and r["split"] == split}
+    wb = {r["domain"]: r for r in allr if r["source"] == "wayback" and r["year"] == 2026 and r["split"] == split}
     both = sorted(set(live) & set(wb))
     out["capture_n_domains"] = len(both)
     for sp in ("siglip", "layout", "uiclip", "palette", "type", "dom"):
@@ -637,14 +520,8 @@ def rulers(split):
         D = distance_matrix([live[d] for d in both] + [wb[d] for d in both], sp)
         n = len(both)
         cross = D[:n, n:]
-        out[f"capture/{sp}"] = auroc(
-            -np.diag(cross), -cross[~np.eye(n, dtype=bool)]
-        )  # same domain should be closer
-    rep = {
-        r["domain"]: r
-        for r in allr
-        if r["source"] == "human_rep" and r["split"] == split
-    }
+        out[f"capture/{sp}"] = auroc(-np.diag(cross), -cross[~np.eye(n, dtype=bool)])  # same domain should be closer
+    rep = {r["domain"]: r for r in allr if r["source"] == "human_rep" and r["split"] == split}
     both = sorted(set(live) & set(rep))
     out["noise_n"] = len(both)
     for sp in ("siglip", "layout", "palette"):
@@ -666,12 +543,7 @@ def rulers(split):
             break
         D = distance_matrix(tpl + hum, sp)
         n = len(tpl)
-        same = [
-            D[i, j]
-            for i in range(n)
-            for j in range(i + 1, n)
-            if tpl[i]["template"] == tpl[j]["template"]
-        ]
+        same = [D[i, j] for i in range(n) for j in range(i + 1, n) if tpl[i]["template"] == tpl[j]["template"]]
         diff = D[n:, n:][np.triu_indices(len(hum), 1)]
         out[f"template/{sp}"] = auroc(-np.array(same), -diff)
     print(json.dumps(out, indent=1))

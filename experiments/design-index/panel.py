@@ -21,9 +21,7 @@ from common import CACHE, page_id
 
 
 def in_sample(domain: str) -> bool:
-    return (
-        int(hashlib.sha256(("all|" + domain).encode()).hexdigest()[:8], 16) % 100 < 40
-    )
+    return int(hashlib.sha256(("all|" + domain).encode()).hexdigest()[:8], 16) % 100 < 40
 
 
 def is_stable(caps: dict) -> bool:
@@ -79,9 +77,7 @@ def main():
                 }
             )
     jobs.sort(key=lambda j: (_h(j["domain"]), j["year"]))
-    (CACHE / "jobs_wayback.jsonl").write_text(
-        "".join(json.dumps(j) + "\n" for j in jobs)
-    )
+    (CACHE / "jobs_wayback.jsonl").write_text("".join(json.dumps(j) + "\n" for j in jobs))
     (CACHE / "panel.jsonl").write_text("".join(json.dumps(p) + "\n" for p in panel))
     print(
         f"{len(panel)} domains: {sum(p['stable'] for p in panel)} stable, {sum(p['all_sample'] for p in panel)} "

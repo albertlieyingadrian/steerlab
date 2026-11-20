@@ -29,11 +29,7 @@ DEFAULT_THRESHOLDS = {
 
 def _jobs(name):
     p = CACHE / name
-    return (
-        [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
-        if p.exists()
-        else []
-    )
+    return [json.loads(line) for line in p.read_text().splitlines() if line.strip()] if p.exists() else []
 
 
 def load_meta() -> dict:
@@ -118,15 +114,9 @@ def valid(r: dict, th: dict) -> tuple[bool, str]:
     """The render filter. Returns (keep, reason)."""
     if r.get("siglip") is None:
         return False, "no_embedding"
-    if (
-        r["error"] or r.get("status") == 202
-    ):  # 202 = a host's "checking the connection" bot wall (dev, results.tsv)
+    if r["error"] or r.get("status") == 202:  # 202 = a host's "checking the connection" bot wall (dev, results.tsv)
         return False, "error_page"
-    if (
-        r["blank"]
-        or r["n_words"] < th["min_words"]
-        or not float(r["layout"].astype("float32").sum())
-    ):
+    if r["blank"] or r["n_words"] < th["min_words"] or not float(r["layout"].astype("float32").sum()):
         return False, "blank"
     if r["source"] == "wayback" and r["unstyled_score"] > th["unstyled_max"]:
         return False, "unstyled"
@@ -137,9 +127,7 @@ def valid(r: dict, th: dict) -> tuple[bool, str]:
             False,
             "cut_off",
         )  # pages cut off at the token limit render without most of their CSS (run log 11)
-    if r["source"] == "ai_host" and (
-        r["n_words"] < th["ai_min_words"] or r["n_blocks"] < th["ai_min_blocks"]
-    ):
+    if r["source"] == "ai_host" and (r["n_words"] < th["ai_min_words"] or r["n_blocks"] < th["ai_min_blocks"]):
         return False, "ai_draft"
     return True, "ok"
 

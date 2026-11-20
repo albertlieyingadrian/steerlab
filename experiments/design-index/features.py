@@ -46,9 +46,7 @@ def srgb_to_lab(rgb: np.ndarray) -> np.ndarray:
     """rgb in 0..255, shape (..., 3) -> CIELAB (D65)."""
     c = rgb.astype(np.float64) / 255.0
     c = np.where(c > 0.04045, ((c + 0.055) / 1.055) ** 2.4, c / 12.92)
-    m = np.array(
-        [[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]]
-    )
+    m = np.array([[0.4124, 0.3576, 0.1805], [0.2126, 0.7152, 0.0722], [0.0193, 0.1192, 0.9505]])
     xyz = c @ m.T / np.array([0.95047, 1.0, 1.08883])
     f = np.where(xyz > 0.008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
     return np.stack(
@@ -66,9 +64,7 @@ def lab_to_hex(lab: np.ndarray) -> str:
     fy = (L + 16) / 116
     fx, fz = fy + a / 500, fy - b / 200
     xyz = np.array([fx, fy, fz])
-    xyz = np.where(xyz**3 > 0.008856, xyz**3, (xyz - 16 / 116) / 7.787) * np.array(
-        [0.95047, 1.0, 1.08883]
-    )
+    xyz = np.where(xyz**3 > 0.008856, xyz**3, (xyz - 16 / 116) / 7.787) * np.array([0.95047, 1.0, 1.08883])
     m = np.array(
         [
             [3.2406, -1.5372, -0.4986],
@@ -77,9 +73,7 @@ def lab_to_hex(lab: np.ndarray) -> str:
         ]
     )
     c = m @ xyz
-    c = np.where(
-        c > 0.0031308, 1.055 * np.clip(c, 0, None) ** (1 / 2.4) - 0.055, 12.92 * c
-    )
+    c = np.where(c > 0.0031308, 1.055 * np.clip(c, 0, None) ** (1 / 2.4) - 0.055, 12.92 * c)
     r, g, b2 = (np.clip(c, 0, 1) * 255).round().astype(int)
     return f"#{r:02x}{g:02x}{b2:02x}"
 
@@ -126,9 +120,7 @@ def type_features(rec: dict):
         _, y, w, h, kind, fi, size, _, words = e[:9]
         if kind not in (1, 3) or words <= 0 or fi < 0 or fi >= len(fonts):
             continue
-        area = w * min(
-            h, 3 * max(size, 8)
-        )  # a text box's area, with tall wrappers capped
+        area = w * min(h, 3 * max(size, 8))  # a text box's area, with tall wrappers capped
         hist[norm_family(fonts[fi])] += area
         if y < 1600:
             sizes.append((size, words))
@@ -223,10 +215,7 @@ def wl_features(rec: dict) -> np.ndarray:
     for lab in labels:
         vec[_h(lab) % WL_BINS] += 1
     for _ in range(WL_ROUNDS):
-        labels = [
-            labels[i] + "(" + ",".join(sorted(labels[c] for c in children[i])) + ")"
-            for i in range(len(blocks))
-        ]
+        labels = [labels[i] + "(" + ",".join(sorted(labels[c] for c in children[i])) + ")" for i in range(len(blocks))]
         labels = [str(_h(lab)) for lab in labels]
         for lab in labels:
             vec[int(lab) % WL_BINS] += 1
@@ -247,8 +236,7 @@ def quality(rec: dict, serif_share: float) -> dict:
         "blank": (rec.get("pixel_std") or 0) < 8 or (rec.get("n_words") or 0) < 15,
         "error": bool(rec.get("parked")) or (rec.get("status") or 200) >= 400,
         "unstyled_score": serif_share * (0.5 if has_bg else 1.0),
-        "fail_rate": (rec.get("n_failed", 0) + rec.get("n_http_err", 0))
-        / max(1, rec.get("n_req", 1)),
+        "fail_rate": (rec.get("n_failed", 0) + rec.get("n_http_err", 0)) / max(1, rec.get("n_req", 1)),
     }
 
 

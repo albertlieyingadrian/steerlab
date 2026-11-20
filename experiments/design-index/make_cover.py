@@ -38,9 +38,7 @@ GREY = "#9a948c"
 
 
 def cover_svg() -> str:
-    data = json.loads(
-        (REPORT / "data.js").read_text().split("=", 1)[1].rstrip().rstrip(";")
-    )
+    data = json.loads((REPORT / "data.js").read_text().split("=", 1)[1].rstrip().rstrip(";"))
     house = json.loads((RESULTS / "house.json").read_text())
     b = [kicker("TASTE · EPISODE 2", "HAS THE WEB CONVERGED?")]
     b.append(
@@ -82,9 +80,7 @@ def cover_svg() -> str:
             cx = x
             for hexc, w in pal:
                 ww = max(w * colw, 0.8)
-                b.append(
-                    rect(round(cx, 2), y0 + r * rowh, round(ww, 2), rowh - 6, hexc)
-                )
+                b.append(rect(round(cx, 2), y0 + r * rowh, round(ww, 2), rowh - 6, hexc))
                 cx += ww
     # right: nearest page from another industry
     x1, top, maxw = 480, 104, 260

@@ -13,13 +13,9 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 HERE = Path(__file__).resolve().parent
-DATA = (
-    HERE / "data"
-)  # small derived inputs that ship (seed lists hold public domain names only)
+DATA = HERE / "data"  # small derived inputs that ship (seed lists hold public domain names only)
 RESULTS = HERE / "results"
-CACHE = (
-    Path.home() / ".cache" / "steerlab" / "design-index"
-)  # raw renders, never committed
+CACHE = Path.home() / ".cache" / "steerlab" / "design-index"  # raw renders, never committed
 
 YEARS = list(range(2014, 2027))
 VIEWPORT = {"width": 1280, "height": 800}
@@ -170,11 +166,7 @@ def domain_of(url: str) -> str:
 def registrable(host: str) -> str:
     """Last two labels (three for co.uk-style suffixes); good enough to match platform hosts."""
     parts = host.split(".")
-    if (
-        len(parts) >= 3
-        and parts[-2] in {"co", "com", "org", "net", "ac", "gov", "edu"}
-        and len(parts[-1]) == 2
-    ):
+    if len(parts) >= 3 and parts[-2] in {"co", "com", "org", "net", "ac", "gov", "edu"} and len(parts[-1]) == 2:
         return ".".join(parts[-3:])
     return ".".join(parts[-2:])
 
