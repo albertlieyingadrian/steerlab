@@ -1,0 +1,67 @@
+# Datasheet: taste-reward hack benchmark (v0)
+
+Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste Stack, Episode 8 (v0):
+`report/index.html`.
+
+## Motivation
+
+- **Why it exists.** To test detectors of reward and ruler hacks on hacks they were not built for. Taste rewards
+  (voice, style, "a good painting") have no answer key, so the hacks that matter are the ones real optimisers and
+  real setting searches found. Each entry is a hack this lab caught, with the check that caught it and the checks
+  that missed it.
+- **Who made it.** The steerlab research notes; every entry links to the published note it comes from.
+- **Funding.** None beyond the lab's own compute; building v0 cost nothing (CPU only).
+
+## Composition
+
+- **39 entries** in `entries.jsonl`, from 24 published notes. Kinds: 14 trained policy, 11 constructed trap,
+  7 selection rule, 6 steering arm, 1 planted.
+- **17 entries with samples** in `artefacts/<id>.jsonl`: rows with `group` (`hack` or `clean`) and `text`, plus
+  `n_tokens`, `truncated`, `ledger` and `step` where the source logged them. Identical samples within a group count
+  once; groups then hold 1 to 120 distinct rows (capped at 120, drawn with seed 0).
+- **Entry fields.** `id`, `title`, `domain`, `kind`, `source` (note slug), `section` (anchor), `link`, `reward` (what
+  was gamed), `hack` (what the policy, arm or rule did), `quote` (a sentence from the note with its numbers; build.py
+  fails if it is not in the note's text), `caught_by`, `lab_check` (the family of check that caught it), `when`
+  (pre-registered, by design or post hoc), `missed_by`, `notes`, `why_no_artefact`, and `artefacts`: `file`,
+  `n_hack`, `n_clean`, `label_source` (how the groups were made), `source_files` (repository paths of the shipped
+  outputs they were derived from) and `reference` (the text a copy check compares against, or null).
+- **Labels.** Where the source labelled each output (a hack flag, a render violation, a special-case check, a
+  late-success copy signature) the groups follow that label. For 9 entries the groups are arms (steered vs
+  unsteered, trained vs untrained on the same prompts), so not every hack-group row shows the hack.
+- **What is missing.** 22 entries have no samples: video and images (not in the repository), letter or probability
+  readouts, grader verdicts, and drafts from notes whose drafts are not public. Their evidence is the quote and link.
+
+## Collection
+
+- Entries were collected by searching every published note for hacks, loopholes, shortcuts, and checks that passed
+  broken output, then written into `entries.py`. Each quote is verified against the note's text by
+  `build.py`.
+- Samples are derived by `build.py` from files the source notes already ship. Nothing was generated for v0.
+
+## Privacy and preprocessing
+
+- **No private data.** Every source is public or synthetic: model outputs on synthetic briefs, public corpora (GSM8K,
+  FinanceMath, Enron sent mail and the Blog Authorship Corpus as voice sources), τ-bench's synthetic customer
+  records, and prompts written for the experiments. A private usage summary in one source note was not used.
+- **Names removed.** Sounds Like Me rows keep only the draft text and the ledger count (no author field, no job key),
+  and the synthetic briefs' first names, company names, email addresses and phone numbers are replaced by `[name]`,
+  `[company]`, `[email]` and `[phone]`. The agent entry keeps only the tool-call sequence (no customer names or ids).
+  The coding-agent entry keeps tool names and arguments (no provider call ids). Model text in other entries may still
+  contain names that appear in public source problems (GSM8K word problems, for example).
+
+## Uses
+
+- **Intended.** Scoring a hack detector's catches and false alarms per entry; testing whether a monitor would have
+  caught known hacks; a checklist of ways taste rewards fail.
+- **Not intended.** Training a general hack classifier: the groups are small and come from a few environments
+  (Pigment Gym and the RL notes built on it supply 8 entries). If you train on it, hold out whole entries.
+- **Known biases.** One lab, mostly small open models (0.5B to 32B), a few environments, and hacks that were caught.
+  Hacks nobody caught are, by construction, absent.
+
+## Distribution and maintenance
+
+- Distributed with the steerlab repository under its licence; source data keep their own licences (GSM8K and
+  FinanceMath MIT; τ-bench MIT; Enron public; Blog Authorship Corpus for research).
+- **Adding entries.** See "How to submit a hack" in the note: an entry dict, a public quote, optionally a builder for
+  samples; `reproduce.sh` rescores everything. Later episodes (The Taste Stack's monitored RL, Sounds Like Me's
+  training episode) will add entries. Versions are marked in the note's title (v0 = 39 entries).
