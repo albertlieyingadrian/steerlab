@@ -151,7 +151,7 @@ def cover_svg() -> str:
     b.append(f'<path d="M20,468 H860" stroke="{LINE}" stroke-width="1"/>')
     b.append(
         caps(
-            "106,377 PAGES · WAYBACKUI 2014-24 · OUR ARCHIVE PANEL 2014-26 · LIVE HUMAN, AI-BUILDER AND TEMPLATED PAGES"
+            "107,096 PAGES · WAYBACKUI 2014-24 · OUR ARCHIVE PANEL 2014-26 · LIVE HUMAN, AI-BUILDER AND TEMPLATED PAGES"
         )
     )
     label = (
