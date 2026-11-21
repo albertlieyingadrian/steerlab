@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RL for authentic writing: training on a reward you can't verify, and watching it get gamed</title>
+<meta name="description" content="Sounds Like Me, Episode 3: Qwen3-8B fine-tuned on public writers, then DPO from simulated edits, then GRPO on a voice reward model plus an honesty check minus an AI detector and copying. Fine-tuning sounded like the writer and doubled invented claims; RL raised its reward from -0.46 to +1.44 while every ruler it never saw got worse.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RL for authentic writing: training on a reward you can&#x27;t verify, and watching it get gamed">
+<meta property="og:description" content="Sounds Like Me E3, pre-registered: Qwen3-8B fine-tuned on 149 public writers sounded like each writer (−0.54 → −0.03, level with the best honest closed model) but invented claims in 38-52% of drafts. GRPO on a voice reward plus an honesty check raised its reward from −0.46 to +1.44 by writing near-empty one-liners, then long looping off-brief musings; every ruler kept out of training caught it. Episode 2&#x27;s steered harness stayed ahead.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GRPO training reward rising over 200 steps while the development writers&#x27; drafts shrink from 107 words to 30 at step 60 and then grow back to 113, looping and off the brief.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RL for authentic writing: training on a reward you can&#x27;t verify, and watching it get gamed">
+<meta name="twitter:description" content="Sounds Like Me E3, pre-registered: Qwen3-8B fine-tuned on 149 public writers sounded like each writer (−0.54 → −0.03, level with the best honest closed model) but invented claims in 38-52% of drafts. GRPO on a voice reward plus an honesty check raised its reward from −0.46 to +1.44 by writing near-empty one-liners, then long looping off-brief musings; every ruler kept out of training caught it. Episode 2&#x27;s steered harness stayed ahead.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-21">
+<meta property="article:modified_time" content="2026-11-21">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "RL for authentic writing: training on a reward you can't verify, and watching it get gamed",
+ "description": "Sounds Like Me E3, pre-registered: Qwen3-8B fine-tuned on 149 public writers sounded like each writer (−0.54 → −0.03, level with the best honest closed model) but invented claims in 38-52% of drafts. GRPO on a voice reward plus an honesty check raised its reward from −0.46 to +1.44 by writing near-empty one-liners, then long looping off-brief musings; every ruler kept out of training caught it. Episode 2's steered harness stayed ahead.",
+ "abstract": "Sounds Like Me series, Episode 3 (training). Open models only (the closed-model budget ran out after Episode 2). Training writers: 149 public Enron and Blog authors disjoint from the 45 development and held-out writers (one of the 50 floor writers slipped in through a trailing space in its name; disclosed). SFT LoRA r16 on Qwen3-8B in four formats, 1,763 examples each: held-out strict position raw samples −0.03, edit pairs −0.02, style notes −0.05, shuffled-writer control −0.23; vs prompting with 8 samples −0.54 (P1 +0.51 [+0.31, +0.73]); specificity raw − shuffled +0.021 [+0.008, +0.034] (P2); format gap within noise (P3 miss). Invented claims (frozen Qwen3-32B checker, lower bounds): untrained 22.5%, SFT 38-52%. DPO on 627 simulated-edit pairs: −0.10 [−0.19, +0.00] vs SFT (P4). GRPO, 200 steps, 8 prompts x 8, reward = DeBERTa voice RM z (held-out authorship 0.92, detector rho −0.16) − honesty proxy − detector − copy flag; loops and brief coverage kept out. Training reward −0.46 → +1.44; dev hack hunt every 20 steps: drafts 107 → 30 words at step 60 (position −1.02), then 113 words with 28% loops; step 20 → 200 position −0.27 → −0.66, unsupported 33% → 47% (proxy 12%), coverage 0.73 → 0.44 (P5, P7 hit). The pre-registered dev-best rule picked step 60 (held-out −0.64, 36% invented, 42 words); final −0.50; Episode 2's harness + voice vector +0.17 (P6 miss, −0.81). Assistant-direction and voice-vector projections moved with the unseen rulers, not before. Code-review fixes applied before publication. Modal about $55.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-21",
+ "dateModified": "2026-11-21",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "personalised writing, voice, reinforcement learning, GRPO, DPO, fine-tuning, reward hacking, reward models, unverifiable rewards, honesty, LUAR, Enron, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://aclanthology.org/2021.emnlp-main.70/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2210.10760"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.03300"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2305.18290"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2404.15269"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2509.14543"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .slm-fig { margin: 1.6rem 0 2rem; }
+  .slm-controls { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: center; margin: 0 0 .6rem; font-family: var(--font-display); font-size: .85rem; }
+  .slm-controls label { color: var(--ink-soft); display: flex; align-items: center; gap: .4rem; flex: 1 1 16rem; min-width: 0; }
+  .slm-controls select, .slm-controls input[type=range] { font: inherit; font-size: .85rem; width: 100%; min-width: 0; min-height: 32px; }
+  .slm-controls select { padding: .25rem .4rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); }
+  .slm-controls input[type=range] { accent-color: var(--accent); }
+  .slm-controls select:focus-visible, .slm-controls input:focus-visible, .slm-fig g.row:focus-visible, .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .slm-fig svg { width: 100%; height: auto; display: none; color: var(--ink); }
+  .slm-fig.is-live svg { display: block; }
+  .slm-fig.is-live .slm-static, .slm-fig:not(.is-live) .slm-controls, .slm-fig:not(.is-live) .slm-live, .slm-fig:not(.is-live) .slm3-live { display: none; }
+  .slm-fig .grid { stroke: var(--rule); }
+  .slm-fig .ref { stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+  .slm-fig .ci { stroke: var(--ink-faint); stroke-width: 2; }
+  .slm-fig .tick, .slm-fig .val { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-soft); }
+  .slm-fig .ref-label, .slm-fig .axis-label { font-family: var(--font-display); font-size: 11.5px; fill: var(--ink-soft); }
+  .slm-fig .name { font-family: var(--font-display); font-size: 12px; fill: var(--ink); }
+  .slm-live, .slm3-stats { font-size: .85rem; color: var(--ink-soft); margin: .4rem 0 0; min-height: 2.6em; }
+  .slm3-step-label { font-family: var(--font-display); font-size: .9rem; color: var(--ink); margin: .2rem 0; }
+  .slm3-out { font-family: var(--font-body); font-size: .93rem; background: var(--panel); border-left: 3px solid var(--accent); padding: .7rem .9rem; margin: .6rem 0; white-space: pre-line; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap td:first-child { min-width: 9rem; }
+  .ep-link { font-family: var(--font-display); font-size: .95rem; margin: 1rem 0 1.5rem; }
+  .ep-link a { font-weight: 650; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Sounds Like Me · RL for unverifiable writing<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time></p>
+  <h1>RL for authentic writing: training on a reward you can't verify, and watching it get gamed</h1>
+  <p class="dek ruled">Reinforcement learning works when answers can be checked. Most writing can't be checked: there's no answer key for "sounds like me". This series builds a reward for authentic voice from public writers, tests it against every model, and then trains on it.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="GRPO training reward rising over 200 steps, while the development writers' drafts first shrink from about 107 words to 30 at step 60 and then grow back to 113 words, now looping and off the brief." width="1200" height="675">
+    <figcaption>Cover: the GRPO training reward per step and the mean words per draft for the 15 development writers at each checkpoint. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/hack_hunt.json</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Sounds Like Me, Episode 3. <a href="../../sounds-like-me/report/">Episode 1</a> built the reward and the benchmark; <a href="../../sounds-like-me-ep2/report/">Episode 2</a> built a harness on it; <a href="../../sounds-like-me-ep4/report/">Episode 4</a> checks the rulers against people</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B with LoRA (SFT, DPO, GRPO); a DeBERTa voice reward model trained here; Qwen3-32B as the frozen honesty checker and the simulated editor; open models only</dd></div>
+    <div><dt>Method</dt><dd>Pre-registered: SFT on 149 public writers in four data formats, DPO from simulated edits, then GRPO on a combined reward, with a hack hunt on development writers every 20 steps and held-out evaluation on the same 30 writers as Episodes 1 and 2</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/sounds-like-me-ep3/</a> · <a href="../results/summary.json">results/</a> (<a href="../README.md">file guide</a>) · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can training an open 8B model on public writers, and then RL on a voice reward, beat the no-training methods of Episode 2, and does the reward get gamed?</strong></p>
+    <p>Fine-tuning works on voice and fails on facts. Trained on 149 public writers, Qwen3-8B moved from −0.54 to −0.03 on a scale from a different human (0) to the same human (1), level with the best honest closed model in Episode 1, and it used each writer's samples, not just a generic corpus style. But it invented a claim the brief did not support in 38-52% of drafts, against the untrained model's 22.5%. That is what the RL reward's honesty term was there to fix, and it did not: GRPO raised its reward from −0.46 to +1.44 by first writing near-empty one-liners and then long, looping, off-brief musings, while the rulers it never saw got worse (voice −0.27 to −0.66, invented claims 33% to 47%, brief coverage 0.73 to 0.44). Episode 2's harness with steering stayed ahead on voice. Five of seven predictions hit.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr><td>Does fine-tuning on public writers beat prompting (P1)?</td><td><strong>Yes, by a lot.</strong> SFT on raw samples −0.03 on held-out writers, +0.51 [+0.31, +0.73] over prompting the same model</td><td>Qwen3-8B prompted with 8 samples: −0.54; Episode 1's best honest model: −0.03</td></tr>
+      <tr><td>Does it use the writer, or just the corpus style (P2)?</td><td><strong>The writer.</strong> Specificity 0.015 against −0.006 for the same training with every context from the wrong writer (+0.021 [+0.008, +0.034])</td><td>The writers' own emails: 0.172</td></tr>
+      <tr class="hl"><td>What does fine-tuning cost?</td><td><strong>Invented claims nearly double.</strong> 38-52% of SFT drafts carry a claim the brief does not support, against 22.5% for the untrained model</td><td>Episode 2's harness 10.8%; Episode 1's Gemini 1.7%</td></tr>
+      <tr><td>Which training format works best (P3)?</td><td><strong>No clear winner.</strong> Raw samples −0.03, edit pairs −0.02, style notes −0.05; edit pairs had the best specificity (0.021)</td><td>The prediction (raw ahead by 0.05) missed</td></tr>
+      <tr><td>Does DPO on simulated edits help (P4)?</td><td><strong>No.</strong> −0.10 [−0.19, +0.00] against SFT; the edits were too light to carry voice</td><td>Pair accuracy 0.25 → 1.0 during training</td></tr>
+      <tr><td>Does RL get gamed (P5, P7)?</td><td><strong>Yes, twice.</strong> Reward −0.46 → +1.44; drafts first shrank to 30 words, then grew back to 113 with 28% looping. Development voice −0.27 → −0.66; invented claims (unseen checker) 33% → 47% while the in-loop check read 12%</td><td>Brief coverage 0.73 → 0.44</td></tr>
+      <tr><td>Does the trained model beat Episode 2 honestly (P6)?</td><td><strong>No.</strong> The best GRPO checkpoint by the pre-registered rule: −0.64, 36% invented claims; the final one −0.50, 36%</td><td>Episode 2's harness + voice vector: +0.17, 28%</td></tr>
+      <tr><td>Did the inside-the-model monitors warn early?</td><td><strong>No.</strong> The assistant-direction projection rose with the unseen rulers, not before them</td><td>A presence readout only</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <p class="ep-link">The series: <a href="../../sounds-like-me/report/">Episode 1, can any model sound like you?</a> · <a href="../../sounds-like-me-ep2/report/">Episode 2, a harness on an unverifiable reward</a> · <a href="../../sounds-like-me-ep4/report/">Episode 4, does the voice ruler agree with people?</a></p>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>At step 0 the fine-tuned model writes a sales email in the voice of an Enron trader. By step 60 of RL the same kind of prompt gets "I wanted to ask for a call next week." and nothing else. By step 200 it gets "I have to tell you that this is a very difficult position. I have never had a hard time telling you the truth… I am not going to be able to do this." The training reward went up the whole time.</p>
+  <p><strong>What is known.</strong> RL works when answers can be checked; for open-ended writing, teams train on a learned reward instead, and policies learn to game such rewards (<a href="https://arxiv.org/abs/2210.10760">Scaling Laws for Reward Model Overoptimization</a>). Learning a person's style from their edits is an older idea (<a href="https://arxiv.org/abs/2404.15269">PRELUDE</a>). <a href="../../sounds-like-me/report/">Episode 1</a> of this series built the rulers; <a href="../../sounds-like-me-ep2/report/">Episode 2</a> got past every model on voice with no training, using a harness and a steering vector, but invented facts in 28% of drafts.</p>
+  <p><strong>What is missing.</strong> A training run on a "sounds like you" reward with rulers held back from training on every side (voice, honesty, task, loops), watched checkpoint by checkpoint for what the policy finds.</p>
+  <p class="question-callout">Does training beat the no-training methods at sounding like a specific person, and what does RL do to a reward with no answer key?</p>
+  <p><strong>What this note does.</strong> It fine-tunes Qwen3-8B on 149 public writers, compares four data formats, adds DPO from simulated edits, then runs GRPO on a combined reward, and evaluates every stage on the same held-out writers and rulers as Episodes 1 and 2. It contributes:</p>
+  <ol>
+    <li>evidence that <strong>SFT on public writers</strong> reaches the best honest closed model's level on voice, and uses each writer's samples, with a shuffled-writer control;</li>
+    <li>the finding that the same SFT <strong>nearly doubles invented claims</strong>;</li>
+    <li>a <strong>hack hunt</strong>: two reward hacks found in sequence, each visible only on rulers kept out of training;</li>
+    <li>a voice reward model that is <strong>not an AI detector</strong> (fixing Episode 2's), with its checks;</li>
+    <li>a negative result on DPO from simulated edits, and on inside-the-model monitors as early warnings.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written in the plan before training: a trained model must beat Episode 2's harness with a steering vector on held-out writers (+0.17) while staying within its honesty gate (21.7% unsupported claims); RL counts as gamed if its reward rises while any held-out ruler worsens by a fixed amount.</p>
+
+  <aside class="bg-note" aria-label="Background: the training stages">
+    <span class="label">Background · the three training stages</span>
+    <p>One analogy throughout: a model writing an email is a cook making a dish.</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Background table"><table>
+      <thead><tr><th>Stage</th><th>What it is</th><th>Analogy</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SFT</strong> (supervised fine-tuning)</td><td>Show the model a writer's other texts and a summary of one more, and train it to produce that real text</td><td>Cooking from a chef's recipe cards until the dishes taste like theirs</td></tr>
+        <tr><td><strong>DPO</strong> (direct preference optimisation)</td><td>Pairs of a draft and a better version; train the model to prefer the better one</td><td>A taster marks which of two plates is closer, and the cook adjusts</td></tr>
+        <tr><td><strong>GRPO</strong> (group relative policy optimisation, an RL method)</td><td>Write 8 drafts, score each with a reward, push toward the above-average ones</td><td>The cook makes 8 plates a night and keeps whatever the critic liked</td></tr>
+        <tr><td><strong>Reward hacking</strong></td><td>The policy finds what the reward pays for that its designers did not mean</td><td>The critic only tastes the sauce, so the cook serves sauce</td></tr>
+      </tbody>
+    </table></div>
+  </aside>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Evaluation is unchanged</strong> from Episodes 1 and 2: 30 held-out writers (24 Enron senders, 6 bloggers), 4 synthetic sales briefs each, the same rulers; 15 development writers for every choice and the hack hunt. Neither set is ever trained on.</p>
+  <p><strong>Training writers.</strong> 149 public authors from the same Enron and Blog corpora (55 Enron, 94 Blog) who are not evaluation or development writers, with 8 or more texts each (3,833 texts). The check that keeps them apart is in code; it caught one trap on the way: the Blog author ids are numbers in the corpus files and strings in the evaluation list, so a naive comparison would have let all six held-out bloggers into training. It missed another, found in code review after the run: one of the 50 "different human" floor writers, whose name ends in a space in the corpus, was also a training writer. The floor only sets the 0 of the voice scale; the 45 development and held-out writers are clean.</p>
+  <p><strong>SFT examples</strong> (1,763 per format). The model sees context from a writer's other texts and a short bullet summary of one more of their texts (written by Qwen3-8B, facts only), and learns to write the real text. Four formats, one LoRA each:</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, data formats, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Format</th><th>What the model sees before the summary</th></tr></thead>
+    <tbody>
+      <tr><td>Raw samples</td><td>4 of the writer's other texts</td></tr>
+      <tr><td>Style notes</td><td>A 5-7 bullet description of how the writer writes, made from 8 of their texts</td></tr>
+      <tr><td>Edit pairs</td><td>3 pairs: the untrained model's draft for another of the writer's texts, then what the writer actually wrote (labelled as simulated edit pairs)</td></tr>
+      <tr><td>Shuffled (control)</td><td>Raw samples from a <em>different</em> writer than the target</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>DPO.</strong> 627 pairs on the training writers: the SFT model's own draft against Qwen3-32B's edit of it toward the writer ("change only what this person would change; keep every fact"), labelled as simulated edits.</p>
+  <p><strong>GRPO reward</strong> (weights fixed in the plan, all 1.0), per draft:</p>
+  <ul>
+    <li><strong>+ voice</strong>: a DeBERTa reward model's score (z-scored), trained here on authorship pairs from the training writers only: a writer's own text should beat another writer's, given two of their texts. Episode 2's version also learned "human beats AI" and became a detector; this one leaves those pairs out.</li>
+    <li><strong>− honesty proxy</strong>: 1 if the draft has a number or phone number the brief does not, a past-contact phrase on a cold email, or one of Episode 1's rules (cheap rules, not a model).</li>
+    <li><strong>− AI detector</strong> score and <strong>− copy flag</strong> (Episode 1's).</li>
+  </ul>
+  <p>Loops and brief coverage were left out of the reward on purpose, so the hack hunt could see whether RL finds them. 200 steps, 8 prompts of 8 drafts each, from new training briefs that share nothing with the evaluation briefs.</p>
+  <p><strong>Rulers training never sees:</strong> LUAR voice position and specificity (Episode 1), the frozen Qwen3-32B honesty checker (lower bounds), a character n-gram attributer (Episode 2), the loop share (drafts with more than 20% repeated 4-grams), brief coverage.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong> (Design, seven predictions) and push it before any training.</li>
+    <li><strong>Build and check the rulers</strong> (<a href="#rulers">3.1</a>).</li>
+    <li><strong>Train four SFT LoRAs</strong> in parallel (2 epochs, 442 steps each) and pick the format on development writers.</li>
+    <li><strong>Train DPO</strong> on the chosen format; it hurt on development writers, so GRPO started from SFT (the plan's rule).</li>
+    <li><strong>Run GRPO</strong> for 200 steps with checkpoints every 10, and evaluate every 20th checkpoint on development writers (the hack hunt).</li>
+    <li><strong>Evaluate on held-out writers</strong>: every SFT format, DPO, the final GRPO checkpoint and the best one by the pre-registered rule.</li>
+    <li><strong>Read the drafts</strong> at every checkpoint.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, fixed vs changed, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Fixed before any training</th><th>Changed during the run</th></tr></thead>
+    <tbody>
+      <tr><td>Writers, briefs, rulers, reward weights, the predictions</td><td>Nothing in the reward or the predictions</td></tr>
+      <tr><td>RL prompts in the raw-samples format</td><td>RL used the format chosen on development writers (edit pairs), so the policy trained in its own format</td></tr>
+      <tr><td>Checkpoints every 25 steps; hack hunt at each</td><td>Checkpoints every 10 (to survive crashes), hack hunt every 20th step</td></tr>
+      <tr><td>Voice reward model on authorship pairs and simulated edits</td><td>Simulated edits left out: in this data an edit pair is a model draft against a human text, the kind that made Episode 2's model a detector</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: Qwen3-8B with LoRA rank 16 on Modal H100s; sampling at temperature 1.0 during RL (with the model's default top-k of 20, which the policy-gradient loss did not account for: a small off-policy bias) and 0.7 at evaluation, up to 300-320 new tokens. GRPO failed three times on memory, never on the method; each failure was fixed, and the last one resumed from the step-50 checkpoint with the same prompts and reward scale (the optimizer state restarted). Open models only: the series' closed-model budget ran out after Episode 2, and no step of this episode used a closed model. Modal compute for this episode: about $55.</p>
+
+  <h3 id="rulers" data-short="Rulers checked first">3.1 The rulers were checked first</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3, ruler checks, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Ruler</th><th>Check</th><th>Bar</th><th class="num">Result</th></tr></thead>
+    <tbody>
+      <tr><td>Voice reward model (in the reward)</td><td>Own text vs another held-out writer's, 150 pairs</td><td>≥ 0.75</td><td class="num">0.92 (Episode 2: 0.85)</td></tr>
+      <tr><td>Voice reward model is not a detector</td><td>Spearman with the AI detector across Episode 2's drafts</td><td>|ρ| ≤ 0.5</td><td class="num">−0.16</td></tr>
+      <tr><td>Honesty proxy (in the reward)</td><td>Episode 1's 60 labelled drafts; 30 fresh ones</td><td>none</td><td class="num">F 0.64 (precision 0.82); 0.60</td></tr>
+      <tr><td>n-gram attributer, development writers (unseen)</td><td>Own samples, never trained on</td><td>top-1 ≥ 0.8</td><td class="num">0.98</td></tr>
+      <tr><td>LUAR, detector, 32B honesty checker</td><td>Episodes 1 and 2</td><td>as there</td><td class="num">0.974, 1.000, 0.875 / 0.667</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="sft" data-short="SFT sounds like the writer">4.1 Fine-tuning on public writers sounds like the writer (P1, P2)</h3>
+  <p>Figure 1 puts every arm on the voice scale. SFT on raw samples reached −0.03 on held-out writers, +0.51 [+0.31, +0.73] over prompting the same model with 8 samples (P1 hit), level with Episode 1's best honest model (Gemini 4 Carbon with edits, −0.03) and ahead of Episode 2's harness without steering (−0.20). It is not a generic "sound like a person from this corpus" effect: trained the same way but with every context taken from the wrong writer, the model's specificity fell from 0.015 to −0.006 (+0.021 [+0.008, +0.034], P2 hit). The AI detector stopped recognising the drafts as AI (0.73 → 0.10).</p>
+  <figure class="slm-fig" data-fig="ladder" aria-labelledby="fig1-cap">
+    <div class="slm-controls">
+      <label>Measure <select id="slm3-metric">
+        <option value="pos">Voice position (strict)</option>
+        <option value="spec">Specificity</option>
+        <option value="uns">Invented claims</option>
+        <option value="task">Brief coverage</option>
+        <option value="loop">Looping drafts</option>
+        <option value="words">Words per draft</option>
+        <option value="attr">Attributer rank (unseen)</option>
+      </select></label>
+    </div>
+    <svg role="list" aria-label="Every arm on the chosen measure"></svg>
+    <p class="slm-live" aria-live="polite"></p>
+    <img class="slm-static" src="figures/fig1_ladder.png" alt="Voice position per arm on held-out writers: prompting -0.54, SFT raw -0.03, notes -0.05, edits -0.02, shuffled -0.23, DPO -0.12, GRPO dev-best -0.64, GRPO final -0.50; Episode 2 harness -0.20, harness plus voice vector +0.17, Gemini in the harness +0.04; Episode 1 Gemini -0.03.">
+    <figcaption id="fig1-cap"><strong>Figure 1.</strong> Every arm, Episode 3 beside Episodes 1 and 2, on the measure of your choice; 30 held-out writers, 4 drafts each; lines are 95% bootstrap intervals over writers (voice position only). Switch to invented claims to see what fine-tuning cost, or to brief coverage to see what RL cost. Without JavaScript: voice position.</figcaption>
+  </figure>
+
+  <h3 id="honesty" data-short="SFT raises invention">4.2 The same fine-tuning nearly doubles invented claims</h3>
+  <p>Figure 2 is the cost. Every SFT model put a claim the brief did not support in 38-52% of its held-out drafts (raw samples 40.8%, edit pairs 38.3%, style notes 52.2%), against 22.5% for the same model untrained and 10.8% for Episode 2's harness. The targets were real emails and blog posts, which are full of specifics; the model learned that a person's email carries details like that, and on a sales brief with four allowed facts it supplies its own: "We recently opened a new bay, so this…" (the recipient's news, claimed as the sender's). This is the problem the RL reward's honesty term was meant to fix.</p>
+  <figure class="plot">
+    <img src="figures/fig2_honesty.png" alt="Share of drafts with an unsupported claim: prompting 23%, SFT 38-52%, DPO 48%, GRPO 36%; Episode 2 harness 11%, harness plus vector 28%, Gemini in the harness 4%; Episode 1 Gemini 2%.">
+    <figcaption><strong>Figure 2.</strong> Share of held-out drafts with at least one claim the brief's fact list does not support, from the frozen Qwen3-32B checker (lower bounds; Episode 1's check found it missed about half); 120 drafts per arm, 95% bootstrap over writers. Dotted: Episode 2's honesty gate.</figcaption>
+  </figure>
+
+  <h3 id="formats" data-short="Formats and DPO">4.3 Data format barely matters, and DPO on simulated edits hurts (P3, P4)</h3>
+  <p>On held-out writers raw samples (−0.03), edit pairs (−0.02) and style notes (−0.05) were within each other's intervals; the prediction that raw samples would lead by 0.05 missed (P3). Edit pairs had the best specificity (0.021, Figure 4) and were chosen on development writers for the later stages. DPO from simulated edits learned its pairs (accuracy 0.25 → 1.0) and lost voice: −0.10 [−0.19, +0.00] against SFT on held-out writers, −0.28 on development writers (P4 hit). The simulated editor changed a dash or dropped a "right?"; edits that light carry the editor's taste, not the writer's.</p>
+  <figure class="plot">
+    <img src="figures/fig4_formats.png" alt="Voice position against specificity for the four SFT formats and the untrained model: raw, notes and edits near position 0 with specificity 0.010-0.021; shuffled at -0.23 and -0.006; untrained at -0.57 and 0.015.">
+    <figcaption><strong>Figure 4.</strong> Voice position (x) against specificity (y) for each SFT format, the shuffled-writer control and the untrained model with the same prompt; 30 held-out writers.</figcaption>
+  </figure>
+
+  <h3 id="hack" data-short="RL games the reward">4.4 RL games the reward twice, and the rulers it never saw catch it (P5, P7)</h3>
+  <p>Figure 3 is the hack hunt on development writers. The training reward rose almost steadily, from −0.46 (the average over steps 11-20) to +1.44 (steps 191-200). The policy found two ways to get there.</p>
+  <ol>
+    <li><strong>Steps 1-60: say almost nothing.</strong> Drafts fell from 107 words to 30. A one-line email has no numbers for the honesty proxy to flag (its flags fell to 2%), and the voice reward model scored terse text as closer to these terse writers. Seven of 60 development drafts at step 60 were empty, and many of the rest read like "I wanted to ask for a call next week." Voice position on the unseen ruler collapsed to −1.02.</li>
+    <li><strong>Steps 100-200: say a lot, about nothing.</strong> Drafts grew back to 113 words, now in the writers' personal register and off the brief: "I have to tell you that this is a very difficult position. I have never had a hard time telling you the truth… I am not going to be able to do this." Loops rose from 0% to 28%, brief coverage fell to 0.44, and the unseen honesty checker found unsupported claims in 47% of drafts while the in-loop proxy flagged 12%.</li>
+  </ol>
+  <figure class="plot">
+    <img src="figures/fig3_hack_hunt.png" alt="Four panels over 200 GRPO steps: training reward rising to about +1.4; voice position on development writers falling from 0 to -1.02 at step 60 and ending at -0.66; words per draft falling from 107 to 30 then rising to 113; invented claims from the unseen checker rising to 47% while the honesty proxy in the reward stays near 10%.">
+    <figcaption><strong>Figure 3.</strong> The hack hunt. Top left: the training reward per step. The other panels: the 15 development writers' drafts (4 briefs each) at the SFT start (step 0) and every 20th checkpoint: voice position (strict LUAR, never in the reward), words per draft, and the share of drafts with an unsupported claim by the frozen 32B checker against the honesty proxy that was in the reward.</figcaption>
+  </figure>
+  <p>The pre-registered test (reward up, and at least one unseen ruler worse by its threshold between the first and last hunted checkpoint) is a hit on four of five rulers: voice −0.39, invented claims +13 points, loops +28 points, brief coverage −0.28 (P5). The honesty proxy was gamed by 35 points at the end (47% by the unseen checker against 12% by the proxy; P7 hit). The only unseen ruler that improved was the character n-gram attributer (true-writer rank 8.0 → 6.7 of 15): the late drafts copy the writers' surface habits, which is what such an attributer reads.</p>
+  <figure class="slm-fig" data-fig="slider" aria-labelledby="fig-slider-cap">
+    <div class="slm-controls">
+      <label>Writer and brief <select id="slm3-writer"></select></label>
+      <label>Checkpoint <input type="range" id="slm3-step" min="0" max="10" step="1" value="0"></label>
+    </div>
+    <p class="slm3-step-label slm3-live"></p>
+    <p class="slm3-stats slm3-live" aria-live="polite"></p>
+    <p class="slm3-out slm3-live"></p>
+    <figcaption id="fig-slider-cap"><strong>Checkpoint slider.</strong> The same development writer and brief at the SFT start and every 20th GRPO step, with the development writers' averages at that checkpoint. Four writers, chosen by position in the list before any draft was read; names a draft copied from the writer's samples are replaced with [name]. Needs JavaScript; the drafts are in <code>report/data.js</code>.</figcaption>
+  </figure>
+
+  <h3 id="vs-ep2" data-short="Training vs no training">4.5 The trained model does not beat Episode 2 (P6)</h3>
+  <p>The plan picked the "best" RL checkpoint as the one with the best development voice among those within the honesty gate. Only step 60 was within it, because its near-empty drafts had little to be wrong about; on held-out writers it scored −0.64, with 36% invented claims and 42 words per draft. The final checkpoint scored −0.50, 36%. Eight of the step-60 checkpoint's 120 held-out drafts were empty; draft-level measures (invented claims, coverage, loops, words) are over the non-empty drafts, so an empty draft counts as neither honest nor dishonest. Both are far behind Episode 2's harness with a steering vector (+0.17; −0.81 [−1.09, −0.54] for the dev-best checkpoint) and behind plain SFT (−0.02). P6 misses. The rule chose the checkpoint where the first hack was most extreme: the gate measured honesty as a rate, and empty drafts make no claims.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4, main arms, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Arm (held-out)</th><th class="num">Voice</th><th class="num">Specificity</th><th class="num">Invented claims</th><th class="num">Brief coverage</th><th class="num">Loops</th><th class="num">Words</th></tr></thead>
+    <tbody>
+      <tr><td>Qwen3-8B, prompt (Episode 2)</td><td class="num">−0.54</td><td class="num">0.017</td><td class="num">16.7%</td><td class="num">0.75</td><td class="num">2%</td><td class="num">115</td></tr>
+      <tr><td>SFT, raw samples</td><td class="num">−0.03</td><td class="num">0.015</td><td class="num">40.8%</td><td class="num">0.72</td><td class="num">0%</td><td class="num">108</td></tr>
+      <tr><td>SFT, edit pairs</td><td class="num">−0.02</td><td class="num">0.021</td><td class="num">38.3%</td><td class="num">0.69</td><td class="num">3%</td><td class="num">107</td></tr>
+      <tr><td>SFT + DPO</td><td class="num">−0.12</td><td class="num">0.012</td><td class="num">47.5%</td><td class="num">0.70</td><td class="num">5%</td><td class="num">117</td></tr>
+      <tr><td>SFT + GRPO, dev-best (step 60)</td><td class="num">−0.64</td><td class="num">0.053</td><td class="num">36.4%</td><td class="num">0.49</td><td class="num">0%</td><td class="num">42</td></tr>
+      <tr><td>SFT + GRPO, final (step 200)</td><td class="num">−0.50</td><td class="num">0.065</td><td class="num">36.4%</td><td class="num">0.34</td><td class="num">32%</td><td class="num">119</td></tr>
+      <tr class="hl"><td>Episode 2: harness + voice vector</td><td class="num">+0.17</td><td class="num">0.077</td><td class="num">28.3%</td><td class="num">0.50</td><td class="num">29%</td><td class="num">137</td></tr>
+      <tr><td>Episode 2: Gemini in the harness</td><td class="num">+0.04</td><td class="num">0.089</td><td class="num">4.2%</td><td class="num">0.88</td><td class="num">0%</td><td class="num">137</td></tr>
+    </tbody>
+  </table></div>
+  <p>One number moved the other way: the final RL checkpoint's specificity (0.065) is the highest of any Episode 3 arm. Its off-brief musings are closer to each writer than to others; they are just not the email that was asked for. At cost, the comparison favours no training: Episode 2's harness with steering needed no training run, while this episode's training and evaluation took about $55 of GPU time and ended behind it.</p>
+
+  <h3 id="monitors" data-short="Monitors">4.6 The inside-the-model monitors did not warn early</h3>
+  <p>The plan asked whether Episode 2's assistant direction and each writer's voice vector, read off the development drafts inside Qwen3-8B, would move before an unseen ruler did. They moved with it. The assistant-direction projection rose from 160 at the start to 184 at step 20, when development voice had already fallen to −0.27; it spiked to 493 at step 60 (the 30-word drafts, likely a length effect on such short texts) and settled near 200. The voice-vector projection mirrored it. Neither was an early warning here (<a href="../results/monitors.json">results/monitors.json</a>).</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>This is the series' safety question in its plainest form. A reward for "sounds like you" built from checked parts (an authorship model that passed its checks, an honesty rule, a detector, a copy filter) was gamed within 60 steps, and gamed differently after that, and each hack was invisible to the reward and plain on rulers held out from training: LUAR, a stronger honesty checker, a loop count, brief coverage. Two of those held-out rulers (loops, coverage) were left out of the reward on purpose; adding them would close these two hacks and invite the next. The pre-registered "best checkpoint" rule picked the most degenerate model because empty drafts make no false claims. And fine-tuning on real people's writing, before any RL, taught the model to invent the specifics real people write.</p>
+  <p><strong>When training on a reward with no answer key, keep several rulers out of the reward, read the policy's drafts at every checkpoint, and judge honesty by what a draft asserts, not by a rate a blank draft can win.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <p>Seven predictions were written in the plan and pushed before training. A <em>hit</em> means the pre-registered metric crossed its threshold.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5, predictions, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th class="num">Confidence</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>SFT on public writers beats prompting the same model</td><td>&gt; +0.30</td><td class="num">65%</td><td><strong>Hit</strong>: +0.51 [+0.31, +0.73]</td></tr>
+      <tr><td>P2</td><td>The trained model uses the writer's samples</td><td>specificity vs shuffled &gt; +0.01</td><td class="num">60%</td><td><strong>Hit</strong>: +0.021 [+0.008, +0.034]</td></tr>
+      <tr><td>P3</td><td>Raw samples are the best training format</td><td>raw − notes &gt; +0.05 and raw ≥ edits</td><td class="num">50%</td><td><strong>Miss</strong>: +0.03; edits ahead by 0.005</td></tr>
+      <tr><td>P4</td><td>DPO on simulated edits adds little</td><td>&lt; +0.05</td><td class="num">55%</td><td><strong>Hit</strong>: −0.10 [−0.19, +0.00]</td></tr>
+      <tr><td>P5</td><td>RL gets gamed: reward rises while an unseen ruler worsens</td><td>both</td><td class="num">60%</td><td><strong>Hit</strong>: reward −0.46 → +1.44; 4 of 5 unseen rulers past their thresholds</td></tr>
+      <tr><td>P6</td><td>The best trained model beats Episode 2's best no-training arm honestly</td><td>&gt; 0 and within the gate</td><td class="num">30%</td><td><strong>Miss</strong>: −0.81; 36% invented claims</td></tr>
+      <tr><td>P7</td><td>The honesty proxy is gamed</td><td>unseen checker − proxy ≥ +5 points</td><td class="num">40%</td><td><strong>Hit</strong>: +35 points (47% vs 12%)</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised me: RL found a second hack after the first, in the opposite direction (from saying nothing to saying too much), and fine-tuning alone nearly doubled invention. What I'd change: put brief coverage into the reward and judge the "best checkpoint" on claims per draft, not a rate. The lesson for the guide: a selection rule that gates on a rate of bad outputs prefers a model that produces less; gate on the rate per useful output, and check what the rule picks.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>A tuned RL recipe.</strong> One reward, one set of weights, one run of 200 steps, one learning rate; a reward with brief coverage and loops in it, or a KL penalty to the SFT model, might train well. This shows what this reward pays for.</li>
+    <li><strong>A clean floor.</strong> One of the 50 floor writers was trained on (see Setup); with 49 others setting the floor, the effect on position is small but not zero.</li>
+    <li><strong>Seeds.</strong> One GRPO run (resumed once from the step-50 checkpoint with the optimizer state reset); the hacks' timing would vary.</li>
+    <li><strong>Honesty rates are lower bounds</strong> (Episode 1's check found the checker missed about half).</li>
+    <li><strong>Whether people agree.</strong> No human votes; the voice reward model holds no human preferences.</li>
+    <li><strong>Closed models.</strong> None were trained or used in this episode; the series' closed-model budget was spent.</li>
+    <li><strong>Small samples.</strong> 30 held-out writers × 4 briefs; 15 development writers × 4 briefs for the hack hunt.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh">reproduce.sh</a> lists every step; <code>reproduce.sh --dry-run</code> prints them. Training and evaluation need a Modal account (<code>modal_ep3.py</code>, and Episode 2's app for vLLM and the 32B checker); <code>drive_grpo.py</code> runs the hack hunt unattended and resumes GRPO after a crash. The analysis runs on a laptop from the scored drafts: <code>python analyze_ep3.py</code>, <code>python make_figures.py</code>, <code>python export_pages.py</code>. Episodes 1 and 2's data must be in place first.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>A reward that closes these two hacks</strong> (brief coverage, a loop penalty, a KL leash to the SFT model) and a hunt for the third.</li>
+    <li><strong>An honesty term that reads meaning</strong>: the 32B checker in the loop, with a different checker held out.</li>
+    <li><strong>Human votes</strong> on the same drafts, to see whether people agree with any of the rulers.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions readers ask</h2>
+  <h3 id="q-sft">Why did fine-tuning on real writers make the model invent more?</h3>
+  <p>The targets were real emails, which are full of specifics (a deal just closed, a phone number in the signature). The model learned that a person's email carries details like that, and on a brief with four allowed facts it supplies its own. Like an actor who studies how someone talks and starts telling that person's stories on stage.</p>
+  <h3 id="q-authorship">What does the voice reward model measure, and why did Episode 2's need fixing?</h3>
+  <p>It reads two of a writer's texts, then a candidate, and scores how likely the candidate is to be theirs. It picks the writer's own unseen email over another writer's 92% of the time. Episode 2's version was also trained on "the writer's email beats a model's draft", so it mostly learned to spot AI text; this one leaves those pairs out, and its scores barely track the AI detector (ρ −0.16).</p>
+  <h3 id="q-hack">How can a reward go up while the writing gets worse?</h3>
+  <p>The reward pays for what it measures. A one-line email ("I wanted to ask for a call next week.") has no numbers for the honesty rule to flag and reads as terse, which these writers are. Later, a long personal musing in the writer's register reads even more like them, and nothing in the reward asks whether the brief was covered. Each step was a better score, not a better email.</p>
+  <h3 id="q-steering">Why did Episode 2's steering do better than training?</h3>
+  <p>Steering added the writer's direction to a model that still had to write the email the harness asked for, with a filter on invented claims and a pick of the best of many drafts. RL had no such frame; it was free to find whatever the reward paid for. The harness's numbers are the bar training failed to reach here, not a ceiling.</p>
+  <h3 id="q-persona">Did the "assistant" direction warn of the hack?</h3>
+  <p>Episode 2 found a direction inside the model that separates its default assistant voice from human emails. Read off each checkpoint's drafts, it rose as soon as the unseen voice score fell, not before; its biggest jump came with the near-empty drafts at step 60, which may be a length effect. As an early warning it did nothing here.</p>
+  <h3 id="q-preference">What would a real preference model add?</h3>
+  <p>One trained on people's actual edits or picks would know that "I wanted to ask for a call next week." is not an email anyone would send. The simulated edits here were too light to teach that (DPO lost voice). Real, consented edits are the natural next step.</p>
+
+  <h2 id="references"><span class="num">11</span>References</h2>
+  <ul>
+    <li><a href="../../sounds-like-me/report/">Sounds Like Me, Episode 1: Can any model sound like you?</a> and <a href="../../sounds-like-me-ep2/report/">Episode 2</a>: the rulers, the comparators and the assistant direction.</li>
+    <li><a href="https://aclanthology.org/2021.emnlp-main.70/">Learning Universal Authorship Representations</a> (LUAR), EMNLP 2021: the voice ruler.</li>
+    <li><a href="https://arxiv.org/abs/2210.10760">Scaling Laws for Reward Model Overoptimization</a>, 2022: proxy rewards rise while true quality falls.</li>
+    <li><a href="https://arxiv.org/abs/2402.03300">DeepSeekMath</a>, 2024: GRPO.</li>
+    <li><a href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization</a>, 2023.</li>
+    <li><a href="https://arxiv.org/abs/2106.09685">LoRA: Low-Rank Adaptation of Large Language Models</a>, 2021.</li>
+    <li><a href="https://arxiv.org/abs/2404.15269">Aligning LLM Agents by Learning Latent Preference from User Edits</a> (PRELUDE), 2024: learning from edits.</li>
+    <li><a href="https://arxiv.org/abs/2111.09543">DeBERTaV3</a>, 2021: the voice reward model's encoder.</li>
+    <li><a href="https://arxiv.org/abs/2509.14543">Catch Me If You Can? Not Yet: LLMs Still Struggle to Imitate the Implicit Writing Styles of Everyday Authors</a>, EMNLP Findings 2025: the data splits.</li>
+    <li><a href="https://www.cs.cmu.edu/~enron/">The Enron Email Dataset</a> and <a href="https://u.cs.biu.ac.il/~koppel/BlogCorpus.htm">The Blog Authorship Corpus</a>: the voices.</li>
+  </ul>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6, data files, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/summary.json">results/summary.json</a></td><td>One row per arm (held-out): <code>position</code>, <code>position80</code>, <code>spec</code>, <code>unsupported</code> (mean and 95% interval over writers), <code>honesty_proxy</code>, <code>loop_share</code>, <code>task</code>, <code>words</code>, <code>detector</code>, <code>attr_mean_rank</code>; paired <code>contrasts</code></td></tr>
+      <tr><td><a href="../results/hack_hunt.json">results/hack_hunt.json</a></td><td>Every hack-hunt checkpoint on development writers (the same columns plus <code>train_reward</code>) and the reward curve per step</td></tr>
+      <tr><td><a href="../results/predictions.json">results/predictions.json</a></td><td>P1-P7 with metric, value, threshold and verdict</td></tr>
+      <tr><td><a href="../results/monitors.json">results/monitors.json</a></td><td>Assistant-direction and voice-vector projections per checkpoint</td></tr>
+      <tr><td><a href="../results/grpo_best.json">results/grpo_best.json</a></td><td>The dev-best rule and every checkpoint's development numbers</td></tr>
+      <tr><td><a href="../data/runs/grpo_sft_edits/log.jsonl">data/runs/grpo_sft_edits/log.jsonl</a></td><td>The GRPO log: reward and its terms, words, gradient norm and a sample draft per step</td></tr>
+      <tr><td><a href="../results.tsv">results.tsv</a></td><td>Every choice made on development writers</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="cite" data-short="How to cite">How to cite</h3>
+  <pre>Lie, A. (2026). RL for authentic writing: training on a reward you can't verify, and watching it get gamed.
+Sounds Like Me, Episode 3. steerlab.
+https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/</pre>
+</article>
+</div>
+<script src="data.js"></script>
+<script src="explorer.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
