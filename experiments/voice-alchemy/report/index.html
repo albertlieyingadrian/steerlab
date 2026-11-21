@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixing two voices inside a model: plain directions add up best, and neuron communities barely move the voice</title>
+<meta name="description" content="A pre-registered test of which unit of a model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, with a playable table of every measured mix and an explainer of how neurons work in Qwen3-8B. On Gemma-2-2B-it, directions moved all 8 voices and their pairs were closest to the sum of their parts (median additivity error 0.30); communities moved 2 of 8 and circuits none; most pairs pushed at full strength broke.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mixing two voices inside a model: plain directions add up best, and neuron communities barely move the voice">
+<meta property="og:description" content="A pre-registered test of which unit of a model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, each beside a random unit of the same shape. On Gemma-2-2B-it, directions moved all 8 voices and their pairs were closest to the sum of their parts (median additivity error 0.30 [0.26, 0.37]); SAE features moved 5, single neurons 4, communities 2 and circuits none, and most pairs pushed at full strength broke, as random pairs did. A playable table of every measured mix and an explainer of how neurons work in Qwen3-8B come with it.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two measured voice profiles of Gemma-2-2B-it, assistant-like and playful directions, and the profile when both are pushed at once (additive, error 0.17), with ticks at the sum and the first words of a real reply: &#x27;Buckle up, because we&#x27;re about to take a whirlwind tour of how airplanes defy gravity!&#x27;">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mixing two voices inside a model: plain directions add up best, and neuron communities barely move the voice">
+<meta name="twitter:description" content="A pre-registered test of which unit of a model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, each beside a random unit of the same shape. On Gemma-2-2B-it, directions moved all 8 voices and their pairs were closest to the sum of their parts (median additivity error 0.30 [0.26, 0.37]); SAE features moved 5, single neurons 4, communities 2 and circuits none, and most pairs pushed at full strength broke, as random pairs did. A playable table of every measured mix and an explainer of how neurons work in Qwen3-8B come with it.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-21">
+<meta property="article:modified_time" content="2026-11-21">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Mixing two voices inside a model: plain directions add up best, and neuron communities barely move the voice",
+ "description": "A pre-registered test of which unit of a model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, each beside a random unit of the same shape. On Gemma-2-2B-it, directions moved all 8 voices and their pairs were closest to the sum of their parts (median additivity error 0.30 [0.26, 0.37]); SAE features moved 5, single neurons 4, communities 2 and circuits none, and most pairs pushed at full strength broke, as random pairs did. A playable table of every measured mix and an explainer of how neurons work in Qwen3-8B come with it.",
+ "abstract": "Standalone note. Units in Gemma-2-2B-it through TransformerLens 4.3: difference-of-means directions, top single MLP neurons (output-column pushes), Gemma Scope layer-12 features, Louvain communities of co-firing neurons (layers 10-14), circuit-tracer transcoder circuits, and style prompts; each with a shape-matched random twin, pushed at 5 strengths relative to the residual norm. Voices (terse, formal, salesy, assistant-like, warm, playful, hedging, casual) scored by Claude Haiku 5.5, validated on 56 known-answer texts (AUROC 1.00) and re-checked by GPT-4.1-mini (mean Spearman 0.79; label agreement 47/65 on the same replies, bar 0.70, cut short by the provider's credit). Held-out 16 prompts, 9,808 replies: units moving their voice 8/8 directions, 5/8 SAE, 4/8 neurons, 2/8 communities, 0/8 circuits; median additivity error 0.30 directions (n = 28), 0.43 SAE (10), 0.52 neurons (6), 1 community pair; 16/28 direction pairs break, random pairs break as often; |cosine| does not predict the mix (rho -0.02 over 116 pairs). Neuronpedia labels disagree with measured effects (a 'currency and financial matters' feature is the casual/playful unit). Qwen3-8B units (Qwen-Scope SAE, neurons, communities) found with the same code explain how neurons work; its steering was not judged because no available judge passed the known-answer bars. Predictions 2/5 hit.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-21",
+ "dateModified": "2026-11-21",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "activation steering, neuron communities, sparse autoencoders, polysemanticity, composition, TransformerLens, Gemma-2-2B, Qwen3-8B, Gemma Scope, Qwen-Scope, circuit tracing, mechanistic interpretability, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://alchemist.christianyun.com/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://neuronary.org"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.goodfire.com/research/neuron-communities"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2408.05147"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://transformer-circuits.pub/2025/attribution-graphs/methods.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/safety-research/circuit-tracer"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/TransformerLensOrg/TransformerLens"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://transformer-circuits.pub/2022/toy_model/index.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06681"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  #alchemy { margin: 1.25rem 0 2rem; font-family: var(--font-body); }
+  .va-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .6rem; }
+  .va-tab { font: 600 .82rem var(--font-display); padding: .38rem .7rem; border: 1px solid var(--rule); border-radius: 999px;
+            background: var(--canvas); color: var(--ink); cursor: pointer; }
+  .va-tab[aria-selected="true"] { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .va-desc { margin: .2rem 0 .1rem; color: var(--ink-soft); font-size: .95rem; }
+  .va-muted { color: var(--ink-soft); font-size: .86rem; margin: .35rem 0; }
+  .va-controls { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin: .6rem 0 .9rem; }
+  .va-pk { display: flex; flex-direction: column; gap: .15rem; min-width: 0; max-width: 100%; }
+  .va-pk span { font-family: var(--font-mono); font-size: .66rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); }
+  .va-pk select { font: inherit; font-size: .88rem; color: var(--ink); background: var(--canvas); border: 1px solid var(--rule);
+                  border-radius: 4px; padding: .28rem .35rem; max-width: min(24rem, 100%); }
+  .va-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: .75rem; }
+  .va-card { border: 1px solid var(--rule); border-radius: 8px; padding: .7rem .75rem .65rem; background: var(--canvas); min-width: 0; }
+  .va-card.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .va-card header { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+  .va-card h4 { margin: 0; font: 700 1rem var(--font-display); }
+  .va-s { font-family: var(--font-mono); font-size: .7rem; color: var(--ink-soft); }
+  .va-what, .va-np { margin: .2rem 0 .35rem; font-size: .8rem; color: var(--ink-soft); line-height: 1.35; }
+  .va-np q { font-style: italic; }
+  .va-bars { display: grid; gap: 2px; margin: .3rem 0; }
+  .va-row { display: grid; grid-template-columns: 6.6rem 1fr 2.6rem; align-items: center; gap: .35rem; font-size: .76rem; }
+  .va-t { color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .va-row.own .va-t { color: var(--ink); font-weight: 600; }
+  .va-legend { margin-top: -.4rem; }
+  .va-v { font-family: var(--font-mono); font-size: .7rem; text-align: right; color: var(--ink); }
+  .va-track { position: relative; height: .7rem; background: var(--panel); border-radius: 2px; }
+  .va-zero { position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: var(--ink-faint); }
+  .va-bar { position: absolute; top: 1px; bottom: 1px; background: var(--accent); border-radius: 2px; }
+  .va-bar.neg { background: var(--accent-soft); outline: 1px solid var(--accent); outline-offset: -1px; }
+  .va-pred { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ink); }
+  .va-stats { display: flex; flex-wrap: wrap; gap: .25rem .7rem; margin: .35rem 0; font-family: var(--font-mono); font-size: .68rem; color: var(--ink-soft); }
+  .warn { color: var(--accent-text); font-weight: 600; }
+  .va-actions { display: flex; gap: .4rem; margin-top: .35rem; }
+  .va-btn { font: 600 .78rem var(--font-display); padding: .3rem .6rem; border-radius: 4px; border: 1px solid var(--accent);
+            background: var(--accent); color: #fff; cursor: pointer; }
+  .va-btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+  .va-btn[aria-pressed="true"] { background: var(--canvas); color: var(--accent-text); }
+  .va-reply { margin: .5rem 0 .2rem; padding: .5rem .65rem; border-left: 3px solid var(--accent); background: var(--panel);
+              font-size: .84rem; line-height: 1.45; white-space: pre-wrap; max-height: 16rem; overflow: auto; }
+  .va-reply.loops { border-left-color: var(--ink-faint); }
+  .va-mix { margin-top: 1rem; padding: .8rem .9rem; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+  .va-mix h4 { margin: 0 0 .4rem; font: 700 1rem var(--font-display); }
+  .va-mix .va-bars { max-width: 30rem; }
+  .va-mixhead { display: flex; flex-wrap: wrap; gap: .3rem .8rem; align-items: center; font-family: var(--font-mono); font-size: .74rem; }
+  .va-chip { font: 700 .74rem var(--font-display); text-transform: uppercase; letter-spacing: .05em; padding: .18rem .55rem;
+             border-radius: 999px; background: var(--ink); color: var(--canvas); }
+  .va-chip.additive { background: var(--accent); color: #fff; }
+  .va-chip.dominates { background: var(--accent-soft); color: var(--accent-text); }
+  .va-chip.interferes { background: var(--ink-faint); color: #fff; }
+  .va-chip.emergent { background: #8c6bb1; color: #fff; }
+  table.num td.n, table.num th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .neuron-math { font-family: var(--font-mono); font-size: .86rem; background: var(--panel); padding: .7rem .9rem; border-radius: 6px; overflow-x: auto; }
+  figure.demo video, figure.demo img { width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time></p>
+  <h1>Mixing two voices inside a model: plain directions add up best, and neuron communities barely move the voice</h1>
+  <p class="dek ruled">Push one unit of a language model on every word and its writing voice changes; push two at once and you get a mix. Which kind of unit gives a mix you could have predicted from its parts? Across 9,808 judged replies from Gemma-2-2B-it, plain steering directions moved all eight voices and their pairs came closest to the sum; single neurons and SAE features moved half the voices, neuron communities two, attribution-graph circuits none, and most pairs pushed at full strength broke. A playable table of every measured mix, and a walk through how neurons work in Qwen3-8B, come with it.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="va-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Two measured voice profiles of Gemma-2-2B-it, assistant-like and playful directions, and the profile when both are pushed at once (additive, additivity error 0.17), with the first words of a real reply: &#x27;Buckle up, because we&#x27;re about to take a whirlwind tour of how airplanes defy gravity! Here&#x27;s the lowdown on how these metal …&#x27;" style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">STEERING · VOICE ALCHEMY</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">GEMMA-2-2B-IT · TRANSFORMERLENS</text><text x="20" y="62" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800">Push two voices at once. Do they add up?</text><rect x="20" y="92" width="196" height="236" rx="10" fill="#fff" stroke="#e3dbd0" stroke-width="1.5"/><text x="34" y="116" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:700" letter-spacing="0.05em">ASSISTANT-LIKE</text><text x="34" y="142" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">terse</text><path d="M133.7,130 V146" stroke="#e3dbd0" stroke-width="1"/><rect x="133.7" y="132" width="5.5" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="34" y="165" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">formal</text><path d="M133.7,153 V169" stroke="#e3dbd0" stroke-width="1"/><rect x="133.1" y="155" width="0.6" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="34" y="188" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">salesy</text><path d="M133.7,176 V192" stroke="#e3dbd0" stroke-width="1"/><rect x="132.6" y="178" width="1.1" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="34" y="211" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">assistant-like</text><path d="M133.7,199 V215" stroke="#e3dbd0" stroke-width="1"/><rect x="133.7" y="201" width="18.2" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="34" y="234" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">warm</text><path d="M133.7,222 V238" stroke="#e3dbd0" stroke-width="1"/><rect x="133.1" y="224" width="0.6" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="34" y="257" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">playful</text><path d="M133.7,245 V261" stroke="#e3dbd0" stroke-width="1"/><rect x="133.7" y="247" width="2.2" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="34" y="280" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">hedging</text><path d="M133.7,268 V284" stroke="#e3dbd0" stroke-width="1"/><rect x="132.0" y="270" width="1.7" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="34" y="303" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">casual</text><path d="M133.7,291 V307" stroke="#e3dbd0" stroke-width="1"/><rect x="132.0" y="293" width="1.7" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="232" y="220" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:30px;font-weight:800" text-anchor="middle">+</text><rect x="248" y="92" width="196" height="236" rx="10" fill="#fff" stroke="#e3dbd0" stroke-width="1.5"/><text x="262" y="116" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:700" letter-spacing="0.05em">PLAYFUL</text><text x="262" y="142" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">terse</text><path d="M361.7,130 V146" stroke="#e3dbd0" stroke-width="1"/><rect x="361.7" y="132" width="0.6" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="262" y="165" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">formal</text><path d="M361.7,153 V169" stroke="#e3dbd0" stroke-width="1"/><rect x="325.3" y="155" width="36.4" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="262" y="188" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">salesy</text><path d="M361.7,176 V192" stroke="#e3dbd0" stroke-width="1"/><rect x="361.7" y="178" width="17.1" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="262" y="211" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">assistant-like</text><path d="M361.7,199 V215" stroke="#e3dbd0" stroke-width="1"/><rect x="357.3" y="201" width="4.4" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="262" y="234" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">warm</text><path d="M361.7,222 V238" stroke="#e3dbd0" stroke-width="1"/><rect x="361.7" y="224" width="21.5" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="262" y="257" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">playful</text><path d="M361.7,245 V261" stroke="#e3dbd0" stroke-width="1"/><rect x="361.7" y="247" width="60.6" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="262" y="280" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">hedging</text><path d="M361.7,268 V284" stroke="#e3dbd0" stroke-width="1"/><rect x="358.9" y="270" width="2.8" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><text x="262" y="303" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">casual</text><path d="M361.7,291 V307" stroke="#e3dbd0" stroke-width="1"/><rect x="361.7" y="293" width="56.8" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="468" y="214" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:30px;font-weight:800" text-anchor="middle">→</text><rect x="490" y="92" width="196" height="236" rx="10" fill="#fff" stroke="#e3dbd0" stroke-width="1.5"/><text x="504" y="116" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:700" letter-spacing="0.05em">BOTH PUSHED</text><text x="504" y="142" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">terse</text><path d="M603.7,130 V146" stroke="#e3dbd0" stroke-width="1"/><rect x="602.0" y="132" width="1.7" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><path d="M609.7,129 V147" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="165" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">formal</text><path d="M603.7,153 V169" stroke="#e3dbd0" stroke-width="1"/><rect x="566.7" y="155" width="36.9" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><path d="M566.7,152 V170" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="188" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">salesy</text><path d="M603.7,176 V192" stroke="#e3dbd0" stroke-width="1"/><rect x="603.7" y="178" width="29.2" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><path d="M619.7,175 V193" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="211" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">assistant-like</text><path d="M603.7,199 V215" stroke="#e3dbd0" stroke-width="1"/><rect x="603.7" y="201" width="12.7" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><path d="M617.5,198 V216" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="234" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">warm</text><path d="M603.7,222 V238" stroke="#e3dbd0" stroke-width="1"/><rect x="603.7" y="224" width="11.0" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><path d="M624.6,221 V239" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="257" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700">playful</text><path d="M603.7,245 V261" stroke="#e3dbd0" stroke-width="1"/><rect x="603.7" y="247" width="64.5" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><path d="M666.5,244 V262" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="280" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">hedging</text><path d="M603.7,268 V284" stroke="#e3dbd0" stroke-width="1"/><rect x="600.4" y="270" width="3.3" height="12" rx="2" fill="#f2c9ab" stroke="none" stroke-width="1"/><path d="M599.3,267 V285" stroke="#1d1a17" stroke-width="2.2"/><text x="504" y="303" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:500">casual</text><path d="M603.7,291 V307" stroke="#e3dbd0" stroke-width="1"/><rect x="603.7" y="293" width="50.7" height="12" rx="2" fill="#d26f2a" stroke="none" stroke-width="1"/><path d="M658.8,290 V308" stroke="#1d1a17" stroke-width="2.2"/><rect x="700" y="92" width="160" height="30" rx="15" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="780" y="112" fill="#fff" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;font-weight:800" text-anchor="middle" letter-spacing="0.04em">ADDITIVE · E 0.17</text><rect x="700" y="134" width="160" height="194" rx="10" fill="#fff" stroke="#d26f2a" stroke-width="2"/><text x="712" y="156" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:700" letter-spacing="0.06em">REAL REPLY</text><text x="712" y="178" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">Buckle up, because</text><text x="712" y="195" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">we&#x27;re about to take a</text><text x="712" y="212" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">whirlwind tour of how</text><text x="712" y="229" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">airplanes defy</text><text x="712" y="246" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">gravity! Here&#x27;s the</text><text x="712" y="263" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">lowdown on how these</text><text x="712" y="280" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">metal …</text><text x="20" y="358" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:500">Bars: change in each voice (judge points vs the unsteered model). Ticks: the sum of the two singles.</text><text x="20" y="384" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:400">Plain directions added up best of five unit types; single neurons, SAE features and neuron</text><text x="20" y="405" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:400">communities moved fewer voices, and most pairs pushed at full strength broke.</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">DIFFERENCE-OF-MEANS DIRECTIONS AT LAYER 12 · 16 HELD-OUT PROMPTS PER BAR · REPLY TO “EXPLAIN HOW AN AIRPLANE STAYS IN THE AIR.”, UNEDITED</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: the measured voice profiles of Gemma-2-2B-it's assistant-like and playful directions (judge points against the unsteered model, 16 held-out prompts), what pushing both at once did (ticks mark the sum of the two), and the first words of a real, unedited reply to a held-out question (<code>results/analysis_heldout.json</code>). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Standalone note</dd></div>
+    <div><dt>Models</dt><dd>Gemma-2-2B-it (the judged study) and Qwen3-8B (the neuron explainer), both through TransformerLens 4.3; Gemma Scope and Qwen-Scope SAEs</dd></div>
+    <div><dt>Method</dt><dd>Pre-registered pushes of six kinds of unit, alone and in pairs, against shape-matched random units; voices scored by a judge checked on known answers and re-checked by a second model family</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/voice-alchemy/</a> · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/analysis_heldout.json">results/analysis_heldout.json</a> and every reply, listed in <a href="#appendix">the appendix</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>When two units inside a model are pushed at once, which kind of unit gives a voice you could have predicted from the two alone?</strong></p>
+    <p>The plainest one. On Gemma-2-2B-it, a difference-of-means direction per voice moved all 8 writing voices (terse, formal, salesy, assistant-like, warm, playful, hedging, casual) by at least a point on a 0-10 judge scale, where random directions of the same size moved them by 0.1 on average. Pushed in pairs, the directions' mix was closest to the sum of the two single effects: median additivity error 0.30 [0.26, 0.37] over 28 pairs, where 0 means exactly the sum. SAE features moved 5 of 8 voices (error 0.43 over 10 scorable pairs), single neurons 4 of 8 (0.52 over 6), neuron communities 2 of 8 (one scorable pair) and attribution-graph circuits none. At the strengths where single units worked best, 16 of 28 direction pairs broke into loops, and random pairs at the same strengths broke as often: a mix fails mostly because the total push is too big. The cosine between two pushes did not predict how well they mixed.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Which units move a voice at all? (≥ 1 point on the voice they were chosen for, 16 held-out prompts)</td><td><strong>Directions 8/8</strong> [0.68, 1.00], SAE features 5/8, single neurons 4/8, neuron communities <strong>2/8</strong> [0.07, 0.59], circuits <strong>0/8</strong> [0.00, 0.32]</td><td>Shape-matched random units: mean −0.14 to +0.09 points; prompting moves all 8 by +6.1 on average</td></tr>
+          <tr class="hl"><td>Which units compose most predictably?</td><td><strong>Directions:</strong> median additivity error 0.30 [0.26, 0.37], n = 28; the sum of the singles explains 73% of the pairs' profiles</td><td>SAE 0.43 [0.32, 0.65], n = 10; neurons 0.52 [0.34, 0.56], n = 6; communities n = 1; prompting 0.33 [0.28, 0.40]</td></tr>
+          <tr><td>What happens to a pair pushed at full strength?</td><td><strong>Most break:</strong> 16 of 28 direction pairs loop or lose coherence (coherence 7.1 alone, 4.1 together); 5 add up, 7 have one voice win</td><td>Random pairs at the same strengths: 5 of 7 break for neurons and SAE features, 4 of 7 for communities</td></tr>
+          <tr><td>Is a unit one voice?</td><td><strong>No; measured profiles are broad:</strong> the salesy direction's biggest effect is playful (+3.8, against +2.0 salesy); one SAE feature, labelled “phrases related to currency and financial matters”, is the unit chosen for both casual and playful</td><td>Directions move 3.3 voices by ≥ 1.5 points on average, single neurons 1.4, communities 0.4</td></tr>
+          <tr><td>Does geometry predict the mix?</td><td><strong>No:</strong> Spearman between the two pushes' |cosine| and the additivity error −0.02 over all 116 steered pairs (−0.10 over the 45 scorable ones)</td><td>Pre-registered prediction: ≥ 0.30</td></tr>
+          <tr><td>Can the judge be trusted?</td><td>Both judges ranked all 8 voices perfectly on known answers (AUROC 1.00); a second model family agreed on real replies at mean Spearman 0.79, and on the mix labels for <strong>47 of 65 steering pairs (0.72; bar 0.70)</strong>, scored on the same replies; billing cut the check short of the other 51 pairs</td><td>Pass bars written before any judging</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <figure class="demo" id="demo">
+    <video controls muted playsinline preload="none" poster="media/demo-still.png" width="960" height="600">
+      <source src="media/demo.mp4" type="video/mp4">
+      <img src="media/demo.gif" alt="Screen recording of the alchemy table: picking the assistant-like and playful direction cards, reading their profiles, mixing them, and reading the additive outcome and a real reply." width="960" height="600">
+    </video>
+    <figcaption>Demo (no sound): the alchemy table in section 5.1. Pick a card to see its measured profile and a real reply, pick a second card of the same kind, and read what pushing both did. Every number and reply is precomputed from the held-out run. <a href="media/demo.gif">Animated GIF</a> · <a href="media/demo-still.png">still</a>.</figcaption>
+  </figure>
+
+  <aside class="bg-note" id="units-101" aria-labelledby="units-label">
+    <p class="label" id="units-label">Background · 101: neuron, community, SAE feature, circuit</p>
+    <p>One analogy throughout: the model is a kitchen passing a dish down a line of cooks, one per layer. The dish is the <em>residual stream</em>, a list of a few thousand numbers per word that every layer reads and adds to. Pushing a unit means adding a little more of one ingredient on every word.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Unit</th><th>What it is</th><th>Analogy</th><th>Here</th></tr></thead>
+      <tbody>
+        <tr><td>Single neuron</td><td>One number inside one layer's MLP; it reads the stream and, when it fires, writes a fixed vector back</td><td>One spice jar</td><td>The neuron that fires most differently in a voice</td></tr>
+        <tr><td>Neuron community</td><td>A group of neurons that tend to fire together, found by clustering (<a href="https://www.goodfire.com/research/neuron-communities">Discovering neuron communities</a>)</td><td>A spice blend kept in one jar</td><td>Louvain clusters of voice-related neurons across 5 layers, 3-60 neurons each</td></tr>
+        <tr><td>SAE feature</td><td>One direction learned by a sparse autoencoder, a model trained to rewrite activations as a few readable parts (<a href="https://arxiv.org/abs/2408.05147">Gemma Scope</a>; Qwen-Scope for Qwen)</td><td>A labelled ingredient from a catalogue</td><td>16,384 features at one layer (Gemma); 65,536 (Qwen)</td></tr>
+        <tr><td>Circuit</td><td>The handful of transcoder features an attribution graph credits for an output (<a href="https://transformer-circuits.pub/2025/attribution-graphs/methods.html">Circuit Tracing</a>)</td><td>The recipe steps a food critic says made the taste</td><td>20 features per voice, from 4 graphs each</td></tr>
+        <tr><td>Direction (baseline)</td><td>The average activation on replies in a voice minus on plain replies (<a href="https://arxiv.org/abs/2312.06681">Contrastive Activation Addition</a>)</td><td>Tasting two dishes and adding the difference</td><td>One layer</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p><strong>Polysemanticity</strong>, in plain words: a model holds far more ideas than it has neurons, so most neurons take part in several unrelated ideas at once, the way one key on a keyboard is used in many words (<a href="https://transformer-circuits.pub/2022/toy_model/index.html">Toy Models of Superposition</a>). That is why a neuron people call “the cat neuron” can make a model bark. Communities, SAE features and circuits are three attempts to find units that mean one thing. Section 2 shows this inside Qwen3-8B with real numbers.</p>
+  </aside>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Gemma Scope's feature 7,903 in layer 12 of Gemma-2-2B has a public label: “phrases and terms related to currency and financial matters”. Push it while Gemma-2-2B-it describes a rainy afternoon in a café and the reply says nothing about money: “The barista, *Barnaby* (with a beard and a beanie) was brewing up some coffee to get the caffeine fix in your face.” The judge scored that reply 7 out of 10 for casual and 6 for playful, against 1 and 1 for the plain model. Of 16,384 features, this one moved the casual voice most on our development prompts, and it moved the playful voice almost as much.</p>
+  <p><strong>What is known.</strong> <a href="https://alchemist.christianyun.com/">Neuron Alchemist</a>, a web game over Qwen3.5-4B, pushes one MLP neuron on every word to give the model a character, drags two together to push both, and asks a judge whether both characters come through; its labels are crowd guesses, and some are wrong. <a href="https://neuronary.org">neuronary.org</a> collects hundreds more such neuron finds. Separately, <a href="https://www.goodfire.com/research/neuron-communities">Discovering neuron communities</a> grouped neurons that work together, and our <a href="../../neuron-communities/report/">neuron-communities note</a> found that some of those groups can steer a model's topic.</p>
+  <p><strong>What is missing.</strong> No one has compared kinds of unit on the same task: whether a neuron, a group of neurons, an SAE feature or a circuit gives a mix you could predict, measured against random units of the same shape, with loops counted and the judge checked.</p>
+  <p class="question-callout">Which unit of a model composes most predictably: when two are pushed at once, does the voice come out as the sum of the two?</p>
+  <p><strong>What this note does.</strong> It labels every unit by a measured personality profile instead of a word, then mixes them. Its contributions:</p>
+  <ol>
+    <li>A plain walk through how a neuron works in Qwen3-8B, with real neurons, a real community and a real Qwen-Scope feature (section 2).</li>
+    <li>A measured profile for 48 units of six kinds (8 voices each) in Gemma-2-2B-it, at 5 strengths, on 16 held-out prompts, each beside a random unit of the same shape.</li>
+    <li>A comparison of how predictably each kind composes, over 116 pairs, with a pre-registered score and four labels (additive, dominates, interferes, emergent) plus a “breaks” check, and a playable, precomputed table of every card and pair (section 5.1).</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Written in the plan before any confirmatory run:</p>
+  <ol>
+    <li><strong>A unit moves a voice</strong> when its effect on the voice it was chosen for is at least 1 judge point at its chosen strength; it is <strong>specific</strong> when it beats its random twin by at least 2 points.</li>
+    <li><strong>A kind of unit composes predictably</strong> when its pairs' measured profiles sit close to the sum of the two single profiles (low additivity error E), over pairs where both singles move their own voice.</li>
+    <li><strong>Every claim holds on 16 prompts that played no part in choosing anything</strong>, with loop share, coherence and honesty reported beside it.</li>
+  </ol>
+
+  <h2 id="qwen-neurons" data-short="How neurons work in Qwen"><span class="num">02</span>How neurons work, inside Qwen3-8B</h2>
+  <p>The game's units are easiest to understand in one real model. Qwen3-8B, an earlier member of the family behind Neuron Alchemist's Qwen3.5-4B, has 36 layers. Each word is represented by a residual stream of 4,096 numbers, and each layer's MLP holds 12,288 neurons: 442,368 in all. Everything below was measured on Qwen3-8B through TransformerLens, on 360 replies (40 everyday questions, answered plainly and in each of the eight voices).</p>
+
+  <h3 id="q-read-write" data-short="Read, then write">2.1 A neuron reads the stream, then writes a fixed vector back</h3>
+  <p>A Qwen neuron has three weight vectors of 4,096 numbers each. Two read the residual stream: a <em>gate</em> decides how far the neuron opens, and an <em>up</em> vector decides by how much and with what sign. Their product is the neuron's activation. The third, its <em>output column</em>, is what it writes back into the stream, scaled by that activation. A toy with 3 numbers instead of 4,096:</p>
+  <pre class="neuron-math">stream x       = [1.0, 0.0, 2.0]
+gate · x       = 0.5·1 + 0·0 + 0.5·2 = 1.5      → SiLU(1.5) = 1.23   (how open)
+up · x         = 1·1 + 1·0 + 0·2     = 1.0                         (how much)
+activation     = 1.23 × 1.0 = 1.23
+writes back    = 1.23 × [0.2, −0.1, 0.4] = [0.25, −0.12, 0.49]  → added to x</pre>
+  <p>“Pushing a neuron”, in the game and in this note, means adding more of its output column on every word, as if it fired harder. A neuron writes the same direction every time it fires; only the amount changes. Qwen adds the MLP's output straight to the stream, so a push along the output column is exactly what a harder-firing neuron does. (Gemma-2 rescales each MLP's output first, so there a push adds the column times that scale.)</p>
+
+  <h3 id="q-poly" data-short="One neuron, many voices">2.2 One neuron takes part in many voices</h3>
+  <p>To find a voice's neuron, we compared each neuron's average activation on replies in the voice with plain replies (Cohen's <em>d</em>: the difference in units of spread). In layer 13 of Qwen3-8B, neuron 10,880 fires most differently on playful replies (<em>d</em> = 4.4), and it is also the neuron chosen for salesy. Neuron 7,657 appears among the top three for warm, playful and casual. Read off its output column, the words neuron 10,880 most pushes Qwen toward are “驹”, “放松”, “放宽”, “avored”, “ Avalanche” and “ centered”: fragments of Chinese, English and code with no common theme. One neuron, many jobs: that is polysemanticity, and it is why every card in the table shows a measured profile over eight voices rather than a name.</p>
+
+  <h3 id="q-community" data-short="Communities">2.3 A community is neurons that fire together</h3>
+  <p>Take the 40 most voice-related neurons for each voice in layers 11 to 15, 265 in all, and link two neurons whenever their activations rise and fall together across 52,095 words of replies (correlation at least 0.2). A clustering method (Louvain) splits that graph into groups that are linked more inside than outside; in layer 13's window it found 6 communities of 3 to 26 neurons. The playful community has 26 members whose firing rises with playful text by <em>d</em> = 1.1 on average: a weaker signal than any one neuron's, spread over more of them.</p>
+
+  <h3 id="q-sae" data-short="SAE features">2.4 An SAE feature is a cleaner direction, learned separately</h3>
+  <p>A sparse autoencoder rewrites each 4,096-number stream as a mix of a few features out of a large dictionary. Qwen-Scope's layer-13 SAE has 65,536 features, and exactly 50 are switched on for any word. Feature 30,807 rises most on playful and on casual replies (<em>d</em> = 4.0 and 4.4), and the words it pushes toward are readable: “ stuff”, “ guys”, “ gotta”, “ folks”, “ Yeah”. The difference-of-means direction for casual points the same way (“ guys”, “ stuff”, “ gotta”, “ folks”, “ gonna”, “ darn”). Section 5 tests whether readable units like this also steer and mix more predictably than neurons do.</p>
+  <p><strong>What this section does not show.</strong> These are measured activations and weights in Qwen3-8B; the steering and mixing results in section 5 come from Gemma-2-2B-it, where the judging ran (section 3.1 explains why).</p>
+
+  <h2 id="setup"><span class="num">03</span>Setup</h2>
+  <h3 id="model" data-short="Models">3.1 Models, and why the judged study is on Gemma</h3>
+  <p>The study was pre-registered on Gemma-2-2B-it (26 layers, 2,304-wide stream, 9,216 MLP neurons per layer), through TransformerLens 4.3's <code>TransformerBridge</code>, in bfloat16 on one H100, because TransformerLens verifies it and it has public SAEs (Gemma Scope) and transcoders for circuit tracing; a smoke test confirmed a zero push leaves greedy replies unchanged. Qwen3-8B, the model of section 2, was added after the Gemma run: TransformerLens runs it, Qwen-Scope gives it SAEs, and its units were found with the same code. Its replies were not judged: every judging service the study used refused payment partway through the work, and none of four open models run on our own GPUs passed the pre-registered known-answer bars (Llama-3.3-70B, for example, ranked every voice perfectly but compressed terse and formal to gaps of 2.1 and 2.5 points against a 3-point bar).</p>
+
+  <h3 id="units" data-short="Units and pushes">3.2 Six kinds of unit, one push</h3>
+  <p>Every unit becomes a push: a vector added to the residual stream at every word of the question and the reply, at the layer or layers it lives in. A push's <strong>strength s</strong> is its size relative to the residual stream: <em>s</em> = 0.3 adds 30% of the stream's typical length. All units and their random twins are compared at the same strengths, {0.3, 0.45, 0.6, 0.9, 1.8}. Units were found on 40 prompts (set F) answered by the model in each voice (“Write your answer in a style that is very terse…”), with activations read on the replies after the plain question:</p>
+  <ul>
+    <li><strong>Direction</strong> (baseline): mean layer-12 activation on replies in the voice minus on plain replies.</li>
+    <li><strong>Single neuron:</strong> the layer-12 neuron whose activation differs most between the two, in either direction (largest |<em>d</em>|, Cohen's <em>d</em>); the push follows the sign, so a neuron that fires less in the voice is pushed down. Best of the top 3 on development prompts.</li>
+    <li><strong>SAE feature:</strong> the Gemma Scope layer-12 feature (16k, the L0 closest to 100) that rises most in the voice, ranked by Cohen's <em>d</em>; best of 3.</li>
+    <li><strong>Neuron community:</strong> the 40 most voice-related neurons per voice in layers 10-14 (275 in all), linked when their activations correlate at r ≥ 0.2 over 49,680 reply words, split by Louvain clustering into 11 groups of 3 to 33. A voice's community is the group whose members fire most differently in that voice; its push adds each member's output vector, weighted by how much more it fires. Best of 3.</li>
+    <li><strong>Circuit:</strong> circuit-tracer attribution graphs (Gemma Scope transcoders) on 4 set-F prompts per voice, with the voice's direction at the last layer as the target; the 20 features most specific to that voice (credit on its target minus the mean credit on the other seven) form the circuit.</li>
+    <li><strong>Prompt</strong> (baseline): the style instruction itself; a pair is both instructions.</li>
+  </ul>
+  <p>Each real unit has a <strong>random twin</strong> of the same shape: a random neuron in the same layer, a random group with the same layers and weights, a random live SAE feature, a random direction, or random transcoder features with the same layers and weights.</p>
+
+  <h3 id="measures" data-short="Measures">3.3 Voices, the judge, and the composition score</h3>
+  <ul>
+    <li><strong>The eight voices:</strong> terse, formal, salesy, assistant-like, warm, playful, hedging, casual, each with a one-line definition used both to make set F and in the judge's rubric.</li>
+    <li><strong>The judge:</strong> Claude Haiku 5.5 reads one reply and scores one voice from 0 (not at all) to 10 (extreme), one call per voice, plus <strong>coherence</strong> (0 = word salad or endless repetition) and <strong>honesty</strong> (does it answer without made-up claims?). Second model family: GPT-4.1-mini.</li>
+    <li><strong>Profile</strong> of a unit at strength <em>s</em>: per voice, the mean judge score over the 16 held-out prompts minus the plain model's score on the same prompts, with a 95% bootstrap interval.</li>
+    <li><strong>Loop:</strong> a reply loops when more than 20% of its 4-word phrases repeat an earlier one; <strong>loop share</strong> is the fraction of replies that loop. It is counted in code, beside every result, because a judge or a fluency score can pass looping text.</li>
+    <li><strong>Additivity error E</strong> of a pair A + B: the distance between the pair's profile and the sum of the two single profiles, over all eight voices, divided by the sizes of the two singles. 0 means the pair is exactly the sum; 1 means it is off by as much as the two effects themselves. E is scored only on <strong>scorable pairs</strong>, where each single moves its own voice by at least 1 point.</li>
+    <li><strong>Labels</strong>, in this order: <em>breaks</em> (loop share over 20% or coherence under 4); <em>emergent</em> (a third voice rises 2+ points beyond the sum, interval above zero); <em>additive</em> (both voices keep at least half their single effect); <em>dominates</em> (one does); <em>interferes</em> (neither).</li>
+    <li><strong>Geometry:</strong> the |cosine| between the two pushes, and between their direct effects on the output words, as predictors of E.</li>
+  </ul>
+
+  <h3 id="data" data-short="Data">3.4 Data</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th>What it is</th><th class="num">Prompts</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Set F</td><td>Everyday questions, 10 each of explain, advise, describe and write-a-message, answered plainly and in each voice</td><td class="num">40</td><td>Finding units only (both models)</td></tr>
+        <tr><td>Development</td><td>2 per category</td><td class="num">8</td><td>Layer, unit, strength grid and chosen strengths (4 rounds, 7,936 replies)</td></tr>
+        <tr><td>Pilot</td><td>1 per category, fresh</td><td class="num">4</td><td>A dry run of every stage</td></tr>
+        <tr><td>Held-out</td><td>4 per category, fresh; never used to choose anything</td><td class="num">16</td><td>Every number in section 5</td></tr>
+        <tr><td>Known answers</td><td>56 texts written to a target before any judging: 4 strong per voice, 8 neutral, 8 two-voice mixes, 4 loops, 4 word salads</td><td class="num">56</td><td>Checking the judges</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Files: prompts in <a href="../va.py"><code>va.py</code></a>; known answers in <a href="../data/known_answer.json"><code>data/known_answer.json</code></a>.</p>
+
+  <h2 id="method" data-short="How it was run"><span class="num">04</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan</strong> with the design, the score and five predictions, fixed before any confirmatory run; every later change is dated, and the material ones are in the table below.</li>
+    <li><strong>Rulers:</strong> both judges scored the 56 known-answer texts on all 10 aspects (1,120 calls). Both passed every bar.</li>
+    <li><strong>Unit finding</strong> on set F: 360 replies, then units and random twins at layers 6, 9 and 12.</li>
+    <li><strong>Development</strong>, logged in a ledger (<a href="../results.tsv"><code>results.tsv</code></a>): layer 12 won (1,032 replies); unit choice and the strength grid (3,592 + 2,376); circuits and the 4 circuit pairs (936).</li>
+    <li><strong>Pilot</strong> on 4 fresh prompts (1,172 replies): every stage ran.</li>
+    <li><strong>Held-out run</strong> on 16 prompts: 9,808 replies and 61,952 judge calls.</li>
+    <li><strong>Second-family re-check</strong> on those replies, and the predictions scored.</li>
+    <li><strong>Qwen3-8B</strong>: units found with the same code (360 replies), for section 2.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading development replies (dated in the plan)</th></tr></thead>
+      <tbody>
+        <tr><td>The six unit kinds, the eight voices, the rubric, all prompt sets, the composition score E and its labels, the predictions</td><td>The strength grid grew from 4 values chosen on directions to 5 spanning every kind, after neurons and communities barely moved at s ≤ 0.6</td></tr>
+        <tr><td>Rules for choosing each unit and its strength from development data</td><td>Circuits pick features by voice-specific credit: by raw credit, all eight voices got the same hub features (overlap 0.73; now 0.15)</td></tr>
+        <tr><td>Random twins, loop measure, the judges' pass bars</td><td>Judges run through one provider; held-out singles get full profiles at three strengths, to stay in the judging budget; the second-family label check switched provider partway when the first ran out of credit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: chat template, no system prompt, greedy decoding, repetition penalty 1.0, 160 new tokens; 32 replies take about 11 s on an H100.</p>
+
+  <h2 id="results"><span class="num">05</span>Results</h2>
+
+  <h3 id="table" data-short="The alchemy table">5.1 The alchemy table</h3>
+  <p>Every card is a unit of Gemma-2-2B-it, labelled by the voice it was chosen for and shown with its measured profile on the 16 held-out prompts: orange bars are the change in each voice against the plain model. Pick two cards of the same kind to see what pushing both at once did, with the label, the additivity error, the loop share and real replies. Nothing here runs live; every number and reply was measured before publishing.</p>
+  <div id="alchemy"><noscript><p>The alchemy table needs JavaScript; the <a href="#demo">demo recording</a> above shows it. Its data is in <a href="table.js">table.js</a> and <a href="../results/analysis_heldout.json">results/analysis_heldout.json</a>.</p></noscript></div>
+
+  <h3 id="steer" data-short="Which units move a voice">5.2 Directions move every voice; communities move two, circuits none</h3>
+  <p>Figure 1 shows each unit's effect on its own voice at its chosen strength, beside its random twin. Directions moved all 8 voices by at least a point (mean +3.5) and beat their twins by 2+ points for 6 of 8. SAE features moved 5 (mean +1.7) and single neurons 4 (mean +1.6), each beating its twin for 4 of 8. Neuron communities moved 2 of 8: formal (+2.9, at the largest strength, 1.8) and terse (+1.0). Circuits moved none. The random twins averaged −0.14 to +0.09 points. Prompting, the cheap baseline, moved every voice by 3.8 to 7.8 points without breaking a reply.</p>
+  <figure>
+    <img src="figures/fig1_steer.png" alt="Dot plot of each unit's effect on its own voice at its chosen strength, by unit kind, with grey crosses for random twins. Prompt and direction dots sit between 1 and 8 points; SAE features and neurons are split around 1; communities and circuits sit near 0 with their twins." width="1680" height="720" loading="lazy">
+    <figcaption>Figure 1. Effect on the voice each unit was chosen for (judge points against the plain model, mean over 16 held-out prompts), at each unit's chosen strength; orange dots are the 8 units of a kind, grey crosses their random twins at the same strength. Dashed line: the 1-point bar for “moves a voice”.</figcaption>
+  </figure>
+  <p>The dose curves (Figure 4) show why. Directions reach +5.1 on average at <em>s</em> = 0.6 and are broken by 0.9 (coherence 0.7). Single neurons need 0.9 to reach +1.8. Communities never pass +0.7 on average, and at 1.8, where they finally break, they still have not moved their voice. Size for size, a push along neurons' output columns does far less than a push along a direction read from the residual stream.</p>
+  <figure>
+    <img src="figures/fig4_dose.png" alt="Two line charts against push strength on a log axis. Left: mean effect on the target voice; directions rise to about 5 at s 0.6 then fall; SAE peaks near 2; neurons rise slowly to about 1.8; communities and circuits stay under 0.7. Right: coherence falls from about 8 to 0 for directions and SAE by s 0.9, later for neurons and communities." width="1680" height="640" loading="lazy">
+    <figcaption>Figure 4. Mean effect on the target voice (left) and mean coherence (right) against push strength, averaged over the 8 units of each kind, 16 held-out prompts per point.</figcaption>
+  </figure>
+
+  <h3 id="profiles" data-short="Profiles beat labels">5.3 A unit is rarely one voice: the measured profile is the label</h3>
+  <p>Profiles are broad. At its chosen strength a direction moved 3.3 voices by at least 1.5 points on average, a single neuron 1.4, a community 0.4 (mostly because communities moved little at all). Voices travel in families: warm, playful and casual rise together, and formal falls whenever any of them rises. The direction built for <em>salesy</em> made replies playful first (+3.8) and salesy second (+2.0): “You're ready to conquer the stage? Let's unlock your inner orator!” The playful neuron raised casual (+3.8) as much as playful (+3.4). And a profile depends on strength: profiles at <em>s</em> = 0.3 and at 1.8 agreed at Spearman 0.42 for directions and 0.31 for neurons and SAE features.</p>
+  <p>One-word labels from activations are worse. Table 1 sets the Neuronpedia label of each chosen SAE feature beside what pushing it did.</p>
+  <div class="table-wrap">
+    <table class="num">
+      <caption>Table 1. Gemma Scope layer-12 features chosen for each voice: their public automatic label and their measured effect (16 held-out prompts, chosen strength).</caption>
+      <thead><tr><th>Chosen for</th><th>Feature</th><th>Neuronpedia label</th><th>Measured: biggest effects</th></tr></thead>
+      <tbody>
+        <tr><td>terse</td><td>1,371</td><td>distinct pieces of punctuation and sentence endings</td><td>terse +5.0, but 81% of replies loop</td></tr>
+        <tr><td>formal</td><td>9,521</td><td>terms related to statistical significance and experimental methods</td><td>formal +1.6</td></tr>
+        <tr><td>salesy</td><td>7,531</td><td>punctuation and sentence structures</td><td>playful +2.9, casual +1.9; salesy +0.4</td></tr>
+        <tr><td>assistant-like</td><td>3,399</td><td>references to code comments or documentation sections</td><td>nothing above 1.5</td></tr>
+        <tr><td>warm</td><td>8,291</td><td>words related to risk, fate, and blessings in the context of life events</td><td>warm +3.1</td></tr>
+        <tr><td>playful, casual</td><td>7,903</td><td>phrases and terms related to currency and financial matters</td><td>casual +2.2, terse +1.9, playful +1.3</td></tr>
+        <tr><td>hedging</td><td>529</td><td>probable suggestions or hypotheses implied by the text</td><td>nothing above 1.5</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="compose" data-short="Directions compose best">5.4 Directions compose most predictably, and most pairs at full strength break</h3>
+  <p>Figure 2 labels every pair; Table 2 gives the error. Directions are the only steering unit with all 28 pairs scorable, and their mixes sit closest to the sum: median additivity error 0.30 [0.26, 0.37], and the sum of the singles explains 73% of the variation in the pairs' profiles. Assistant-like plus playful, for example, kept 70% and 106% of the two single effects (E = 0.17): “Buckle up, because we're about to take a whirlwind tour of how airplanes defy gravity! Here's the lowdown on how these metal marvels stay aloft.”</p>
+  <figure>
+    <img src="figures/fig2_compose.png" alt="Stacked horizontal bars of pair labels per unit kind. Prompt: mostly emergent with some additive and dominates. Direction: 5 additive, 7 dominates, 16 breaks. SAE, neuron and community bars are mostly hatched (not scorable). Circuits: 4 not scorable." width="1680" height="680" loading="lazy">
+    <figcaption>Figure 2. Labels of every pair, by unit kind, on 16 held-out prompts (28 pairs per kind, 4 for circuits). Hatched: at least one of the two units moved its own voice by under 1 point, so the pair is not scored.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table class="num">
+      <caption>Table 2. How predictably each kind composes (scorable pairs only). E: median additivity error, 95% bootstrap interval over pairs. R²: share of the pairs' profiles explained by the sum of the singles.</caption>
+      <thead><tr><th>Unit</th><th class="n">Units that move</th><th class="n">Scorable pairs</th><th class="n">E</th><th class="n">R²</th><th>Labels (scorable)</th></tr></thead>
+      <tbody>
+        <tr><td>Prompt (baseline)</td><td class="n">8/8</td><td class="n">28</td><td class="n">0.33 [0.28, 0.40]</td><td class="n">0.49</td><td>5 additive, 4 dominates, 19 emergent</td></tr>
+        <tr class="hl"><td>Direction (baseline)</td><td class="n">8/8</td><td class="n">28</td><td class="n">0.30 [0.26, 0.37]</td><td class="n">0.73</td><td>5 additive, 7 dominates, 16 breaks</td></tr>
+        <tr><td>SAE feature</td><td class="n">5/8</td><td class="n">10</td><td class="n">0.43 [0.32, 0.65]</td><td class="n">0.72</td><td>1 dominates, 2 emergent, 7 breaks</td></tr>
+        <tr><td>Single neuron</td><td class="n">4/8</td><td class="n">6</td><td class="n">0.52 [0.34, 0.56]</td><td class="n">0.17</td><td>1 additive, 1 dominates, 1 interferes, 3 breaks</td></tr>
+        <tr><td>Neuron community</td><td class="n">2/8</td><td class="n">1</td><td class="n">0.32</td><td class="n">–</td><td>1 additive (terse + formal)</td></tr>
+        <tr><td>Circuit</td><td class="n">0/8</td><td class="n">0</td><td class="n">–</td><td class="n">–</td><td>none scorable</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The single neurons' and SAE features' intervals overlap the directions', so the order below directions rests on few pairs. What is clear is that communities, the unit this study was built around, cannot be ranked: with 2 of 8 moving their voice there is one scorable pair. Their 27 unscorable pairs read “additive” 13 times, which is why E is restricted to scorable pairs: two pushes that do nothing add up perfectly.</p>
+
+  <h3 id="push-size" data-short="Breaking is push size">5.5 A mix breaks because the total push is too big, not because of the unit</h3>
+  <p>Each unit was run at the strength where it worked best alone, so a pair pushes about twice as hard. 16 of 28 direction pairs broke: mean coherence fell from 7.1 for the singles to 4.1 for the pairs, and a third of pair replies looped. Playful plus casual, two directions pointing almost the same way (cosine 0.71), gave “Alright, picture this: First, it's like a storm cloud in here, but like, a rainbow after a glitter bomb exploded in the clouds! … a hot cocoa with a unicorn unicorn-”. The random twins, pushed in pairs at the same strengths, broke just as readily: 5 of 7 neuron pairs (loop share 0.50), 5 of 7 SAE pairs and 4 of 7 community pairs. Random direction pairs, whose strengths were smaller (0.3-0.45), broke in none of 7.</p>
+
+  <h3 id="geometry" data-short="Geometry predicts nothing">5.6 The angle between two pushes does not predict the mix</h3>
+  <p>The plan predicted that pairs whose pushes point the same way would mix worse. Figure 3 shows no such pattern: Spearman between |cosine| and E is −0.02 over all 116 steered pairs (the pre-registered set), −0.10 over the 45 scorable ones, and −0.17 using the pushes' direct effects on the output words. Directions pointing almost the same way (warm, playful and casual, cosines around 0.7) broke, but so did nearly orthogonal SAE pairs. The SAE pair playful + casual is one feature pushed twice (cosine 1.00): E = 0.81, and every reply looped.</p>
+  <figure>
+    <img src="figures/fig3_geometry.png" alt="Scatter of additivity error against absolute cosine between the two pushes, coloured by unit kind. Directions spread from cosine 0 to 0.8 with errors 0.17 to 0.54 and no trend; SAE points cluster near cosine 0 with errors 0.28 to 0.66, plus one at cosine 1 and error 0.81." width="1120" height="760" loading="lazy">
+    <figcaption>Figure 3. Additivity error E against the |cosine| between the two pushes, for the 45 scorable steered pairs (16 held-out prompts each). Spearman −0.10.</figcaption>
+  </figure>
+
+  <h3 id="judge" data-short="Checking the judge">5.7 The judge passed its checks; the label re-check passed on the pairs it reached</h3>
+  <p>Before judging any reply, both judges scored the 56 known-answer texts: each voice's strong examples above every neutral text (AUROC 1.00 for all 8 voices, gaps of 3.4 to 8.8 points), both voices of 8 of 8 two-voice mixes at 5 or more, and every loop and word salad at coherence 3 or below. On the held-out replies themselves, GPT-4.1-mini re-scored a stratified sample of 200: mean Spearman 0.79 across the 8 voices (terse lowest, 0.59), coherence 0.89. The pre-registered check on the mix labels recomputes each steering pair's label from the second judge's scores, on the same replies: they agreed on 47 of 65 pairs (0.72; bar 0.70), and on 31 of 37 scorable pairs. Agreement rises with how many of a pair's 16 replies the second judge reached (20 of 26 pairs with at least 4, 4 of 5 with at least 8). The provider ran out of credit before the other 51 pairs, so the check covers 65 of 116. A first version of this comparison gave 0.699, because it compared each judge on different replies and counted a prompting pair; the code review caught it. An open model run on our own GPU (Qwen3-32B) scored all 116 and agreed on 80 (0.69), but it failed the known-answer check on terse and formal, so it is supplementary only. Most disagreements are pairs on the line between additive and dominates, where a voice kept close to half its effect. Read the four labels as soft; E, built from scores that do agree, carries the comparison.</p>
+
+  <h3 id="prompt-floor" data-short="Prompting's third voice">5.8 Prompting's “emergent” third voice is mostly the scale's floor (post hoc)</h3>
+  <p>19 of 28 prompt pairs were labelled emergent, almost all because formality rose beyond the sum. A check added after the held-out run explains it: most voices lower formality, the plain model starts at 4.6 out of 10, and two drops of 3 cannot add to −6 on a scale that stops at 0. Clipping the predicted sum to the 0-10 scale prompt by prompt, 4 of the 19 remain emergent, and prompting's error falls from 0.33 to 0.22. For the steering units the clipped numbers barely move (directions 0.30 to 0.27). This check was not pre-registered. A second reason may add to it: the paired instruction is longer than either single one, and a longer instruction may itself read as more formal.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Steering is often described as a precise dial for model behaviour, and interpretable units as the precise version of the dial. In this test, the more interpretable the unit, the less it did: a single neuron or SAE feature moved half the voices, a community or a circuit almost none, while a direction read from two piles of examples moved all of them. When two controls were combined, the result was predictable only loosely (E around 0.3), and at working strengths it usually broke the text. A monitor or safety control that adds two steering pushes cannot assume their effects add. <strong>Before combining steering controls, measure the combination itself, with loops counted, at the strength it will run at.</strong></p>
+
+  <h2 id="predictions"><span class="num">07</span>Predictions</h2>
+  <div class="table-wrap">
+    <table class="num">
+      <thead><tr><th>#</th><th>Prediction (confidence)</th><th>Threshold</th><th class="n">Result</th><th>Hit?</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>Communities compose more predictably than single neurons (55%)</td><td>E(neuron) − E(community) &gt; 0.10</td><td class="n">+0.20</td><td>Hit</td><td>On one community pair against six neuron pairs: a hit by the rule, uninformative in substance</td></tr>
+        <tr><td>P2</td><td>SAE features compose at least as predictably as communities (50%)</td><td>E(SAE) − E(community) ≤ 0.05</td><td class="n">+0.10</td><td>Miss</td><td>Again against one community pair</td></tr>
+        <tr><td>P3</td><td>Single neurons are broader than communities (55%)</td><td>breadth difference ≥ 0.5 voices</td><td class="n">+1.0</td><td>Hit</td><td>Mostly because communities moved almost nothing</td></tr>
+        <tr><td>P4</td><td>Geometry predicts composition (45%)</td><td>Spearman(|cos|, E) ≥ 0.30, all steered pairs</td><td class="n">−0.02</td><td>Miss</td><td>No relation in 116 pairs (−0.10 over the 45 scorable)</td></tr>
+        <tr><td>P5</td><td>Single neurons are rarely specific (55%)</td><td>fewer than 4 of 8 beat their twin by 2</td><td class="n">4 of 8</td><td>Miss</td><td>Exactly at the threshold</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>What surprised me:</strong> that communities, which steer topics in Llama, barely moved a voice at any fluent strength, and that a random pair breaks as often as a real one. <strong>What I would change:</strong> compare pairs at matched total push (each at half strength), so breaking and composing are not confounded, and find communities by attribution, as the original work did, not by co-firing. <strong>Lesson for the design guide:</strong> a comparison of how units combine needs, before the run, a check that each kind of unit moves the behaviour alone; otherwise the main unit can drop out of its own comparison.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li><strong>One small model, one layer, for the judged results.</strong> Gemma-2-2B-it, units at or around layer 12. Communities and neurons might do better at other layers or in larger models. Qwen3-8B's units were found and described, not judged.</li>
+    <li><strong>Our communities are not the published ones.</strong> They are clusters of co-firing neurons among voice-related candidates, not Goodfire's attribution-based communities, which do not exist for Gemma or Qwen. Their failure here does not test that work.</li>
+    <li><strong>Gemma neuron pushes include Gemma's output scale.</strong> Gemma-2 rescales MLP outputs, so turning the activation itself up would saturate; the push adds the output column times that scale instead.</li>
+    <li><strong>The SAEs and transcoders were trained on base models</strong> and used on chat models.</li>
+    <li><strong>Pairs ran at each unit's full single strength,</strong> so breaking and composing are mixed together; matched-total pushes were not run.</li>
+    <li><strong>Few scorable pairs below directions</strong> (10 SAE, 6 neuron, 1 community), and greedy decoding: intervals come from the 16 prompts and the pairs, not from sampling.</li>
+    <li><strong>One judge does the scoring.</strong> It passed its known answers and agreed with a second family on scores (0.79) and labels (0.72), but billing cut the label check to 65 of 116 pairs.</li>
+    <li><strong>Greedy is not perfectly repeatable here.</strong> The same push and prompt, generated in a different batch, gave a different reply 70 times in 512 (bfloat16 with left padding). That noise is not in the bootstrap intervals, and it adds to every additivity error, so E's floor is above 0.</li>
+    <li><strong>The chosen strength and unit came from 8 development prompts;</strong> one choice did not hold (the terse SAE feature looped on 81% of held-out replies).</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce it"><span class="num">09</span>Reproduce it</h2>
+  <p><code>bash experiments/voice-alchemy/reproduce.sh --dry-run</code> prints every command in order; <code>--scores</code> reruns only the analysis, the table and the figures from the shipped results. GPU steps run on Modal (about $8 in all), judging calls an API (about $4.5). The circuit step needs a circuit-tracer clone (set <code>CIRCUIT_TRACER_SRC</code>); <code>VA_MODEL=qwen</code> runs the Qwen3-8B steps.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What's next</h2>
+  <ul>
+    <li>Judge the Qwen3-8B run (its units, development replies and code are ready) once a judge that passes the known-answer bars is available.</li>
+    <li>Mix pairs at matched total push (each at half its strength), to separate “breaks” from “does not add”.</li>
+    <li>Attribution-based communities in a model where the published ones exist (Llama-3.1-8B), on the same voices.</li>
+    <li>Use the measured profiles as a voice editor for the Sounds Like Me series, which found that steering away from the assistant voice raises how human a text sounds but not whose voice it is.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions readers ask"><span class="num">11</span>Questions readers ask</h2>
+  <h3 id="q-neuron">Isn't a single neuron more than one personality?</h3>
+  <p>Usually, yes. In Gemma the playful neuron raised casual (+3.8) more than playful (+3.4) and lowered formal by 3.4; in Qwen3-8B, layer-13 neuron 10,880 is the top neuron for both playful and salesy. That is why every card shows a measured profile over eight voices at five strengths instead of a name.</p>
+  <h3 id="q-communities">Why did communities fail when they steered topics in Llama?</h3>
+  <p>Only 2 of 8 moved their voice, because size for size they are weak: at <em>s</em> = 0.9 a community moved its voice by 0.7 points on average, a direction by 3.8. Our communities were found by co-firing rather than attribution, and their push is spread over five layers; their random twins were just as flat.</p>
+  <h3 id="q-prompt">Why not just use a prompt?</h3>
+  <p>A style instruction moved every voice by 6.1 points on average, never broke a reply, and its pairs composed about as predictably as directions (E 0.33, or 0.22 after the post hoc floor correction). Steering is for when the prompt is not yours to change, or when you want to see what a unit does.</p>
+  <h3 id="q-loops">Is the judge just reading loops as a voice?</h3>
+  <p>The judge scored all 8 known loops and word salads at coherence 3 or below, and loop share is counted in code beside every result. The terse SAE feature shows why both are needed: it raised terse by 5.0 points while 81% of its replies looped.</p>
+  <h3 id="q-additive">What does “additive” look like?</h3>
+  <p>Assistant-like plus playful directions kept 70% and 106% of their single effects (E = 0.17): a bulleted explainer full of exclamation marks, “Buckle up… Here's the lowdown on how these metal marvels stay aloft.”</p>
+  <h3 id="q-qwen">Why are the judged results not on Qwen?</h3>
+  <p>Qwen3-8B was added after the Gemma run, and by then every judging service had refused payment; four open models run on our GPUs ranked the voices well (AUROC up to 1.00) but none passed every pre-registered known-answer bar, so Qwen's replies were left unscored rather than scored by an unchecked judge.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data and references</h2>
+  <h3 id="files">Data files</h3>
+  <ul>
+    <li><a href="../results/analysis_heldout.json"><code>results/analysis_heldout.json</code></a>: every reported number. <code>units</code> (profile per strength with intervals, random twin, breadth, stability), <code>pairs</code> (E, labels, the three profiles, cosines, post hoc clipped numbers), <code>types</code>, <code>geometry</code>, <code>predictions</code>.</li>
+    <li><a href="../results/scored_heldout.jsonl"><code>results/scored_heldout.jsonl</code></a>: all 9,808 held-out replies, one per line: <code>rid</code>, <code>kind</code> (unsteered, prompt, single, control, pair, control_pair, control_full), <code>uids</code>, <code>traits</code>, <code>s</code>, <code>q</code>, <code>text</code>, <code>loops</code>, <code>repeat</code> (share of repeated 4-word phrases) and <code>scores</code> per judge and aspect.</li>
+    <li><a href="../results/units_meta.json"><code>results/units_meta.json</code></a>: every Gemma unit (neuron index, SAE feature, community members, top output words); circuits in <a href="../results/circuits.json"><code>results/circuits.json</code></a>. Qwen3-8B: <a href="../results/qwen3-8b/units_meta.json"><code>results/qwen3-8b/units_meta.json</code></a> and its set-F replies.</li>
+    <li><a href="../results/selection.json"><code>results/selection.json</code></a>: the unit and strength chosen per kind and voice on development data.</li>
+    <li>Judge checks: <a href="../results/ruler.json"><code>ruler.json</code></a> (every judge tried, including the open models), <a href="../results/recheck.json"><code>recheck.json</code></a>, <a href="../results/recheck_qwen.json"><code>recheck_qwen.json</code></a>.</li>
+    <li>Development rounds: <code>results/scored_dev1.jsonl</code> to <code>scored_dev4.jsonl</code> and the ledger <a href="../results.tsv"><code>results.tsv</code></a>.</li>
+  </ul>
+  <h3 id="prompts">Held-out prompts</h3>
+  <p>Explain how an airplane stays in the air · Explain how a dishwasher cleans dishes · Explain what a mortgage is · Explain why we have seasons · How do I get better at public speaking? · What should I do if my car won't start? · How can I drink more water during the day? · How do I pick a good watermelon? · Describe a rainy afternoon in a cafe · Describe a desert at sunrise · Describe an empty school hallway · Describe a garden in spring · Write a message asking a colleague to review a document · Write a note to a neighbour about a noisy party · Write a message reminding a friend about dinner on Saturday · Write a note thanking a host for a weekend stay.</p>
+  <h3 id="references">References</h3>
+  <ul>
+    <li><a href="https://alchemist.christianyun.com/">Neuron Alchemist</a>, the inspiration for mixing pushed units.</li>
+    <li><a href="https://neuronary.org">neuronary.org</a>, a collection of community neuron finds.</li>
+    <li><a href="https://www.goodfire.com/research/neuron-communities">Discovering neuron communities</a>.</li>
+    <li><a href="https://arxiv.org/abs/2408.05147">Gemma Scope: Open Sparse Autoencoders Everywhere All At Once on Gemma 2</a>.</li>
+    <li><a href="https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50">Qwen-Scope residual SAEs for Qwen3-8B</a>.</li>
+    <li><a href="https://arxiv.org/abs/2408.00118">Gemma 2: Improving Open Language Models at a Practical Size</a> and <a href="https://arxiv.org/abs/2505.09388">Qwen3 Technical Report</a>.</li>
+    <li><a href="https://transformer-circuits.pub/2025/attribution-graphs/methods.html">Circuit Tracing: Revealing Computational Graphs in Language Models</a> and the <a href="https://github.com/safety-research/circuit-tracer">circuit-tracer</a> library.</li>
+    <li><a href="https://github.com/TransformerLensOrg/TransformerLens">TransformerLens</a>.</li>
+    <li><a href="https://transformer-circuits.pub/2022/toy_model/index.html">Toy Models of Superposition</a>.</li>
+    <li><a href="https://arxiv.org/abs/2312.06681">Steering Llama 2 via Contrastive Activation Addition</a>.</li>
+    <li><a href="https://www.neuronpedia.org">Neuronpedia</a>, for the feature labels in Table 1.</li>
+    <li>Our notes: <a href="../../neuron-communities/report/">neuron communities</a>, <a href="../../layer-explorer/report/">layer explorer</a>, <a href="../../golden-gate/report/">Golden Gate</a>, <a href="../../sounds-like-me-ep2/report/">Sounds Like Me, Episode 2</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026voicealchemy,
+  author = {Albert Lie},
+  title  = {Mixing two voices inside a model: plain directions add up best, and neuron communities barely move the voice},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/}
+}</code></pre>
+  <footer class="note">Pre-registered; the plan, its predictions and every dated amendment are in the repository.</footer>
+</article>
+</div>
+<script src="table.js"></script>
+<script src="alchemy.js"></script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
