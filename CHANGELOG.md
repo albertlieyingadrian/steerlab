@@ -5,6 +5,10 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- Research note `experiments/voice-alchemy/`: Qwen3-8B is now the main judged model (after the judge budget was restored), with Gemma-2-2B-it as the cross-model check under the same judge. In Qwen3-8B, directions move 7 of 8 voices (pairs 0.41 off their sum), SAE features 5, communities 3, single neurons 1, circuits none; new title, two-model figures and alchemy table, new cover and demo.
+
 ### Added
 
 - Research note: mixing two voices inside a model (`experiments/voice-alchemy/`), standalone, pre-registered. Neuron communities, single neurons, Gemma Scope SAE features, circuit-tracer circuits, directions and prompts in Gemma-2-2B-it through TransformerLens 4.3, labelled by measured voice profiles and mixed in pairs against random units of the same shape: directions move all 8 voices and compose most predictably (median additivity error 0.30 [0.26, 0.37]); communities move 2 of 8 and circuits none; pairs at full strength mostly break, as random pairs do. Includes a precomputed playable alchemy table, a recorded demo, and an explainer of how neurons work in Qwen3-8B built from measured units.

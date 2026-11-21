@@ -201,6 +201,7 @@ async def score_rows(judge: str, rows: list[dict], aspects_for) -> list[dict]:
         r.setdefault("scores", {}).setdefault(judge, {})[a] = await j.score(a, r["q"], r["text"])
 
     for i in range(0, len(jobs), 2000):
+        va.check_budget("judge", planned=j.cost())  # stop mid-run at the cap
         await asyncio.gather(*(one(r, a) for r, a in jobs[i : i + 2000]))
         print(f"  {judge}: {min(i + 2000, len(jobs))}/{len(jobs)} scored, ${j.cost():.3f}", flush=True)
     j.close(f"{len(jobs)} calls")
