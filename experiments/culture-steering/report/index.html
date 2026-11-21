@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steering a model toward a country mostly makes it less sure, not more like that country</title>
+<meta name="description" content="A pre-registered comparison of five ways to make Qwen3-8B and Llama-3.1-8B-Instruct answer like a given country: the prompt 'I live in X.', an activation direction, a persona vector and a trained soft prompt, on 121 held-out World Values Survey questions for eight countries, plus Kairos-style advice dilemmas and a Sai-style test of whether the model uses what a user told it.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Steering a model toward a country mostly makes it less sure, not more like that country">
+<meta property="og:description" content="A pre-registered comparison on Qwen3-8B and Llama-3.1-8B-Instruct of five ways to make a model answer like a country: the prompt &#x27;I live in X.&#x27;, an activation direction, a persona vector and a trained soft prompt, each beside random directions of the same size. On 121 held-out World Values Survey questions the directions and persona vectors got closer to every country at once by spreading answers out (own-country advantage 0.003 or less); a soft prompt trained on 60 questions was the only clearly country-specific arm (0.05-0.06) and reached 0.22-0.23, still farther than the average of eight countries (0.16).">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Qwen3-8B&#x27;s Jensen-Shannon distance to eight countries&#x27; survey answers on 121 held-out questions: no context 0.58, the prompt 0.56, a country direction 0.58, a persona vector 0.52, a trained soft prompt 0.23; the average of the eight countries&#x27; own answers sits at 0.16.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Steering a model toward a country mostly makes it less sure, not more like that country">
+<meta name="twitter:description" content="A pre-registered comparison on Qwen3-8B and Llama-3.1-8B-Instruct of five ways to make a model answer like a country: the prompt &#x27;I live in X.&#x27;, an activation direction, a persona vector and a trained soft prompt, each beside random directions of the same size. On 121 held-out World Values Survey questions the directions and persona vectors got closer to every country at once by spreading answers out (own-country advantage 0.003 or less); a soft prompt trained on 60 questions was the only clearly country-specific arm (0.05-0.06) and reached 0.22-0.23, still farther than the average of eight countries (0.16).">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-20">
+<meta property="article:modified_time" content="2026-11-20">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Steering a model toward a country mostly makes it less sure, not more like that country",
+ "description": "A pre-registered comparison on Qwen3-8B and Llama-3.1-8B-Instruct of five ways to make a model answer like a country: the prompt 'I live in X.', an activation direction, a persona vector and a trained soft prompt, each beside random directions of the same size. On 121 held-out World Values Survey questions the directions and persona vectors got closer to every country at once by spreading answers out (own-country advantage 0.003 or less); a soft prompt trained on 60 questions was the only clearly country-specific arm (0.05-0.06) and reached 0.22-0.23, still farther than the average of eight countries (0.16).",
+ "abstract": "Standalone note. Arms per country (US, Philippines, Singapore, Malaysia, Indonesia, Taiwan, Brazil, South Korea): no context, 'I live in X.', difference-of-means country direction, country-only direction (minus the 8-country mean), persona vector (persona-vector recipe, 900 judged replies), prompt + direction, 16-token soft prompt trained on 60 dev questions' splits, 5 norm-matched random directions; one layer and strength per kind chosen on dev by gain over the random band. Exact next-token readout, Jensen-Shannon distance, 121 held-out questions. Qwen3-8B: none 0.583, prompt 0.561, direction 0.580, persona 0.517 (spread 0.19 to 0.41), soft prompt 0.233, random 0.578. Llama-3.1-8B: 0.516, 0.455, 0.429, 0.466, 0.220, 0.490; country-only direction 0.514. Own-country advantage: prompt 0.007/0.011, direction 0.004/0.003, persona -0.001/-0.002, soft prompt 0.051/0.061. Also Kairos-style advice dilemmas and a Sai-style uptake test with judges validated on authored known-answer sets.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-20",
+ "dateModified": "2026-11-20",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "activation steering, persona vectors, prompt tuning, soft prompts, cultural alignment, World Values Survey, GlobalOpinionQA, context uptake, LLM judge validation, Qwen3-8B, Llama-3.1-8B, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://proceedings.mlr.press/v306/lu26g.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06681"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2104.08691"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2106.09685"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.06084"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.05070"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2306.16388"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://hongbeepark.com/projects/kairos.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/HongbeePark/sai"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .ifig { margin: 1.75rem 0 2.25rem; }
+  .ifig .controls { display: flex; flex-wrap: wrap; gap: .6rem 1.1rem; align-items: end; margin-bottom: .9rem; }
+  .ifig .pk { display: flex; flex-direction: column; gap: .2rem; min-width: 0; max-width: 100%; }
+  .ifig .pk-l { font-family: var(--font-mono); font-size: .6875rem; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+  .ifig select { font: inherit; font-family: var(--font-body); font-size: .9rem; color: var(--ink); background: var(--canvas);
+                 border: 1px solid var(--rule); border-radius: 4px; padding: .3rem .4rem; max-width: min(26rem, 100%); }
+  .ifig .seg { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+  .ifig .seg .pk-l { width: 100%; }
+  .ifig .seg button { font: inherit; font-family: var(--font-body); font-size: .85rem; color: var(--ink-soft); background: var(--canvas);
+                      border: 1px solid var(--rule); border-radius: 4px; padding: .3rem .6rem; cursor: pointer; }
+  .ifig .seg button[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+  .ifig .seg button:focus-visible, .ifig select:focus-visible { outline: 2px solid var(--control); outline-offset: 2px; }
+  .ifig svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .ifig .qtext { font-size: .875rem; color: var(--ink-soft); margin: 0 0 .6rem; max-width: 40rem; }
+  .ifig .stats, .ifig .legend { font-family: var(--font-mono); font-size: .75rem; line-height: 1.55; color: var(--ink-soft); margin: .6rem 0 0; }
+  .ifig .legend .key { display: inline-flex; align-items: center; gap: .35rem; margin-right: .9rem; }
+  .ifig .legend i { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; }
+  .ifig .lab { font-family: var(--font-body); font-size: 12px; fill: var(--ink); }
+  .ifig .tick, .ifig .reft { font-family: var(--font-mono); font-size: 10px; fill: var(--ink-soft); }
+  .ifig .val { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-soft); }
+  .ifig .val.m { fill: var(--accent); }
+  .ifig .grid { stroke: var(--rule); stroke-width: 1; }
+  .ifig .ref { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 3; }
+  .ifig .people { fill: var(--ink-soft); }
+  .ifig .model { fill: var(--accent); }
+  .ifig .ci { stroke-width: 1.5; }
+  .ifig .ci.def { stroke: var(--ink-faint); } .ifig .ci.str { stroke: var(--accent); }
+  .ifig .pt.def { fill: var(--canvas); stroke: var(--ink-faint); stroke-width: 2; } .ifig .pt.str { fill: var(--accent); }
+  .ifig .fallback img, figure img { width: 100%; height: auto; }
+  .hero svg.cs-cover { width: 100%; height: auto; display: block; }
+  .tools td:first-child { font-weight: 600; }
+  .bg-note { min-width: 0; max-width: 100%; }
+  li code, p code { overflow-wrap: anywhere; }
+  .bg-note .table-wrap { overflow-x: auto; max-width: 100%; }
+  .convo { border-left: 2px solid var(--rule); padding: .2rem 0 .2rem 1rem; margin: 1rem 0; font-size: .95rem; }
+  .convo p { margin: .35rem 0; }
+  .convo .who { font-family: var(--font-mono); font-size: .7rem; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-20">Nov 20, 2026</time></p>
+  <h1>Steering a model toward a country mostly makes it less sure, not more like that country</h1>
+  <p class="dek ruled">Five ways to make an open model answer like people in a given country: a one-line prompt, an activation direction, a persona vector and a trained soft prompt, each beside random directions of the same size. On 121 held-out World Values Survey questions the directions and persona vectors got closer to a country mainly by spreading the model's answers out; only the trained soft prompt was clearly about the country it was set for.</p>
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="cs-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Qwen3-8B&#x27;s Jensen-Shannon distance to eight countries&#x27; survey answers under five arms: no context 0.58, the prompt 0.56, a country direction 0.58, a persona vector 0.52, a trained soft prompt 0.23; the average of the eight countries&#x27; own answers sits at 0.16."><style>.cs-cover .cv-lab{font:600 15px "Bricolage Grotesque",sans-serif;fill:#1d272a}.cs-cover .cv-num{font:500 12px "JetBrains Mono",monospace;fill:#1d272a}.cs-cover .cv-tick{font:400 11px "JetBrains Mono",monospace;fill:#586468}.cs-cover .cv-h{font:500 12px "JetBrains Mono",monospace;fill:#586468;letter-spacing:.06em}</style><rect width="100%" height="100%" fill="#f5f6f4"/><text x="28" y="50" class="cv-h">QWEN3-8B · DISTANCE TO EIGHT COUNTRIES&#x2019; SURVEY ANSWERS · 121 HELD-OUT QUESTIONS</text><line x1="370.5" x2="370.5" y1="84" y2="440" stroke="#1d272a" stroke-dasharray="4 4"/><text x="376.5" y="92" class="cv-tick">average of the 8 countries</text><text x="28" y="131" class="cv-lab">No context</text><line x1="230" x2="845" y1="126" y2="126" stroke="#e3e7e8"/><circle cx="729.1" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="777.6" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="713.6" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="758.9" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="764.8" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="725.8" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="754.9" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="712.5" cy="126" r="6" fill="#8a9497" fill-opacity="0.45"/><circle cx="742.2" cy="126" r="9" fill="#8a9497" stroke="#1d272a" stroke-width="1.2"/><text x="742.2" y="110" class="cv-num" text-anchor="middle">0.58</text><text x="28" y="201" class="cv-lab">Prompt &#x201C;I live in X.&#x201D;</text><line x1="230" x2="845" y1="196" y2="196" stroke="#e3e7e8"/><circle cx="715.3" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="735.3" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="712.7" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="734.4" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="733.8" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="711.5" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="730.9" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="708.3" cy="196" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="722.8" cy="196" r="9" fill="#c9561c" stroke="#1d272a" stroke-width="1.2"/><text x="722.8" y="180" class="cv-num" text-anchor="middle">0.56</text><text x="28" y="271" class="cv-lab">Country direction</text><line x1="230" x2="845" y1="266" y2="266" stroke="#e3e7e8"/><circle cx="719.4" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="775.7" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="711.7" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="755.1" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="751.6" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="727.9" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="733.2" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="743.4" cy="266" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="739.7" cy="266" r="9" fill="#c9561c" stroke="#1d272a" stroke-width="1.2"/><text x="739.7" y="250" class="cv-num" text-anchor="middle">0.58</text><text x="28" y="341" class="cv-lab">Persona vector</text><line x1="230" x2="845" y1="336" y2="336" stroke="#e3e7e8"/><circle cx="735.7" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="665.2" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="658.0" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="680.0" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="695.7" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="649.4" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="726.5" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="661.1" cy="336" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="684.0" cy="336" r="9" fill="#c9561c" stroke="#1d272a" stroke-width="1.2"/><text x="684.0" y="320" class="cv-num" text-anchor="middle">0.52</text><text x="28" y="411" class="cv-lab">Trained soft prompt</text><line x1="230" x2="845" y1="406" y2="406" stroke="#e3e7e8"/><circle cx="430.3" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="414.9" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="442.9" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="417.8" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="445.0" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="464.1" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="433.2" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="432.4" cy="406" r="6" fill="#c9561c" fill-opacity="0.45"/><circle cx="435.1" cy="406" r="9" fill="#c9561c" stroke="#1d272a" stroke-width="1.2"/><text x="435.1" y="390" class="cv-num" text-anchor="middle">0.23</text><text x="230.0" y="468" class="cv-tick" text-anchor="middle">0.0</text><text x="317.9" y="468" class="cv-tick" text-anchor="middle">0.1</text><text x="405.7" y="468" class="cv-tick" text-anchor="middle">0.2</text><text x="493.6" y="468" class="cv-tick" text-anchor="middle">0.3</text><text x="581.4" y="468" class="cv-tick" text-anchor="middle">0.4</text><text x="669.3" y="468" class="cv-tick" text-anchor="middle">0.5</text><text x="757.1" y="468" class="cv-tick" text-anchor="middle">0.6</text><text x="845.0" y="468" class="cv-tick" text-anchor="middle">0.7</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: Qwen3-8B's Jensen-Shannon distance to each of eight countries' answers on 121 held-out World Values Survey questions (small dots: the eight countries; large dot: their mean; lower is closer), with no context and under four ways of steering. The dashed line is a cheap baseline: the average of the eight countries' own answers.</figcaption>
+  </figure>
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (thinking off) and Llama-3.1-8B-Instruct, open weights on Modal; Qwen3-32B as the judge</dd></div>
+    <div><dt>Data</dt><dd>World Values Survey Wave 7 splits for the US, the Philippines, Singapore, Malaysia, Indonesia, Taiwan, Brazil and South Korea through GlobalOpinionQA (the 181 questions of <a href="../../pluralism-explainer/report/">an earlier steerlab note</a>: 60 for tuning, 121 held out); 32 workplace and family dilemmas; 24 multi-turn conversations with a fixed fact ledger, written for this note</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> (every number) · plan, predictions and amendments in the repository · <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/culture-steering">code</a></dd></div>
+  </dl>
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can you steer a model toward a country's opinions from inside, instead of telling it where the user lives?</strong></p>
+    <p>Partly, and mostly not in the way it looks. A direction added to the model's activations, or a persona vector, moved survey answers closer to every country at once, because it made a narrow model less sure of itself; a random direction of the same size did part of the same. The country-specific part of the effect was small (0.003 to 0.011 in distance) for the prompt and the directions alike, and zero for the persona vectors. A soft prompt trained on 60 questions per country was the only arm that was clearly specific (0.05 to 0.06), and even it stayed farther from each country than simply averaging the eight countries' answers. In free-text advice, neither the prompt nor the country direction made the model advise people from different countries differently by more than resampling did, and in multi-turn conversations both models already used most of what the user told them, so neither the prompt nor an “attend to the user” direction had anything to add.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we measured</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+        <tr class="hl"><td>Does a country direction match the prompt? (121 held-out survey questions)</td><td>Qwen3-8B: no, 0.580 against 0.561 (difference +0.022 [−0.005, +0.051]). Llama-3.1-8B: better, 0.429 against 0.455 (−0.035 [−0.066, −0.005])</td><td>No context 0.583 (Qwen), 0.516 (Llama); random direction of the same size 0.578, 0.490</td></tr>
+        <tr><td>Is the gain about the country?</td><td>Mostly not. Own-country advantage over the same direction set for the other seven countries: 0.004 [0.001, 0.009] (Qwen), 0.003 [0.001, 0.006] (Llama). The country-only part of the direction moved distance by 0.008 and 0.002</td><td>The prompt: 0.007 and 0.011. Trained soft prompt: 0.051 and 0.061</td></tr>
+        <tr><td>Persona vector or plain difference of means?</td><td>Neither is specific: the persona vector was closer on Qwen (0.517 against 0.580) and farther on Llama (0.466 against 0.429), with no own-country advantage (−0.001, −0.002); it spread Qwen's answers from 0.19 to 0.41</td><td>People's own spread 0.76</td></tr>
+        <tr><td>Does prompt tuning beat everything?</td><td>Yes: 0.233 (Qwen) and 0.220 (Llama), better than the best other arm by 0.16 to 0.33 for all 8 countries on both models, after about a GPU-minute of training per country</td><td>Average of the 8 countries' answers 0.160; uniform guess 0.322</td></tr>
+        <tr><td>Advice dilemmas (Kairos-style, free text)</td><td>Neither the prompt nor the country direction made advice differ by country beyond shuffled labels (prompt 0.319 vs a 0.340 noise ceiling on Qwen, 0.341 vs 0.342 on Llama); eight random directions “differed” more (0.383, 0.396)</td><td>The persona vector at the survey strength looped in 95% of Qwen's replies; the soft prompt broke Llama's text (NLL 3.66 vs 0.37)</td></tr>
+        <tr><td>Does an "attend to the user" direction close the uptake gap? (Sai-style)</td><td>No. With no instruction the models already used most facts (gap 0.13 Qwen, 0.20 Llama); the prompt changed nothing (0.14, 0.20); the attend direction made Qwen worse (0.19) and left Llama level (0.20)</td><td>Random directions of the same size: 0.21 and 0.22. The attend persona vector broke Qwen at its chosen strength (gap 0.63, 42% of replies looping)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Llama-3.1-8B-Instruct how important religion is in its life, with no context, and it puts 9% of its probability on “very important”. Tell it “I live in Indonesia.” first and that rises to 95%, close to the 98% of Indonesians who said so in the World Values Survey. Add an activation direction built from that same sentence instead of writing it, and it is 59%. Add a persona vector for “a typical person living in Indonesia”: 1%. All four claim to steer the model toward Indonesia, and on this one question they disagree by a factor of nearly 100.</p>
+  <p><strong>What is known.</strong> A one-line prompt like “I live in Indonesia.” moves open models' survey answers toward that country by about 0.02 in Jensen-Shannon distance, and nearly as much toward other countries (<a href="../../pluralism-explainer/report/">the pluralism explainer note</a>). Activation steering adds a direction to a model's hidden state instead of changing its text (<a href="https://arxiv.org/abs/2312.06681">Steering Llama 2 via Contrastive Activation Addition</a>), and <a href="https://arxiv.org/abs/2507.21509">Persona Vectors</a> builds such directions automatically from a written description of a character trait. Trained soft prompts (<a href="https://arxiv.org/abs/2104.08691">The Power of Scale for Parameter-Efficient Prompt Tuning</a>) learn a few input vectors with the model frozen. On the evaluation side, <a href="https://hongbeepark.com/projects/kairos.html">the Kairos evaluation</a> asks whose expectations a model's advice follows once a user's country is known, and <a href="https://github.com/HongbeePark/sai">the Sai toolkit</a> asks whether a model actually uses what a user told it, not only whether it noticed.</p>
+  <p><strong>What is missing.</strong> These methods are rarely compared on one task with the controls that separate a real effect from a side effect: a random direction of the same size, the same method set for the wrong country, and a check on whether “closer” only means “less sure”.</p>
+  <p class="question-callout">Does steering from inside a model (a direction or a persona vector) move it toward a country, or toward what a user said, as well as a prompt does; does it add anything to the prompt; and what does training a soft prompt buy?</p>
+  <p><strong>What this note does.</strong> It runs one pre-registered comparison on two open 8B chat models, with every setting chosen on development items and every number reported on held-out ones. It contributes:</p>
+  <ol>
+    <li>a head-to-head of prompt, country direction, persona vector and trained soft prompt on eight countries' survey answers, with an 8 x 8 wrong-country grid and spread beside every distance;</li>
+    <li>the same arms on free-text advice dilemmas, scored by a judge validated on known cases;</li>
+    <li>a Sai-style multi-turn test of whether an “attend to the user” direction makes the model use the facts it was told;</li>
+    <li>a negative result stated plainly: most of what a country direction does is make a narrow model less narrow.</li>
+  </ol>
+  <p><strong>What counts as a result</strong> (written down before the confirmatory runs):</p>
+  <ol>
+    <li>an arm counts only beside a random direction of the same size at the same layer;</li>
+    <li>“about the country” means closer to that country than the same arm set for the other seven countries, not just closer to people in general;</li>
+    <li>spread is reported beside every distance, so a model that got closer by flattening its answers is visible;</li>
+    <li>layers, strengths and the soft prompt's training are chosen on 60 development questions; held-out numbers come from the other 121.</li>
+  </ol>
+
+  <aside class="bg-note" id="toolbox-101" aria-labelledby="toolbox-label">
+    <p class="label" id="toolbox-label">Background · 101: ways to read or shape what a model does</p>
+    <p>One analogy throughout: a model writing an answer is a cook making a dish.</p>
+    <div class="table-wrap">
+    <table class="tools">
+      <thead><tr><th>Tool</th><th>What it is</th><th>Analogy</th><th>Trained?</th><th>Reads or changes the model?</th></tr></thead>
+      <tbody>
+        <tr><td>Steering vector</td><td>A direction in the model's activations, often the average difference between two sets of prompts, added during generation to push the output one way (<a href="https://arxiv.org/abs/2312.06681">Contrastive Activation Addition</a>)</td><td>A pinch of salt while the dish cooks: no new recipe, just a nudge</td><td>No; computed</td><td>Changes it, at run time, reversibly</td></tr>
+        <tr><td>Persona vector</td><td>A steering vector for a character trait, built automatically from a written description of the trait (<a href="https://arxiv.org/abs/2507.21509">Persona Vectors</a>); one such direction separates the default assistant from other characters (<a href="https://proceedings.mlr.press/v306/lu26g.html">The Assistant Axis</a>)</td><td>The cook's personality: cautious or adventurous, a direction you can read or turn up</td><td>No</td><td>Reads and changes</td></tr>
+        <tr><td>Prompt tuning / LoRA</td><td>A few learned input vectors (a soft prompt, <a href="https://arxiv.org/abs/2104.08691">Prompt Tuning</a>) or small low-rank weight updates (<a href="https://arxiv.org/abs/2106.09685">LoRA</a>), trained on examples of the target behaviour while the rest of the model stays frozen</td><td>A recipe card the cook has been trained to follow</td><td>Yes: minutes, on a few hundred examples</td><td>Changes its input (soft prompt) or its weights (LoRA)</td></tr>
+        <tr><td>Small probe</td><td>A tiny classifier trained on a model's internal activations, answering one yes/no question</td><td>A food thermometer: one cheap reading</td><td>Yes: minutes</td><td>Reads</td></tr>
+        <tr><td>Authorship model</td><td>A separate model that turns texts into a style fingerprint (<a href="https://aclanthology.org/2021.emnlp-main.70/">Learning Universal Authorship Representations</a>)</td><td>A taster who can tell which cook made a dish</td><td>Pretrained</td><td>Neither: it judges the output</td></tr>
+        <tr><td>Preference model</td><td>A model trained on human choices (“A is better than B”) to predict which output a person would pick</td><td>A critic who learned one diner's taste</td><td>Yes: on pairs of choices</td><td>Neither: it judges the output</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>This note steers with the first three and scores with an LLM judge; the other three are listed for context. A probe asks the model a question; a vector tells it which way to go; a soft prompt is a vector the model was trained to follow.</p>
+  </aside>
+
+  <section class="cs-gate" aria-labelledby="coming-soon">
+    <p class="cs-label">Coming soon</p>
+    <h2 id="coming-soon">Full note coming soon</h2>
+    <p>The setup, every result with its controls, the checks of the judges, the predictions, the limits and the code are being finalised. The summary above is final.</p>
+    <p><a href="../../">Back to the research page</a></p>
+  </section>
+  <div class="cs-hidden">
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Item set</th><th>What it is</th><th>Size</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../data/wvs_dev.json">Survey, development</a></td><td>World Values Survey Wave 7 questions with a split for all eight countries, drawn with seed 0 from the 181 of <a href="../../pluralism-explainer/report/">the pluralism explainer note</a></td><td class="n">60</td><td>Directions; layer and strength choice; soft-prompt training</td></tr>
+        <tr><td><a href="../data/wvs_heldout.json">Survey, held out</a></td><td>The other questions</td><td class="n">121</td><td>Every survey number in 4.1-4.5</td></tr>
+        <tr><td><a href="../data/dilemmas.jsonl">Advice dilemmas</a></td><td>Kairos-style workplace and family dilemmas (“Your team lead asks you to come in this weekend…”), written for <a href="../../pluralism-judge-rl/report/">the judge-RL note</a></td><td class="n">32</td><td>4.6; nothing tuned on them</td></tr>
+        <tr><td><a href="../data/scenarios.json">Uptake conversations</a></td><td>Three-turn conversations in which a user reveals five facts with weights 1-3 (the ledger), written before any output: 8 for choosing settings, 16 held out</td><td class="n">24</td><td>4.7</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>What the model gets (no country in the text unless stated)</th></tr></thead>
+      <tbody>
+        <tr><td>No context</td><td>The question alone</td></tr>
+        <tr><td>Prompt</td><td>“I live in <em>country</em>.” before the question</td></tr>
+        <tr><td>Country direction</td><td>A vector added to the residual stream at one layer and every position: the mean over development questions of the last-token activation with the prompt minus without it, scaled to a chosen size</td></tr>
+        <tr><td>Country-only direction</td><td>The same, minus the mean of the eight countries' directions: only what is specific to one country</td></tr>
+        <tr><td>Persona vector</td><td>The persona-vector recipe: replies to 20 everyday questions under five “you are a typical person living in <em>country</em>” system prompts and five “no particular country” ones, filtered by the judge, averaged over the reply tokens, difference taken</td></tr>
+        <tr><td>Prompt + direction</td><td>Both at once</td></tr>
+        <tr><td>Trained soft prompt</td><td>16 learned input vectors at the start of the message, one set per country, trained on the 60 development questions' splits with the model frozen</td></tr>
+        <tr><td>Random direction</td><td>Five random directions of the same size at the same layer: the control for every direction arm</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Terms.</strong> A country's <em>split</em> is the share of its respondents giving each answer. The model's answer is read exactly, not sampled: the probability of each option letter as the next token, renormalised over the options. <em>Distance</em> is the Jensen-Shannon distance between the two splits (0 = identical, 1 = no overlap). <em>Spread</em> is a split's entropy divided by its maximum (0 = one answer, 1 = all equally likely); people's average is 0.76. <em>Own-country advantage</em> is how much closer an arm set for country <em>c</em> gets to <em>c</em> than the same arm set for each of the other seven countries. A question counts for an arm if at least 20% of the next-token probability named an option (the survey note's rule of at least 10 valid answers in 50, in exact form).</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong> with its Design section and five predictions, and commit it before any model output.</li>
+    <li><strong>Fix the items</strong>: the survey split, the dilemmas and the 24 ledger conversations.</li>
+    <li><strong>Build the directions</strong>: country directions from 60 questions x 9 prompts per model; persona vectors from 900 replies per model (the judge kept 93-100 of 100 positive replies per country and 41-96 of 100 negative ones).</li>
+    <li><strong>Choose settings on development items</strong>: 6 layers x 5 strengths for each direction kind against 5 random directions at each setting, by the pre-registered rule (the largest gain over the random band among settings that keep at least 80% of the option probability); soft prompts trained on 48 questions, with 12 used to choose the number of steps, then retrained on all 60.</li>
+    <li><strong>Check the rulers</strong>: the exact letter readout against 50 sampled replies, and both judges against known-answer cases (4.8).</li>
+    <li><strong>Run the held-out sets</strong> once with the chosen settings, and score.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any held-out run</th><th>Changed after reading results (dated amendments in the plan)</th></tr></thead>
+      <tbody>
+        <tr><td>Arms, models, item sets, metrics, the setting rule, the predictions</td><td>The development questions are 60 of the 181 (the survey note's own development questions carried one country each); a question needs 20% option probability (the readout check's bar sat below its own sampling floor); both judges were reworked after failing known-answer checks; one metric (unsupported assumptions) is reported as unvalidated</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one Modal H100 per model with transformers 4.55 and a forward hook; the judge, Qwen3-32B (FP8, thinking on), on vLLM. Free text at temperature 0.7 and top-p 0.95; 256 tokens for dilemmas, 320 per conversation turn. Total Modal spend: $62 (read from the billing API; the last judging jobs ran under the $100 hard cap after the $60 soft cap refused them).</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="r-survey" data-short="Survey: the five arms">4.1 On survey questions the prompt helps a little, the direction matches it on one model, and a trained soft prompt beats both by far</h3>
+  <p>Figure 1 shows one question at a time and Figure 2 the averages. With no context, Qwen3-8B sat 0.583 from the average country and Llama-3.1-8B 0.516, both farther than a uniform guess over the options (0.322). The prompt brought them closer by 0.023 [0.007, 0.041] and 0.048 [0.025, 0.072]. The country direction did nothing on Qwen (0.000 [−0.035, +0.035]) and more than the prompt on Llama (0.087 [0.054, 0.120]). The trained soft prompt reached 0.233 and 0.220.</p>
+  <figure class="ifig" id="fig-explorer">
+    <div class="fallback"><img src="figures/arms.png" alt="Static view: mean distance per arm for both models."></div>
+    <div class="live" hidden></div>
+    <figcaption><span class="label">Figure 1.</span>One held-out question for one country. Grey bars: the country's World Values Survey split. Orange bars: the model's next-token probability of each option under the chosen arm, renormalised over the options. Choose a model, a country, one of the six held-out questions on which the eight countries differ most, and an arm.</figcaption>
+  </figure>
+  <figure class="ifig" id="fig-arms">
+    <div class="fallback"><img src="figures/arms.png" alt="Mean JS distance per arm. Qwen3-8B: no context 0.58, prompt 0.56, country direction 0.58, persona vector 0.52, soft prompt 0.23, random direction 0.58. Llama-3.1-8B: 0.52, 0.46, 0.43, 0.47, 0.22, 0.49. Average of eight countries 0.16, uniform guess 0.32."></div>
+    <div class="live" hidden></div>
+    <figcaption><span class="label">Figure 2.</span>Distance to the country's split on 121 held-out questions: mean over questions with 95% bootstrap intervals (the “mean over the 8 countries” view averages the eight countries' intervals). Orange: steering arms; grey: no context and random directions of the country direction's size. Dashed: the average of the eight countries' splits and a uniform guess, read out exactly like the model.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Qwen3-8B distance</th><th>spread</th><th>Llama-3.1-8B distance</th><th>spread</th></tr></thead>
+      <tbody>
+        <tr><td>No context</td><td class="n">0.583</td><td class="n">0.19</td><td class="n">0.516</td><td class="n">0.40</td></tr>
+        <tr><td>Prompt</td><td class="n">0.561</td><td class="n">0.19</td><td class="n">0.455</td><td class="n">0.48</td></tr>
+        <tr><td>Country direction</td><td class="n">0.580</td><td class="n">0.26</td><td class="n">0.429</td><td class="n">0.55</td></tr>
+        <tr><td>Country-only direction</td><td class="n">0.574</td><td class="n">0.20</td><td class="n">0.514</td><td class="n">0.40</td></tr>
+        <tr><td>Persona vector</td><td class="n">0.517</td><td class="n">0.41</td><td class="n">0.466</td><td class="n">0.54</td></tr>
+        <tr><td>Prompt + direction</td><td class="n">0.566</td><td class="n">0.24</td><td class="n">0.417</td><td class="n">0.61</td></tr>
+        <tr class="hl"><td>Trained soft prompt</td><td class="n">0.233</td><td class="n">0.81</td><td class="n">0.220</td><td class="n">0.83</td></tr>
+        <tr><td>Random direction (the direction's size)</td><td class="n">0.578</td><td class="n">0.25</td><td class="n">0.490</td><td class="n">0.46</td></tr>
+        <tr><td>Average of the 8 countries (baseline)</td><td class="n">0.160</td><td class="n">–</td><td class="n">0.160</td><td class="n">–</td></tr>
+        <tr><td>Uniform guess (baseline)</td><td class="n">0.322</td><td class="n">1.00</td><td class="n">0.322</td><td class="n">1.00</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Each cell: the mean over the eight countries of the mean over held-out questions. People's own spread is 0.76.</p>
+
+  <h3 id="r-spread" data-short="Closer by spreading out">4.2 Most of the gain comes from spreading answers out, not from the country</h3>
+  <p>Figure 3 puts spread beside distance. Every arm lies near one line from no context toward the soft prompt: the more an arm spread the model's answers, the closer it got. Qwen3-8B with no context puts most of its probability on one option (spread 0.19, against people's 0.76), so any push that makes it less sure lowers its distance to every country at once. On Llama a random direction lowered the distance by 0.026 just by spreading answers. The country direction lowered it by 0.087, but its country-only part lowered it by 0.002 [−0.002, +0.005]. What the direction adds over a random push is the component that all eight countries' directions share (their mean cosine is 0.80 to 0.92 on Llama), a general “a country was mentioned”, not anything about one country.</p>
+  <figure>
+    <img src="figures/spread.png" alt="Spread against distance for each arm. Qwen3-8B: no context, prompt, direction and random cluster at spread 0.19-0.26 and distance 0.56-0.58; persona vector at 0.41 and 0.52; soft prompt at 0.81 and 0.23. Llama-3.1-8B: no context at 0.40 and 0.52; prompt, direction, persona and random at spread 0.46-0.55 and distance 0.43-0.49; soft prompt at 0.83 and 0.22.">
+    <figcaption><span class="label">Figure 3.</span>Spread (normalised entropy) against distance; each point is an arm's mean over 8 countries and 121 held-out questions, and grey lines join each arm to no context. The dotted line is people's own spread (0.76); the soft prompt slightly overshoots it.</figcaption>
+  </figure>
+
+  <h3 id="r-wrong" data-short="Wrong-country control">4.3 Set for the wrong country, the direction and the persona vector do almost as well</h3>
+  <p>The wrong-country control asks whether an arm set for Indonesia gets closer to Indonesia than the same arm set for the other seven countries. Figure 4 shows the 8 x 8 grid for Llama. Own-country advantage: the prompt 0.011 [0.006, 0.018] (Qwen 0.007), the country direction 0.003 [0.001, 0.006] (Qwen 0.004), the persona vector −0.002 [−0.003, −0.000] (Qwen −0.001), the trained soft prompt 0.061 [0.052, 0.071] (Qwen 0.051). The soft prompt set for the right country was the closest of the eight for 6 of 8 countries on Llama and 7 of 8 on Qwen; the country direction for 2 and 0.</p>
+  <figure>
+    <img src="figures/grid.png" alt="Three 8 by 8 heatmaps for Llama-3.1-8B: rows are the country an arm is set for, columns the country it is scored against. The prompt and the country direction show faint diagonals; the soft prompt shows a clear diagonal.">
+    <figcaption><span class="label">Figure 4.</span>The wrong-country grid, Llama-3.1-8B-Instruct, 121 held-out questions. Rows: the country the arm is set for; columns: the country it is scored against. Each column is centred on its own mean, so a darker cell is closer than that column's average; orange boxes mark the diagonal. Own-country advantage in each title (95% bootstrap intervals in the text).</figcaption>
+  </figure>
+
+  <h3 id="r-persona" data-short="Persona vs difference of means">4.4 A persona vector is a different direction, and it is not about the country either</h3>
+  <p>The persona vector and the country direction point in nearly unrelated directions (cosine 0.05 to 0.16 at the persona vector's chosen layer). On Qwen the persona vector got closer than the country direction (0.517 against 0.580; difference −0.058 [−0.086, −0.027]); on Llama it was farther (0.466 against 0.429; +0.038 [0.004, 0.073]). On both it had no own-country advantage, and on Qwen it doubled the spread (0.19 to 0.41). Built from replies to everyday questions under “you are a typical person living in…”, it seems to encode “answer like a person rather than an assistant” more than any country. One detail fits that reading: when the judge filtered the persona replies, the “no particular country” answers were scored as typical of the United States more often than of any other country (only 41-44 of 100 passed the US filter, against 72-96 for the others).</p>
+  <figure>
+    <img src="figures/dose.png" alt="Development-set dose curves: own-country distance against strength for the country direction and the persona vector at their chosen layers, with random directions of the same size. The chosen Llama country-direction setting is at the largest strength tried.">
+    <figcaption><span class="label">Figure 5.</span>The development sweep at each arm's chosen layer (60 development questions): distance to the own country against strength, solid; random directions of the same size, dotted; crosses mark settings that lost more than 20% of the option probability and were not eligible. Dashed: no context; dash-dot: the prompt. Llama's chosen country direction is at the largest strength tried (x8), so a larger strength might have done more.</figcaption>
+  </figure>
+
+  <h3 id="r-soft" data-short="Soft prompt: cost">4.5 A trained soft prompt wins by 0.16 to 0.33, for about a GPU-minute per country</h3>
+  <p>The soft prompt is the only arm that sees the target: it is trained on the 60 development questions' splits for its country. On held-out questions it beat the best other arm by 0.21 to 0.33 on Qwen and 0.16 to 0.23 on Llama, for all 8 countries. Training was cheap: 16 vectors, 281 steps (chosen on a 48/12 split), about 55 seconds per country on an H100, with 60 survey splits per country as labels. It is still not a picture of the country. It stays farther from each country (0.22-0.23) than the plain average of the eight countries' splits (0.16), and its spread (0.81-0.83) overshoots people's (0.76). Most of what it learned is “answer like survey respondents in general”; 0.05 to 0.06 of distance is the country.</p>
+
+  <h3 id="r-dilemmas" data-short="Advice dilemmas">4.6 In free-text advice, neither the prompt nor the country direction made advice differ by country more than shuffled labels did</h3>
+  <p>The 32 dilemmas (“My boss expects everyone to answer messages late at night…”) were answered 4 times per country under each arm, with the survey's settings unchanged, and the judge scored every reply on four 1-5 parameters: deference to authority, weight on others' expectations, framing as an individual choice, and directness. The <em>country effect</em> is the Kairos-style measure: the mean gap between the eight countries' average scores on each dilemma. Its noise level is the same statistic after shuffling the country labels among the arm's own replies, 200 times. For the random arm, eight random directions stand in for the eight countries.</p>
+  <p>The prompt's country effect sat at its noise level on both models (Qwen 0.319 against a shuffled mean of 0.326; Llama 0.341 against 0.329, 95th percentile 0.342). Telling the model where the user lives changed what it advised by about as much as resampling did, though it mentioned the country in 29% (Qwen) and 20% (Llama) of replies. The country direction was also within noise (permutation p = 0.18 and 0.07). Eight random directions produced at least as much “country effect” as the eight country directions (0.383 and 0.396; p = 0.03 and &lt; 0.005), because the country directions share most of their length. How a direction shifted the four scores agreed no better with the prompt's shift for the same country than for a different one (r = 0.31 against 0.35 on Qwen, 0.29 against 0.30 on Llama).</p>
+  <p>Two arms moved advice by a lot, and both by breaking the text. The persona vector, at the strength chosen on survey questions, looped in 95% of Qwen's replies (more than 20% of word 4-grams repeated) and raised Llama's per-token NLL from 0.37 to 1.31. The soft prompt, trained only to emit survey letters, cut Llama's replies to 77 words with an NLL of 3.66. Their large “country effects” (Qwen persona 0.45; soft prompt 0.66 and 0.94) are differences between broken texts, not between cultures.</p>
+  <figure>
+    <img src="figures/dilemmas.png" alt="Bar chart of the country effect per arm with the 95th percentile of shuffled labels. Qwen3-8B: prompt 0.319 and country direction 0.361, both at noise; random 0.383; persona 0.452; soft prompt 0.656. Llama-3.1-8B: prompt 0.341, direction 0.354, random 0.396, persona 0.524, soft prompt 0.944.">
+    <figcaption><span class="label">Figure 6.</span>Country effect on 32 advice dilemmas (mean absolute gap between countries' average rubric scores, 1-5 scale), 4 replies per dilemma, country and arm. Ticks: the 95th percentile of the same statistic with country labels shuffled within the arm (200 shuffles). Grey: eight random directions standing in for countries.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Qwen effect</th><th>noise (95th)</th><th>NLL</th><th>loops</th><th>Llama effect</th><th>noise (95th)</th><th>NLL</th><th>loops</th></tr></thead>
+      <tbody>
+        <tr><td>No context</td><td class="n">–</td><td class="n">–</td><td class="n">0.38</td><td class="n">0%</td><td class="n">–</td><td class="n">–</td><td class="n">0.37</td><td class="n">0%</td></tr>
+        <tr><td>Prompt</td><td class="n">0.319</td><td class="n">0.340</td><td class="n">0.39</td><td class="n">0%</td><td class="n">0.341</td><td class="n">0.342</td><td class="n">0.38</td><td class="n">0%</td></tr>
+        <tr><td>Country direction</td><td class="n">0.361</td><td class="n">0.369</td><td class="n">0.57</td><td class="n">0%</td><td class="n">0.354</td><td class="n">0.355</td><td class="n">0.51</td><td class="n">0%</td></tr>
+        <tr><td>Country-only direction</td><td class="n">0.345</td><td class="n">0.343</td><td class="n">0.40</td><td class="n">0%</td><td class="n">0.318</td><td class="n">0.332</td><td class="n">0.37</td><td class="n">0%</td></tr>
+        <tr><td>Persona vector</td><td class="n">0.452</td><td class="n">0.447</td><td class="n">0.65</td><td class="n">95%</td><td class="n">0.524</td><td class="n">0.518</td><td class="n">1.31</td><td class="n">6%</td></tr>
+        <tr><td>Trained soft prompt</td><td class="n">0.656</td><td class="n">0.529</td><td class="n">0.66</td><td class="n">0%</td><td class="n">0.944</td><td class="n">0.716</td><td class="n">3.66</td><td class="n">7%</td></tr>
+        <tr><td>Random directions</td><td class="n">0.383</td><td class="n">0.378</td><td class="n">0.49</td><td class="n">0%</td><td class="n">0.396</td><td class="n">0.379</td><td class="n">0.49</td><td class="n">0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Effect: mean gap between countries' average scores (1-5). Noise: 95th percentile with labels shuffled. NLL: mean per-token negative log-likelihood of the reply under the unsteered model. Loops: share of replies with more than 20% of word 4-grams repeated; with loops removed, Qwen's persona effect is 0.81 on the 5% of replies left. 4-14% of replies per arm had a rubric call that ran out of thinking tokens and are left out of the effect.</p>
+
+  <h3 id="r-uptake" data-short="Using what the user said">4.7 Both models already used most of what users told them, and neither the prompt nor an attend direction closed the rest</h3>
+  <p>In 16 held-out conversations a user revealed five facts over three turns (“I'm a retired nurse, but I walk with a stick and can't stand for long…”), each with a weight from 1 to 3 fixed before any reply. Every arm replied on its own previous turns, four times per conversation. The judge marked each fact given so far as used, missed or contradicted, and the <em>gap</em> is the share of the given weight that was not used (0 = every fact taken up). The attend direction is the difference the system prompt “Use everything the user has told you about their situation.” makes at the last token; the attend persona vector follows the persona-vector recipe for “builds every answer on the user's facts”. Settings were chosen on the 8 development conversations by the same rule as for countries.</p>
+  <p>With no instruction the models already left little gap: 0.125 [0.088, 0.170] for Qwen and 0.202 [0.139, 0.275] for Llama, most of it on the third turn, when the most facts are in play. The prompt closed none of it (Qwen 0.139, Llama 0.200). The attend direction made Qwen's gap larger (0.186; −0.061 [−0.116, −0.014] against plain) and doubled its per-token NLL (0.43 to 0.86), and it was not better than a random direction of the same size (+0.026 [−0.017, +0.068]); on Llama it changed nothing (0.192). The attend persona vector was the only arm that beat its random twin on Llama (0.175 against 0.209; +0.034 [0.002, 0.063]), but not plain (+0.027 [−0.017, +0.077]). On Qwen its chosen strength broke the model: a gap of 0.630 with loops in 42% of replies (0.529 with loops removed). The setting rule picked it because a random direction of that size broke Qwen even more (0.831): a margin over a broken random band is not a working setting.</p>
+  <figure>
+    <img src="figures/uptake.png" alt="Ledger gap per arm with 95% intervals. Qwen3-8B: no instruction 0.13, prompt 0.14, attend direction 0.19, attend persona 0.63, random directions 0.21 and 0.83. Llama-3.1-8B: 0.20, 0.20, 0.19, 0.17, random 0.22 and 0.21.">
+    <figcaption><span class="label">Figure 7.</span>Ledger gap (share of the fact weight a reply did not use, averaged over three turns) on 16 held-out conversations, 4 replies per conversation and arm, with 95% bootstrap intervals over conversations. Orange: the prompt and the two steering arms; grey: no instruction and random directions of each steering arm's size.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Qwen gap</th><th>NLL</th><th>loops</th><th>Llama gap</th><th>NLL</th><th>loops</th></tr></thead>
+      <tbody>
+        <tr><td>No instruction</td><td class="n">0.125</td><td class="n">0.43</td><td class="n">0%</td><td class="n">0.202</td><td class="n">0.33</td><td class="n">1%</td></tr>
+        <tr><td>Prompt “Use everything…”</td><td class="n">0.139</td><td class="n">0.41</td><td class="n">0%</td><td class="n">0.200</td><td class="n">0.33</td><td class="n">1%</td></tr>
+        <tr><td>Attend direction</td><td class="n">0.186</td><td class="n">0.86</td><td class="n">0%</td><td class="n">0.192</td><td class="n">0.42</td><td class="n">2%</td></tr>
+        <tr><td>Attend persona vector</td><td class="n">0.630 (0.529 without loops)</td><td class="n">0.83</td><td class="n">42%</td><td class="n">0.175</td><td class="n">0.37</td><td class="n">2%</td></tr>
+        <tr><td>Random (direction's size)</td><td class="n">0.212</td><td class="n">0.75</td><td class="n">1%</td><td class="n">0.220</td><td class="n">0.35</td><td class="n">1%</td></tr>
+        <tr><td>Random (persona's size)</td><td class="n">0.831 (0.650 without loops)</td><td class="n">0.78</td><td class="n">65%</td><td class="n">0.209</td><td class="n">0.34</td><td class="n">1%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="table-note">Gap: mean over 16 conversations. Contradicted weight, the validated secondary measure, stayed at 0.5-2.7% of the given weight for every arm except Qwen's broken persona arm (10%). The unsupported-assumption count failed its known-answer check and is not reported. Judge calls that ran out of thinking tokens (at most 1.4% of facts in any arm) leave the ledger rather than counting as missed.</p>
+
+  <h3 id="r-rulers" data-short="Checking the rulers">4.8 Checking the rulers</h3>
+  <p><strong>The letter readout.</strong> Reading the answer as next-token probabilities assumes the model answers with a letter first. On 20 development questions, the exact split and 50 sampled replies parsed with the survey note's parser differed by 0.013 more than sampling noise alone with no steering, and by 0.092 more under the country direction. The excess came from questions where under 2% of the probability named an option (the model wrote “The correct answer is: **B…” first); with the 20% rule it fell to 0.005 (Qwen) and 0.003 (Llama). The pre-registered bar for this check (0.08) sat below the sampling floor itself (0.09), so no readout could have met it; the plan's amendment says so.</p>
+  <p><strong>The judges.</strong> Both judges were checked on replies whose answers were known before scoring. The first known-answer sets were written by instructed models (Llama-3.1-8B, then phi-4), which ignored “leave out these facts” and level instructions, so their labels were wrong rather than the judge. The final sets were assembled from sentences and replies written for the check, with exact labels. Every change was made on a tuning half and checked once on a fresh set:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Judge</th><th>Bar</th><th>Fresh confirmation set</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Rubric: authority</td><td>Spearman ≥ 0.70</td><td>1.00 (15 replies)</td><td>pass</td></tr>
+        <tr><td>Rubric: others' expectations</td><td>Spearman ≥ 0.70</td><td>0.54 at first; 1.00 after adding one example per level (15 new replies)</td><td>pass after rework</td></tr>
+        <tr><td>Rubric: individual choice; directness</td><td>Spearman ≥ 0.70</td><td>0.84; 0.92</td><td>pass</td></tr>
+        <tr><td>Facts used / missed / contradicted</td><td>accuracy ≥ 0.85, κ ≥ 0.70, contradiction recall ≥ 0.70</td><td>0.90, 0.81, 4/6 at first; 0.97, 0.94, 15/15 on a new set after the rework</td><td>pass after rework</td></tr>
+        <tr><td>Unsupported assumptions</td><td>planted reply above its clean twin in ≥ 0.80 of pairs</td><td>0.67 (6/9); clean replies drew 1.0 false flag on average</td><td>fail: reported, not used</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The fact judge still leans lenient on “used”: on the tuning set it called 35 of 130 missed facts used, mostly where the advice happened to fit a fact without showing it was considered. That understates the gap for every arm alike.</p>
+
+  <h3 id="r-prior" data-short="Against the promise">4.9 Against what each method promises</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Moves survey answers toward the country</th><th>Specific to the country</th><th>Keeps free text fluent</th><th>Needs labelled answers</th></tr></thead>
+      <tbody>
+        <tr><td>Prompt</td><td>✓ small</td><td>✓ small (0.007-0.011)</td><td>✓</td><td>✗</td></tr>
+        <tr><td>Country direction</td><td>✓ on Llama, ✗ on Qwen</td><td>✗ (0.003-0.004)</td><td>~ (NLL 0.57 and 0.51 against 0.38 and 0.37; no loops)</td><td>✗</td></tr>
+        <tr><td>Persona vector</td><td>✓ by spreading answers</td><td>✗</td><td>✗ (95% loops on Qwen; NLL 1.31 on Llama)</td><td>✗</td></tr>
+        <tr><td>Trained soft prompt</td><td>✓ large</td><td>✓ (0.05-0.06)</td><td>✗ on Llama (NLL 3.66, 77-word replies); ~ on Qwen (0.66)</td><td>✓ 60 per country</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Activation steering is often proposed as a cheap way to adapt a model to a user or a culture without retraining, and persona vectors as a way to monitor and control a model's character. Here both moved a model's opinions, but mostly by loosening them, and a random direction of the same size did a share of the same. A claim that a direction “makes the model more Indonesian” would have passed a check against no context alone. The same caution applies to monitoring: a persona vector that reads “a typical person from a country” may be reading “a person rather than an assistant”.</p>
+  <p><strong>Before claiming a steering method moves a model toward a group, report its random-direction twin, the same method set for the wrong group, and the spread of the model's answers beside its distance.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Prediction (Qwen3-8B, held out)</th><th>Threshold</th><th>Confidence</th><th>Result</th><th>Hit?</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>The country direction matches the prompt</td><td>direction − prompt: interval inside [−0.02, +0.02] or below</td><td class="n">50%</td><td>+0.022 [−0.005, +0.051]</td><td>miss</td></tr>
+        <tr><td>P2</td><td>The direction adds little on top of the prompt</td><td>prompt − (prompt + direction) &lt; 0.02</td><td class="n">55%</td><td>−0.032 [−0.063, −0.003]: adding it made things worse</td><td>hit</td></tr>
+        <tr><td>P3</td><td>The plain difference of means beats the persona vector</td><td>persona − direction &gt; +0.01, interval above 0</td><td class="n">60%</td><td>−0.058 [−0.086, −0.027]</td><td>miss</td></tr>
+        <tr><td>P4</td><td>A trained soft prompt beats every other arm</td><td>by ≥ 0.05 for ≥ 6 of 8 countries</td><td class="n">75%</td><td>8 of 8, by 0.21-0.33</td><td>hit</td></tr>
+        <tr><td>P5</td><td>An “attend” direction closes less than half the gap the prompt closes, and beats random</td><td>ratio &lt; 0.5, beyond the random band</td><td class="n">55%</td><td>The prompt closed no gap (−0.014 [−0.064, +0.036]), so the ratio is meaningless; the attend direction widened it (−0.061 [−0.116, −0.014]) and was not beyond random (+0.026 [−0.017, +0.068])</td><td>miss</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Post-mortem.</strong> What surprised me: how much of every steering gain was spread, and that the persona vector beat the difference of means on Qwen only by being less specific. What I'd change: make own-country advantage, not distance, the primary measure for every arm; require each chosen setting itself to stay fluent (no loops, NLL within a margin), not just to beat a random band; and pilot whether the plain model already uses the user's facts before testing a method to make it use them (P5 had no gap to close). The lesson for the design guide: when the target is a distribution and the model is narrow, “closer” needs a spread-matched control.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Two models, one size.</strong> Both are 8B chat models, and Qwen3-8B is unusually narrow (spread 0.19). A wider model leaves less room to win by spreading.</li>
+    <li><strong>One recipe per method.</strong> One layer and strength per kind, shared by all eight countries and chosen by a fixed rule; Llama's chosen strength is at the edge of the grid. A per-country choice, another layer, or steering only at the answer position could do better.</li>
+    <li><strong>LoRA was not run.</strong> Prompt tuning stands in for trained methods.</li>
+    <li><strong>No human reference for the dilemmas.</strong> The Kairos evaluation's human data is not public, so the dilemma part measures whether arms move advice, and whether they agree with the prompt, not whether they match people.</li>
+    <li><strong>Synthetic conversations.</strong> The 24 ledger conversations were written for this note; real users reveal facts less tidily.</li>
+    <li><strong>The judges are models.</strong> They passed known-answer checks but lean lenient on “used”, and the unsupported-assumptions judge failed its check.</li>
+    <li><strong>Settings carried across tasks.</strong> Strengths chosen on survey letters were reused for free text by design; at those strengths the persona vector looped in 95% of Qwen's dilemma replies, and the uptake sweep's rule chose an attend persona setting that broke Qwen because a random direction of that size broke it more. A rule that picks by margin over random needs a fluency floor on the arm itself, not only on the average.</li>
+    <li><strong>Two planned checks were not run.</strong> The plan also called for a blind reference reading of 40 produced replies per judge, and of 20 replies the persona-vector filter kept or dropped; the judges were checked only on authored known-answer cases, so their agreement on the models' own replies is not measured.</li>
+    <li><strong>Unscored replies.</strong> 4-14% of dilemma replies per arm had a rubric call that ran out of thinking tokens; they are left out, not imputed.</li>
+    <li><strong>English only</strong>, and the survey splits come from translated questionnaires fielded in 2017-2020.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <pre><code>experiments/culture-steering/reproduce.sh --dry-run   # every command, in order
+python experiments/culture-steering/analyse.py        # every number in this note, from results/
+python experiments/culture-steering/make_figures.py   # the figures, printing what each plots</code></pre>
+  <p>The model runs cost $62 (read from the billing API; the last judging jobs ran under the $100 hard cap after the $60 soft cap refused them) on Modal (caps of $60 soft and $100 hard in <code>common.check_modal</code>). The analysis runs on a laptop from the shipped results.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What's next</h2>
+  <ul>
+    <li>Train for the difference between countries: a soft prompt or LoRA whose target is own-country advantage rather than each country's split.</li>
+    <li>A wider model (a base model, whose spread is near people's), to separate “country” from “spread”.</li>
+    <li>Steering only at the answer position, so the rest of a reply is untouched.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions readers ask"><span class="num">10</span>Questions readers ask</h2>
+  <h3 id="q-example">What do the five arms do to one real survey answer?</h3>
+  <p>The question: “For each of the following, indicate how important it is in your life: Religion.” In the World Values Survey 98% of Indonesians said “very important” and 2% “rather important”. Llama-3.1-8B-Instruct's next-token probabilities over the four options (very / rather / not very / not at all important):</p>
+  <ul>
+    <li><em>No context:</em> 9% / 12% / 49% / 30%.</li>
+    <li><em>“I live in Indonesia.”:</em> 95% / 5% / 0% / 0%. On this question the prompt is nearly perfect.</li>
+    <li><em>Country direction for Indonesia:</em> 59% / 28% / 12% / 2%.</li>
+    <li><em>Persona vector for Indonesia:</em> 1% / 6% / 38% / 55%, farther from Indonesia than no context.</li>
+    <li><em>Trained soft prompt for Indonesia:</em> 83% / 11% / 5% / 1%.</li>
+  </ul>
+  <p>For the US (people: 37% / 24% / 22% / 17%) the soft prompt gave 36% / 36% / 17% / 10%, and “I live in the United States.” gave 12% / 52% / 28% / 9%. One question can make any arm look good or bad; the averages in section 4 are over 121.</p>
+  <h3 id="q-convo">What do “a fact used” and “a fact missed” look like?</h3>
+  <p>One held-out conversation, Llama-3.1-8B-Instruct, third turn. The user had said, over three turns: four free hours on Sunday mornings (weight 2), a retired nurse (2), <strong>walks with a stick and can't stand for long (3)</strong>, lost her husband last year and wants to meet people (2), doesn't use computers (1).</p>
+  <div class="convo">
+    <p class="who">No instruction · walking stick: missed</p>
+    <p>“Considering your preference to meet people in person and not use computers, here are some volunteer opportunities… <strong>Hospitals</strong>: as a retired nurse… <strong>Animal Shelters</strong>: socializing animals, walking dogs… <strong>Community Gardens</strong>: planting, weeding…”</p>
+    <p class="who">Attend persona vector · walking stick: used</p>
+    <p>“Given your <strong>mobility limitations</strong> and comfort with face-to-face interactions, here are some volunteer opportunities that might be a good fit: … <strong>Walking Groups</strong>: look for walking groups that cater to seniors or people with mobility issues…”</p>
+  </div>
+  <p>The first reply never mentions the stick and suggests gardening and dog walking. The second names the limitation, so the judge marks the fact used, then suggests a walking group. Over 16 conversations the steered arm's gap was 0.175 against 0.202, and the difference was within noise. This case also shows why the judge leans lenient on “used”: naming a fact is easier than acting on it.</p>
+  <h3 id="q-why-random">Why compare with a random direction?</h3>
+  <p>Because adding any vector of that size changes the model. On Llama a random direction moved the distance to the average country from 0.516 to 0.490 with no information about any country. A steering arm's effect is what it does beyond that.</p>
+  <h3 id="q-what-is-soft">Is a trained soft prompt still “prompting”?</h3>
+  <p>It sits where a prompt sits, but its 16 vectors are not words: they were learned by gradient descent on 60 survey splits per country, with the model frozen. It is a small trained adapter, which is why it needs labels and why it fits the target so much better.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><a href="../data/wvs_dev.json"><code>data/wvs_dev.json</code></a>, <a href="../data/wvs_heldout.json"><code>data/wvs_heldout.json</code></a>: the 60 and 121 survey questions (<code>id</code>, <code>question</code>, <code>options</code>, <code>human</code>: each country's split).</li>
+    <li><a href="../data/dilemmas.jsonl"><code>data/dilemmas.jsonl</code></a>: the 32 dilemmas (<code>id</code>, <code>prompt</code>).</li>
+    <li><a href="../data/scenarios.json"><code>data/scenarios.json</code></a>: the 24 conversations and their ledgers (<code>facts</code>: <code>id</code>, <code>text</code>, <code>weight</code>; <code>turns</code>: <code>user</code>, <code>reveals</code>).</li>
+    <li><code>data/authority_cases.json</code>, <code>data/uptake_sentences.json</code>, <code>data/judge_rework.json</code>: the judges' known-answer cases.</li>
+    <li><code>results/wvs/&lt;model&gt;/heldout_rows.jsonl.gz</code>: one row per question, arm and country (<code>qid</code>, <code>arm</code>, <code>vc</code>: the country it was set for, <code>L</code>, <code>coef</code>, <code>mass</code>, <code>dist</code>, <code>jsd</code> to every country).</li>
+    <li><code>results/dilemmas/&lt;model&gt;/scored.jsonl.gz</code>: every dilemma reply with its <code>nll</code>, <code>loop</code> flag and four rubric <code>scores</code>.</li>
+    <li><code>results/uptake/&lt;model&gt;/heldout_convs.jsonl.gz</code>: every conversation (<code>replies</code>, per-turn <code>labels</code> for each fact, <code>gap</code>, <code>contra</code>, <code>nll</code>).</li>
+    <li><code>results/vectors/&lt;model&gt;/</code>: every direction, persona vector and soft prompt; <a href="../results/summary.json"><code>results/summary.json</code></a>: every number; <code>results.tsv</code>: every tuning try.</li>
+  </ul>
+  <h3 id="references">References</h3>
+  <ul>
+    <li><a href="https://arxiv.org/abs/2507.21509">Persona Vectors: Monitoring and Controlling Character Traits in Language Models</a> (2025)</li>
+    <li><a href="https://proceedings.mlr.press/v306/lu26g.html">The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models</a> (ICML 2026)</li>
+    <li><a href="https://arxiv.org/abs/2312.06681">Steering Llama 2 via Contrastive Activation Addition</a> (2023)</li>
+    <li><a href="https://arxiv.org/abs/2104.08691">The Power of Scale for Parameter-Efficient Prompt Tuning</a> (2021)</li>
+    <li><a href="https://arxiv.org/abs/2106.09685">LoRA: Low-Rank Adaptation of Large Language Models</a> (2021)</li>
+    <li><a href="https://arxiv.org/abs/2510.06084">Spectrum Tuning: Post-Training for Distributional Coverage and In-Context Steerability</a> (2025)</li>
+    <li><a href="https://arxiv.org/abs/2402.05070">A Roadmap to Pluralistic Alignment</a> (ICML 2024)</li>
+    <li><a href="https://arxiv.org/abs/2306.16388">Towards Measuring the Representation of Subjective Global Opinions in Language Models</a> (GlobalOpinionQA, 2023)</li>
+    <li><a href="https://hongbeepark.com/projects/kairos.html">The Kairos evaluation</a> and <a href="https://github.com/HongbeePark/sai">the Sai toolkit</a> (CC BY-NC-ND 4.0; no code or data from either is used here)</li>
+    <li><a href="https://aclanthology.org/2021.emnlp-main.70/">Learning Universal Authorship Representations</a> (EMNLP 2021)</li>
+    <li>Earlier steerlab notes: <a href="../../pluralism-explainer/report/">the pluralism explainer</a> (the survey items) and <a href="../../pluralism-judge-rl/report/">the judge-RL note</a> (the dilemmas)</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026culturesteering,
+  author = {Albert Lie},
+  title  = {Steering a model toward a country mostly makes it less sure, not more like that country},
+  year   = {2026},
+  month  = nov,
+  note   = {steerlab research note},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/culture-steering/report/}
+}</code></pre>
+  </div>
+  <footer class="note">Pre-registered; the plan, its predictions and every dated amendment are in the repository.</footer>
+</article>
+</div>
+<script type="module" src="culture.js"></script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
