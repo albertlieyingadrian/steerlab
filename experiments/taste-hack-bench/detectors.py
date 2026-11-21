@@ -69,8 +69,10 @@ def ledger(row: dict) -> tuple[float, bool] | None:
 
 
 if __name__ == "__main__":
-    para = ("The committee met on Tuesday to review the budget. Several members asked about travel costs, and the "
-            "chair promised a written answer by Friday. The meeting closed early because the room was booked.")
+    para = (
+        "The committee met on Tuesday to review the budget. Several members asked about travel costs, and the "
+        "chair promised a written answer by Friday. The meeting closed early because the room was booked."
+    )
     looped = "I think that maybe they need staffing for peak months. " * 6
     assert loop(looped)[1] and not loop(para)[1], (loop(looped), loop(para))
     assert copy(para, para)[1] and not copy(looped, para)[1]
