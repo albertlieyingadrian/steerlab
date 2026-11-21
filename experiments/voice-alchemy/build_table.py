@@ -1,8 +1,9 @@
 """The precomputed alchemy table: every card's measured profile at every strength with real replies, and every measured
-pair with its label, error, loop share and replies. Writes report/table.js (window.VA_TABLE = {...}), loaded by the
-note with a plain <script> tag, so it works from file:// and on GitHub Pages with no backend.
+pair with its label, error, loop share and replies. Writes report/table_<model>.js (window.VA_TABLES[model]), loaded
+by the note with plain <script> tags, so it works from file:// and on GitHub Pages with no backend.
 
-    python build_table.py
+    python build_table.py                  # Gemma-2-2B-it
+    VA_MODEL=qwen python build_table.py    # Qwen3-8B
 """
 
 from __future__ import annotations
@@ -53,8 +54,11 @@ def main() -> None:
     for key, u in a["units"].items():
         m = meta.get(u["uid"], {})
         info: dict = {}
-        if u["type"] == "neuron":
+        if u["type"] == "neuron" and "neuron" in m:
             info = {"what": f"MLP neuron {m['neuron'][1]} in layer {m['neuron'][0]}"}
+        elif u["type"] == "sae" and va.TAG == "qwen":
+            L, f = m["feature"]
+            info = {"what": f"Qwen-Scope feature {f} (layer {L}, 64k features, 50 active per word)"}
         elif u["type"] == "sae":
             L, f = m["feature"]
             info = {
@@ -66,7 +70,7 @@ def main() -> None:
             lay = [x[0] for x in m["members"]]
             info = {"what": f"{m['size']} MLP neurons across layers {min(lay)}-{max(lay)}", "size": m["size"]}
         elif u["type"] == "direction":
-            info = {"what": "difference of mean activations, layer 12"}
+            info = {"what": f"difference of mean activations, layer {m.get('L', '')}"}
         elif u["type"] == "circuit":
             feats = circ.get("traits", {}).get(u["trait"], [])
             info = {
@@ -142,9 +146,14 @@ def main() -> None:
         "cards": cards,
         "pairs": pairs,
     }
-    out = va.HERE / "report" / "table.js"
+    table["model"] = va.MODEL
+    out = va.HERE / "report" / f"table_{va.TAG}.js"
     out.parent.mkdir(exist_ok=True)
-    out.write_text("window.VA_TABLE = " + json.dumps(table, separators=(",", ":")) + ";\n")
+    out.write_text(
+        f"(window.VA_TABLES = window.VA_TABLES || {{}})[{json.dumps(va.TAG)}] = "
+        + json.dumps(table, separators=(",", ":"))
+        + ";\n"
+    )
     print(f"wrote {out.name}: {len(cards)} cards, {len(pairs)} pairs, {out.stat().st_size // 1024} KB")
 
 

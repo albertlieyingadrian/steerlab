@@ -3,9 +3,9 @@ first words of a real reply.
 
     .venv/bin/python experiments/voice-alchemy/make_cover.py
 
-Left: the measured profiles (judge points against the unsteered model, 16 held-out prompts) of the assistant-like and
-playful difference-of-means directions at their chosen strengths. Right: the measured pair, with ticks at the sum of
-the singles, and its reply to "Explain how an airplane stays in the air." (results/analysis_heldout.json,
+Left: the measured profiles (judge points against the unsteered model, 16 held-out prompts) of Qwen3-8B's playful and
+casual neuron communities at their chosen strengths. Right: the measured pair, with ticks at the sum of the singles,
+and its reply to "How do I get better at public speaking?" (results/analysis_heldout.json,
 results/scored_heldout.jsonl). Writes the SVG into report/index.html between the cover markers,
 report/figures/hero.jpg and ../shared/thumbs/voice-alchemy.jpg.
 """
@@ -37,7 +37,8 @@ from cover_kit import (
     write_cover,
 )
 
-A, B, PI = "assistant", "playful", 0
+A, B, PI, TYPE = "playful", "casual", 4, "community"
+"""Run with VA_MODEL=qwen: the cover shows Qwen3-8B, the main model."""
 TRAITS = list(va.TRAITS)
 
 
@@ -60,7 +61,7 @@ def panel(x, y, w, title, d, pred=None, hl=()):
 
 def main() -> None:
     a = json.loads((va.RESULTS / "analysis_heldout.json").read_text())
-    pr = next(p for p in a["pairs"] if p["type"] == "direction" and set(p["traits"]) == {A, B})
+    pr = next(p for p in a["pairs"] if p["type"] == TYPE and set(p["traits"]) == {A, B})
     flip = pr["traits"][0] != A
     da, db = (pr["d_b"], pr["d_a"]) if flip else (pr["d_a"], pr["d_b"])
     pred = [x + y for x, y in zip(da, db, strict=True)]
@@ -68,11 +69,11 @@ def main() -> None:
     reply = next(r for r in rows if r["kind"] == "pair" and r["uids"] == pr["uids"] and r["pi"] == PI)
     snippet = " ".join(reply["text"].replace("**", "").split()[:22]) + " …"
     print(f"pair {pr['traits']} E {pr['E']:.2f} label {pr['label']} coherence {pr['coherence']:.1f}; reply: {snippet}")
-    body = kicker("STEERING · VOICE ALCHEMY", "GEMMA-2-2B-IT · TRANSFORMERLENS")
+    body = kicker("STEERING · VOICE ALCHEMY", "QWEN3-8B · TRANSFORMERLENS")
     body += t(20, 62, "Push two voices at once. Do they add up?", 27, 800, INK)
-    body += panel(20, 92, 196, "ASSISTANT-LIKE", da, hl=(A,))
+    body += panel(20, 92, 196, "PLAYFUL COMMUNITY", da, hl=(A,))
     body += t(232, 220, "+", 30, 800, MUTED, "middle")
-    body += panel(248, 92, 196, "PLAYFUL", db, hl=(B,))
+    body += panel(248, 92, 196, "CASUAL COMMUNITY", db, hl=(B,))
     body += t(468, 214, "→", 30, 800, MUTED, "middle")
     body += panel(490, 92, 196, "BOTH PUSHED", pr["d_ab"], pred=pred, hl=(A, B))
     chip = f"{pr['label'].upper()} · E {pr['E']:.2f}"
@@ -90,19 +91,19 @@ def main() -> None:
     body += t(
         20,
         384,
-        "Plain directions added up best of five unit types; single neurons, SAE features and neuron",
+        "In Qwen3-8B, plain directions steered 7 of 8 voices and neuron communities 3; this community pair",
         15,
         400,
         INK,
     )
-    body += t(20, 405, "communities moved fewer voices, and most pairs pushed at full strength broke.", 15, 400, INK)
+    body += t(20, 405, "added up, but most direction pairs pushed at full strength broke.", 15, 400, INK)
     body += f'<path d="M20,468 H860" stroke="{LINE}" stroke-width="1"/>'
     body += caps(
-        "DIFFERENCE-OF-MEANS DIRECTIONS AT LAYER 12 · 16 HELD-OUT PROMPTS PER BAR · REPLY TO "
-        "“EXPLAIN HOW AN AIRPLANE STAYS IN THE AIR.”, UNEDITED"
+        "NEURON COMMUNITIES IN LAYERS 15-19 · 16 HELD-OUT PROMPTS PER BAR · REPLY TO "
+        "“HOW DO I GET BETTER AT PUBLIC SPEAKING?”, UNEDITED"
     )
     label = (
-        f"Two measured voice profiles of Gemma-2-2B-it, assistant-like and playful directions, and the profile when "
+        f"Two measured voice profiles of Qwen3-8B, its playful and casual neuron communities, and the profile when "
         f"both are pushed at once ({pr['label']}, additivity error {pr['E']:.2f}), with the first words of a real "
         f"reply: '{snippet}'"
     )

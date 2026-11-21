@@ -337,12 +337,15 @@ RAND_PAIRS = [(ALL_TRAITS[i], ALL_TRAITS[(i + 1) % 8]) for i in range(7)]
 """Seven random-unit pairs per type: neighbouring traits' controls, at the real units' operating strengths."""
 
 
-def confirm_rows(pset: str, strengths_all: bool) -> list[dict]:
+def confirm_rows(pset: str, strengths_all: bool, part: str = "all") -> list[dict]:
+    """part: "all", "main" (every type but circuits, plus baselines) or "circuit" (circuit rows only); the Qwen run
+    generated the two parts separately while its circuit graphs were still being built."""
     sel = json.loads((va.RESULTS / "selection.json").read_text())
-    cpairs = json.loads((va.RESULTS / "circuit_pairs.json").read_text())
     pairs28 = [(a, b) for i, a in enumerate(ALL_TRAITS) for b in ALL_TRAITS[i + 1 :]]
-    rows = base_rows(pset) + prompt_rows(pset, ALL_TRAITS, pairs28)
-    for typ in (*TYPES, "circuit"):
+    rows = [] if part == "circuit" else base_rows(pset) + prompt_rows(pset, ALL_TRAITS, pairs28)
+    types = {"all": (*TYPES, "circuit"), "main": TYPES, "circuit": ("circuit",)}[part]
+    cpairs = json.loads((va.RESULTS / "circuit_pairs.json").read_text()) if "circuit" in types else []
+    for typ in types:
         for t in ALL_TRAITS:
             s = sel[f"{typ}-{t}"]
             grid = FINAL_GRID if strengths_all else [s["s"]]
@@ -365,6 +368,22 @@ def confirm_rows(pset: str, strengths_all: bool) -> list[dict]:
 
 def jobs_pilot() -> None:
     write_jobs("pilot", confirm_rows("pilot", strengths_all=False))
+
+
+def jobs_pilot_main() -> None:
+    write_jobs("pilot_main", confirm_rows("pilot", strengths_all=False, part="main"))
+
+
+def jobs_pilot_circuit() -> None:
+    write_jobs("pilot_circuit", confirm_rows("pilot", strengths_all=False, part="circuit"))
+
+
+def jobs_heldout_main() -> None:
+    write_jobs("heldout_main", confirm_rows("heldout", strengths_all=True, part="main"))
+
+
+def jobs_heldout_circuit() -> None:
+    write_jobs("heldout_circuit", confirm_rows("heldout", strengths_all=True, part="circuit"))
 
 
 def jobs_heldout() -> None:

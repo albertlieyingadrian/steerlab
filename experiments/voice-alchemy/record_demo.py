@@ -2,8 +2,8 @@
 
     .venv/bin/python experiments/voice-alchemy/record_demo.py
 
-Drives report/index.html with Playwright at 960 x 600: scrolls to the table, picks the assistant-like direction card,
-opens a real reply, picks the playful card, and lingers on the measured mix. Writes report/media/demo.mp4,
+Drives report/index.html with Playwright at 960 x 600: scrolls to the table, opens Qwen3-8B's community cards, picks
+playful, opens a real reply, picks casual, lingers on the measured mix, then switches to Gemma-2-2B-it. Writes report/media/demo.mp4,
 report/media/demo.gif (960 px wide, kept under 3 MB) and report/media/demo-still.png (the mix, for no-JS and print).
 """
 
@@ -43,15 +43,17 @@ def main() -> None:
         def card(trait: str):
             return page.locator(f'button[data-pick="{trait}"]')
 
-        card("assistant").scroll_into_view_if_needed()
-        page.wait_for_timeout(1200)
-        card("assistant").click()
-        page.wait_for_timeout(1300)
-        page.locator('button[data-open="direction-assistant"]').click()
-        page.wait_for_timeout(2600)
+        page.locator('button.va-tab[data-type="community"]').click()
+        page.wait_for_timeout(1400)
         card("playful").scroll_into_view_if_needed()
-        page.wait_for_timeout(900)
+        page.wait_for_timeout(1200)
         card("playful").click()
+        page.wait_for_timeout(1300)
+        page.locator('button[data-open="community-playful"]').click()
+        page.wait_for_timeout(2600)
+        card("casual").scroll_into_view_if_needed()
+        page.wait_for_timeout(900)
+        card("casual").click()
         page.wait_for_timeout(1000)
         page.locator(".va-mix").scroll_into_view_if_needed()
         page.evaluate("window.scrollBy(0, -40)")
@@ -59,9 +61,9 @@ def main() -> None:
         page.screenshot(path=str(MEDIA / "demo-still.png"))
         page.evaluate("window.scrollBy({top: 260, behavior: 'smooth'})")
         page.wait_for_timeout(3500)
-        page.locator('button.va-tab[data-type="community"]').scroll_into_view_if_needed()
+        page.locator('button.va-tab[data-model="gemma"]').scroll_into_view_if_needed()
         page.wait_for_timeout(600)
-        page.locator('button.va-tab[data-type="community"]').click()
+        page.locator('button.va-tab[data-model="gemma"]').click()
         page.wait_for_timeout(2400)
         video = page.video.path()
         ctx.close()
