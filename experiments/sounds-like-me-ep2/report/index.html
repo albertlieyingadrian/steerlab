@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beating every model without training? A harness on an unverifiable reward</title>
+<meta name="description" content="Sounds Like Me, Episode 2: a harness around Qwen3-8B (retrieve, profile, draft, critique, revise, best of 20) with no training, on 30 held-out public writers. The harness alone stayed below Episode 1's best; with the writer's voice vector added it beat every model on voice, and tied on an unseen attributer, but invented facts in 28% of drafts. Gemini in the same harness was the one honest win, on specificity.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Beating every model without training? A harness on an unverifiable reward">
+<meta property="og:description" content="Sounds Like Me E2, pre-registered: a harness around Qwen3-8B (retrieve, verified style profile, draft, critique, revise, best of 20) on 30 held-out public writers, with no training. The harness alone stayed below Episode 1&#x27;s best; with the writer&#x27;s voice vector added it beat every model on voice and tied on an authorship model it never saw, but invented facts in 28% of drafts. Gemini in the same harness was the one honest win.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Voice position on 30 held-out public writers from a different human (0) to the same human (1): Qwen3-8B with a prompt -0.54, best of 20 drafts -0.27, the harness -0.20, the harness with the writer&#x27;s voice vector +0.17, the harness with a random vector -0.15, Episode 1&#x27;s best honest model (Gemini) -0.03.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Beating every model without training? A harness on an unverifiable reward">
+<meta name="twitter:description" content="Sounds Like Me E2, pre-registered: a harness around Qwen3-8B (retrieve, verified style profile, draft, critique, revise, best of 20) on 30 held-out public writers, with no training. The harness alone stayed below Episode 1&#x27;s best; with the writer&#x27;s voice vector added it beat every model on voice and tied on an authorship model it never saw, but invented facts in 28% of drafts. Gemini in the same harness was the one honest win.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-20">
+<meta property="article:modified_time" content="2026-11-20">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Beating every model without training? A harness on an unverifiable reward",
+ "description": "Sounds Like Me E2, pre-registered: a harness around Qwen3-8B (retrieve, verified style profile, draft, critique, revise, best of 20) on 30 held-out public writers, with no training. The harness alone stayed below Episode 1's best; with the writer's voice vector added it beat every model on voice and tied on an authorship model it never saw, but invented facts in 28% of drafts. Gemini in the same harness was the one honest win.",
+ "abstract": "Sounds Like Me series, Episode 2 (harness and no-training ladder). Same 30 held-out writers (24 Enron, 6 Blog) x 4 synthetic sales briefs as Episode 1. Qwen3-8B does every step: retrieve 6 of 12 samples, a measured + model-inferred style profile verified against the samples, 16 drafts, in-loop checks (LUAR to the samples, detector, copy filter, Qwen3-8B honesty self-check), 4 critiqued revisions, rerank. Strict voice position (0 = a different human, 1 = the same human): prompt -0.54, best of 20 -0.27, harness -0.20 [-0.37, -0.05] vs Episode 1's best honest model Gemini 4 Carbon -0.03 (paired -0.17); best-of-N is 80% of the harness gain; no rerank -0.59; retrieval and profile add nothing. Harness + the writer's voice vector (layer 24, 0.4 x norm): +0.17 [+0.03, +0.31], +0.20 [+0.06, +0.34] over Gemini, +0.31 over the harness at 80 words, +0.35 over random vectors; specificity 0.077 (Gemini 0.070); loops 25-28%, loop-free +0.18; task coverage 0.50; unsupported claims 28.3% vs 16.7% prompt-only, failing the pre-registered 5-point gate. Exploratory strength 0.3: +0.20, loops 7.5-9%, unsupported 28.3%. Assistant direction (own drafts minus human emails, dev only): steering away +0.59 position over random, specificity -0.002 (persona hypothesis: more human, not more like the person); projection predicts voice weakly (rho -0.17). Unseen rulers: character n-gram attributer (top-1 0.956 on own samples) ranks the true writer 12.7/30 for the harness, 8.0 steered, 7.9 Gemini; a small DeBERTa voice preference model (dev-only, simulated pairs, held-out accuracy 0.81-0.85) mostly rewards 'not AI'. Gemini 4 Carbon in the harness: +0.04, specificity 0.089 (+0.018 [+0.009, +0.028] over Episode 1), 4.2% unsupported, $0.020 per draft. Predictions: P3, P5 hit; P1, P2, P4, P6, P7 miss. Code-review fixes applied before publication.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-20",
+ "dateModified": "2026-11-20",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "personalised writing, harness, best-of-N, steering vectors, persona vectors, assistant axis, authorship, LUAR, preference model, reward hacking, unverifiable rewards, honesty, Enron, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://aclanthology.org/2021.emnlp-main.70/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.23815"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://proceedings.mlr.press/v306/lu26g.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06681"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2608.19746"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .slm-fig { margin: 1.6rem 0 2rem; }
+  .slm-controls { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; align-items: center; margin: 0 0 .6rem; font-family: var(--font-display); font-size: .85rem; }
+  .slm-controls label { color: var(--ink-soft); display: flex; align-items: center; gap: .4rem; flex: 1 1 16rem; min-width: 0; }
+  .slm-controls select { font: inherit; font-size: .85rem; padding: .25rem .4rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); width: 100%; min-width: 0; min-height: 32px; }
+  .slm-controls select:focus-visible, .slm-btn:focus-visible, .slm-fig g.row:focus-visible, .table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .slm-btns { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .slm-btn { font: inherit; font-size: .8rem; padding: .25rem .65rem; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink-soft); border-radius: 999px; cursor: pointer; min-height: 32px; }
+  .slm-btn[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: var(--panel); }
+  .slm-btn .sw { display: inline-block; width: .7em; height: .7em; border-radius: 50%; background: var(--sw); margin-right: .35em; vertical-align: -.05em; }
+  .slm-fig svg { width: 100%; height: auto; display: none; color: var(--ink); }
+  .slm-fig.is-live svg { display: block; }
+  .slm-fig.is-live .slm-static, .slm-fig:not(.is-live) .slm-controls, .slm-fig:not(.is-live) .slm-live, .slm-fig:not(.is-live) .slm2-drafts { display: none; }
+  .slm-fig .grid { stroke: var(--rule); }
+  .slm-fig .ref { stroke: var(--ink-faint); stroke-dasharray: 3 3; }
+  .slm-fig .ci { stroke: var(--ink-faint); stroke-width: 2; }
+  .slm-fig .tick, .slm-fig .val { font-family: var(--font-mono); font-size: 11px; fill: var(--ink-soft); }
+  .slm-fig .ref-label, .slm-fig .axis-label { font-family: var(--font-display); font-size: 11.5px; fill: var(--ink-soft); }
+  .slm-fig .name { font-family: var(--font-display); font-size: 12px; fill: var(--ink); }
+  .slm-live { font-size: .85rem; color: var(--ink-soft); margin: .4rem 0 0; min-height: 2.6em; }
+  .draft { font-family: var(--font-body); font-size: .93rem; background: var(--panel); border-left: 3px solid var(--ink-faint); padding: .7rem .9rem; margin: .6rem 0; white-space: pre-line; }
+  .draft.steered { border-left-color: var(--accent); }
+  .draft .who { display: block; font-family: var(--font-display); font-size: .8rem; color: var(--ink-soft); margin-bottom: .3rem; white-space: normal; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap td:first-child { min-width: 9rem; }
+  .ep-link { font-family: var(--font-display); font-size: .95rem; margin: 1rem 0 1.5rem; }
+  .ep-link a { font-weight: 650; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Sounds Like Me · RL for unverifiable writing<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-20">Nov 20, 2026</time></p>
+  <h1>Beating every model without training? A harness on an unverifiable reward</h1>
+  <p class="dek ruled">Reinforcement learning works when answers can be checked. Most writing can't be checked: there's no answer key for "sounds like me". This series builds a reward for authentic voice from public writers, tests it against every model, and then trains on it.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Voice position on 30 held-out public writers, from a different human (0) to the same human (1): Qwen3-8B with a prompt at −0.54, the best of 20 drafts at −0.27, the harness at −0.20, the harness with the author's voice vector at +0.17, the harness with a random vector at −0.15, and Episode 1's best honest model (Gemini 4 Carbon) at −0.03." width="1200" height="675">
+    <figcaption>Cover: mean voice position over 30 held-out authors (4 drafts each), with 95% bootstrap intervals, for the steps of the no-training ladder and Episode 1's best honest contestant. Orange is steering, blue a random-vector control. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/summary.json</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Sounds Like Me, Episode 2. <a href="../../sounds-like-me/report/">Episode 1</a> built the reward and the benchmark; <a href="../../sounds-like-me-ep3/report/">Episode 3</a> trains on it; <a href="../../sounds-like-me-ep4/report/">Episode 4</a> checks the rulers against people</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (every harness step, self-hosted, steerable); Gemini 4 Carbon in the same harness (batch API); Episode 1's drafts as comparators</dd></div>
+    <div><dt>Method</dt><dd>Pre-registered: a harness and a no-training ladder (prompt → harness → harness + steering) on the same 30 held-out writers and briefs as Episode 1, with random-vector controls, equal-compute best-of-N, a per-step ablation and two rulers the harness never saw</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/sounds-like-me-ep2/</a> · <a href="../results/summary.json">results/</a> (every number in this note; <a href="../README.md">file guide</a>) · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a pipeline around an open 8B model, with nothing trained, write more like a specific person than any Episode 1 model, on rulers it never optimised?</strong></p>
+    <p>On voice, yes; with honesty counted, no. The harness alone lifted Qwen3-8B from −0.54 to −0.20 on a scale from a different human (0) to the same human (1), 80% of it from picking the best of many drafts, and stayed 0.17 below Episode 1's best honest model (Gemini 4 Carbon, −0.03). Adding the writer's voice vector inside the model while it wrote took the harness to +0.17, ahead of Gemini by +0.20 [+0.06, +0.34] and level with it on an authorship model it never saw. But those drafts invented a claim 28% of the time against Gemini's 2%, looped 28% of the time, and covered half the brief, so they fail the honesty gate written before the run. The one win that passes it is Gemini inside the same harness: the most specific contestant in either episode (0.089 against 0.070), at 4% unsupported claims. Two of seven predictions hit.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr><td>Does the harness alone beat Episode 1's best honest model (P1)?</td><td><strong>No.</strong> Harness −0.20 [−0.37, −0.05]; paired with Gemini 4 Carbon −0.17 [−0.36, −0.02]</td><td>Qwen3-8B with a prompt: −0.54; Gemini with samples and simulated edits: −0.03</td></tr>
+      <tr><td>Where does the harness gain come from (P3)?</td><td><strong>Mostly from choosing.</strong> The best of 20 drafts from the plain prompt got 80% of the harness gain (+0.27 of +0.34). Without its rerank the harness fell to −0.59; retrieval and the style profile added nothing measurable</td><td>Per-step ablation on the same writers</td></tr>
+      <tr class="hl"><td>Does steering add voice beyond the harness (P4)?</td><td><strong>Yes, a lot.</strong> Harness + the writer's voice vector +0.17 [+0.03, +0.31]: +0.31 [+0.16, +0.47] over the harness at 80 words, +0.35 [+0.18, +0.53] over random vectors in the harness; specificity 0.077 (Gemini 0.070). Without looping or broken drafts: +0.18 (21 writers)</td><td>Harness + random vector −0.15 and −0.21. Loops: 28% of drafts (25% by the 4-gram rule)</td></tr>
+      <tr><td>Does it hold at a strength that barely loops (exploratory)?</td><td><strong>Mostly.</strong> At strength 0.3, chosen on development writers for no loops: +0.20 [+0.08, +0.32], specificity 0.082, loops 7.5-9% on held-out writers; without them +0.15 (29 writers)</td><td>Registered strength 0.4: loops 25-28%</td></tr>
+      <tr><td>Do rulers the harness never saw agree (P2)?</td><td><strong>Not for the plain harness; level for the steered one.</strong> True writer's rank under a character n-gram attributer: harness 12.7 of 30, steered 8.0, Gemini 7.9. A small preference model preferred harness drafts over Gemini's 21% of the time, steered ones 61%</td><td>The preference model also rewards "not AI" (see 4.5)</td></tr>
+      <tr><td>Is the fingerprint the assistant persona (P5, P6)?</td><td><strong>Yes for position, no for the person.</strong> Steering away from an "assistant" direction beat random directions by +0.59 in position with no gain in specificity (−0.002); in the harness, +0.39 over the plain harness, specificity +0.002. Its projection barely predicted voice across Episode 1's drafts (ρ −0.17)</td><td>A written character card: specificity +0.022, no loops</td></tr>
+      <tr><td>Does the harness remove steering's honesty cost (P7)?</td><td><strong>No.</strong> Unsupported claims: voice vector alone 37.5%, inside the harness 28.3% (prompt only 16.7%): +11.7 points [+1.7, +20.8], outside the pre-registered 5-point gate. Every steered arm failed it</td><td>Plain harness 10.8%; Gemini 1.7%; Gemini in the harness 4.2%</td></tr>
+      <tr><td>Cost per final draft</td><td><strong>10 to 22 times a single closed-model draft.</strong> Qwen3-8B harness $0.029-0.045 of rented GPU (20 generations and 20 honesty self-checks); Gemini in the harness $0.020</td><td>Gemini, one draft: $0.002</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <p class="ep-link">Start with <a href="../../sounds-like-me/report/">Episode 1: can any model sound like you?</a> It builds the voice scale, the specificity control and the honesty check this episode uses.</p>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>An Enron trader opens a memo with "Following please find…". Qwen3-8B, asked to write a cold email in that trader's voice, opens with "I hope you're having a great day." Pick the best of 20 tries and fix it with notes, and the harness gets "Following please find our available truckload capacity…": the habit is there, but by the second line it is a salesperson again. Add the trader's voice vector inside the model as it writes, and the whole draft reads as flat, declarative and terse: "Lanebridge Logistics is available to provide quotes… Please note that this is the first contact." That is closer to the trader, and it also says "this is the first contact" twice and drops the ask. Across 30 writers that trade held: the steered harness beat every model on voice and lost on honesty.</p>
+  <p><strong>What is known.</strong> Harnesses (retrieve, draft, critique, revise, pick) are the cheap way to improve a model without training, and in maths and code a verifier makes them strong. For personal writing, <a href="https://arxiv.org/abs/2505.23815">PROSE</a> (2025) infers a user's preferences from their writing and verifies each against the samples. <a href="../../sounds-like-me/report/">Episode 1</a> found that no model wrote more like a person than a stranger does, that most of what samples bought was "less assistant" rather than "more like you", and that a voice vector inside the model moved drafts further, with loops and invented facts.</p>
+  <p><strong>What is missing.</strong> No one has asked whether a harness beats every model on a reward with no answer key, judged on rulers it did not optimise, or whether steering adds anything once the harness has done the cheap things. A harness optimises its rerank score, so its gain on that score says little; the question is whether the gain survives a different ruler.</p>
+  <p class="question-callout">Can a harness around an open 8B model, with nothing trained, beat every model at sounding like a specific person, without gaming its own ruler or paying in honesty? And does steering add anything beyond it?</p>
+  <p><strong>What this note does.</strong> It builds the harness on Qwen3-8B, climbs a no-training ladder on the same 30 held-out writers and briefs as Episode 1, and scores every rung on the Episode 1 rulers plus two it never saw. It contributes:</p>
+  <ol>
+    <li>a <strong>harness</strong> (retrieve, verified style profile, draft, critique, revise, best of 20) with an honest per-step ablation: almost all of it is the rerank;</li>
+    <li>a <strong>no-training ladder</strong> with random-vector and equal-compute controls: steering adds voice beyond the harness, and invents facts while it does;</li>
+    <li>a <strong>persona test</strong>: an "assistant" direction inside the model, read across Episode 1's drafts and steered against;</li>
+    <li>two <strong>unseen rulers</strong> (a character n-gram attributer and a small voice preference model, with a model card) and the finding that the preference model is partly an AI detector;</li>
+    <li><strong>cost per draft</strong> beside every score.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written in the plan before any held-out run:</p>
+  <ol>
+    <li>The harness beats Episode 1's best honest model (Gemini 4 Carbon with samples and simulated edits) by more than 0.10, with the interval above 0.</li>
+    <li>The win holds on rulers the harness never optimised: an n-gram attributer and a preference model trained only on development authors.</li>
+    <li>No arm counts as a win if its unsupported-claim rate is more than 5 points above the prompt-only rung's.</li>
+  </ol>
+
+  <aside class="bg-note" aria-label="Background: the tools this note uses">
+    <span class="label">Background · the tools in this note</span>
+    <p>One analogy throughout: a model writing an email is a cook making a dish.</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Background table"><table>
+      <thead><tr><th>Tool</th><th>What it is</th><th>Analogy</th><th>Reads or changes the model?</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Harness</strong></td><td>A pipeline around a model: it looks up examples, drafts many times, checks each draft, rewrites the best ones and picks one</td><td>A kitchen routine: taste, fix, re-plate, serve the best plate</td><td>Neither: it only changes what goes in and what comes out</td></tr>
+        <tr><td><strong>Authorship model</strong> (LUAR; an n-gram attributer)</td><td>A separate model that turns texts into a style fingerprint and compares them</td><td>A taster who can tell which cook made a dish</td><td>Neither: it judges the output</td></tr>
+        <tr><td><strong>Steering vector</strong></td><td>A direction in the model's activations added while it writes (here, an author's emails minus the model's own drafts)</td><td>A pinch of salt while the dish cooks</td><td>Changes it, at run time and reversibly</td></tr>
+        <tr><td><strong>Persona vector</strong></td><td>A steering vector for a character trait; here, "the default assistant" (its own drafts minus human emails)</td><td>The cook's personality, a dial you can turn down</td><td>Reads and changes</td></tr>
+        <tr><td><strong>Preference model</strong></td><td>A small model trained on pairs ("A beats B") to predict which text wins</td><td>A critic who learned one diner's taste from past orders</td><td>Neither: it judges the output</td></tr>
+      </tbody>
+    </table></div>
+    <p>A harness changes nothing inside the model; a vector pushes from inside; the judges only score. Training, which changes the weights, is Episode 3.</p>
+  </aside>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Same data as Episode 1.</strong> 30 held-out writers (24 Enron senders, 6 bloggers), each with 12 <em>samples</em> a model may see, 5 <em>profile</em> texts the voice is scored against and 5 <em>ceiling</em> texts (their own unseen writing); 4 synthetic sales briefs per writer, each with a fact list and a known relationship; 15 development writers for tuning. Writers are named "Author A" and so on. The briefs are invented; the design draws on my experience building sales AI for freight, and no customer text is used.</p>
+  <p><strong>The harness</strong> (one model, Qwen3-8B, does every step, so steering can be added to any step):</p>
+  <ol>
+    <li><strong>Retrieve</strong> the writer's 6 samples (of 12) closest to the brief (TF-IDF).</li>
+    <li><strong>Infer a style profile and verify it</strong> (PROSE-style): measured facts from all 12 samples (median length, greeting and sign-off habits, sentence length, punctuation rates) plus up to 6 written habits the model infers, each then checked by the model against the samples.</li>
+    <li><strong>Draft</strong> 16 candidates from the samples, the profile and the brief (temperature 0.9).</li>
+    <li><strong>Critique</strong> each candidate with in-loop checks: LUAR similarity to the writer's 12 samples (never the profile or ceiling texts the scorer uses), the AI detector, the copy filter, and an honesty self-check by the same Qwen3-8B. The 4 best get written notes ("remove claims the facts don't support: …", "they usually write about 60 words; this has 140").</li>
+    <li><strong>Revise</strong> those 4.</li>
+    <li><strong>Rerank</strong> the 20: drop copied, looping or self-flagged drafts, then pick the one closest to the samples.</li>
+  </ol>
+  <p><strong>The ladder</strong> (each rung on the same 30 writers × 4 briefs):</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, the ladder, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Rung</th><th>What it adds</th><th>Generations per brief</th></tr></thead>
+    <tbody>
+      <tr><td>Rung 1 prompt only</td><td>8 random samples, Episode 1's best template ("Write the next email they send")</td><td class="num">1</td></tr>
+      <tr><td>R1b best of 20</td><td>Rung 1's prompt, 20 drafts, the same checks and rerank as the harness: the "more samples, not the harness" control</td><td class="num">20</td></tr>
+      <tr><td>Rung 2 harness</td><td>Steps 1-6</td><td class="num">20</td></tr>
+      <tr><td>Rung 3 harness + voice vector</td><td>The writer's Episode 1 vector (layer 24, 0.4 × the mean activation norm) during drafting and revision</td><td class="num">20</td></tr>
+      <tr><td>Rung 4 harness − assistant</td><td>The assistant direction subtracted, same layer and size</td><td class="num">20</td></tr>
+      <tr><td>Rung 5 harness + both</td><td>The two directions summed, rescaled to the same size</td><td class="num">20</td></tr>
+      <tr><td>Rung 6 harness + random</td><td>A random direction of the same size (2 seeds)</td><td class="num">20</td></tr>
+      <tr><td>Gemini in the harness</td><td>Gemini 4 Carbon doing steps 3 and 5 (4 drafts, 2 revisions), the same checks</td><td class="num">6</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>The assistant direction</strong> is built from development writers only: the mean layer-24 activation of Qwen3-8B over 60 of its own no-samples drafts, minus the mean over the 15 development writers' 180 real emails. Persona tests use Episode 1's plain prompt with no harness: the direction subtracted and added, three random directions, a written <em>character card</em> per writer ("You are a power trader at an energy firm… sign off with initials…", written by Qwen3-8B from 8 samples), the writer's voice vector, and card plus vector.</p>
+  <p><strong>Rulers</strong> (each from Episode 1 unless marked new):</p>
+  <ul>
+    <li><strong>Voice position</strong>: LUAR on a writer's 4 drafts, placed between other people (0) and the writer's own unseen emails (1), greetings and sign-offs stripped and whitespace collapsed. Also cut to the first 80 words (Episode 1's length check).</li>
+    <li><strong>Specificity</strong>: similarity to this writer minus the mean similarity to the other 29. Humans score 0.172.</li>
+    <li><strong>Honesty</strong>: the share of drafts with a claim the fact list does not support, from Episode 1's frozen Qwen3-32B extractor, which the harness never calls. Rates are lower bounds (Episode 1's check found half the misses).</li>
+    <li><strong>New, unseen by the harness:</strong> a character 2-4-gram attributer trained on the 30 writers' profile and ceiling texts (readout: the true writer's rank among 30), and a small voice preference model (below).</li>
+    <li><strong>Loops</strong> (a 5-word run 3+ times, or more than 20% repeated 4-grams), the AI detector, task coverage and cost.</li>
+  </ul>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan</strong> with a Design section and seven predictions; commit it before any run.</li>
+    <li><strong>Check the new rulers</strong> (<a href="#rulers">3.1</a>): the attributer, the preference model, the in-loop honesty self-check.</li>
+    <li><strong>Tune on development writers</strong> (6 writers × 4 briefs per try, 13 tries logged in <a href="../results.tsv">results.tsv</a>): the rerank's detector weight, the number of drafts and temperature, a style-first system prompt, the profile verifier.</li>
+    <li><strong>Pilot</strong> every rung and the persona tests on development writers; price Gemini in the harness on 5 of them.</li>
+    <li><strong>Run held-out</strong>: 10 harness arms × 120 briefs × 20 generations (24,000 Qwen3-8B generations plus as many self-checks), 1,080 persona drafts, 720 Gemini calls.</li>
+    <li><strong>Score</strong> every arm on every ruler; 95% bootstrap over writers, paired where arms share writers.</li>
+    <li><strong>Read the drafts</strong>, which found counting runs the loop rule missed and invented phone numbers; a degenerate-output check and a clean re-score were added then, labelled as added after results.</li>
+    <li><strong>Review the code</strong> (one independent reviewer): a rerank fallback bug and an ablation leak were fixed and the affected picks redone before publication (see <a href="#predictions">6</a>).</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, fixed vs changed, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Fixed before any held-out run</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Writers, briefs, rulers, the Part C layer and strength, the comparators, seven predictions and their thresholds</td><td>Nothing in the registered design</td></tr>
+      <tr><td>The harness's steps</td><td>Tuned on development writers before held-out: 16 drafts at temperature 0.9 instead of 8 at 0.8; detector weight 0 instead of 0.5; best-of-N raised to 20 drafts to keep equal compute</td></tr>
+      <tr><td>The preference model's pass bar (0.70)</td><td>The first recipe failed on held-out writers (0.61); it was retuned on development writers only and then passed (0.85). The held-out check was looked at twice</td></tr>
+      <tr><td>Loops as a 5-word run repeated 3+ times</td><td>After reading drafts: a counting-run and compression check, the series' 4-gram loop rule, and a clean re-score of every arm</td></tr>
+      <tr><td>Steering at the registered strength (0.4)</td><td>Loops at that strength (28% in Rung 3) led to an exploratory arm at a lower, development-chosen strength, labelled as exploratory</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: Qwen3-8B on Modal H100s with a forward hook for steering (thinking off for writing, on for the honesty self-check), up to 320 new tokens; Gemini through the batch API with reasoning low and 400 output tokens. Spend: $2.75 of OpenRouter for this episode ($6.73 of the series' $8 cap, enforced in code) and $71.85 of Modal compute.</p>
+
+  <h3 id="rulers" data-short="Rulers checked first">3.1 Every new ruler was checked first, and one needed a second try</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3, ruler checks, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Ruler</th><th>Known-answer check</th><th>Bar</th><th class="num">Result</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>n-gram attributer (new)</td><td>Each held-out writer's own samples, never trained on, in 90 episodes of 4</td><td>top-1 ≥ 0.8</td><td class="num">0.956 (chance 0.033)</td><td>Passed</td></tr>
+      <tr><td>Preference model (new), first recipe</td><td>Own unseen email vs another held-out writer's, 150 pairs</td><td>accuracy ≥ 0.70</td><td class="num">0.613</td><td>Failed</td></tr>
+      <tr><td>Preference model, retuned on development writers</td><td>The same 150 pairs</td><td>accuracy ≥ 0.70</td><td class="num">0.853 (0.813 on the final scoring run)</td><td>Passed</td></tr>
+      <tr><td>Honesty self-check (in the loop, not a ruler)</td><td>Episode 1's 60 tuning labels; its 30 fresh labels</td><td>none</td><td class="num">0.85; 0.55</td><td>Used as a filter only</td></tr>
+      <tr><td>Voice, detector, honesty extractor</td><td>Episode 1's checks</td><td>as Episode 1</td><td class="num">0.974, 1.000, 0.875 / 0.667</td><td>As Episode 1 (honesty: lower bounds)</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>The preference model's card.</strong> DeBERTa-v3-small as a cross-encoder (two of the writer's emails, then the candidate), trained with a Bradley-Terry loss for 5 epochs on pairs from the 15 development writers only: own email over another writer's (authorship), a <em>simulated</em> edit over its draft, and own email over a Qwen3-8B draft. There are no human preference labels in it. It separates human from Qwen text almost perfectly (0.99), which matters in 4.5. It is a ruler the harness never optimised, not a model of what any person prefers.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="ladder" data-short="The ladder">4.1 The harness alone lifts Qwen3-8B but stays below Episode 1's best (P1)</h3>
+  <p>Figure 1 is the ladder. Prompting Qwen3-8B with 8 samples gives −0.54; the harness gives −0.20 [−0.37, −0.05]. Episode 1's best honest contestant, Gemini 4 Carbon with samples and simulated edits, sits at −0.03, and the paired gap is −0.17 [−0.36, −0.02]. The pre-registered prediction (harness ahead by more than 0.10) misses. At 80 words the gap narrows to −0.07 [−0.21, +0.07]; on specificity the harness is behind (0.044 against 0.070).</p>
+  <figure class="slm-fig" data-fig="ladder" aria-labelledby="fig1-cap">
+    <div class="slm-controls">
+      <label>Measure <select id="slm2-metric">
+        <option value="pos">Voice position (strict)</option>
+        <option value="pos80">Voice position at 80 words</option>
+        <option value="spec">Specificity</option>
+        <option value="attr">Attributer rank (unseen ruler)</option>
+        <option value="uns">Unsupported claims</option>
+        <option value="loop">Looping or broken drafts</option>
+        <option value="ai">AI-detector score</option>
+        <option value="words">Words per draft</option>
+        <option value="usd">Cost per draft</option>
+      </select></label>
+      <div class="slm-btns" role="group" aria-label="Arm groups">
+        <button type="button" class="slm-btn" data-kind="harness" style="--sw: var(--ink)"><span class="sw"></span>Harness</button>
+        <button type="button" class="slm-btn" data-kind="steer" style="--sw: var(--accent)"><span class="sw"></span>Steered</button>
+        <button type="button" class="slm-btn" data-kind="control" style="--sw: var(--control)"><span class="sw"></span>Controls</button>
+        <button type="button" class="slm-btn" data-kind="prompt" style="--sw: var(--ink-soft)"><span class="sw"></span>Character card</button>
+        <button type="button" class="slm-btn" data-kind="ablation" style="--sw: var(--ink-soft)"><span class="sw"></span>Ablations</button>
+        <button type="button" class="slm-btn" data-kind="ep1" style="--sw: var(--ink-faint)"><span class="sw"></span>Episode 1</button>
+      </div>
+    </div>
+    <svg role="list" aria-label="Ladder chart; each row is an arm"></svg>
+    <p class="slm-live" aria-live="polite"></p>
+    <img class="slm-static" src="figures/fig1_ladder.png" alt="Voice position per rung: prompt −0.54, best of 20 −0.27, harness −0.20, harness with voice vector +0.17, the same at strength 0.3 +0.20, harness minus assistant +0.18, both +0.18, random −0.15 and −0.21, Gemini in the harness +0.04, Episode 1's Gemini −0.03 and Llama Base +0.04.">
+    <figcaption id="fig1-cap"><strong>Figure 1.</strong> Every arm on the measure of your choice; 30 held-out writers, 4 drafts each; lines are 95% bootstrap intervals over writers (voice position only). Default: the ladder, the persona tests and Episode 1's comparators. Orange is steering, blue the controls (random directions, no steering, the assistant direction added). Switch to unsupported claims or to looping drafts to see what the steered arms paid, or to the attributer to see a ruler the harness never saw. Without JavaScript: the ladder as scored and at 80 words.</figcaption>
+  </figure>
+
+  <h3 id="ablation" data-short="It's the rerank">4.2 Most of the harness is choosing the best of many (P3)</h3>
+  <p>Best of 20 drafts from the plain prompt, with the same checks and rerank, reaches −0.27: 80% of the harness's gain over the prompt (+0.27 of +0.34; P3 hit), and the harness's lead over it is +0.07 [−0.03, +0.17]. Figure 2 takes the harness apart on the same writers. Without the rerank (its first draft) it falls to −0.59, below the plain prompt; without critique and revision, −0.30 (revisions were picked for 60 of 120 briefs). Random samples instead of retrieved ones changed nothing (+0.00 [−0.06, +0.07]), and neither did dropping the style profile (+0.02 [−0.07, +0.10]). The profile verifier was the weak step: it kept 170 of 180 habits the model inferred, including some that contradicted the measured facts.</p>
+  <figure class="plot">
+    <img src="figures/fig4_ablation.png" alt="Harness minus each ablation: no rerank +0.39, no critique and revision +0.09, no retrieval 0.00, no profile +0.02.">
+    <figcaption><strong>Figure 2.</strong> The harness minus the harness without one step, strict voice position, paired over 30 held-out writers with 95% bootstrap intervals. "No rerank" and "no critique" were read from the harness's own pool of candidates; "no retrieval" and "no profile" were generated separately.</figcaption>
+  </figure>
+  <p>Selection also did the honesty work. The harness's first draft carried an unsupported claim 31% of the time (the frozen extractor) against 11% for its pick: at temperature 0.9 the drafts invent, and the rerank's self-check filter removed most of it.</p>
+
+  <h3 id="steering" data-short="Steering adds voice">4.3 Steering adds voice the harness cannot, and pays in loops, the brief and facts (P4)</h3>
+  <p>The prediction was that a harness would make steering redundant. It missed by a wide margin. With the writer's voice vector added while drafting and revising, the harness reached +0.17 [+0.03, +0.31], ahead of Gemini by +0.20 [+0.06, +0.34] (+0.24 [+0.13, +0.36] at 80 words). Against the harness it gained +0.31 [+0.16, +0.47] at 80 words, and against the same harness with random vectors of the same size +0.35 [+0.18, +0.53]. Specificity rose from 0.044 to 0.077 (+0.032 [+0.015, +0.053]; positive for 28 of 30 writers), level with Gemini's 0.070 (+0.006 [−0.012, +0.024]).</p>
+  <p>The costs are in the drafts. 28% of the steered harness's picks loop (25% by the series' rule of more than 20% repeated 4-grams), because for 38 of 120 briefs every one of the 20 candidates looped or was flagged. Task coverage fell from 0.69 to 0.50: steered drafts often drop the ask. Re-scored without looping or broken drafts (writers with 2 or more clean drafts), the steered harness stays at +0.18 on 21 writers, so the loops do not carry its score. Here is one, from the trader of the opening, against the plain harness:</p>
+  <p class="draft"><span class="who">Rung 2 harness · a freight brief · detector 0.26</span>Following please find our available truckload capacity for potato shipments from the ID area.
+Lanebridge Logistics offers asset-light truckload brokerage with a vetted carrier network. We can quote reefer or vented van capacity out of the ID area for your potato shipments.
+We'd like to schedule a 15-minute call next week to discuss your requirements and availability. …</p>
+  <p class="draft steered"><span class="who">Rung 3 harness + the writer's voice vector · same brief · detector 0.45</span>Following please find the Lanebridge Logistics Offer to Red Butte Growers.
+Lanebridge Logistics offers asset-light truckload brokerage with a vetted carrier network. Potatoes usually ship Sep to Jun; the usual equipment is reefer or vented van. …
+Please note that this is the first contact.
+Please request a 15-minute call next week.</p>
+  <p><strong>A lower strength (exploratory, added after the held-out loops).</strong> On development writers, strength 0.3 was the strongest setting with no looping drafts (0.1: −0.50; 0.2: +0.04; 0.3: +0.12, against the registered 0.4: +0.16 with 17% loops). On held-out writers it reached +0.20 [+0.08, +0.32], specificity 0.082, with loops in 7.5% of drafts (9% by the 4-gram rule, above the 5% aimed for) and +0.15 without them (29 writers). It covered more of the brief (0.63) but invented as often (28.3%). The registered result stands; the lower strength shows the voice gain is not a looping artefact, and that the honesty cost is not either.</p>
+
+  <h3 id="persona" data-short="Less assistant, not more you">4.4 Turning down the assistant makes drafts more human, not more like the writer (P5, P6)</h3>
+  <p>This is the assistant-persona test: is the model's fingerprint the default assistant, and does turning it down bring back the person? The assistant direction is nearly the same thing as Episode 1's voice vectors: each writer's vector points 0.90 of the way along "away from the assistant" on average (cosine; 0.63 to 0.97), and it is almost identical to Episode 1's "slop" vector (0.99). Figure 3 plots the persona tests. Subtracting the direction, with no information about the writer, moved position from −0.41 to +0.10, +0.59 [+0.42, +0.76] above three random directions; specificity did not move (−0.002 [−0.019, +0.013]). P5 hits: the fingerprint is largely the assistant persona, and removing it buys generic human-likeness. Adding it did the opposite (−0.73). Inside the harness the same thing happened: subtracting the assistant (Rung 4) added +0.39 [+0.24, +0.55] over the plain harness at specificity +0.002 [−0.013, +0.016], and its score fell to +0.05 once looping drafts were removed.</p>
+  <figure class="plot">
+    <img src="figures/fig3_persona.png" alt="Scatter of voice position against specificity for the persona arms: no steering at −0.41 and 0.001; minus the assistant direction at +0.10 and −0.002; plus the direction at −0.73; random directions −0.37 to −0.72 near 0; the character card at −0.30 and 0.022; the writer's vector at −0.03 and 0.035; card plus vector −0.10 and 0.036.">
+    <figcaption><strong>Figure 3.</strong> Voice position (x) against specificity (y) for the persona tests (Episode 1's plain prompt, no samples, no harness); 30 held-out writers, 4 drafts each; the share of looping drafts in brackets. Orange: steering; blue: controls; squares: the written character card. Dashed: the writers' own unseen emails (0.172).</figcaption>
+  </figure>
+  <p>What carries the person is the rest of the vector. The writer's own vector beat the assistant direction on specificity by +0.037 [+0.009, +0.068], and a written character card got +0.022 [+0.011, +0.032] over no card with no loops at all; the card and the vector together were no better than the vector alone (+0.000).</p>
+  <p>The presence test was weak. Across Episode 1's 1,620 held-out episodes, the mean projection of a writer's drafts on the assistant direction correlated with their voice position at ρ = −0.17 [−0.22, −0.13], and −0.10 once the detector score and length were taken out (P6 miss; Figure 5 in the appendix). The direction steers strongly and predicts weakly: one push moves text a long way along it, but ordinary drafts vary little there.</p>
+
+  <h3 id="unseen" data-short="Unseen rulers">4.5 Rulers the harness never saw: level for the steered harness, behind for the plain one (P2)</h3>
+  <p>The harness reranks on LUAR similarity to the writer's samples, so its LUAR score could be gamed. The n-gram attributer shares nothing with it. Under the attributer the true writer ranked 12.7 of 30 for the plain harness against 7.9 for Gemini (worse by 4.8 [3.1, 6.8]); the steered harness ranked 8.0, its lower-strength version 8.8 and Gemini in the harness 7.7, all level with Gemini. The preference model preferred the plain harness's draft over Gemini's for 21% of briefs and the steered harness's for 61%. P2 misses on both rulers. The plain harness's LUAR gain did not transfer to the attributer; the steered harness's did.</p>
+  <p>The preference model's verdicts need two cautions. Its highest scores went to the drafts with the lowest AI-detector scores, Llama-3.1-8B Base (detector 0.12, unsupported claims 58%) and the steered arms, not Gemini: it learned "human, not AI" from its third kind of training pair, and that dominates what it measures. And that pair always put a Qwen3-8B draft on the losing side, so part of its low score for the plain harness is "looks like Qwen". The attributer is the cleaner unseen check.</p>
+
+  <h3 id="honesty" data-short="The honesty gate">4.6 The harness does not remove steering's honesty cost (P7)</h3>
+  <figure class="plot">
+    <img src="figures/fig2_honesty.png" alt="Share of drafts with an unsupported claim per arm: prompt 17%, best of 20 10%, harness 11%, harness plus voice vector 28%, at strength 0.3 28%, minus assistant 27%, both 28%, random 12%, Gemini in the harness 4%; persona tests: voice vector alone 38%, card 15%; Episode 1 Gemini 2%, Llama Base 58%.">
+    <figcaption><strong>Figure 4.</strong> Share of drafts with at least one claim the brief's fact list does not support, from Episode 1's frozen extractor (lower bounds); 120 drafts per arm, 95% bootstrap over writers. Dashed: the prompt-only rung; dotted: the pre-registered gate, 5 points above it.</figcaption>
+  </figure>
+  <p>The voice vector on its own (no harness) put an unsupported claim in 37.5% of drafts against 16.7% for the unsteered prompt, as Episode 1 found. Inside the harness, whose rerank drops drafts its own self-check flags, it fell only to 28.3%: +11.7 points over the prompt [+1.7, +20.8], outside the pre-registered 5-point gate (P7 miss). Every steered arm failed the gate (26.7-28.3%), so by the rule written before the run none of them counts as a win, however high it scores. The plain harness (10.8%) and best-of-N (10.0%) passed, and Gemini in the harness invented in 4.2%. Reading the drafts found a kind the extractor misses: invented phone numbers in signatures (a "Tel:" line under the name), a habit copied from the writers' own emails, in 16-18% of steered-harness drafts, 10% of the plain harness's and 2.5% of Gemini's.</p>
+
+  <h3 id="gemini" data-short="Gemini in the harness">4.7 The same harness around Gemini is the one honest win</h3>
+  <p>With $4.02 of the OpenRouter cap left after Episode 1, Gemini 4 Carbon ran in the same harness (4 drafts, 2 revisions, the same checks). It reached +0.04 [−0.10, +0.19], +0.08 [−0.02, +0.17] over its own Episode 1 best, and specificity 0.089 (positive for 29 of 30 writers), +0.018 [+0.009, +0.028] over Episode 1: the highest of any arm in either episode, and the only gain over Episode 1 that both clears zero and passes the honesty gate (4.2% unsupported). It covered the brief (0.88), never looped, and cost $0.020 per final draft. Its drafts pick up the writers' habits without the steered model's stiffness ("Following please find an overview…", "Lisa -", a tab-separated list where the writer used one).</p>
+
+  <h3 id="drafts" data-short="Read the drafts">4.8 Read the drafts</h3>
+  <figure class="slm-fig" data-fig="drafts" aria-labelledby="fig-drafts-cap">
+    <div class="slm-controls"><label>Writer and brief <select id="slm2-author"></select></label></div>
+    <div class="slm2-drafts"></div>
+    <figcaption id="fig-drafts-cap"><strong>Draft viewer.</strong> Six held-out writers (chosen by position in the list before any draft was read), one brief each: Episode 1's Gemini, the prompt-only rung, the harness, the harness minus the assistant, the harness with the writer's voice vector (at 0.4 and at 0.3), and Gemini in the harness. Names a draft copied from the writer's samples are replaced with [name]. Needs JavaScript; the drafts are in <code>report/data.js</code>.</figcaption>
+  </figure>
+
+  <h3 id="cost" data-short="Cost">4.9 Cost and latency</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4, cost and every measure for the main arms, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>Arm</th><th class="num">Voice position</th><th class="num">Without loops</th><th class="num">Specificity</th><th class="num">Unsupported</th><th class="num">Looping</th><th class="num">$ per final draft</th><th class="num">GPU s per draft</th></tr></thead>
+    <tbody>
+      <tr><td>Episode 1: Gemini 4 Carbon, samples + edits (one call)</td><td class="num">−0.03</td><td class="num">−0.03</td><td class="num">0.070</td><td class="num">1.7%</td><td class="num">0%</td><td class="num">0.002</td><td class="num">n/a</td></tr>
+      <tr><td>R1b best of 20 (Qwen3-8B)</td><td class="num">−0.27</td><td class="num">−0.27</td><td class="num">0.028</td><td class="num">10.0%</td><td class="num">0%</td><td class="num">0.031</td><td class="num">25.9</td></tr>
+      <tr><td>Rung 2 harness (Qwen3-8B)</td><td class="num">−0.20</td><td class="num">−0.20</td><td class="num">0.044</td><td class="num">10.8%</td><td class="num">0%</td><td class="num">0.029</td><td class="num">24.4</td></tr>
+      <tr class="hl"><td>Rung 3 harness + voice vector (Qwen3-8B)</td><td class="num">+0.17</td><td class="num">+0.18 (21)</td><td class="num">0.077</td><td class="num">28.3%</td><td class="num">28%</td><td class="num">0.043</td><td class="num">36.0</td></tr>
+      <tr><td>Rung 3 at strength 0.3 (exploratory)</td><td class="num">+0.20</td><td class="num">+0.15 (29)</td><td class="num">0.082</td><td class="num">28.3%</td><td class="num">7.5%</td><td class="num">0.040</td><td class="num">33.3</td></tr>
+      <tr><td>Rung 4 harness − assistant</td><td class="num">+0.18</td><td class="num">+0.05 (26)</td><td class="num">0.046</td><td class="num">26.7%</td><td class="num">21%</td><td class="num">0.045</td><td class="num">37.5</td></tr>
+      <tr><td>Gemini 4 Carbon in the harness</td><td class="num">+0.04</td><td class="num">+0.04</td><td class="num">0.089</td><td class="num">4.2%</td><td class="num">0%</td><td class="num">0.020</td><td class="num">n/a</td></tr>
+    </tbody>
+  </table></div>
+  <p>"Without loops" re-scores each arm with looping and broken drafts removed (a 5-word run 3+ times, more than 20% repeated 4-grams, or a counting run), keeping writers with 2 or more clean drafts (their number in brackets). GPU seconds count H100 time for the 20 generations and the 20 honesty self-checks per brief, run in parallel batches. Gemini's cost is the batch bill only; its self-checks ran on the rented GPU and are not included.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A harness is the first thing anyone builds on an unverifiable reward, and this one showed the pattern a trained policy would follow. Most of its gain was selection against its own ruler, and that gain did not survive a ruler it never saw. Selection also did the honesty work: its first drafts invented in 31% of cases. The steering that bought real voice, the kind an unseen attributer also credits, came with loops, a dropped ask and invented facts in more than a quarter of drafts, and the harness's filter could not remove them. And the unseen preference model mostly rewarded "not AI": had it been the reward, it would have paid most for the drafts that invent the most. Each of these showed only because an honesty check the harness could not call, a loop and task count and an independent attributer sat beside the score.</p>
+  <p><strong>Before optimising against "sounds like you", in a harness or with RL, put an authorship model the optimiser never sees, an honesty check it cannot call, and a loop and task count beside the score, and treat a voice gain that fails any of them as a hack, not a win.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <p>Seven predictions were written in the plan before the held-out runs. A <em>hit</em> means the pre-registered metric crossed its threshold.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5, predictions, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th class="num">Confidence</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>The harness beats Episode 1's best honest model</td><td>Rung 2 − Gemini &gt; +0.10, interval above 0</td><td class="num">60%</td><td><strong>Miss</strong>: −0.17 [−0.36, −0.02]</td></tr>
+      <tr><td>P2</td><td>Rulers the harness never saw agree</td><td>attributer rank better and preference win ≥ 0.55</td><td class="num">50%</td><td><strong>Miss</strong>: rank 4.8 worse; win rate 0.21. The steered harness was level (rank +0.1, win 0.61)</td></tr>
+      <tr><td>P3</td><td>Most of the harness gain is best-of-N</td><td>(R1b − Rung 1) / (Rung 2 − Rung 1) ≥ 0.70</td><td class="num">50%</td><td><strong>Hit</strong>: 0.80</td></tr>
+      <tr><td>P4</td><td>Steering is redundant once the harness is in place</td><td>Rung 3 − Rung 2 at 80 words &lt; +0.05</td><td class="num">55%</td><td><strong>Miss</strong>: +0.31 [+0.16, +0.47]</td></tr>
+      <tr><td>P5</td><td>Steering away from the assistant moves position, not person</td><td>position ≥ +0.10 and specificity &lt; +0.02 vs random</td><td class="num">50%</td><td><strong>Hit</strong>: +0.59 and −0.002</td></tr>
+      <tr><td>P6</td><td>Assistant-ness predicts low voice beyond the detector</td><td>ρ ≤ −0.5 and partial ≤ −0.2</td><td class="num">50%</td><td><strong>Miss</strong>: −0.17 and −0.10</td></tr>
+      <tr><td>P7</td><td>The harness removes steering's honesty cost</td><td>unsupported, Rung 3 − Rung 1 ≤ +0.05</td><td class="num">45%</td><td><strong>Miss</strong>: +0.12 [+0.02, +0.21]</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised me: the assistant direction steered hard and predicted almost nothing, and the voice vector's gain held up on an attributer it never saw. What I'd change: register the steered harness as the headline arm, with the honesty gate as part of its success test, since Episode 1 had already shown prompting tops out near a stranger. The lesson for the guide: a preference model trained with "human beats AI" pairs learns a detector, so check what an unseen ruler rewards on the outputs it will judge before trusting its verdict.</p>
+  <p><strong>A correction before publication.</strong> The independent code review found that when every candidate for a brief was flagged, the rerank took the first in list order instead of the best-scoring one. It mattered for the steered arms (38 of 120 briefs for Rung 3). The picks were redone from the saved candidates (no new generation) and every number here uses the corrected rule; the first version had the steered harness at +0.07 with 20% unsupported claims. The review also found that the no-profile ablation still received the profile's length note; that arm was regenerated without it.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>An honest win on voice.</strong> Every arm that beats Episode 1's best on voice position fails the honesty gate; the one honest win (Gemini in the harness) is on specificity. 30 writers × 4 briefs is small.</li>
+    <li><strong>Whether people agree.</strong> No votes were collected. The preference model holds no human preferences (its edits are simulated), and it partly measures AI-ness.</li>
+    <li><strong>Honesty rates are lower bounds</strong>, and the extractor does not count invented phone numbers outside the 555 pattern.</li>
+    <li><strong>Steering at matched fluency.</strong> The registered strength loops; the lower-strength arm was chosen after seeing that, is exploratory, and still loops in 7.5-9% of held-out drafts.</li>
+    <li><strong>Other harnesses or models.</strong> One harness design, one open model, one closed model with fewer drafts. The profile verifier was weak, so "the profile adds nothing" may be about this verifier.</li>
+    <li><strong>Replies.</strong> Every brief is synthetic; nothing here says whether these drafts get answered.</li>
+  </ul>
+
+<h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh">reproduce.sh</a> lists every step in order; <code>reproduce.sh --dry-run</code> prints the commands. Generation, the activations and the honesty extractor need a Modal account (<code>modal_ep2.py</code>); Gemini needs an OpenRouter key and stays under the series cap in code. The analysis runs on a laptop from the scored drafts: <code>python analyze_ep2.py</code>, <code>python make_figures.py</code>, <code>python export_pages.py</code>. Episode 1's data must be in place first (its reproduce script).</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong><a href="../../sounds-like-me-ep3/report/">Episode 3: train on it</a> (published).</strong> SFT on public writers, DPO from simulated edits, then RL on voice and honesty minus detector and copying, judged against this ladder: does training beat the steered harness, or only match it at a higher cost? The attributer and the loop and task counts from this episode go in as rulers the policy never sees, and the assistant direction as an early warning.</li>
+    <li><strong>A better verifier for the profile</strong>, and a preference model trained without human-vs-AI pairs.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions readers ask</h2>
+  <h3 id="q-harness">What does a harness actually do to a draft?</h3>
+  <p>For an Enron author who writes "Following please find…", the prompt-only draft opened "I hope you're having a great day." Out of 20 harness candidates, the rerank picked the one that opened "Following please find our available truckload capacity…", because it sat closest to that author's 12 samples under LUAR. Most of the harness is that choice: drop the 20 candidates to 1 and the score falls from −0.20 to −0.59.</p>
+  <h3 id="q-authorship">What do the two authorship rulers measure, and why two?</h3>
+  <p>LUAR turns 4 texts into a style fingerprint; the harness used it to pick drafts, so its score could be gamed. The second ruler counts letter sequences of 2 to 4 characters and was trained on texts the harness never saw. For the plain harness the two disagreed: LUAR said it moved from −0.54 to −0.20, while the n-gram attributer still put the true writer only 12.7th of 30. With the voice vector added, both rulers moved: LUAR to +0.17, the attributer to 8.0th. A gain that shows on only one ruler is a warning sign.</p>
+  <h3 id="q-steering">What does a voice vector add once the harness is there?</h3>
+  <p>The vector is the average of a writer's emails minus the model's own drafts, inside the model at layer 24. Added during drafting, it moved the same harness from −0.20 to +0.17 and the true writer from 12.7th to 8.0th of 30 under the unseen attributer. It also made 28% of drafts loop ("We are not sure if they will be looking for some work. But maybe they will be." repeated) and raised invented claims from 11% to 28%.</p>
+  <h3 id="q-persona">What is the "assistant direction", concretely?</h3>
+  <p>The model's own no-samples drafts ("I hope this message finds you well…") minus real people's emails, averaged inside the model. Subtracted, it took drafts from "Hi Lisa, We've opened a new bay…" to "Brightline Fabrication, Because of the new bay opened last quarter, the company is now in a position to offer you…": far less like an assistant (detector 0.80 → 0.12), no more like the particular writer (specificity unchanged), and once a counting run, "attached 1992 1993 1994…".</p>
+  <h3 id="q-probe">What would a probe read here?</h3>
+  <p>A probe is a small classifier on the model's internal numbers. The projection test in 4.4 is the simplest one: a single direction read off each draft. It separated assistant-like from human-like drafts on average but predicted a writer's voice score poorly (ρ −0.17), which is why it was not used as a monitor.</p>
+  <h3 id="q-preference">What did the preference model learn?</h3>
+  <p>Pairs where one side won: an author's own email over another author's, a simulated edit over its draft, an author's email over a Qwen draft. It got 81-85% of held-out authorship pairs right, and preferred the steered harness's drafts over Gemini's 61% of the time. But its top scores went to the least AI-sounding drafts, including Llama Base's, which invent claims 58% of the time. It learned "human" more than "this person".</p>
+  <h3 id="q-length">Did longer drafts score higher?</h3>
+  <p>Checked by cutting every draft to 80 words: the steered harness's lead over the plain harness stayed large (+0.31), and the plain harness's gap to Gemini shrank (−0.07). Steered drafts are longer (137 words against 95), but length is not what lifts them; the lower-strength arm (111 words) scored as high.</p>
+
+  <h2 id="references"><span class="num">11</span>References</h2>
+  <ul>
+    <li><a href="../../sounds-like-me/report/">Sounds Like Me, Episode 1: Can any model sound like you?</a>, the benchmark, rulers and voice vectors this episode builds on.</li>
+    <li><a href="https://aclanthology.org/2021.emnlp-main.70/">Learning Universal Authorship Representations</a> (LUAR), EMNLP 2021: the voice ruler and the rerank score.</li>
+    <li><a href="https://arxiv.org/abs/2505.23815">Aligning LLMs by Predicting Preferences from User Writing Samples</a> (PROSE), 2025: the verified style profile.</li>
+    <li><a href="https://arxiv.org/abs/2509.14543">Catch Me If You Can? Not Yet: LLMs Still Struggle to Imitate the Implicit Writing Styles of Everyday Authors</a>, EMNLP Findings 2025: the data splits.</li>
+    <li><a href="https://arxiv.org/abs/2608.19746">PersonalBench: Measuring the Authorship Gap in LLM Personalization</a>, 2026: the floor-and-ceiling scale.</li>
+    <li><a href="https://arxiv.org/abs/2312.06681">Steering Llama 2 via Contrastive Activation Addition</a>, 2023: difference-of-means steering.</li>
+    <li><a href="https://arxiv.org/abs/2507.21509">Persona Vectors: Monitoring and Controlling Character Traits in Language Models</a>, 2025.</li>
+    <li><a href="https://proceedings.mlr.press/v306/lu26g.html">The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models</a>, ICML 2026: the assistant direction.</li>
+    <li><a href="https://arxiv.org/abs/2511.01689">Open Character Training</a>, 2025: character cards and constitutions for open models.</li>
+    <li><a href="https://www.anthropic.com/research/evaluating-feature-steering">Evaluating feature steering: A case study in mitigating social biases</a>, 2024: steering and facts.</li>
+    <li><a href="https://arxiv.org/abs/2111.09543">DeBERTaV3</a>, 2021: the preference model's encoder.</li>
+    <li><a href="https://arxiv.org/abs/2411.15124">Tülu 3</a>, 2024: reinforcement learning with verifiable rewards, the setting this series moves beyond.</li>
+    <li><a href="https://www.cs.cmu.edu/~enron/">The Enron Email Dataset</a> and <a href="https://u.cs.biu.ac.il/~koppel/BlogCorpus.htm">The Blog Authorship Corpus</a>: the voices.</li>
+  </ul>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <figure class="plot">
+    <img src="figures/fig5_projection.png" alt="Scatter of 1,620 Episode 1 episodes: projection on the assistant direction against voice position, a weak downward trend.">
+    <figcaption><strong>Figure 5.</strong> Each point is one Episode 1 contestant's 4 drafts for one held-out writer: the mean projection of the drafts on the assistant direction (x) against their voice position (y). Spearman −0.17; −0.10 after removing the detector score and length.</figcaption>
+  </figure>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6, data files, scrolls sideways on narrow screens"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/summary.json">results/summary.json</a></td><td>One row per arm: <code>position</code>, <code>position80</code>, <code>position_loose</code>, <code>spec</code> (mean and 95% interval over writers), <code>spec_share_positive</code>, <code>copy_flag_episodes</code>, <code>words</code>, <code>detector</code>, <code>loops</code>, <code>nll</code>, <code>task</code>, <code>unsupported</code>, <code>invented_relationship</code>, <code>claims_made</code>, <code>attr_mean_rank</code>, <code>attr_top1</code>, <code>pref_mean</code>, <code>usd_per_draft</code>; the paired <code>contrasts</code> ([mean, low, high, writers]); ruler checks</td></tr>
+      <tr><td><a href="../results/predictions.json">results/predictions.json</a></td><td>P1-P7 with metric, value, interval, threshold and verdict</td></tr>
+      <tr><td><a href="../results/robustness.json">results/robustness.json</a></td><td>Per arm: shares of looping, degenerate and phone-number drafts; the strict position without them (added after results)</td></tr>
+      <tr><td><a href="../results/ruler_attributer.json">results/ruler_attributer.json</a>, <a href="../results/ruler_pref.json">ruler_pref.json</a></td><td>The unseen rulers: pass checks, per-arm readouts, the preference model's card and loss curve</td></tr>
+      <tr><td><a href="../results/projection.json">results/projection.json</a></td><td>Persona test (a): every Episode 1 episode's projection, position and detector score</td></tr>
+      <tr><td><a href="../results/assistant_direction.json">results/assistant_direction.json</a></td><td>The assistant direction's size and its cosine with each voice vector</td></tr>
+      <tr><td><a href="../results/arm_costs.json">results/arm_costs.json</a>, <a href="../results/closed_cost.json">closed_cost.json</a></td><td>GPU seconds and dollars per arm; the Gemini batch bills</td></tr>
+      <tr><td><a href="../results.tsv">results.tsv</a></td><td>Every tuning try on development writers</td></tr>
+      <tr><td><code>data/drafts/*.jsonl</code> (private)</td><td>Every arm's 120 final drafts (one per writer and brief) and, in <code>data/honesty/</code>, the extractor's verdicts. These stay private: drafts copy real names, phone numbers and addresses from the writers' samples. <code>reproduce.sh</code> regenerates them; the draft viewer above shows a redacted sample</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="cite" data-short="How to cite">How to cite</h3>
+  <pre>Lie, A. (2026). Beating every model without training? A harness on an unverifiable reward.
+Sounds Like Me, Episode 2. steerlab.
+https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep2/report/</pre>
+</article>
+</div>
+<script src="data.js"></script>
+<script src="explorer.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
