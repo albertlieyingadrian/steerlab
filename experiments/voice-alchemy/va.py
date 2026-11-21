@@ -36,10 +36,10 @@ MODEL = CFG["hf"]
 DATA = HERE / "data" / CFG["sub"] if CFG["sub"] else HERE / "data"
 RESULTS = HERE / "results" / CFG["sub"] if CFG["sub"] else HERE / "results"
 SHARED = HERE / "results"
-DEFAULT_JUDGE = "haiku" if TAG == "gemma" else "llama"
+DEFAULT_JUDGE = "haiku"
 JUDGE = os.environ.get("VA_JUDGE", DEFAULT_JUDGE)
-"""The primary judge for this model's numbers. The Gemma run was judged by Claude Haiku 5.5; no judge passed the
-known-answer bars for Qwen (amendment 10), so Qwen's default is the open model that came closest, for later use."""
+"""The primary judge for both models: Claude Haiku 5.5 (the Qwen run started after the judge key was topped up,
+amendment 13)."""
 SUFFIX = "" if JUDGE == DEFAULT_JUDGE else f"_{JUDGE}"
 """The judge cache, the known-answer checks and nothing model-specific live in SHARED."""
 MAX_NEW = 160
@@ -243,7 +243,8 @@ def composition_label(
 
 # --- spend ledger -------------------------------------------------------------------------------------------------
 SPEND = HERE / "spend.jsonl"
-MODAL_SOFT, MODAL_HARD, JUDGE_CAP = 80.0, 150.0, 15.0
+MODAL_SOFT, MODAL_HARD, JUDGE_CAP = 80.0, 150.0, 13.4
+"""Judge cap: the Gemma run's $4.43 plus at most $9 for the Qwen run (the top-up added about $10; amendment 13)."""
 H100_PER_S = 3.95 / 3600
 
 
@@ -257,7 +258,7 @@ def spent(kind: str | None = None) -> float:
     if not SPEND.exists():
         return 0.0
     rows = [json.loads(line) for line in SPEND.read_text().splitlines() if line.strip()]
-    return sum(r["usd"] for r in rows if kind is None or r["kind"] == kind)
+    return sum(r["usd"] for r in rows if kind is None or r["kind"] == kind or r["kind"].startswith(f"{kind}-"))
 
 
 def check_budget(kind: str, planned: float = 0.0) -> None:

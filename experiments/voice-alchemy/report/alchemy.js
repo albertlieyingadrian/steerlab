@@ -2,9 +2,11 @@
 // No backend and no live generation: every number and reply shown here was measured and judged before publishing.
 (function () {
   "use strict";
-  const T = window.VA_TABLE;
+  const TABLES = window.VA_TABLES || {};
+  const MODELS = [["qwen", "Qwen3-8B"], ["gemma", "Gemma-2-2B-it"]].filter(([k]) => TABLES[k]);
   const root = document.getElementById("alchemy");
-  if (!T || !root) return;
+  if (!MODELS.length || !root) return;
+  let T = TABLES[MODELS[0][0]];
 
   const TYPES = [
     ["direction", "Direction", "The average difference in activations between replies in a voice and plain replies (baseline)."],
@@ -21,7 +23,7 @@
     emergent: "Emergent: a third voice rises by 2 or more points beyond the sum",
     breaks: "Breaks: more than 20% of replies loop, or coherence falls below 4",
   };
-  const state = { type: "direction", strength: "op", picks: [], prompt: Object.keys(T.prompts)[0], open: null };
+  const state = { model: MODELS[0][0], type: "direction", strength: "op", picks: [], prompt: Object.keys(T.prompts)[0], open: null };
   const fmt = (x) => (x === null || x === undefined ? "–" : (x > 0 ? "+" : "") + x.toFixed(1));
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const tl = (t) => T.trait_labels[T.traits.indexOf(t)];
@@ -65,6 +67,9 @@
   }
 
   function render() {
+    T = TABLES[state.model];
+    const models = MODELS.length < 2 ? "" : '<div class="va-tabs va-models" role="tablist" aria-label="Model">' +
+      MODELS.map(([k, name]) => `<button type="button" class="va-tab" role="tab" aria-selected="${state.model === k}" data-model="${k}">${name}</button>`).join("") + "</div>";
     const tabs = TYPES.map(([k, name]) =>
       `<button type="button" class="va-tab" role="tab" aria-selected="${state.type === k}" data-type="${k}">${name}</button>`).join("");
     const desc = TYPES.find((x) => x[0] === state.type)[2];
@@ -120,7 +125,7 @@
     const summary = ts.n_units ? `<p class="va-muted">${ts.units_moving} of ${ts.n_units} units move their own voice by at least 1 point; ` +
       `${ts.n_eligible} of ${ts.n_pairs} pairs can be scored; median additivity error ${ts.median_E ?? "–"}.</p>` : "";
     root.innerHTML =
-      `<div class="va-tabs" role="tablist" aria-label="Unit type">${tabs}</div>` +
+      models + `<div class="va-tabs" role="tablist" aria-label="Unit type">${tabs}</div>` +
       `<p class="va-desc">${esc(desc)}</p>${summary}` +
       `<div class="va-controls">${strengthSel}${promptSel}</div>` +
       '<p class="va-muted va-legend">Bars: change in each voice against the plain model, in judge points (half a track = 8 points; ' +
@@ -133,7 +138,8 @@
     const t = e.target.closest("button");
     if (!t) return;
     const secondPick = t.dataset.pick && state.picks.length === 1 && state.picks[0] !== t.dataset.pick;
-    if (t.dataset.type) { state.type = t.dataset.type; state.picks = []; state.open = null; }
+    if (t.dataset.model) { state.model = t.dataset.model; state.picks = []; state.open = null; }
+    else if (t.dataset.type) { state.type = t.dataset.type; state.picks = []; state.open = null; }
     else if (t.dataset.pick) {
       const k = t.dataset.pick, i = state.picks.indexOf(k);
       if (i >= 0) state.picks.splice(i, 1);
