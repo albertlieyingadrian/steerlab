@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Small probes catch AI text as well as SAE features do; the features steer it better, and three of our own checks failed</title>
+<meta name="description" content="The Taste Stack E1, a pre-registered comparison of small probes and feature-level interpretability for AI-written text. Every strong detector scored 0.99+ on held-out authors and survived humanizers; a style probe lost 0.20 when texts were cut to 60 words. Steering against SAE features lowered a detector's P(AI) twice as much as steering against the probe, and random directions did nothing. Feature readouts named planted confounds and hacks no better than a bag of words once the grader was checked. Internal signals gave no early warning of a reward hack without false alarms. A per-author steering vector beat prompting on voice only by looping.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Small probes catch AI text as well as SAE features do; the features steer it better, and three of our own checks failed">
+<meta property="og:description" content="The Taste Stack E1, a pre-registered comparison of small probes and feature-level interpretability for AI-written text. Probes and SAE-feature probes both scored 0.997-0.998 AUROC on 45 held-out authors and survived humanizers; a style probe lost 0.20 on texts cut to 60 words. Pushing against 16 SAE features lowered a detector&#x27;s P(AI) for Qwen3-8B by 0.16, twice the probe direction&#x27;s 0.08; random directions did nothing. Feature readouts found planted hacks no better than a bag of words once the grader was checked, and no internal signal warned of a reward hack without false alarms.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Left: a held-out Enron email (probe score 0.000) and Qwen3-8B&#x27;s rewrite of its summary (0.999). Right: the drop in a detector&#x27;s probability of AI when the SAE feature directions (0.16), the probe direction (0.08) or neurons (0.02) are pushed against, beside five random directions of the same size (about zero).">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Small probes catch AI text as well as SAE features do; the features steer it better, and three of our own checks failed">
+<meta name="twitter:description" content="The Taste Stack E1, a pre-registered comparison of small probes and feature-level interpretability for AI-written text. Probes and SAE-feature probes both scored 0.997-0.998 AUROC on 45 held-out authors and survived humanizers; a style probe lost 0.20 on texts cut to 60 words. Pushing against 16 SAE features lowered a detector&#x27;s P(AI) for Qwen3-8B by 0.16, twice the probe direction&#x27;s 0.08; random directions did nothing. Feature readouts found planted hacks no better than a bag of words once the grader was checked, and no internal signal warned of a reward hack without false alarms.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-21">
+<meta property="article:modified_time" content="2026-11-21">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Small probes catch AI text as well as SAE features do; the features steer it better, and three of our own checks failed",
+ "description": "The Taste Stack E1, a pre-registered comparison of small probes and feature-level interpretability for AI-written text. Probes and SAE-feature probes both scored 0.997-0.998 AUROC on 45 held-out authors and survived humanizers; a style probe lost 0.20 on texts cut to 60 words. Pushing against 16 SAE features lowered a detector's P(AI) for Qwen3-8B by 0.16, twice the probe direction's 0.08; random directions did nothing. Feature readouts found planted hacks no better than a bag of words once the grader was checked, and no internal signal warned of a reward hack without false alarms.",
+ "abstract": "The Taste Stack, Episode 1. Human text: Enron sent mail and the Blog Authorship Corpus (fit 73 authors/550 texts, dev 29/218, test 45/339, blog 60/240); AI text: open models (Qwen3-8B, Llama-3.1-8B-Instruct, gemma-3-27b-it; held-out phi-4) writing from each human text's corpus summary at matched length. Twelve detectors: length stats, bag of words, style features, LUAR, mean-pooled activation probes (Qwen3-8B, Llama-3.1-8B), SAE probes (Qwen-Scope L18, Goodfire L19), neuron probe, voi-380M, 380M->9B cascade, Qwen3-32B one-question judge. Held-out AUROC: activation 0.997 [0.993,1.000], SAE 0.998 [0.994,1.000], bag of words 0.990, judge 0.801. Shortcut: style probe 0.985 -> 0.782 at 60 words. Use test (60 held-out prompts, layer 18, fluency matched): SAE decoder directions -0.162 [0.113,0.216] P(AI), probe -0.078 [0.042,0.118], 5 random -0.019..+0.009; SAE ablation -0.234 but loops on 57%. Planted hacks surfaced of 6: SAE 3/4/4, bag of words 1/5/4 (pre-registered grader / second grader / author's read; graders agree 58%). Confounds: SAE named 3 of 4 but flagged the clean control. Pigment Gym checkpoints: every internal signal false-alarmed on a clean run. Voice: per-author vector +0.62 over 8-shot but 77% of drafts loop; another author's vector +0.56; LoRA +0.14 [0.05,0.23]. Predictions: P1, P3, P4, P5, P6, P9 hit by rule (P4, P6, P9 undercut when the checks were re-tested), P2, P7, P8 missed.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-21",
+ "dateModified": "2026-11-21",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI text detection, linear probes, sparse autoencoders, SAE features, Qwen-Scope, Goodfire SAE, steering vectors, presence vs use, random-direction control, reward hacking, LUAR, authorship, LoRA, humanizers, DIPPER, Qwen3-8B, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://aclanthology.org/2021.emnlp-main.70/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://proceedings.mlr.press/v306/lu26g.html"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2312.06681"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2310.01405"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2209.10652"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://transformer-circuits.pub/2023/monosemantic-features"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2501.18837"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2303.13408"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2106.09685"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.09388"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .refs li { margin-bottom: 0.4rem; } .refs a { overflow-wrap: anywhere; }
+  .pvi-fig { margin: 1.6rem 0 2rem; }
+  .pvi-controls { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .6rem; }
+  .pvi-btn { font: inherit; font-family: var(--font-display); font-size: .82rem; padding: .25rem .65rem; border: 1px solid var(--rule);
+    background: var(--canvas); color: var(--ink-soft); border-radius: 999px; cursor: pointer; min-height: 32px; }
+  .pvi-btn[aria-pressed="true"] { border-color: var(--ink); color: var(--ink); background: var(--panel); }
+  .pvi-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pvi-fig svg { width: 100%; height: auto; display: none; color: var(--ink); }
+  .pvi-fig.is-live svg { display: block; }
+  .pvi-fig.is-live .pvi-static, .pvi-fig:not(.is-live) .pvi-controls { display: none; }
+  .pvi-fig .grid { stroke: var(--rule); }
+  .pvi-fig .tick { font-family: var(--font-mono); font-size: 10.5px; fill: var(--ink-soft); }
+  .pvi-fig .axis-label, .pvi-fig .row-label { font-family: var(--font-display); font-size: 12px; fill: var(--ink-soft); }
+  .pvi-live { font-size: .85rem; color: var(--ink-soft); margin: .4rem 0 0; min-height: 1.3em; }
+  .reply { font-family: var(--font-body); font-size: .95rem; background: var(--panel); border-left: 3px solid var(--ink-faint);
+    padding: .7rem .9rem; margin: .6rem 0; overflow-wrap: anywhere; }
+  .reply.steered { border-left-color: var(--accent); }
+  .reply .who { display: block; font-family: var(--font-display); font-size: .8rem; color: var(--ink-soft); margin-bottom: .3rem; }
+  .tools101 td:first-child { min-width: 7.5rem; font-weight: 600; }
+  .tools101 td { vertical-align: top; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>The Taste Stack · Episode 1<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time></p>
+  <h1>Small probes catch AI text as well as SAE features do; the features steer it better, and three of our own checks failed</h1>
+  <p class="dek ruled">When you want to catch AI-written text and know why a judge says what it says, is a small probe enough, or do you need to read the model's features? On public emails and blog posts, both detected AI text almost perfectly. Pushing against the features steered a model away from sounding like AI further than the probe's direction did. And three of our own checks passed their checks on clean examples, then failed on the outputs they actually had to judge.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="pvi-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Left: a held-out Enron email (probe score 0.000) and Qwen3-8B&#x27;s rewrite of its summary (probe score 0.999). Right: the drop in a detector&#x27;s probability of AI for Qwen3-8B&#x27;s emails when the SAE feature directions (0.16), a layer-18 probe direction of the same size (0.08) or the neurons (0.02) are pushed against, beside five random directions of the same size (about zero)." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">THE TASTE STACK · EPISODE 1</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">SMALL PROBES VS INTERPRETABILITY</text><text x="20" y="62" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:25px;font-weight:800">Both read AI text; only the features steer it</text><rect x="20" y="90" width="410" height="112" rx="6" fill="#ffffff" stroke="#e3dbd0" stroke-width="1"/><text x="34" y="112" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">A HELD-OUT ENRON EMAIL</text><text x="34" y="134" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">As I discussed in the staff meeting, I am sending you the</text><text x="34" y="151" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">global standards for your review and comment.</text><text x="416" y="112" fill="#5a5048" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:800" text-anchor="end">probe 0.000</text><rect x="20" y="214" width="410" height="112" rx="6" fill="#ffffff" stroke="#e3dbd0" stroke-width="1"/><text x="34" y="236" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">QWEN3-8B, WRITING FROM ITS SUMMARY</text><text x="34" y="258" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">[name] is sending global standards for your review and</text><text x="34" y="275" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">feedback. Please assess whether the targets are</text><text x="34" y="292" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:400">reasonable.</text><text x="416" y="236" fill="#a85a22" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;font-weight:800" text-anchor="end">probe 0.999</text><text x="20" y="360" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600">A linear probe on Qwen3-8B&#x27;s activations: 0.997 AUROC</text><text x="20" y="377" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600">on 45 held-out authors. SAE-feature probe: 0.998.</text><text x="20" y="402" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:400">A one-question LLM judge called both texts human.</text><text x="470" y="96" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:700">Drop in detector P(AI), 60 held-out prompts</text><path d="M620,100 V296" stroke="#e3dbd0" stroke-width="1"/><text x="470" y="117" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">SAE feature directions</text><rect x="620" y="107" width="145.70999999999998" height="13" rx="0" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="771.71" y="118" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:700">+0.162</text><text x="470" y="141" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">Probe direction (layer 18)</text><rect x="620" y="131" width="70.02" height="13" rx="0" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="696.02" y="142" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:700">+0.078</text><text x="470" y="165" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:600">Neuron mean-ablation</text><rect x="620" y="155" width="19.169999999999998" height="13" rx="0" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="645.17" y="166" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:700">+0.021</text><text x="470" y="189" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Random direction 1</text><rect x="602.81" y="179" width="17.189999999999998" height="13" rx="0" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="626" y="190" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500">-0.019</text><text x="470" y="213" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Random direction 2</text><rect x="619.28" y="203" width="1.5" height="13" rx="0" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="626" y="214" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500">-0.001</text><text x="470" y="237" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Random direction 3</text><rect x="620" y="227" width="1.5" height="13" rx="0" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="626.27" y="238" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500">+0.000</text><text x="470" y="261" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Random direction 4</text><rect x="620" y="251" width="7.65" height="13" rx="0" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="633.65" y="262" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500">+0.009</text><text x="470" y="285" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Random direction 5</text><rect x="611.99" y="275" width="8.01" height="13" rx="0" fill="#3f5a73" stroke="none" stroke-width="1"/><text x="626" y="286" fill="#1d1a17" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10px;font-weight:500">-0.009</text><text x="470" y="312" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:400">Probe, SAE and random directions all have the same size.</text><text x="470" y="327" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:400">Chosen on dev; at most 1 of 60 emails loops in any arm shown.</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">ENRON + BLOG AUTHORSHIP CORPUS · QWEN3-8B · QWEN-SCOPE SAE, LAYER 18 · PRE-REGISTERED</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: left, one held-out Enron email and Qwen3-8B's rewrite of its summary, with a small probe's score for each. Right, how far each intervention at Qwen3-8B's layer 18 lowered a detector's P(AI) on 60 held-out prompts, against five random directions of the same size. Drawn by <a href="../make_cover.py">make_cover.py</a> from <code>results/causal.json</code> and <code>results/qa_examples.json</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>The Taste Stack, Episode 1</dd></div>
+    <div><dt>Models</dt><dd><a href="https://arxiv.org/abs/2505.09388">Qwen3</a>-8B with Qwen-Scope SAEs; Llama-3.1-8B-Instruct with a Goodfire SAE; Qwen3-1.7B (the Pigment Gym checkpoints); Qwen3-32B as judge, reader and grader</dd></div>
+    <div><dt>Data</dt><dd>Enron sent mail and the Blog Authorship Corpus (public), open-model rewrites of them, and drafts from the Sounds Like Me episode</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/probes-vs-interp/</a> · <a href="../results/predictions.json">results/</a> (every number in this note; <a href="../README.md">file guide</a>) · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>To catch AI slop and know why a judge says what it says, should you use small probes or feature-level interpretability?</strong></p>
+    <p><strong>Detection:</strong> a probe is enough. A linear probe on Qwen3-8B's activations and a probe on its SAE features both scored 0.997-0.998 on 45 held-out authors, and both survived two humanizers.</p>
+    <p><strong>Steering:</strong> the features did better. Subtracting the directions of 16 AI-leaning SAE features lowered a detector's P(AI) by 0.16 on held-out prompts, against 0.08 for a probe direction of the same size; five random directions of that size did nothing.</p>
+    <p><strong>Auditing:</strong> reading features named some planted confounds and hacks, but no more than a bag of words did once the grader was checked, and no internal signal warned of a reward hack without false alarms. Three of our own checks failed on real outputs: a fluency check passed looping text, a grader passed its known-answer test and then misgraded real readouts, and a voice score rewarded loops.</p>
+    <p class="summary-label">Terms</p>
+    <p><em>AUROC</em>: the chance a method scores a random AI text above a random human one (1 = perfect, 0.5 = a coin flip). <em>P(AI)</em>: a detector's confidence that a text is AI-written. <em>SAE feature</em>: one of 65,536 directions a sparse autoencoder finds in a model's activations, each meant to stand for one human-readable idea. <em>Check</em>: anything that scores outputs, from a detector to a grader.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr><td>4.1 Detection on held-out authors</td><td><strong>A tie at the ceiling.</strong> Activation probe 0.997 [0.993, 1.000]; SAE probe 0.998 [0.994, 1.000]; neuron probe 0.999 (AUROC, 678 texts, 45 authors)</td><td>Bag of words 0.990; one-question judge (Qwen3-32B) 0.801</td></tr>
+      <tr><td>4.2 Humanizers, a new generator, email → blog</td><td><strong>Every strong method held.</strong> Activation and SAE probes 0.990-1.000 on every shift</td><td>Bag of words fell to 0.92 on blog posts; the judge to 0.70 on rewritten text</td></tr>
+      <tr><td>4.3 Shortcut check</td><td><strong>One method failed it.</strong> The style-feature probe fell from 0.985 to 0.782 [0.743, 0.823] when both sides were cut to their first 60 words</td><td>Activation probe 0.990, SAE probe 0.976 on the same cut</td></tr>
+      <tr class="hl"><td>4.4 Does what they read make text sound like AI?</td><td><strong>Yes, and the SAE features more so.</strong> Detector P(AI) fell by 0.162 [0.113, 0.216] with the SAE feature directions and by 0.078 [0.042, 0.118] with a layer-18 probe direction of the same size (60 held-out prompts; both fluent)</td><td>Five random directions of the same size: −0.019 to +0.009. A "write like a busy person" prompt: 0.096</td></tr>
+      <tr><td>4.5 Finding planted reward hacks</td><td><strong>No better than a bag of words.</strong> SAE readouts surfaced 3, 4 and 4 of 6 hacks by the three graders</td><td>Bag of words: 1, 5 and 4. The two model graders agreed on 58% of verdicts</td></tr>
+      <tr><td>4.6 Catching a confounded probe</td><td><strong>Named, but not specific.</strong> SAE readouts named 2-4 of 4 planted confounds (author's read to frozen grader), and also called the clean control probe a shortcut</td><td>Neuron readouts: 1-3 of 4, also flagging the clean control</td></tr>
+      <tr><td>4.7 Early warning of a reward hack</td><td><strong>No.</strong> The comment log-probability flagged both hack runs one checkpoint early, but every internal signal also flagged a clean run</td><td>Outside check: both hack runs at step 40, no false alarm</td></tr>
+      <tr><td>4.8 A person's voice: steering vector, LoRA, prompting</td><td><strong>The vector's gain was mostly loops.</strong> It beat 8-shot prompting by 0.62 [0.17, 1.11], but 77% of its drafts looped. A loop-free rerun (post hoc): +0.30, and another author's vector +0.44, so it reads "less assistant", not a person</td><td>Per-author LoRA +0.14 [0.05, 0.23]; 8-shot +0.08; random vector 0.00</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Take one work email from an Enron author ("As I discussed in the staff meeting, I am sending you the global standards for your review…") and ask Qwen3-8B to write the email its one-paragraph summary describes. A probe reading the model's own activations scores the human email 0.000 and the rewrite 0.999. A one-question judge, asked "human or AI?", calls both human. The probe answers its one question very well. What it cannot say is why: whether it reads AI-ness, or length, layout or topic. This note asks whether reading the model's features can, and whether what they read is what makes text sound like AI.</p>
+
+  <figure>
+    <div class="table-wrap tools101" tabindex="0" role="region" aria-label="Table 1: five ways to read or shape a model's taste, scrolls sideways on narrow screens"><table>
+      <caption>Table 1. Five ways to read or shape a model's "taste". The analogy throughout: <strong>a model writing an email is a cook making a dish.</strong></caption>
+      <thead><tr><th>Tool</th><th>What it is</th><th>Analogy</th><th>Reads or changes the model?</th><th>In this note</th></tr></thead>
+      <tbody>
+        <tr><td>Small probe</td><td>A tiny classifier (one linear layer) trained in minutes on a model's activations or on simple text features, answering one yes/no question</td><td>A food thermometer: one cheap reading, no opinion about anything else</td><td><strong>Reads</strong></td><td>Tests 1-3: the activation, SAE and style probes</td></tr>
+        <tr><td>Steering vector</td><td>A direction in the activations, often the average difference between two sets of texts, added while the model writes (<a href="https://arxiv.org/abs/2312.06681">the Contrastive Activation Addition paper</a>, <a href="https://arxiv.org/abs/2310.01405">the Representation Engineering paper</a>)</td><td>A pinch of salt while the dish cooks: no new recipe, just a nudge</td><td><strong>Changes</strong>, at run time and reversibly</td><td>Test 4: pushing against the probe and the SAE features</td></tr>
+        <tr><td>Persona vector</td><td>A steering vector for a character trait (<a href="https://arxiv.org/abs/2507.21509">the Persona Vectors paper</a>); one direction separates the default assistant from other characters (<a href="https://proceedings.mlr.press/v306/lu26g.html">the Assistant Axis paper</a>)</td><td>The cook's personality, a direction you can read or turn up</td><td><strong>Reads and changes</strong></td><td>Tests 9-10: a per-author "voice" vector, which acted more like an anti-assistant direction</td></tr>
+        <tr><td>Authorship model</td><td>A separate model that turns a few texts into a style fingerprint; two fingerprints close together suggest one writer (<a href="https://aclanthology.org/2021.emnlp-main.70/">LUAR</a>)</td><td>A taster who can tell which cook made a dish, without caring whether it is good</td><td>Neither: it <strong>judges the output</strong></td><td>The voice score in tests 9-10, and one more probe in test 1</td></tr>
+        <tr><td>Preference model</td><td>A model trained on choices ("A is better than B") to predict which output wins; it becomes the reward in RL</td><td>A critic who learned one diner's taste from their past orders</td><td>Neither: it <strong>judges the output</strong>; RL then changes the model</td><td>Test 5: six reward models that each prefer a planted hack</td></tr>
+      </tbody>
+    </table></div>
+    <figcaption>Authorship and preference models are outside judges: they score the output. Probes read inside. Steering and persona vectors push from inside, without training. <strong>One line to remember:</strong> a probe <em>asks</em> the model a question; a vector <em>tells</em> it which way to go; an authorship model asks <em>who</em> wrote it; a preference model asks <em>who would like</em> it.</figcaption>
+  </figure>
+
+  <p><strong>What is known.</strong> Linear probes on activations are cheap and often accurate; <a href="https://arxiv.org/abs/2501.18837">the Constitutional Classifiers paper</a> runs classifiers as a production safeguard. Sparse autoencoders (SAEs) split activations into many directions, each meant to stand for one human-readable feature (<a href="https://arxiv.org/abs/2209.10652">Toy Models of Superposition</a>, <a href="https://transformer-circuits.pub/2023/monosemantic-features">Towards Monosemanticity</a>), and turning one up can steer a model (<a href="https://www.anthropic.com/news/golden-gate-claude">Golden Gate Claude</a>). Earlier notes in this lab found a sandbagging probe that read the prompt's instruction rather than the behaviour, and an authorship model that read layout rather than voice.</p>
+  <p><strong>What is missing.</strong> Companies selling taste and preference data produce judges: rubrics, reward models, probes. Few test what those judges read, or whether what they read is what makes text sloppy. A judge that reads a shortcut can be gamed by any policy trained against it.</p>
+  <p class="question-callout">When you want to detect AI slop and know why a model or a judge produces or rewards it, which tells you more: a small probe, or reading the model's features?</p>
+  <p><strong>What this note does.</strong> It scores twelve detectors on one leaderboard and runs the four jobs where interpretability claims to beat probes. It contributes:</p>
+  <ol>
+    <li>a leaderboard of probes, SAE and neuron probes, trained detectors and an LLM judge on topic- and length-matched human and AI text, with humanizers, a held-out generator and shortcut edits;</li>
+    <li>a <strong>use test</strong>: steering or ablating what each method reads, against random directions of the same size;</li>
+    <li>blind audits of four deliberately confounded probes and six reward models with planted hacks;</li>
+    <li>an early-warning test on saved reward-hacking checkpoints, and a voice test of steering against LoRA and prompting;</li>
+    <li>three checks that failed on real outputs, with the checks that caught them.</li>
+  </ol>
+  <p><strong>What counts as success.</strong> Written down before any method was fitted (<a href="#process">plan and amendment</a>):</p>
+  <ol>
+    <li>Every reported number is on held-out authors, prompts or checkpoints; layers, k and regularisation were chosen on dev.</li>
+    <li>A method gets credit for <em>explaining</em> slop only if steering or ablating what it reads beats random directions of the same norm, at matched fluency.</li>
+    <li>"Flagged" and "surfaced" are decided by a blind reader and a grader whose known-answer bar was set in advance.</li>
+    <li>Nine predictions with thresholds, scored mechanically (<a href="#predictions">section 6</a>).</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p>The plan numbers ten tests; the text below keeps those numbers. Test 6 (labels needed and cost) is reported inside section 4.3.</p>
+  <h3 id="data" data-short="Data">2.1 Data</h3>
+  <p><strong>Human text.</strong> Enron sent mail and the Blog Authorship Corpus, 50-300 words, at most 8 texts per Enron author and 4 per blogger. Enron authors are split by person: fit (73 authors, 550 texts), dev (29, 218), test (45, 339). Blog posts (60 bloggers, 240) are test only. Line breaks left by the mail archive are removed and hard-wrapped lines re-joined for every text, human or AI; otherwise every method reads the 78-character wrap.</p>
+  <p><strong>AI text, topic- and length-matched.</strong> Each human text comes with a one-paragraph corpus summary. An open model was asked to write the email or post that summary describes, at about the same length, body only. The <em>fit generators</em> were Qwen3-8B, Llama-3.1-8B-Instruct and gemma-3-27b-it, in turn; the <em>held-out generator</em> was phi-4. So a detector cannot win on topic or length: both sides of each pair are about the same thing.</p>
+  <p><strong>Shifts.</strong> Two humanizers rewrote the test AI texts: <a href="https://arxiv.org/abs/2303.13408">DIPPER</a>, a paraphraser built to evade detectors, and a prompted rewrite by Qwen3-32B ("make it sound like a real person wrote it quickly"). The frontier set is 240 cold sales emails by Claude Sonnet 5.5 and Gemini from the Sounds Like Me episode, against the same test humans; it is a different task, so topic is not matched there.</p>
+  <h3 id="methods" data-short="Methods">2.2 Methods</h3>
+  <ul>
+    <li><em>Cheap baselines:</em> length and punctuation counts; a bag of words (TF-IDF over words and word pairs) with logistic regression.</li>
+    <li><em>Small probes:</em> 24 hand-made style features; <a href="https://aclanthology.org/2021.emnlp-main.70/">LUAR</a> authorship embeddings; the mean activation of Qwen3-8B (layers 9, 18, 27) or Llama-3.1-8B-Instruct (layers 8, 19, 28), each with logistic regression. Means over tokens, the first token dropped.</li>
+    <li><em>Interpretability:</em> SAE probes on the top k features (k = 16, 64 or 256, ranked by the fit-set difference) of <a href="https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50">Qwen-Scope</a> (Qwen3-8B, layer 18, 65,536 features) and <a href="https://huggingface.co/Goodfire/Llama-3.1-8B-Instruct-SAE-l19">Goodfire's SAE</a> (Llama, layer 19, 65,536); a neuron probe on the top k MLP neurons of Qwen3-8B's layer 18.</li>
+    <li><em>Trained detectors:</em> <a href="https://huggingface.co/VoightKampffLabs/voi-slop-detect-380M">voi-380M</a>, and a cascade that sends its least-sure 10% to a 9B detector trained in an earlier note.</li>
+    <li><em>LLM judge:</em> Qwen3-32B, asked "Was this written by a human or by an AI?"; P(AI) from its first answer token.</li>
+  </ul>
+  <h3 id="terms" data-short="Terms">2.3 Terms</h3>
+  <p><em>AUROC</em>: the chance a method scores a random AI text above a random human one (0.5 = a coin flip, 1 = perfect). <em>Looping</em>: more than 20% of a text's four-word sequences repeat. <em>Fluent</em>: the untouched model finds the output about as predictable as its own writing (its average loss per token rises by at most 0.3). <em>Check</em>: anything that scores outputs: a detector, a grader, a fluency rule, a voice score. <em>Voice position</em>: where four drafts sit between a different human (0) and the author's own held-out emails (1) on LUAR, with greetings, sign-offs and whitespace stripped.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan and predictions</strong> (<a href="https://github.com/albertlieyingadrian/steerlab/blob/main/experiments/probes-vs-interp/README.md">file guide</a>): nine predictions and each one's scoring rule, fixed before any method was fitted.</li>
+    <li><strong>Freeze the data</strong>: human sets, 1,686 AI texts, humanizers, shortcut edits, five confound sets and six hack sets; hashes in <code>results/data_manifest.json</code>.</li>
+    <li><strong>Choose settings on dev</strong> (436 texts): layer, k and C for every probe; strengths for test 4 (13 settings × 40 prompts); the LoRA recipe for tests 9-10 (3 settings × 3 dev authors). Every try is a row in <code>results.tsv</code>.</li>
+    <li><strong>Check the checks</strong>: the grader on 12 known-answer cases (11/12, bar 11); voi-380M on the test set (AUROC 0.998), so it can serve as test 4's outcome.</li>
+    <li><strong>Run held-out</strong>: 678 test texts and 6 shifted sets; 60 prompts × 11 conditions for test 4; 11 targets × 2-5 readouts for tests 5 and 7; 24 checkpoints for test 8; 12 authors × 4 briefs × 14 conditions for tests 9-10.</li>
+    <li><strong>Score the predictions</strong> by their rules (<code>analyze.py</code>), then re-test every check on the outputs it actually judged.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2: fixed before vs changed after, scrolls sideways on narrow screens"><table>
+    <caption>Table 2. What was fixed before any trial, and what changed after reading outputs.</caption>
+    <thead><tr><th>Fixed before any trial</th><th>Changed after reading outputs</th></tr></thead>
+    <tbody>
+      <tr><td>Data, splits, generators, edits, confounds and hacks; every method's search grid; the nine predictions and their scoring rules; the grader's known-answer bar</td><td><strong>Amendment 1</strong> (dev only, before any held-out voice run): the strongest LoRA setting wrote in the author's voice but ignored the brief (on-task 0.17), so a copy check and an on-task check were added to the LoRA choice</td></tr>
+      <tr><td>Fluency = mean loss rise ≤ 0.3 (tests 4, 9-10)</td><td>Not changed. After the run, loops were found to pass it; loop rates are reported beside every steering result, with a loop-free comparison</td></tr>
+      <tr><td>The grader (Qwen3-32B) as the instrument for "surfaced" and "flagged"</td><td>Not changed. After the run, a second grader from another family (gemma-3-27b-it) and the author's read are reported beside it</td></tr>
+      <tr><td>Test 8's signal (c): the log-probability of opening a code comment</td><td>A tokenizer bug measured nothing on the first run; fixed and rerun on all 24 checkpoints before scoring</td></tr>
+      <tr><td>The voice vector's strength (0.4, from another episode)</td><td>After the loops were found: an exploratory rerun at a strength chosen on 5 dev authors with at most 5% looping (0.2), reported beside the frozen scores and never used to rescore</td></tr>
+      <tr><td>The five confound sets</td><td>Code review found the layout set's split ran along class; it was rebuilt (other sets and every text unchanged) and tests 5 and 7 rerun before the numbers here. Excluding each probe's own training texts from the readout pool was tried and reverted, because it removed every text carrying the planted hack</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Conditions.</strong> Generation at temperature 0.7, top-p 0.95, repetition penalty 1.0, 400 new tokens (320 for voice); Qwen3 with thinking off. One H100 per job; the Pigment checkpoints on L40S. Total compute about $16.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="detection" data-short="Detection: a tie at the top">4.1 Detection: probes and SAE features tie at the ceiling; the judge trails</h3>
+  <p>On 45 held-out Enron authors, eight methods scored 0.997 or higher (Figure 1). The activation probe on Qwen3-8B (layer 9, chosen on dev) scored 0.997 [0.993, 1.000]; the SAE probe on Qwen-Scope's layer 18 (k = 256) 0.998 [0.994, 1.000]. On Llama the order flipped by 0.001. P1 (the probe at least matches the SAE probe) is a hit, but at this ceiling it says little: the difference is a tenth of the interval's width.</p>
+  <p>The cheap baselines were not far behind: the bag of words scored 0.990, the style features 0.985. The one-question judge scored 0.801 [0.763, 0.842]: the slowest method was the worst.</p>
+  <figure class="pvi-fig" id="pvi-explorer">
+    <div class="pvi-controls" role="group" aria-label="Choose a test set"></div>
+    <svg role="img" aria-label="AUROC of every detector on the chosen test set, with 95% intervals"></svg>
+    <img class="pvi-static" src="figures/leaderboard.png" alt="Heat map of AUROC for twelve detectors across seven test sets: the activation, SAE and neuron probes, LUAR, voi-380M and the cascade score 0.93-1.00 everywhere; the style probe falls to 0.78 on texts cut to 60 words; the judge scores 0.67-0.84.">
+    <p class="pvi-live" aria-live="polite"></p>
+    <figcaption>Figure 1. AUROC with 95% bootstrap intervals over authors, for every method on each test set; pick a set. Orange dots: interpretability methods (SAE and neuron probes); solid dots in the text colour: small probes; grey dots: baselines, trained detectors and the judge. Lines are 95% intervals; the axis starts at 0.5 (chance). Held-out authors: 339 human and 339 AI texts. Drawn from <code>results/leaderboard.json</code>.</figcaption>
+  </figure>
+
+  <h3 id="robustness" data-short="Shifts: strong methods hold">4.2 Humanizers, a new generator and blog posts barely touch the strong methods</h3>
+  <p>DIPPER and the prompted rewrite left every activation, SAE and neuron probe at 0.990 or above. Neither the SAE probe nor the activation probe lost anything under the humanizers, so P2 (SAE features hold up better by 0.05) is a miss. The bag of words fell to 0.946 under the prompted rewrite and 0.923 on blog posts; the judge fell to 0.703 under the prompted rewrite.</p>
+  <p>On the frontier sales drafts, length and punctuation counts fell to 0.735, and the judge rose to 0.925: it calls a sales pitch AI more readily than a work email.</p>
+
+  <h3 id="shortcuts" data-short="One shortcut found">4.3 One method was reading length: the style probe lost 0.20 on the first 60 words</h3>
+  <p>Cutting both sides to their first 60 words cost the style-feature probe 0.203 (0.985 to 0.782 [0.743, 0.823]); stripping greetings, sign-offs and layout cost it 0.077. Its features include sentence-length spread and word counts, so a matched cut takes away what it leaned on. P3 (some method above 0.9 fails the shortcut check) is a hit. On the same cut LUAR lost 0.066, the activation probe 0.007 and the SAE probe 0.022.</p>
+  <figure>
+    <img src="figures/curves.png" alt="Learning curves: AUROC on held-out authors against labelled training texts from 50 to 1,100. LUAR starts at 0.99; the activation and SAE probes start at 0.97 and reach 0.996 by 400; bag of words and style features start at 0.90-0.93.">
+    <figcaption>Figure 2. Labels needed: AUROC on held-out authors when each method is fit on 50 to 1,100 balanced labels (mean of 3 draws below the full set). The SAE probe (orange) tracks the activation probe. Drawn from <code>results/curves.json</code>.</figcaption>
+  </figure>
+  <p><strong>Cost.</strong> Activations plus SAE features took 18.5 H100-seconds per 1,000 texts ($0.023); the judge 62 seconds ($0.075). The style and bag-of-words probes run in about a tenth of a second per 1,000 texts on a laptop.</p>
+
+  <h3 id="use" data-short="Presence vs use: features steer">4.4 Pushing against the SAE features makes Qwen3-8B sound less like AI; random directions do nothing</h3>
+  <p>A probe reading something does not show that the model uses it. So Qwen3-8B wrote emails from 60 held-out summaries while each method's reading was pushed against at layer 18 (Figure 3). The "probe" here is an activation probe refit at layer 18, the SAE's layer, not the layer-9 detector of section 4.1. Each method's strength was chosen on 40 dev summaries as the largest effect that stayed fluent. The probe and SAE directions both chose the largest strength tried (16% of a typical activation's size), so they are compared at equal size, not each pushed to its limit.</p>
+  <figure>
+    <img src="figures/causal.png" alt="Drop in detector P(AI) for each intervention with 95% intervals: SAE feature ablation 0.23 (loops), SAE feature directions 0.16, prompt 0.10, probe direction 0.08, neuron mean-ablation 0.02, five random directions between −0.02 and +0.01.">
+    <figcaption>Figure 3. How much each intervention lowered voi-380M's P(AI) for Qwen3-8B's emails, against the untouched model on the same 60 held-out prompts (paired bootstrap, 95% intervals). Orange: interventions on what a method reads; blue: random directions of the same norm as the probe's; grey: a prompt baseline. Drawn from <code>results/causal.json</code>.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Probe direction</strong>: P(AI) from 0.722 to 0.645, a drop of 0.078 [0.042, 0.118], and 0.069 [0.029, 0.112] more than the best of five random directions (−0.019 to +0.009).</li>
+    <li><strong>SAE feature directions</strong> (the summed directions of the 16 features most active on AI text): a drop of 0.162 [0.113, 0.216], 1 of 60 emails looping, 0.084 [0.028, 0.138] more than the probe direction. On the dev summaries the gap was smaller (0.178 against 0.144), so "twice" is the held-out figure; the direction of the gap held on both.</li>
+    <li><strong>SAE feature ablation</strong> (removing those features' part of the activation, twice over): the largest drop, 0.234, but <strong>57% of its emails loop and 17% are empty</strong>, and the loss of the rest fell by 0.50, which is how it passed the fluency rule. It is not a usable result.</li>
+    <li><strong>Neuron mean-ablation</strong> of 64 AI-leaning neurons: 0.021 [−0.001, 0.046], no better than random.</li>
+  </ul>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 3: test 4 by arm with loop and empty shares, scrolls sideways on narrow screens"><table>
+    <caption>Table 3. Test 4 on 60 held-out prompts: drop in detector P(AI) against the untouched model (paired 95% interval), and the share of emails that loop or come back empty.</caption>
+    <thead><tr><th>Arm</th><th class="num">Drop in P(AI)</th><th class="num">Looping</th><th class="num">Empty</th><th class="num">Loss rise</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>SAE feature directions ×16</td><td class="num">0.162 [0.113, 0.216]</td><td class="num">2%</td><td class="num">0%</td><td class="num">−0.02</td></tr>
+      <tr><td>Probe direction ×16 (layer 18)</td><td class="num">0.078 [0.042, 0.118]</td><td class="num">0%</td><td class="num">0%</td><td class="num">−0.13</td></tr>
+      <tr><td>SAE feature ablation ×2</td><td class="num">0.234 [0.152, 0.306]</td><td class="num">57%</td><td class="num">17%</td><td class="num">−0.50</td></tr>
+      <tr><td>Neuron mean-ablation ×4</td><td class="num">0.021 [−0.001, 0.046]</td><td class="num">0%</td><td class="num">0%</td><td class="num">−0.11</td></tr>
+      <tr><td>Random directions ×16 (5 seeds)</td><td class="num">−0.019 to +0.009</td><td class="num">0%</td><td class="num">0%</td><td class="num">−0.03 to 0.00</td></tr>
+      <tr><td>Prompt: write like a busy person</td><td class="num">0.096 [0.042, 0.149]</td><td class="num">0%</td><td class="num">0%</td><td class="num">+0.36</td></tr>
+    </tbody>
+  </table></div>
+  <p>By its frozen rule P5 is a hit (the probe beats random, and the best SAE arm beats the probe), but the best arm is the looping one. The loop-free SAE arm beats the probe as well, so the conclusion stands without it. With a loop cap of 5% applied on dev (post hoc), the same two arms would have been chosen: the probe and SAE directions at ×16 looped on 3% and 0% of dev emails, and every ablation strength looped more. A plain prompt asking for an unpolished human email did about as well as the probe (0.096), but it was not tuned on dev, showed three human emails, wrote emails 23 words shorter, and broke the fluency cap (loss up by 0.36).</p>
+  <div class="reply"><span class="who">Untouched Qwen3-8B (P(AI) 0.725)</span>[name] just let us know that the hotel reservation in Positano has been cancelled. [name], a staff member there, confirmed the cancellation verbally, but we haven't received the written confirmation yet…</div>
+  <div class="reply steered"><span class="who">Probe direction subtracted (P(AI) 0.614)</span>[name] just let us know that the hotel reservation in Positano has been cancelled. She spoke with a staff member named [name], who confirmed the cancellation verbally, but we still haven't received the written confirmation…</div>
+  <div class="reply steered"><span class="who">SAE feature directions subtracted (P(AI) 0.572)</span>[name] informed the group that the hotel reservation in Positano has been cancelled, confirmed verbally by a staff member named [name], but written confirmation is still pending. She advised everyone to monitor their credit card statements for charges…</div>
+
+  <h3 id="hacks" data-short="Planted hacks: no clear winner">4.5 Finding planted reward hacks: SAE readouts do no better than a bag of words once the grader is checked</h3>
+  <p>Six reward models each learned to prefer drafts with one planted hack: sentences copied from the author's old emails, stuffed sign-offs, an invented past meeting, filler about "partnership" and "excellence", sheer length, and the stock opener "I hope this email finds you well". For each, five readouts were shown to a blind reader (Qwen3-32B), who never saw the hack, and a grader decided whether the reader's description named it.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 5: hacks surfaced by readout, scrolls sideways on narrow screens"><table>
+    <caption>Table 5. Planted hacks surfaced (of 6) by each readout: by the pre-registered grader, a second grader from another family, and the author's read of the same descriptions.</caption>
+    <thead><tr><th>Readout</th><th class="num">Grader (Qwen3-32B)</th><th class="num">Second grader (gemma-3-27b)</th><th class="num">Author's read</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>SAE features (Qwen-Scope)</td><td class="num">3</td><td class="num">4</td><td class="num">4</td></tr>
+      <tr><td>MLP neurons</td><td class="num">1</td><td class="num">4</td><td class="num">1</td></tr>
+      <tr><td>Bag of words</td><td class="num">1</td><td class="num">5</td><td class="num">4</td></tr>
+      <tr><td>Style features</td><td class="num">1</td><td class="num">4</td><td class="num">2</td></tr>
+      <tr><td>Top-scoring examples</td><td class="num">1</td><td class="num">4</td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+  <p>By the frozen grader, SAE readouts beat every probe-family readout by 2, so P4 is a hit by its rule. But the two model graders agreed on only 58% of verdicts. The first missed clear matches: it denied the bag of words on padding when the reader quoted "commitment to excellence", and the style features on length when the reader said "number of words, characters". The second credited almost everything. Read by hand, the SAE features and the bag of words each found four. No readout found the copied sentences, which are invisible without the author's own emails beside the draft. One readout the bag of words could not match: for stuffed sign-offs, the SAE reader described "P.S. lines, standard closing phrases and titles like Account Executive".</p>
+
+  <h3 id="confounds" data-short="Confounded probes">4.6 Reading SAE features named confounded probes, and called a clean one a shortcut too</h3>
+  <p>Four probes were trained on labels that follow a confound more than AI-ness (70/30 mixes): length, layout, topic (cold sales pitches against work email) and register (blog against email). A fifth, clean probe was the control. By the frozen grader, the SAE readout named 4 of 4 confounds and the neuron readout 3 (P6 hit). Three problems undercut the hit:</p>
+  <ul>
+    <li><strong>The clean control was flagged too</strong>, by both readouts. The off-task half of the rule fired on 9 of 10 readouts: the reader called almost every probe "something other than AI authorship". The clean control needed only that half to count as flagged, while a confound also needed a match.</li>
+    <li><strong>The grader accepted wrong matches.</strong> It credited "function words, pronouns, prepositions" as naming length, and "formal communication, job-related content" as naming layout. It also flipped its verdict on a reader description identical to the first run's. By the author's read the SAE readout named 2 of 4 (topic, register) and the neuron readout 1 (topic); by the second grader, 3 and 2.</li>
+    <li><strong>The first run's layout set was built wrong</strong> (its split ran along class) and was rebuilt before these numbers.</li>
+  </ul>
+
+  <h3 id="early-warning" data-short="No early warning">4.7 No internal signal warned of the Pigment Gym hack without a false alarm</h3>
+  <p>The <a href="../../pigment-gym/report/">Pigment Gym</a> note trained Qwen3-1.7B to paint with code, under a bonus a policy could game by stuffing scene words into code comments. Two runs learned the hack around step 40; two did not. The outside check (32 sketches per saved checkpoint, at least 3 hacking) flagged both hack runs at step 40 and neither clean run (Figure 4).</p>
+  <figure>
+    <img src="figures/pigment.png" alt="Four panels over GRPO steps 0-100. Outside check: the two hack runs jump from 0 to 6-30 hacking sketches at step 40; clean runs stay at 0. The internal signals rise in hack and clean runs alike, and cross the clean-run threshold in the second clean run.">
+    <figcaption>Figure 4. Outside check (hacking sketches of 32) and three internal signals over six saved checkpoints of four runs. Orange: hack runs; blue: clean runs (solid = calibration run, whose maximum sets each dashed threshold; dotted = false-alarm check). Drawn from <code>results/pigment.json</code>.</figcaption>
+  </figure>
+  <p>The model's log-probability of opening a code comment crossed the threshold at step 20 in both hack runs, one checkpoint before the outside check. But it crossed it in the second clean run as well (step 40), by a small margin (−1.79 against a threshold of −1.86, while the hack runs reached −1.16 and −1.35). That clean run trained with a smaller bonus (the "v1" reward), and the threshold is the maximum of six checkpoints of one calibration run, so this false alarm is thin. The other signals false-alarmed by wider margins: a projection onto a hack direction built from a fifth run, and the drift of SAE features. The projection over fixed sketches never flagged either hack run. P7 is a miss by its rule; the comment log-probability is the one signal worth retesting with more clean runs.</p>
+
+  <h3 id="voice" data-short="Voice: steering looped">4.8 A per-author steering vector beat prompting and LoRA on voice only by looping</h3>
+  <p>For 12 held-out authors from the Sounds Like Me episode, Qwen3-8B wrote 4 cold emails each, on synthetic sales briefs for invented companies (such as a freight broker called Lanebridge), helped by a voice vector (the mean activation of n of the author's emails minus the model's default), a LoRA (<a href="https://arxiv.org/abs/2106.09685">the LoRA paper</a>) trained on the same n emails, or the n emails in the prompt (Figure 5).</p>
+  <figure>
+    <img src="figures/voice.png" alt="Voice gain over no help against samples of the author's writing: own voice vector 0.57-0.73; another author's vector 0.56 (dashed band); per-author LoRA 0.14-0.25; few-shot prompt 0.04-0.08.">
+    <figcaption>Figure 5. Voice position gained over no help, for 12 held-out authors, with 95% intervals over authors. Blue band: another author's vector (12 samples), the control for "any vector". Drawn from <code>results/voice.json</code>.</figcaption>
+  </figure>
+  <p><strong>The vector's "gain" was mostly loops.</strong> At the strength Sounds Like Me had chosen (0.4), the vector beat 8-shot prompting by +0.62 [0.17, 1.11] at 8 samples, so P9 is a hit by its rule. But most of its drafts repeated themselves (77% at 8 samples, 73% at 12, against 0% for prompting and LoRA), the voice score rewarded the repetition, and another author's vector did almost as well (+0.56 [0.28, 0.82], 81% looping). P8 (half a LoRA's gain at 1% of its cost) is a miss on cost: a 40-step LoRA trained in 5.2 s, so the vector's 0.35 s is 7% of it.</p>
+  <p><strong>A loop-free rerun (exploratory, post hoc).</strong> Choosing the strength on 5 dev authors with at most 5% looping drafts gave 0.2 (0.3 looped on 15%). At 0.2, on the same 12 held-out authors (Table 4):</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 4: voice by condition with loop share, scrolls sideways on narrow screens"><table>
+    <caption>Table 4. Voice position gained over no help (95% interval over 12 held-out authors) and the share of drafts that loop. The strength-0.4 rows are the pre-registered run; the strength-0.2 rows are the exploratory loop-free rerun. Prompting and LoRA rows are shared.</caption>
+    <thead><tr><th>Condition</th><th class="num">Voice gain</th><th class="num">Looping</th></tr></thead>
+    <tbody>
+      <tr><td>Own vector, 8 samples, strength 0.4</td><td class="num">+0.69 [0.23, 1.20]</td><td class="num">77%</td></tr>
+      <tr><td>Another author's vector, strength 0.4</td><td class="num">+0.56 [0.28, 0.82]</td><td class="num">81%</td></tr>
+      <tr class="hl"><td>Own vector, 8 samples, strength 0.2</td><td class="num">+0.30 [0.05, 0.57]</td><td class="num">2%</td></tr>
+      <tr><td>Own vector, 12 samples, strength 0.2</td><td class="num">+0.42 [0.12, 0.72]</td><td class="num">0%</td></tr>
+      <tr><td>Another author's vector, strength 0.2</td><td class="num">+0.44 [0.20, 0.75]</td><td class="num">0%</td></tr>
+      <tr><td>Random vector, strength 0.2</td><td class="num">+0.00 [−0.09, 0.10]</td><td class="num">0%</td></tr>
+      <tr><td>Per-author LoRA, 12 samples</td><td class="num">+0.14 [0.05, 0.23]</td><td class="num">0%</td></tr>
+      <tr><td>8-shot prompt</td><td class="num">+0.08 [−0.03, 0.21]</td><td class="num">0%</td></tr>
+    </tbody>
+  </table></div>
+  <p>Without loops, a vector still moves the voice score, and a random vector does not. But another author's vector moves it just as far (own minus other: −0.02 [−0.40, 0.33]), and the lead over 8-shot prompting shrinks to +0.22 [−0.08, 0.54], an interval that includes zero. What the vector carries is "less like the default assistant", not a particular person. The LoRA's gain is small, and with no other-author LoRA in this test it is unknown whether it is specific to the person; it is the one arm that worked at the pre-registered settings with no loops, no copying and 98% of drafts on the brief.</p>
+  <div class="reply steered"><span class="who">Own voice vector, 12 samples (loops)</span>Lanebridge is an asset light broker which has a reefer capacity available in the WA area… Therefore, the only way to proceed is to have such capacity quoted to you by the carrier in the same manner as the other such capacity is quoted to the other such person. Therefore, the only way to proceed is…</div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>For detection alone, a probe is enough: the cheapest strong probes matched the SAE features, and the one shortcut found (the style probe's) showed up in a 60-word cut, not in any feature reading. Interpretability earned its place in one job: what an SAE reads, pushed against, changed the model's writing twice as much as what the probe reads, while random directions did nothing. That is a use test, and it passed. The audit jobs were weaker than they first looked: feature readouts named confounds and hacks, but a bag of words named as many hacks, and the reader called a clean probe a shortcut too. Most of what went wrong was in our own checks, each of which passed a check on clean examples and failed on the outputs it had to judge.</p>
+  <p><strong>Screen with a probe, test what it reads by steering against random directions of the same size, and re-check every judge, fluency check and voice score on the outputs it actually scores.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 6: predictions, scrolls sideways on narrow screens"><table>
+    <caption>Table 6. The nine predictions, fixed before any method was fitted and scored by their frozen rules. The reason explains an outcome; it never changes the score.</caption>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th class="num">Confidence</th><th>Result</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>Activation probe matches or beats SAE probe in distribution</td><td>Δ ≥ −0.01</td><td class="num">70%</td><td><strong>Hit</strong> (−0.0002)</td><td>Both at the ceiling (0.997, 0.998)</td></tr>
+      <tr><td>P2</td><td>SAE probes hold up better under humanizers</td><td>drop smaller by ≥ 0.05</td><td class="num">40%</td><td>Miss (−0.0003)</td><td>Neither dropped</td></tr>
+      <tr><td>P3</td><td>A method above 0.9 fails the shortcut check</td><td>drop &gt; 0.15</td><td class="num">65%</td><td><strong>Hit</strong></td><td>Style probe −0.203 on the 60-word cut</td></tr>
+      <tr><td>P4</td><td>SAE or neuron reading surfaces more hacks than any probe</td><td>≥ 2 more of 6</td><td class="num">55%</td><td><strong>Hit</strong> (3 vs 1). <em>Grader failed its re-check</em></td><td>Graders agree on 58% of verdicts; by the author's read a tie (4 vs 4), by the second grader the bag of words leads (5 vs 4)</td></tr>
+      <tr><td>P5</td><td>Probe steering beats random; SAE beats the probe</td><td>both CIs &gt; 0</td><td class="num">35%</td><td><strong>Hit</strong>. <em>Artefact: loops</em> (best arm)</td><td>The best SAE arm loops (57%) and is empty on 17%; the loop-free SAE arm also beats the probe (+0.084 [0.028, 0.138])</td></tr>
+      <tr><td>P6</td><td>SAE or neuron reading flags most planted confounds</td><td>≥ 3 of 4</td><td class="num">50%</td><td><strong>Hit</strong> (SAE 4). <em>Grader failed its re-check</em></td><td>Both readouts flagged the clean control; author's read SAE 2, second grader SAE 3</td></tr>
+      <tr><td>P7</td><td>An internal signal warns of the hack earlier</td><td>≥ 1 checkpoint, no false alarm</td><td class="num">40%</td><td>Miss</td><td>Comment log-probability led by one checkpoint, but every signal false-alarmed on a clean run</td></tr>
+      <tr><td>P8</td><td>Steering gets half a LoRA's voice gain at 1% of its cost</td><td>ratio ≥ 0.5 and ≤ 0.01</td><td class="num">45%</td><td>Miss (cost 0.067). <em>Artefact: loops</em></td><td>LoRA trained in 5 s; the vector's gain was loops (77% at 8 samples)</td></tr>
+      <tr><td>P9</td><td>A per-author vector beats 8-shot on voice</td><td>&gt; 0.05</td><td class="num">50%</td><td><strong>Hit</strong> (+0.62). <em>Artefact: loops</em></td><td>77% of vector drafts loop; loop-free rerun (post hoc) +0.22 [−0.08, 0.54] over 8-shot, and another author's vector does as well</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised me: three checks that passed their tests (fluency, the grader, the voice score) failed on real outputs, and each failure made a prediction look like a hit. What I'd change: put a loop measure inside every fluency rule, and validate graders on the method's own outputs before scoring with them. The lesson for the design guide: a known-answer set is a floor, not a pass. Six predictions hit by their rules; read with their reasons, two (P1, P3) clearly hold, one (P5) holds by another route, and three (P4, P6, P9) do not survive their re-checks.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Detection was too easy to rank the strong methods.</strong> Eight methods scored 0.997-0.999 on held-out authors. The plan's gate ("every method above 0.98") did not fire because the cheap methods and the judge sat below it, but P1 and P2 are decided inside the intervals.</li>
+    <li><strong>One kind of text.</strong> Work email and blog posts from public corpora, with open-model rewrites; nothing about design or other media.</li>
+    <li><strong>One detector as test 4's outcome.</strong> A lower voi-380M score is a detector's verdict, not a person's; it was checked on test-set texts (0.998), not on steered text.</li>
+    <li><strong>Small audits.</strong> Ten units per readout, one reader, and graders that disagree; tests 5 and 7 have 6 and 5 targets.</li>
+    <li><strong>The voice vector's pre-registered strength came from another episode</strong>; the loop-free strength (0.2) was chosen after seeing the loops, so its numbers are exploratory.</li>
+    <li><strong>Single neurons only</strong>: neuron communities were not tried.</li>
+    <li><strong>SAE features were truncated</strong> to each text's 1,024 largest mean activations, which drops the weakest features and may slightly handicap the SAE probe.</li>
+    <li><strong>How the confound sets were built.</strong> The topic probe's positive side is 100% AI sales drafts, not a 70/30 mix; the register probe reuses Blog texts that are test-only elsewhere. The layout set was built wrong in the first run (its split ran along class) and was rebuilt before the results reported here.</li>
+    <li><strong>The voice vector includes the first token</strong> (an outsized "attention sink") for texts shorter than 400 tokens, as Sounds Like Me's recipe did; this may be part of why it loops.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><code>bash experiments/probes-vs-interp/reproduce.sh</code> rebuilds every number (about $20-30 of cloud GPU time; <code>--dry-run</code> prints the commands). <code>make_figures.py</code> draws every figure from <code>results/</code>, and <code>analyze.py</code> rescores the predictions.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What's next</h2>
+  <ul>
+    <li>Test whether the voice vector is an assistant-axis push: project it on a persona direction built from a written description of the default assistant, and compare with an other-author LoRA.</li>
+    <li>Harder text for detection: human edits of AI drafts, where the ceiling should break.</li>
+    <li>Episode 3 runs the same comparison on web design: tiny probes against an LLM judge on screenshots and page structure.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions readers ask"><span class="num">10</span>Questions readers ask</h2>
+  <h3 id="q-probe">What does a small probe actually read, on a real email?</h3>
+  <p>One linear layer on Qwen3-8B's layer-9 activations, trained in seconds on 1,100 labelled texts. On a held-out Enron author's email about circulating "global standards" it scored 0.000; on Qwen3-8B's rewrite of the same summary, 0.999. The detector voi-380M gave 0.014 and 0.756; the bag of words 0.458 and 0.985. The one-question judge called both human (0.000 and 0.001).</p>
+  <h3 id="q-steering">What does a steering vector do to a real email?</h3>
+  <p>Test 4's probe direction, subtracted at layer 18, moved one held-out email from P(AI) 0.725 to 0.614; the SAE feature directions moved it to 0.572; a random direction of the same size moved it the other way, to 0.827. The words barely changed ("[name], a staff member there, confirmed" became "She spoke with a staff member named [name], who confirmed"); what changed is what the detector reads.</p>
+  <h3 id="q-persona">What is a persona vector, concretely?</h3>
+  <p>A direction for a trait, added while the model writes. Here the trait was one author's voice: the mean activation of their emails minus the model's default. At strength 0.4 it made drafts formal and repetitive ("Lanebridge is an asset light broker which has…") and looped on 73% of drafts at 12 samples. At 0.2 it stopped looping and still moved the voice score (+0.42), but another author's vector moved it as far (+0.44). It behaved like a "less assistant" direction, which is what <a href="https://proceedings.mlr.press/v306/lu26g.html">the Assistant Axis paper</a> would lead you to expect.</p>
+  <h3 id="q-authorship">What does an authorship model measure?</h3>
+  <p>It turns 4 texts into one fingerprint and compares fingerprints. For the first held-out author, other people's emails match their profile at 0.794 (the zero of the scale) and their own unseen emails at 0.886 (the one). Untouched drafts sat at −0.59, 8-shot drafts at −0.42, the LoRA's at −0.35, and the voice vector's at +0.42, because loops look distinctive to it.</p>
+  <h3 id="q-preference">What does a preference model learn from?</h3>
+  <p>Pairs where one side won. In test 5, one reward model saw 120 drafts with stuffed sign-offs ("Best regards, Warm wishes, Thanks so much, Cheers… P.S. Looking forward to hearing from you!") marked better than 120 clean drafts. It learned the hack exactly; the SAE readout described it as "P.S. lines, standard closing phrases and titles like Account Executive". A policy trained against that reward would learn to sign off five times.</p>
+  <h3 id="q-why-sae">If probes detect as well, why bother with SAE features?</h3>
+  <p>Because the features gave a direction that changed the writing twice as much as the probe's, and a name for some of what they read. For telling human from AI text alone, the probe is enough.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 7: data files, scrolls sideways on narrow screens"><table>
+    <caption class="sr-only">Table 7: data files</caption>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/data_manifest.json">results/data_manifest.json</a></td><td>Hashes of every frozen text set, counts per set and label, the generators</td></tr>
+      <tr><td><a href="../results/leaderboard.json">results/leaderboard.json</a></td><td>Per method: <code>family</code>, the dev choice (<code>layer</code>, <code>k</code>, <code>C</code>, <code>dev_auroc</code>), and AUROC with its 95% interval and n on every test set</td></tr>
+      <tr><td><a href="../results/curves.json">results/curves.json</a></td><td>AUROC by number of labels; seconds and dollars per 1,000 texts</td></tr>
+      <tr><td><a href="../results/causal.json">results/causal.json</a>, <a href="../results/causal_tune.json">causal_tune.json</a>, <a href="../results/causal_loopcheck.json">causal_loopcheck.json</a></td><td>Test 4: per condition, P(AI), drop with interval, loss rise, words, repeated four-word sequences, an example; the dev grid and choices; the loop-free comparison</td></tr>
+      <tr><td><a href="../results/explain.json">results/explain.json</a>, <a href="../results/explain_recheck.json">explain_recheck.json</a>, <a href="../results/grader_check.json">grader_check.json</a></td><td>Tests 5 and 7: every reader description with its grades; the second grader and the author's read; the grader's 12 known-answer cases</td></tr>
+      <tr><td><a href="../results/pigment.json">results/pigment.json</a></td><td>Test 8: per run and checkpoint, hacking sketches and every internal signal; thresholds; flags and leads</td></tr>
+      <tr><td><a href="../results/voice.json">results/voice.json</a>, <a href="../results/voice_tune.json">voice_tune.json</a>, <a href="../results/voice_loopcheck.json">voice_loopcheck.json</a></td><td>Tests 9-10: per author and condition, voice position, loss, copy share, on-task share; build seconds and bytes; the LoRA dev grid; loop rates</td></tr>
+      <tr><td><a href="../results/voice_explore.json">results/voice_explore.json</a></td><td>The exploratory loop-free voice rerun: the dev strength grid with loop shares, and per condition the gain with interval and loop share</td></tr>
+      <tr><td><a href="../results/explain_v1.json">results/explain_v1.json</a>, <a href="../results/explain_v2_pool_excluded.json">explain_v2_pool_excluded.json</a></td><td>Tests 5 and 7 before the layout fix, and the reverted pool variant</td></tr>
+      <tr><td><a href="../results/qa_examples.json">results/qa_examples.json</a></td><td>The worked examples quoted in Questions readers ask</td></tr>
+      <tr><td><a href="../results/predictions.json">results/predictions.json</a>, <a href="../results.tsv">results.tsv</a>, <a href="../results/spend.jsonl">results/spend.jsonl</a></td><td>The scored predictions, the dev tuning ledger, the spend ledger</td></tr>
+    </tbody>
+  </table></div>
+  <p>Texts and activations are not shipped (<code>data/</code> is rebuilt by the scripts); the human corpora are public.</p>
+
+  <h3 id="cite" data-short="How to cite">How to cite</h3>
+  <pre>Lie, A. (2026). Small probes catch AI text as well as SAE features do; the features steer it better, and three of our own checks failed. The Taste Stack, Episode 1. steerlab.
+https://albertlieyingadrian.github.io/steerlab/experiments/probes-vs-interp/report/</pre>
+
+  <h2 id="references"><span class="num">R</span>References</h2>
+  <ul class="refs">
+    <li><em>Learning Universal Authorship Representations</em> (LUAR), EMNLP 2021: <a href="https://aclanthology.org/2021.emnlp-main.70/">aclanthology.org/2021.emnlp-main.70</a>; code: <a href="https://github.com/llnl/LUAR">github.com/llnl/LUAR</a></li>
+    <li><em>Persona Vectors: Monitoring and Controlling Character Traits in Language Models</em>, 2025: <a href="https://arxiv.org/abs/2507.21509">arxiv.org/abs/2507.21509</a></li>
+    <li><em>The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models</em>, ICML 2026: <a href="https://proceedings.mlr.press/v306/lu26g.html">proceedings.mlr.press/v306/lu26g.html</a></li>
+    <li><em>Steering Llama 2 via Contrastive Activation Addition</em>, 2023: <a href="https://arxiv.org/abs/2312.06681">arxiv.org/abs/2312.06681</a></li>
+    <li><em>Representation Engineering: A Top-Down Approach to AI Transparency</em>, 2023: <a href="https://arxiv.org/abs/2310.01405">arxiv.org/abs/2310.01405</a></li>
+    <li><em>Toy Models of Superposition</em>, 2022: <a href="https://arxiv.org/abs/2209.10652">arxiv.org/abs/2209.10652</a></li>
+    <li><em>Towards Monosemanticity: Decomposing Language Models With Dictionary Learning</em>, 2023: <a href="https://transformer-circuits.pub/2023/monosemantic-features">transformer-circuits.pub/2023/monosemantic-features</a></li>
+    <li><em>Golden Gate Claude</em>, 2024: <a href="https://www.anthropic.com/news/golden-gate-claude">anthropic.com/news/golden-gate-claude</a></li>
+    <li><em>Constitutional Classifiers: Defending against Universal Jailbreaks</em>, 2025: <a href="https://arxiv.org/abs/2501.18837">arxiv.org/abs/2501.18837</a></li>
+    <li><em>Paraphrasing evades detectors of AI-generated text, but retrieval is an effective defense</em> (DIPPER), 2023: <a href="https://arxiv.org/abs/2303.13408">arxiv.org/abs/2303.13408</a></li>
+    <li><em>LoRA: Low-Rank Adaptation of Large Language Models</em>, 2021: <a href="https://arxiv.org/abs/2106.09685">arxiv.org/abs/2106.09685</a></li>
+    <li><em>Qwen3 Technical Report</em>, 2025: <a href="https://arxiv.org/abs/2505.09388">arxiv.org/abs/2505.09388</a></li>
+    <li>Qwen-Scope SAEs for Qwen3-8B: <a href="https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50">huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50</a>; Goodfire's SAE for Llama-3.1-8B-Instruct: <a href="https://huggingface.co/Goodfire/Llama-3.1-8B-Instruct-SAE-l19">huggingface.co/Goodfire/Llama-3.1-8B-Instruct-SAE-l19</a></li>
+    <li>voi-380M detector: <a href="https://huggingface.co/VoightKampffLabs/voi-slop-detect-380M">huggingface.co/VoightKampffLabs/voi-slop-detect-380M</a></li>
+  </ul>
+
+</article>
+</div>
+<script src="data.js"></script>
+<script src="interactive.js"></script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
