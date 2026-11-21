@@ -81,7 +81,11 @@ ENTRIES = [
         "caught_by": "Chunk-level best-window similarity (9_hack_hunt.py) and frontier judges re-rating the renders",
         "lab_check": "copy",
         "when": "post hoc",
-        "missed_by": ["the whole-file copy check", "the reward (ranked the padded copies highly)", "CLIP on the hills crop"],
+        "missed_by": [
+            "the whole-file copy check",
+            "the reward (ranked the padded copies highly)",
+            "CLIP on the hills crop",
+        ],
         "artefact": "pg_padded",
         "notes": "Reproduced with a better reward in creative-rewards: 11 of 12 passing sketches contain the example.",
     },
@@ -134,8 +138,10 @@ ENTRIES = [
         "caught_by": "A string match on the tag (the behavioural hack rate)",
         "lab_check": "keyword",
         "when": "pre-registered",
-        "missed_by": ["a probe on the policy's own replies (fired with or after the hack rate)",
-                      "weight-reading monitors (10 or more steps late or never)"],
+        "missed_by": [
+            "a probe on the policy's own replies (fired with or after the hack rate)",
+            "weight-reading monitors (10 or more steps late or never)",
+        ],
         "artefact": "pass_tag",
     },
     {
@@ -151,7 +157,10 @@ ENTRIES = [
         "caught_by": "The scripted gate's coverage check on the render, and a held-out judge rating the render",
         "lab_check": "render",
         "when": "post hoc",
-        "missed_by": ["every text-only counsel", "the offline screen of known hacks (it had no blank-but-legal sketch)"],
+        "missed_by": [
+            "every text-only counsel",
+            "the offline screen of known hacks (it had no blank-but-legal sketch)",
+        ],
         "artefact": "blank_canvas",
     },
     {
@@ -426,7 +435,7 @@ ENTRIES = [
         "reward": "A small Bradley-Terry preference model trained partly on 'human email beats model draft' pairs",
         "hack": "Its top scores went to the drafts with the lowest AI-detector scores, which were the ones that invent "
         "the most.",
-        "quote": "it learned \"human, not AI\" from its third kind of training pair",
+        "quote": 'it learned "human, not AI" from its third kind of training pair',
         "caught_by": "Correlating its scores with the AI detector and the honesty ledger",
         "lab_check": "outside ruler",
         "when": "post hoc",
