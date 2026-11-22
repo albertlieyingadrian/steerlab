@@ -18,8 +18,10 @@ run $PY run_inkling.py dev --authors 5 --tag pilot
 # 2. Held-out: 30 writers x 4 briefs x 6 signals, reasoning off; then the exploratory reasoning-low arm
 run $PY run_inkling.py heldout
 run $PY run_inkling.py heldout --arms k0,k8_rand,note --reasoning low
+# 2b. The edits signal after Episode 1's template fix (lab #847/#848)
+run $PY run_inkling.py heldout --arms edits --tag edits-fixed
 # 3. Episode 1's rulers: voice position (strict, loose, 80 words), specificity, detector, copying, loops
-run $PY score_inkling.py data/drafts/inkling-2-mini__heldout.jsonl data/drafts/inkling-2-mini-reason-low__heldout.jsonl
+run $PY score_inkling.py data/drafts/inkling-2-mini__heldout.jsonl data/drafts/inkling-2-mini-reason-low__heldout.jsonl data/drafts/inkling-2-mini-edits-fixed__heldout.jsonl
 run $PY score_inkling.py --ep1-cut80
 run $PY score_inkling.py --addressed
 # The scorer check: Episode 1's Gemini drafts through this scorer must give its published row
