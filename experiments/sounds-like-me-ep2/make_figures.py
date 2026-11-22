@@ -46,7 +46,7 @@ LABEL = {
     "R6_rand0": "Rung 6 harness + random (seed 0)",
     "R6_rand1": "Rung 6 harness + random (seed 1)",
     "G2_gemini_harness": "Gemini 4 Carbon in the harness",
-    "ep1-gemini-edits": "Ep 1 best honest: Gemini, samples + edits",
+    "ep1-gemini-edits": "Ep 1 best honest: Gemini, 3 more samples*",
     "ep1-llamabase-k3": "Ep 1 best outright: Llama-3.1-8B Base",
     "ep1-gemini-k3": "Ep 1: Gemini, 3 samples",
     "ep1-sonnet-note": "Ep 1: Claude Sonnet 5.5, style note",

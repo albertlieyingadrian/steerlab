@@ -45,5 +45,7 @@ runs on an open model on Modal instead.
   name parts, copied names, emails, phone numbers and addresses become `[name]`, `[email]`, `[phone]`, `[address]`.
 - Briefs are synthetic: invented companies and people. Freight facts come from public commodity guides.
 - Simulated edits are labelled as simulated everywhere. No reply outcome is simulated.
+- Correction (2026-11-22): the arm keyed `edits` in `results/` and `data/scored/` sent a second random draw of 3
+  samples and no edit pairs (a template bug in `gen.chat_messages`), so the pages call it "3 more samples*".
 - The private board reads a sales tool's database read-only and writes only aggregate rates per writer model,
   for cells with at least 20 sent drafts from at least 5 reps. No text, names or ids leave the database.

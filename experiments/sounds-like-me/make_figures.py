@@ -192,7 +192,7 @@ def fig4(T):
         "k3_match": "3 matched\nsamples",
         "k8_rand": "8 random\nsamples",
         "note": "style\nnote",
-        "edits": "3 samples +\nsim. edits",
+        "edits": "3 more\nsamples*",
     }
     ax.set_xticks(range(len(arms)), [short[a] for a in arms], fontsize=8.5)
     ax.set_yticks(range(len(MODELS)), [LABEL[m] for m in MODELS])

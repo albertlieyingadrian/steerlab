@@ -46,7 +46,7 @@ ARM = {
     "k3_match": "3 situation-matched samples",
     "k8_rand": "8 random samples",
     "note": "written style note",
-    "edits": "3 samples + simulated edits",
+    "edits": "3 more samples*",  # meant 3 samples + simulated edits; a v3 template bug dropped the pairs (correction 2026-11-22)
     "copy_paste": "the author's own emails pasted",
     "surface_tics": "author's greeting and sign-off on a k0 draft",
     "none": "no vector (k0)",
