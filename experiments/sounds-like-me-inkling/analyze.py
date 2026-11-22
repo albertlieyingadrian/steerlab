@@ -29,6 +29,7 @@ from score_inkling import EP1_MODELS
 ARMS = ("k0", "k3_rand", "k3_match", "k8_rand", "note", "edits")
 INK = "inkling-2-mini"
 INK_LOW = "inkling-2-mini-reason-low"
+INK_FIX = "inkling-2-mini-edits-fixed"
 CUT = json.loads((EP1 / "results" / "ruler_detector.json").read_text())["cut_at_5pct_fpr"]
 LABEL = {
     INK: "Inkling 2 Mini",
@@ -440,11 +441,56 @@ def honesty_context():
     )
 
 
+def edits_rerun():
+    """The edits signal rerun after Episode 1's template fix (lab #847/#848): the 3 samples now arrive with 3 simulated
+    draft-and-edit pairs. Same writers, briefs and settings as the main run; paired over writers against Inkling's
+    other signals. Added after publication; the other contestants' corrected arm is rerun by Episode 1's correction."""
+    p = SCORED / f"{INK_FIX}__heldout.json"
+    if not p.exists():
+        return None
+    drafts, eps = json.loads(p.read_text())["drafts"], json.loads(p.read_text())["episodes"]
+    row = ink_rows(INK_FIX, drafts, eps, {})[0]
+    fixed = {e["author"]: e["position"] for e in eps if not e["copy_flag"]}
+    mine = defaultdict(dict)
+    for e in load_ink(INK)[1]:
+        if not e["copy_flag"]:
+            mine[e["arm"]][e["author"]] = e["position"]
+    keep = (
+        "voice_strict",
+        "voice_loose",
+        "voice80",
+        "spec",
+        "spec_share_positive",
+        "copy_flagged",
+        "words",
+        "ai_flagged",
+        "loop_share",
+        "cap_hit",
+        "usd_per_draft",
+        "providers",
+    )
+    return dict(
+        arm="edits, fixed template (3 samples + 3 simulated edit pairs)",
+        row={k: row[k] for k in keep},
+        minus={
+            f"fixed - {a}": paired(fixed, mine[a], 50 + i) for i, a in enumerate(("edits", "k3_rand", "k0", "note"))
+        },
+    )
+
+
 def spend():
     rows = [json.loads(l) for l in (HERE / "data" / "spend.jsonl").read_text().splitlines() if l.strip()]
     by = defaultdict(float)
     for r in rows:
-        stage = "pilot" if " dev " in r["note"] else ("reasoning low" if "reason-low" in r["note"] else "held-out")
+        stage = (
+            "pilot"
+            if " dev " in r["note"]
+            else (
+                "reasoning low"
+                if "reason-low" in r["note"]
+                else ("edits rerun" if "edits-fixed" in r["note"] else "held-out")
+            )
+        )
         if r["provider"] == "modal":
             stage = "honesty extractor"
         by[f"{r['provider']}|{stage}"] += r["usd"]
@@ -487,6 +533,10 @@ def main():
     gap = max(b["parity"]["largest_gap"].values())
     if b["parity"]["episodes"] != 180 or not gap < 1e-3:  # NaN fails too
         raise SystemExit(f"scorer check failed: {b['parity']}")
+    er = edits_rerun()
+    if er:
+        (RES / "edits_rerun.json").write_text(json.dumps(er, indent=1) + "\n")
+        print("edits rerun", json.dumps(er["row"]["voice_strict"]), json.dumps(er["minus"]))
     for name, obj in (("inkling", ink), ("board", b), ("contrasts", con), ("predictions", P), ("spend", sp)):
         (RES / f"{name}.json").write_text(json.dumps(obj, indent=1) + "\n")
     for m in b["ranked"]:
