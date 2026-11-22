@@ -1,4 +1,4 @@
-# How to build a benchmark 101: nine checks, run on MMLU and on a new benchmark
+# How to build a benchmark 101: MMLU and SlopPair as case studies
 
 Research note: [`report/index.html`](report/index.html) ([live](https://albertlieyingadrian.github.io/steerlab/experiments/benchmark-101/report/)). The plan, fixed before any run, is in [`PLAN.md`](PLAN.md) (with a dated amendment for providers).
 
