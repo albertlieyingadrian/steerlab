@@ -1,4 +1,4 @@
-# Sounds Like Me, Episode 3: training on a reward you can't verify
+# Sounds Like Me, Episode 3: RL for authentic writing: training a model to sound like you
 
 The note: [report/index.html](report/index.html). Episodes 1 and 2: [../sounds-like-me/](../sounds-like-me/),
 [../sounds-like-me-ep2/](../sounds-like-me-ep2/). This folder reuses their writers, briefs and rulers (imported, never copied).

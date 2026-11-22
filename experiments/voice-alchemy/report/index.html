@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mixing voices inside Qwen: only plain directions steer reliably, and two pushed together rarely add up</title>
+<title>Mixing two writing voices inside Qwen: neurons, features or directions?</title>
 <meta name="description" content="A pre-registered test of which unit of a language model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, with a playable table of every measured mix and an explainer of how neurons work in Qwen3-8B. In Qwen3-8B, directions moved 7 of 8 voices (Gemma-2-2B-it 8 of 8), SAE features 5, communities 3 (Gemma 2), single neurons 1 (Gemma 4) and circuits none; pairs came out within 0.33-0.50 of their sum, and most direction pairs at full strength broke.">
 <!-- meta:start -->
 <link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/">
 <meta property="og:site_name" content="steerlab">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Mixing voices inside Qwen: only plain directions steer reliably, and two pushed together rarely add up">
+<meta property="og:title" content="Mixing two writing voices inside Qwen: neurons, features or directions?">
 <meta property="og:description" content="A pre-registered test of which unit of a language model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, each beside a random unit of the same shape. In Qwen3-8B, directions moved 7 of 8 voices, SAE features 5, communities 3, single neurons 1 and circuits none; direction pairs landed a median 0.41 [0.37, 0.45] off the sum of their parts and most broke at full strength. Gemma-2-2B-it, run the same way under the same judge, agrees on the ranking. With a playable table of every measured mix and an explainer of how neurons work in Qwen3-8B.">
 <meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/">
 <meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/figures/og.jpg">
@@ -17,17 +17,17 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Two measured voice profiles of Qwen3-8B, its playful and casual neuron communities, and the profile when both are pushed at once (additive, error 0.37), with ticks at the sum and the first words of a real reply: &#x27;Great question! Public speaking is like a superpower&#x27;">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Mixing voices inside Qwen: only plain directions steer reliably, and two pushed together rarely add up">
+<meta name="twitter:title" content="Mixing two writing voices inside Qwen: neurons, features or directions?">
 <meta name="twitter:description" content="A pre-registered test of which unit of a language model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, each beside a random unit of the same shape. In Qwen3-8B, directions moved 7 of 8 voices, SAE features 5, communities 3, single neurons 1 and circuits none; direction pairs landed a median 0.41 [0.37, 0.45] off the sum of their parts and most broke at full strength. Gemma-2-2B-it, run the same way under the same judge, agrees on the ranking. With a playable table of every measured mix and an explainer of how neurons work in Qwen3-8B.">
 <meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/figures/og.jpg">
 <meta property="article:published_time" content="2026-11-21">
-<meta property="article:modified_time" content="2026-11-21">
+<meta property="article:modified_time" content="2026-11-22">
 <meta property="article:author" content="Albert Lie">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
  "@type": "ScholarlyArticle",
- "headline": "Mixing voices inside Qwen: only plain directions steer reliably, and two pushed together rarely add up",
+ "headline": "Mixing two writing voices inside Qwen: neurons, features or directions?",
  "description": "A pre-registered test of which unit of a language model composes most predictably when two writing voices are pushed at once: neuron communities, single neurons, SAE features, attribution-graph circuits, difference-of-means directions and prompts, each beside a random unit of the same shape. In Qwen3-8B, directions moved 7 of 8 voices, SAE features 5, communities 3, single neurons 1 and circuits none; direction pairs landed a median 0.41 [0.37, 0.45] off the sum of their parts and most broke at full strength. Gemma-2-2B-it, run the same way under the same judge, agrees on the ranking. With a playable table of every measured mix and an explainer of how neurons work in Qwen3-8B.",
  "abstract": "Standalone note. Two models through TransformerLens 4.3: Qwen3-8B (main; Qwen-Scope SAEs, layer 17) and Gemma-2-2B-it (cross-model check; Gemma Scope, layer 12). Units: difference-of-means directions, top single MLP neurons (output-column pushes), SAE features, Louvain communities of co-firing neurons (L*-2..L*+2), circuit-tracer transcoder circuits, and style prompts; each with a shape-matched random twin, at 5 strengths relative to the residual norm. Voices (terse, formal, salesy, assistant-like, warm, playful, hedging, casual) scored by Claude Haiku 5.5, validated on 56 known-answer texts (AUROC 1.00) and re-checked by GPT-4.1-mini (trait Spearman 0.80 Qwen, 0.79 Gemma; label agreement 74/116 Qwen, bar 0.70 not met, 47/65 Gemma). Held-out 16 prompts, 9,808 replies per model: units moving their voice, Qwen/Gemma: directions 7/8, 8/8; SAE 5/8, 5/8; communities 3/8, 2/8; neurons 1/8, 4/8; circuits 0/8, 0/8. Median additivity error: Qwen directions 0.41 (21 pairs), communities 0.33 (3), SAE 0.50 (10); Gemma directions 0.30 (28). 16/28 direction pairs break in each model; |cosine| does not predict the mix (rho 0.03, -0.02). Predictions: Gemma 2/5, Qwen 1/4 testable.",
  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/voice-alchemy/report/",
@@ -56,7 +56,7 @@
   ]
  },
  "datePublished": "2026-11-21",
- "dateModified": "2026-11-21",
+ "dateModified": "2026-11-22",
  "inLanguage": "en",
  "isAccessibleForFree": true,
  "keywords": "activation steering, neuron communities, sparse autoencoders, polysemanticity, composition, TransformerLens, Qwen3-8B, Gemma-2-2B, Qwen-Scope, Gemma Scope, circuit tracing, mechanistic interpretability, pre-registered",
@@ -183,8 +183,8 @@
 </nav>
 
 <article>
-  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time></p>
-  <h1>Mixing voices inside Qwen: only plain directions steer reliably, and two pushed together rarely add up</h1>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time><span class="sep">·</span>Updated <time datetime="2026-11-22">Nov 22, 2026</time></p>
+  <h1>Mixing two writing voices inside Qwen: neurons, features or directions?</h1>
   <p class="dek ruled">Push one unit of a language model on every word and its writing voice changes; push two at once and you get a mix. Which kind of unit gives a mix you could have predicted from its parts? In Qwen3-8B, across 9,808 judged replies, plain steering directions moved 7 of 8 voices, SAE features 5, neuron communities 3, single neurons 1 and attribution-graph circuits none; even the directions' pairs landed 0.41 of the way off their sum, and most broke at full strength. Gemma-2-2B-it, run the same way, agrees on the ranking. A playable table of every measured mix, and a walk through how neurons work in Qwen, come with it.</p>
 
   <figure class="hero whole">
@@ -516,7 +516,7 @@ writes back    = 1.23 × [0.2, −0.1, 0.4] = [0.25, −0.12, 0.49]  → added t
   <h3 id="cite">How to cite</h3>
   <pre><code>@misc{lie2026voicealchemy,
   author = {Albert Lie},
-  title  = {Mixing voices inside Qwen: only plain directions steer reliably, and two pushed together rarely add up},
+  title  = {Mixing two writing voices inside Qwen: neurons, features or directions?},
   year   = {2026},
   month  = nov,
   note   = {steerlab research note},

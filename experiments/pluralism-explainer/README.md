@@ -1,4 +1,4 @@
-# What is pluralistic alignment? Eight models against eight countries' survey answers
+# What is pluralistic alignment? A case study with 8 countries
 
 Pluralism series, Episode 1. An explainer of Overton, steerable and distributional pluralism, following the papers
 (Value Kaleidoscope, A Roadmap to Pluralistic Alignment, Modular Pluralism, Artificial Hivemind,

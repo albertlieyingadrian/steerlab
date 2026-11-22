@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RL for authentic writing: training on a reward you can't verify, and watching it get gamed</title>
+<title>RL for authentic writing: training a model to sound like you</title>
 <meta name="description" content="Sounds Like Me, Episode 3: Qwen3-8B fine-tuned on public writers, then DPO from simulated edits, then GRPO on a voice reward model plus an honesty check minus an AI detector and copying. Fine-tuning sounded like the writer and doubled invented claims; RL raised its reward from -0.46 to +1.44 while four of the five rulers it never saw got worse.">
 <!-- meta:start -->
 <link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/">
 <meta property="og:site_name" content="steerlab">
 <meta property="og:type" content="article">
-<meta property="og:title" content="RL for authentic writing: training on a reward you can&#x27;t verify, and watching it get gamed">
+<meta property="og:title" content="RL for authentic writing: training a model to sound like you">
 <meta property="og:description" content="Sounds Like Me E3, pre-registered: Qwen3-8B fine-tuned on 149 public writers sounded like each writer (−0.54 → −0.03, level with the best honest closed model) but invented claims in 38-52% of drafts. GRPO on a voice reward plus an honesty check raised its reward from −0.46 to +1.44 by writing near-empty one-liners, then long looping off-brief musings; four of the five rulers kept out of training caught it (the character n-gram attributer improved). Episode 2&#x27;s steered harness stayed ahead.">
 <meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/">
 <meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/figures/og.jpg">
@@ -17,17 +17,17 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="GRPO training reward rising over 200 steps while the development writers&#x27; drafts shrink from 107 words to 30 at step 60 and then grow back to 113, looping and off the brief.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="RL for authentic writing: training on a reward you can&#x27;t verify, and watching it get gamed">
+<meta name="twitter:title" content="RL for authentic writing: training a model to sound like you">
 <meta name="twitter:description" content="Sounds Like Me E3, pre-registered: Qwen3-8B fine-tuned on 149 public writers sounded like each writer (−0.54 → −0.03, level with the best honest closed model) but invented claims in 38-52% of drafts. GRPO on a voice reward plus an honesty check raised its reward from −0.46 to +1.44 by writing near-empty one-liners, then long looping off-brief musings; four of the five rulers kept out of training caught it (the character n-gram attributer improved). Episode 2&#x27;s steered harness stayed ahead.">
 <meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/figures/og.jpg">
 <meta property="article:published_time" content="2026-11-21">
-<meta property="article:modified_time" content="2026-11-21">
+<meta property="article:modified_time" content="2026-11-22">
 <meta property="article:author" content="Albert Lie">
 <script type="application/ld+json">
 {
  "@context": "https://schema.org",
  "@type": "ScholarlyArticle",
- "headline": "RL for authentic writing: training on a reward you can't verify, and watching it get gamed",
+ "headline": "RL for authentic writing: training a model to sound like you",
  "description": "Sounds Like Me E3, pre-registered: Qwen3-8B fine-tuned on 149 public writers sounded like each writer (−0.54 → −0.03, level with the best honest closed model) but invented claims in 38-52% of drafts. GRPO on a voice reward plus an honesty check raised its reward from −0.46 to +1.44 by writing near-empty one-liners, then long looping off-brief musings; four of the five rulers kept out of training caught it (the character n-gram attributer improved). Episode 2's steered harness stayed ahead.",
  "abstract": "Sounds Like Me series, Episode 3 (training). Open models only (the closed-model budget ran out after Episode 2). Training writers: 149 public Enron and Blog authors disjoint from the 45 development and held-out writers (one of the 50 floor writers slipped in through a trailing space in its name; disclosed). SFT LoRA r16 on Qwen3-8B in four formats, 1,763 examples each: held-out strict position raw samples −0.03, edit pairs −0.02, style notes −0.05, shuffled-writer control −0.23; vs prompting with 8 samples −0.54 (P1 +0.51 [+0.31, +0.73]); specificity raw − shuffled +0.021 [+0.008, +0.034] (P2); format gap within noise (P3 miss). Invented claims (frozen Qwen3-32B checker, lower bounds): untrained 22.5%, SFT 38-52%. DPO on 627 simulated-edit pairs: −0.10 [−0.19, +0.00] vs SFT (P4). GRPO, 200 steps, 8 prompts x 8, reward = DeBERTa voice RM z (held-out authorship 0.92, detector rho −0.16) − honesty proxy − detector − copy flag; loops and brief coverage kept out. Training reward −0.46 → +1.44; dev hack hunt every 20 steps: drafts 107 → 30 words at step 60 (position −1.02), then 113 words with 28% loops; step 20 → 200 position −0.27 → −0.66, unsupported 33% → 47% (proxy 12%), coverage 0.73 → 0.44 (P5, P7 hit). The pre-registered dev-best rule picked step 60 (held-out −0.64, 36% invented, 42 words); final −0.50; Episode 2's harness + voice vector +0.17 (P6 miss, −0.81). Assistant-direction and voice-vector projections moved with the unseen rulers, not before. Code-review fixes applied before publication. Modal about $55.",
  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/",
@@ -56,7 +56,7 @@
   ]
  },
  "datePublished": "2026-11-21",
- "dateModified": "2026-11-21",
+ "dateModified": "2026-11-22",
  "inLanguage": "en",
  "isAccessibleForFree": true,
  "keywords": "personalised writing, voice, reinforcement learning, GRPO, DPO, fine-tuning, reward hacking, reward models, unverifiable rewards, honesty, LUAR, Enron, pre-registered",
@@ -138,8 +138,8 @@
 </nav>
 
 <article>
-  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Sounds Like Me · RL for unverifiable writing<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time></p>
-  <h1>RL for authentic writing: training on a reward you can't verify, and watching it get gamed</h1>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Sounds Like Me · RL for unverifiable writing<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-21">Nov 21, 2026</time><span class="sep">·</span>Updated <time datetime="2026-11-22">Nov 22, 2026</time></p>
+  <h1>RL for authentic writing: training a model to sound like you</h1>
   <p class="dek ruled">Reinforcement learning works when answers can be checked. Most writing can't be checked: there's no answer key for "sounds like me". This series builds a reward for authentic voice from public writers, tests it against every model, and then trains on it.</p>
 
   <figure class="hero whole">
@@ -181,7 +181,7 @@
     </section>
   </details>
 
-  <p class="ep-link">The series: <a href="../../sounds-like-me/report/">Episode 1, can any model sound like you?</a> · <a href="../../sounds-like-me-ep2/report/">Episode 2, a harness on an unverifiable reward</a> · <a href="../../sounds-like-me-ep4/report/">Episode 4, does the voice ruler agree with people?</a></p>
+  <p class="ep-link">The series: <a href="../../sounds-like-me/report/">Episode 1, Unverifiable rewards: can a model sound like you?</a> · <a href="../../sounds-like-me-ep2/report/">Episode 2, Can a harness make a model sound like you?</a> · <a href="../../sounds-like-me-ep4/report/">Episode 4, Does the voice score agree with people?</a></p>
 
   <h2 id="introduction"><span class="num">01</span>Introduction</h2>
   <p>At step 0 the fine-tuned model writes a sales email in the voice of an Enron trader. By step 60 of RL the same kind of prompt gets "I wanted to ask for a call next week." and nothing else. By step 200 it gets "I have to tell you that this is a very difficult position. I have never had a hard time telling you the truth… I am not going to be able to do this." The training reward went up the whole time.</p>
@@ -405,7 +405,7 @@
 
   <h2 id="references"><span class="num">11</span>References</h2>
   <ul>
-    <li><a href="../../sounds-like-me/report/">Sounds Like Me, Episode 1: Can any model sound like you?</a> and <a href="../../sounds-like-me-ep2/report/">Episode 2</a>: the rulers, the comparators and the assistant direction.</li>
+    <li><a href="../../sounds-like-me/report/">Sounds Like Me, Episode 1: Unverifiable rewards: can a model sound like you?</a> and <a href="../../sounds-like-me-ep2/report/">Episode 2</a>: the rulers, the comparators and the assistant direction.</li>
     <li><a href="https://aclanthology.org/2021.emnlp-main.70/">Learning Universal Authorship Representations</a> (LUAR), EMNLP 2021: the voice ruler.</li>
     <li><a href="https://arxiv.org/abs/2210.10760">Scaling Laws for Reward Model Overoptimization</a>, 2022: proxy rewards rise while true quality falls.</li>
     <li><a href="https://arxiv.org/abs/2402.03300">DeepSeekMath</a>, 2024: GRPO.</li>
@@ -432,7 +432,7 @@
   <p>The per-draft files (every draft, the honesty checker's reply per draft, and the GRPO log with a sample draft per step) stay private: drafts copy real names, addresses and phone numbers from the writers' samples. The drafts shown in this note are redacted, and the reward curve per step is in <code>results/hack_hunt.json</code>.</p>
 
   <h3 id="cite" data-short="How to cite">How to cite</h3>
-  <pre>Lie, A. (2026). RL for authentic writing: training on a reward you can't verify, and watching it get gamed.
+  <pre>Lie, A. (2026). RL for authentic writing: training a model to sound like you.
 Sounds Like Me, Episode 3. steerlab.
 https://albertlieyingadrian.github.io/steerlab/experiments/sounds-like-me-ep3/report/</pre>
 </article>

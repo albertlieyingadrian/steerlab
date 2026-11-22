@@ -1,4 +1,4 @@
-# What does it mean to formalise a domain? A small demo
+# What is formalising a domain? A case study on airline baggage rules
 
 Code and data for the steerlab note `report/index.html` (The Taste Stack, Episode 4). A slice of RuleArena's airline
 baggage rules is turned into machine-checkable rules, each traced to its source line, and an open LLM is compared

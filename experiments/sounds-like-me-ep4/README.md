@@ -1,4 +1,4 @@
-# Sounds Like Me, Episode 4: does the voice ruler agree with people?
+# Sounds Like Me, Episode 4: Does the voice score agree with people?
 
 The note: [report/index.html](report/index.html). Episodes 1-2: [../sounds-like-me/](../sounds-like-me/),
 [../sounds-like-me-ep2/](../sounds-like-me-ep2/). Episode 4 checks the series' rulers (LUAR voice similarity and
