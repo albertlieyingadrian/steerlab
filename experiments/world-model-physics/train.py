@@ -1,10 +1,11 @@
 """
-Pre-train one world model from scratch: Part 18's tiny GPT (0.8M parameters), next-frame objective, 40 epochs.
+Pre-train one world model from scratch: the base project's tiny GPT (0.8M parameters), next-frame objective, 40 epochs.
 
     .venv/bin/python experiments/world-model-physics/train.py --world base --seed 2610
     .venv/bin/python experiments/world-model-physics/train.py --world const --seed 2620
 
-base  = Part 18's elastic world (experiments A and C); const = gravity + drag varied per episode (experiment B).
+base  = the base project's elastic world (experiments A and C);
+const = gravity + drag varied per episode (experiment B).
 Writes data/models/<world>_s<seed>_pre.pt and results/train_<world>_s<seed>.json (curve, wall time, val losses).
 """
 

@@ -1,5 +1,5 @@
 """
-The constants world: Part 18's box of three balls, plus gravity g (pulling towards -y) and linear drag gamma.
+The constants world: the base project's box of three balls, plus gravity g (pulling towards -y) and linear drag gamma.
 
     dv/dt = -g * y_hat - gamma * v        between collisions (exact solution per substep)
     walls and ball-ball contacts          elastic (restitution 1), resolved at substep ends
@@ -11,8 +11,8 @@ flipped) and swaps the line-of-centres velocity components of touching, approach
 most ~0.006 box units against a radius of 0.05, so no contact is skipped.
 
 Each episode draws its own g and gamma (uniform in the split's range), non-overlapping starting positions and random
-velocities scaled to a kinetic energy in [0.5, 2.0], as in Part 18. The model sees positions only, so it has to infer
-g and gamma from how the paths bend and slow within the episode.
+velocities scaled to a kinetic energy in [0.5, 2.0], as in the base project. The model sees positions only, so it has
+to infer g and gamma from how the paths bend and slow within the episode.
 
     PLAN[split] = (episodes, g range, gamma range)
     make_split(n, seed, g_range, drag_range) -> arrays (positions, velocities, g, drag, collides_next, ...)

@@ -1,14 +1,14 @@
 """
-The Part 18 world model: a tiny GPT that sees ball positions and predicts the next frame (KTD2, KTD3).
+The base project's world model: a tiny GPT that sees ball positions and predicts the next frame.
 
     WorldModel(...)                 the transformer (one token per frame, 6 numbers in, 6 numbers out)
-    train(model, objective, ...)    AdamW training with one of three objectives (KTD7):
+    train(model, objective, ...)    AdamW training with one of three objectives:
                                       "next"         next frame only                        (Model A)
                                       "rollout8"     8 frames ahead, feeding its own guesses (Model B)
                                       "next+energy"  next frame plus a total-energy head    (Model C)
     predict(model, positions)       next-frame predictions for whole episodes, in batches
     rollout(model, positions, k)    give the model the first k true frames, then let it run on its own guesses
-    copy_last / constant_velocity   the two baselines that need no learning (R5)
+    copy_last / constant_velocity   the two baselines that need no learning
     frame_kinds(collides_next)      which frames are free flight, which have a collision next, which just bounced
 
 Shapes: positions are [episodes, frames, 3 balls, 2] in the box's units, or flattened to [episodes, frames, 6].
@@ -36,7 +36,7 @@ N_COORDS = 6  # 3 balls x 2 coordinates
 CONTEXT = 63  # 64 frames per episode: inputs are frames 0..62, targets 1..63
 OBJECTIVES = ("next", "rollout8", "next+energy")
 ROLLOUT_STEPS = 8
-ENERGY_WEIGHT = 0.1  # KTD7: Model C's energy loss weight
+ENERGY_WEIGHT = 0.1  # Model C's energy loss weight
 ENERGY_MEAN, ENERGY_STD = 1.25, 0.433  # the training range 0.5..2.0 as a uniform: standardises the energy target
 
 

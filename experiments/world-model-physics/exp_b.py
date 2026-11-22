@@ -128,7 +128,7 @@ def full_resid(model, layer, pos, device, batch=500):
 
 
 def swap(u, donor_h, device):
-    """Hook factory: replace the component along u with the donor's, at every frame (Part 18 KTD6)."""
+    """Hook factory: replace the component along u with the donor's, at every frame (as in the base project)."""
     u_t = torch.as_tensor(u, dtype=torch.float32, device=device)
 
     def make(s, e):
@@ -244,7 +244,7 @@ def run(seed, device, n_random=N_RANDOM, demo=False):
         d = data[s]
         te = np.sort(rng.choice(len(d["positions"]), min(500, len(d["positions"])), replace=False))
         A = acts_rows(model, d, te, device)
-        R3, R8 = raw_rows(d, te), raw_rows(d, te, k=8)
+        raw3, raw8 = raw_rows(d, te), raw_rows(d, te, k=8)
         block = {}
         for k in ("g", "drag"):
             y = np.repeat(d[k][te], nfr)
@@ -254,8 +254,8 @@ def run(seed, device, n_random=N_RANDOM, demo=False):
             yy, pp = y.reshape(len(te), nfr), preds_site[best].reshape(len(te), nfr)
             block[k] = {
                 "r2_by_site": [round(pr.r2(y, p), 4) for p in preds_site],
-                "baseline_r2_last3": round(pr.r2(y, base3[k].predict(R3)[:, 0]), 4),
-                "baseline_r2_last8": round(pr.r2(y, base8[k].predict(R8)[:, 0]), 4),
+                "baseline_r2_last3": round(pr.r2(y, base3[k].predict(raw3)[:, 0]), 4),
+                "baseline_r2_last8": round(pr.r2(y, base8[k].predict(raw8)[:, 0]), 4),
                 "mean_true": float(d[k][te].mean()),
                 "mean_probe": float(ep_mean.mean()),
                 "slope_probe_vs_true": float(np.polyfit(d[k][te], ep_mean, 1)[0]),
@@ -266,9 +266,9 @@ def run(seed, device, n_random=N_RANDOM, demo=False):
             }
         res["splits"][s]["probe"] = block
         print(
-            f"  {s} probe: g R2 by site {block['g']['r2_by_site']} (raw last-3 {block['g']['baseline_r2_last3']},"
+            f"  {s} probe: g R² by site {block['g']['r2_by_site']} (raw last-3 {block['g']['baseline_r2_last3']},"
             f" last-8 {block['g']['baseline_r2_last8']}); probe mean {block['g']['mean_probe']:.2f} vs true "
-            f"{block['g']['mean_true']:.2f}; drag R2 {block['drag']['r2_by_site']} mean "
+            f"{block['g']['mean_true']:.2f}; drag R² {block['drag']['r2_by_site']} mean "
             f"{block['drag']['mean_probe']:.3f} vs {block['drag']['mean_true']:.3f}",
             flush=True,
         )
