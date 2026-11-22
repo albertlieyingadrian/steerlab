@@ -17,6 +17,14 @@ answer but still accepts fair corrections), by LoRA fine-tuning or by one steeri
 - **Readouts:** judge κ 0.78 vs 120 check labels (bar 0.8) → forced-choice letter primary (κ 0.55, collapses to
   "A" under strong steering). Verdicts under both are in `results/analysis.json` and Table 2 of the note.
 
+## Update 2026-11-14: Amendment 1 (pre-registered follow-up)
+
+- **α = 2 steering confirmed** on 333 fresh questions with 5 new random directions: hold flips 0.087 (untrained
+  0.15; −0.063 [−0.105, −0.021]), below every random direction (0.23-0.29), updates 0.91; yield flips 0.66.
+- **The agreeing opener is not the cause of the hard-LoRA backfire.** Replies written by Qwen3-1.7B itself (342 items;
+  openers 3.5% hold, 9.1% accept) gave a hard LoRA that gives in *more* on unseen topics (0.79 vs 0.66). Pre-set
+  verdict: inconclusive (the rule did not foresee a larger backfire). Numbers: `results/analysis_amendment1.json`.
+
 ## Deviations from the plan
 
 - Claude Sonnet 5.5 declined 71 of 90 batch requests to write the assistant training replies
@@ -50,4 +58,4 @@ answer but still accepts fair corrections), by LoRA fine-tuning or by one steeri
 ## Cost
 
 Anthropic $25.92 (`results/ledger.jsonl`: items $0.77, declined reply batch $0.42, judge $18.42 + $6.30).
-Modal $3.41 on L40S (apps named `persuadability`). Total $29.33.
+Modal $3.41 on L40S (apps named `persuadability`). Total $29.33. Amendment 1 added $13.33 Anthropic (judge) and $1.56 Modal: study total $44.22.

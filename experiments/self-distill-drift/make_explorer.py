@@ -38,7 +38,7 @@ def main():
     blob = json.dumps(out, ensure_ascii=False).replace("</", "<\\/")
     html = PAGE.read_text()
     new = f'{START}\n<script type="application/json" id="explorer-data">{blob}</script>\n{END}'
-    html = re.sub(re.escape(START) + r".*?" + re.escape(END), lambda _: new, html, flags=re.S)
+    html = re.sub(re.escape(START) + r".*?" + re.escape(END), lambda _: new, html, flags=re.DOTALL)
     PAGE.write_text(html)
     for it in out:
         print(it["id"], it["prompt"][:50], [x["label"] for x in it["seeded"]])
