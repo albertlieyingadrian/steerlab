@@ -202,7 +202,7 @@ def board(ink_by_model):
 def paired(a, b, seed, alpha=0.05):
     """a, b: {writer: value}; mean of a - b over shared writers, bootstrap interval, n writers."""
     w = sorted(set(a) & set(b))
-    return boot([a[x] - b[x] for x in w], seed, alpha=alpha) + [len(w)]
+    return [*boot([a[x] - b[x] for x in w], seed, alpha=alpha), len(w)]
 
 
 def contrasts(eps, pos):
@@ -327,7 +327,10 @@ def brief_reuse():
         if not e["copy_flag"]:
             by_writer[e["author"]].append((np.mean(ep_reuse[(e["author"], e["arm"])]), e["position"]))
     groups = list(by_writer.values())
-    rho = lambda gs: float(spearmanr(np.array([p for g in gs for p in g])).statistic)
+
+    def rho(gs):
+        return float(spearmanr(np.array([p for g in gs for p in g])).statistic)
+
     rng = np.random.default_rng(7)  # episodes repeat writers, so writers are resampled, not episodes
     bs = [rho([groups[i] for i in rng.integers(0, len(groups), len(groups))]) for _ in range(2000)]
     lo, hi = np.percentile(bs, [2.5, 97.5])
@@ -474,7 +477,9 @@ def main():
         m, _, arm = k.split("|")
         mc[(m, arm)].append(v)
     b["matched_cut_best"] = {
-        m: round(max(float(np.mean(v)) for (mm, _), v in mc.items() if mm == m), 4) for m in EP1_MODELS if any(mm == m for mm, _ in mc)
+        m: round(max(float(np.mean(v)) for (mm, _), v in mc.items() if mm == m), 4)
+        for m in EP1_MODELS
+        if any(mm == m for mm, _ in mc)
     }
     b["matched_cut_best"][INK] = b["contestants"][INK]["best"][0]
     b["best_unfiltered"] = unfiltered_best()
