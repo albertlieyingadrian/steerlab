@@ -219,7 +219,7 @@ def closed_arm(df, rt, tr_all, cost, available, KEY) -> None:
     S = pd.DataFrame(rows)
     choice = json.loads(CHOICE.read_text())
     for t, m_ in (("small", "qwen7"), ("mid", "gemma27"), ("large", "qwen72")):
-        m = S[KEY + ["order"]].merge(item_probs(m_, choice[m_]), on=KEY, how="left")
+        m = S[[*KEY, "order"]].merge(item_probs(m_, choice[m_]), on=KEY, how="left")
         S[f"p_{t}_same_order"] = np.where(m.order == "ab", m.p_ab, m.p_ba)
     sub = df.merge(S, on=KEY)
     for c in ("p_closed", "p_closed_loose", "p_small_same_order", "p_mid_same_order", "p_large_same_order"):
@@ -292,7 +292,7 @@ def closed_arm(df, rt, tr_all, cost, available, KEY) -> None:
     pick = lambda frame: (
         frame[[tuple(x) in keys for x in frame[KEY].itertuples(index=False)]]
         .merge(  # noqa: E731
-            S[KEY + ["p_closed"]], on=KEY
+            S[[*KEY, "p_closed"]], on=KEY
         )
         .rename(columns={"p_closed": "closed"})
     )
@@ -337,9 +337,9 @@ def main():
     df = test.copy()
     for tier, ip in J.items():
         if len(ip):
-            df = df.merge(ip[KEY + ["p"]].rename(columns={"p": f"p_{tier}"}), on=KEY, how="left")
+            df = df.merge(ip[[*KEY, "p"]].rename(columns={"p": f"p_{tier}"}), on=KEY, how="left")
     df = df.merge(
-        F[KEY + ["p", "defined"]].rename(columns={"p": "p_formal", "defined": "formal_defined"}), on=KEY, how="left"
+        F[[*KEY, "p", "defined"]].rename(columns={"p": "p_formal", "defined": "formal_defined"}), on=KEY, how="left"
     )
     df["p_formal"] = df.p_formal.fillna(0.5)
     df["formal_defined"] = df.formal_defined.fillna(False).astype(bool)
@@ -423,16 +423,16 @@ def main():
         }
     # cross-family agreement (R6) on confirm items: Qwen-72B vs Gemma-27B
     m = (
-        J["large"][KEY + ["p"]]
-        .merge(J["mid"][KEY + ["p"]], on=KEY, suffixes=("_l", "_m"))
+        J["large"][[*KEY, "p"]]
+        .merge(J["mid"][[*KEY, "p"]], on=KEY, suffixes=("_l", "_m"))
         .merge(conf[KEY].drop_duplicates(), on=KEY)
     )
     agree = float(((m.p_l > 0.5) == (m.p_m > 0.5)).mean())
     out_j["R6_large_vs_mid_agreement"] = {"agreement": round(agree, 4), "n_items": len(m), "pass": agree >= 0.60}
     if len(J["small"]) and len(J["large"]):
         m = (
-            J["small"][KEY + ["p"]]
-            .merge(J["large"][KEY + ["p"]], on=KEY, suffixes=("_s", "_l"))
+            J["small"][[*KEY, "p"]]
+            .merge(J["large"][[*KEY, "p"]], on=KEY, suffixes=("_s", "_l"))
             .merge(conf[KEY].drop_duplicates(), on=KEY)
         )
         out_j["small_vs_large_agreement"] = round(float(((m.p_s > 0.5) == (m.p_l > 0.5)).mean()), 4)
@@ -512,8 +512,8 @@ def main():
     tr_all = inner.copy()
     for tier, ip in J.items():
         if len(ip):
-            tr_all = tr_all.merge(ip[KEY + ["p"]].rename(columns={"p": tier}), on=KEY, how="left")
-    tr_all = tr_all.merge(F[KEY + ["p"]].rename(columns={"p": "formal"}), on=KEY, how="left")
+            tr_all = tr_all.merge(ip[[*KEY, "p"]].rename(columns={"p": tier}), on=KEY, how="left")
+    tr_all = tr_all.merge(F[[*KEY, "p"]].rename(columns={"p": "formal"}), on=KEY, how="left")
     tr_all["probe"] = tr_all.shrunk_innercv
     tr_all["part"] = tr_all.track + "|" + tr_all.dim
     for t in TIERS:
@@ -622,7 +622,7 @@ def main():
     (RES / "router.json").write_text(json.dumps(out_r, indent=1))
 
     # exploratory: the OCR text check on text rendering, split by how far apart the two images' scores are
-    tr_ = df[(df.track == "descriptions") & (df.dim == "typography")].merge(F[KEY + ["gap"]], on=KEY, how="left")
+    tr_ = df[(df.track == "descriptions") & (df.dim == "typography")].merge(F[[*KEY, "gap"]], on=KEY, how="left")
     gaps = {}
     for lo_, hi_ in ((0, 1e-9), (1e-9, 0.2), (0.2, 9)):
         sub = tr_[(tr_.gap >= lo_) & (tr_.gap < hi_)]

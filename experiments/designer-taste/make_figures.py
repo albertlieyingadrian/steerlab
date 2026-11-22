@@ -210,7 +210,7 @@ def constitution(C):
         ax.plot(j + 0.5 * w, b["own_constitution"], "o", color=EMBER, ms=7)
         ax.plot([j - 0.4, j + 0.4], [0.8, 0.8], color=INK, lw=1, ls="--")
         ax.text(j, 0.81, "R7 bar 0.80", ha="center", fontsize=8, color=INK)
-        labs = labs + ["Positive control:\nbrightness designer"]
+        labs = [*labs, "Positive control:\nbrightness designer"]
         print(f"constitution R7 bright: none {b['no_constitution']}, own {b['own_constitution']}")
     ax.axhline(0.5, color=GREY, lw=0.8, ls=":")
     ax.set_xticks(range(len(labs)), labs, fontsize=9)
