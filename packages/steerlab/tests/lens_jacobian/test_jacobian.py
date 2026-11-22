@@ -18,6 +18,12 @@ from steerlab.lens import jacobian  # noqa: E402
 VOCAB = 40
 SKIP = 2
 IDS = [3, 17, 5, 9, 22, 1, 30, 12, 7]
+# Central finite differences: the tolerance reflects the step size, not the estimator. Measured max relative error
+# over 5 random directions (J-lens / K-lens): step 1e-2: 4e-2 / 6e-2; 1e-3: 5e-4 / 8e-4; 1e-4: 5e-6 / 9e-6;
+# 1e-5: 3e-5 / 5e-5; 1e-6: 2e-4 / 5e-4; 1e-7: 3e-3 / 4e-3. Large steps lose to truncation (error ~ step^2), small
+# ones to rounding (the models' RMSNorms compute in float32 inside a float64 model), so 1e-4 is the best step.
+FD_STEP = 1e-4
+FD_TOLERANCE = 1e-4
 
 
 def model_of(variant: str = "qwen2", dtype: Any = None) -> Any:
@@ -94,14 +100,14 @@ def test_the_j_lens_matches_finite_differences() -> None:
     jacobian.fit_doc(model, IDS, acc, 0, dim_batch=7, skip_first=SKIP)
     J0 = acc.mean("out")[0]
     valid = jacobian.valid_positions(len(IDS), SKIP)
-    v = torch.randn(32, dtype=torch.float64)
-    eps = 1e-3  # the models' RMSNorms compute in float32, so float64 finite differences are good to ~1e-5
+    v = torch.randn(32, dtype=torch.float64, generator=torch.Generator().manual_seed(0))
+    eps = FD_STEP
     fd = torch.zeros(32, dtype=torch.float64)
     for t in valid:
         diff = final_and(model, 0, t, eps * v) - final_and(model, 0, t, -eps * v)
         fd += diff[valid].sum(0) / (2 * eps)
     fd /= len(valid)
-    assert ((J0 @ v - fd).norm() / fd.norm()) < 2e-3
+    assert ((J0 @ v - fd).norm() / fd.norm()) < FD_TOLERANCE
     assert ((J0.T @ v - fd).norm() / fd.norm()) > 0.1  # the check can tell J from its transpose
     assert torch.equal(acc.mean("out")[1], torch.eye(32, dtype=torch.float64))
 
@@ -113,14 +119,14 @@ def test_the_k_lens_matches_finite_differences() -> None:
     jacobian.fit_doc(model, IDS, acc, 0, dim_batch=5, skip_first=SKIP, rules=False)  # true derivative: the K-lens
     K1 = acc.mean("out")[1]
     valid = jacobian.valid_positions(len(IDS), SKIP)
-    v = torch.randn(32, dtype=torch.float64)
-    eps = 1e-3  # the models' RMSNorms compute in float32, so float64 finite differences are good to ~1e-5
+    v = torch.randn(32, dtype=torch.float64, generator=torch.Generator().manual_seed(0))
+    eps = FD_STEP
     fd = torch.zeros(32, dtype=torch.float64)
     for s in valid:  # Σ_{s≤t} over source positions, then the mean over targets t
         diff = layer_out(model, 1, s, eps * v) - layer_out(model, 1, s, -eps * v)
         fd += diff[valid].sum(0) / (2 * eps)
     fd /= len(valid)
-    assert ((K1 @ v - fd).norm() / fd.norm()) < 2e-3
+    assert ((K1 @ v - fd).norm() / fd.norm()) < FD_TOLERANCE
     assert ((K1.T @ v - fd).norm() / fd.norm()) > 0.1
 
 
