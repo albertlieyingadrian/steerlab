@@ -51,6 +51,7 @@ det_image = (
 VOI380, VOI380_REV = "VoightKampffLabs/voi-slop-detect-380M", "a109d591b8b62541f362d873765900380b2bd0ea"
 RM_BASE = "microsoft/deberta-v3-small"
 TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+MAX_LEN = 4096  # SFT/DPO sequence cap; the published run used 2,048, which cut about 10% of edit-pair prompts
 
 
 # ---------------------------------------------------------------- shared training helpers
@@ -105,9 +106,14 @@ def _seq_logp(model, ids, att, rmask, torch):
 
 
 def _encode(tok, messages, completion, max_len):
+    """Prompt + completion ids. An over-long prompt loses tokens from the middle of its context, never the system
+    prompt at the head or the brief at the tail (the published run cut from the front at 2,048 tokens)."""
     p = _prompt_ids(tok, messages)
     c = tok(completion + "<|im_end|>", add_special_tokens=False).input_ids[:512]
-    p = p[-(max_len - len(c)) :]
+    budget = max_len - len(c)
+    if len(p) > budget:
+        head = len(tok.apply_chat_template(messages[:1], tokenize=True, add_generation_prompt=False))
+        p = p[:head] + p[-(budget - head) :]
     return p + c, len(p)
 
 
@@ -121,7 +127,7 @@ def sft(payload: dict) -> dict:
     t0 = time.time()
     rows = list(payload["rows"])
     random.Random(0).shuffle(rows)
-    enc = [_encode(tok, r["messages"], r["completion"], payload.get("max_len", 2048)) for r in rows]
+    enc = [_encode(tok, r["messages"], r["completion"], payload.get("max_len", MAX_LEN)) for r in rows]
     bs, epochs = payload.get("batch", 8), payload.get("epochs", 1)
     params = [p for p in model.parameters() if p.requires_grad]
     opt = torch.optim.AdamW(params, lr=payload.get("lr", 1e-4), weight_decay=0.0)
@@ -176,8 +182,12 @@ def dpo(payload: dict) -> dict:
         ids, att, rm = _batch(tok, seqs, plens, torch)
         if grad:
             return _seq_logp(model, ids, att, rm, torch).sum(-1)
+        # the reference is a fixed copy of the SFT policy: LoRA dropout off (the published run left it on)
+        model.eval()
         with torch.no_grad():
-            return _seq_logp(model, ids, att, rm, torch).sum(-1)
+            out = _seq_logp(model, ids, att, rm, torch).sum(-1)
+        model.train()
+        return out
 
     model.train()
     for s in range(0, len(pairs), bs):
@@ -186,8 +196,8 @@ def dpo(payload: dict) -> dict:
         accs, margins = [], []
         for m in range(0, len(chunk), 2):
             sub = chunk[m : m + 2]
-            ec = [_encode(tok, x["messages"], x["chosen"], 2048) for x in sub]
-            er = [_encode(tok, x["messages"], x["rejected"], 2048) for x in sub]
+            ec = [_encode(tok, x["messages"], x["chosen"], MAX_LEN) for x in sub]
+            er = [_encode(tok, x["messages"], x["rejected"], MAX_LEN) for x in sub]
             seqs, plens = [e[0] for e in ec + er], [e[1] for e in ec + er]
             ref = lps("ref", seqs, plens, False)
             pol = lps("default", seqs, plens, True)
@@ -470,7 +480,7 @@ def grpo(payload: dict) -> dict:
         )
         with open(f"{out_dir}/log.jsonl", "a") as fh:
             fh.write(json.dumps(rec) + "\n")
-        if (step + 1) % payload.get("ckpt_every", 25) == 0 or step + 1 == payload["steps"]:
+        if (step + 1) % payload["ckpt_every"] == 0 or step + 1 == payload["steps"]:
             model.save_pretrained(f"{out_dir}/step_{step + 1}", selected_adapters=["default"])
         ckpt.commit()
     return {"name": payload["name"], "seconds": round(time.time() - t0, 1)}

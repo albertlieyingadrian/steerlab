@@ -9,7 +9,7 @@ No OpenRouter code is imported.
     python train_ep3.py score SPLIT FILES...  # Episode 2 scorer (voice, specificity, loops, copy, detector) + honesty
     python train_ep3.py dpo-data ADAPTER  # SFT drafts on training prompts + Qwen3-32B simulated edits -> dpo_pairs
     python train_ep3.py dpo INIT               # DPO from simulated edits
-    python train_ep3.py grpo INIT [STEPS]      # GRPO on the combined reward (checkpoints every 25 steps)
+    python train_ep3.py grpo INIT [STEPS]      # GRPO on the combined reward (checkpoints every 10 steps)
     python train_ep3.py grpo-done RUN          # download the run log and charge its GPU time
     python train_ep3.py ckpt-eval RUN          # hack hunt: every checkpoint on dev writers
 """
@@ -163,8 +163,9 @@ def rm():
     out = dict(
         model_card=dict(
             base="microsoft/deberta-v3-small cross-encoder, Bradley-Terry, 3 epochs, lr 3e-5",
-            data=f"{len(train)} authorship pairs from {len(keys)} training writers (none of the 45 evaluation writers or "  # noqa: E501
-            "the floor pool); no human-vs-AI pairs; no simulated edits (in this data an edit pair is a model draft vs "
+            data=f"{len(train)} authorship pairs from {len(keys)} training writers (none of the 45 evaluation writers; "
+            "the published run's 149 included one of the 50 floor writers, whose corpus name ends in a space, now "
+            "excluded); no human-vs-AI pairs; no simulated edits (in this data an edit pair is a model draft vs "
             "the writer's text, which is the human-vs-AI kind the plan bans)",
             input="two of the writer's texts (110 words each, strict form) [SEP] candidate (strict form)",
         ),
@@ -185,7 +186,7 @@ def rm():
 def sft():
     f = fn("sft")
     payloads = [
-        dict(name=f"sft_{fmt}", rows=jread(DATA / f"sft_{fmt}.jsonl"), epochs=2, lr=1e-4, batch=8, max_len=2048)
+        dict(name=f"sft_{fmt}", rows=jread(DATA / f"sft_{fmt}.jsonl"), epochs=2, lr=1e-4, batch=8, max_len=4096)
         for fmt in ("raw", "notes", "edits", "shuffled")
     ]
     guard(40)
