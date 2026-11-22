@@ -241,7 +241,7 @@ def tune():
             nll_rise=float(np.mean(rise)),
             copy=float(np.mean(cp)),
             on_task=float(np.mean(ot)),
-            example=res[0]["outputs"]["lora12"][0][:600],
+            example=redact(res[0]["outputs"]["lora12"][0][:600], res[0]["name"]),
         )
         ledger(
             f"voice-lora-{lora['lr']}-{lora['steps']}",
@@ -297,8 +297,13 @@ def redact(text, author):
     sys.path.append(str(SLM))
     from privacy import redact_contact
 
-    for p in sorted((p for p in re.split(r"\W+", author) if len(p) >= 3 and not p.isdigit()), key=len, reverse=True):
+    parts = [p for p in re.split(r"\W+", author) if len(p) >= 3 and not p.isdigit()]
+    for p in sorted(parts, key=len, reverse=True):
         text = re.sub(rf"\b{re.escape(p)}\b", "[name]", text, flags=re.IGNORECASE)
+    tokens = [t for t in re.split(r"[\s.,]+", author) if t and t[0].isalpha()]
+    for initials in {"".join(p[0] for p in parts if p[0].isupper()), "".join(t[0].upper() for t in tokens)}:
+        if len(initials) >= 2:  # sign-offs made of the writer's initials, with or without a middle initial
+            text = re.sub(rf"\b{re.escape(initials)}\b", "[name]", text, flags=re.IGNORECASE)
     return redact_contact(text)
 
 
@@ -478,7 +483,7 @@ def explore():
                 [per[a]["vec12"]["position"] for a in per],
                 [per[a]["wrong"]["position"] for a in per],
             ),
-            example=res[0]["outputs"]["vec12"][0],
+            example=redact(res[0]["outputs"]["vec12"][0], res[0]["name"]),
         ),
     )
     for c, v in summ.items():
