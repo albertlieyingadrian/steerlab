@@ -287,7 +287,7 @@ def cover(s):
         ax.spines["left"].set_visible(False)
         ax.tick_params(labelsize=12)
         fig.text(0.04, 0.90, "SOUNDS LIKE ME · EPISODE 2", fontsize=13, color=ACCENT, weight="bold")
-        fig.text(0.04, 0.83, "Beating every model without training", fontsize=26, color=INK, weight="bold")
+        fig.text(0.04, 0.83, "Can a harness make a model sound like you?", fontsize=26, color=INK, weight="bold")
         fig.text(
             0.04,
             0.05,

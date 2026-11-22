@@ -37,7 +37,7 @@ def card(y: int, label: str, body: str, mono: bool, accent: bool = False) -> str
 def cover_svg() -> str:
     s = json.loads((RESULTS / "summary.json").read_text())["baggage"]["heldout"]
     rule = next(r for r in load_spec()["rules"] if r["id"] == "L275")
-    b = [kicker("THE TASTE STACK · EPISODE 4", "WHAT DOES IT MEAN TO FORMALISE A DOMAIN?")]
+    b = [kicker("THE TASTE STACK · EPISODE 4", "WHAT IS FORMALISING A DOMAIN? A CASE STUDY ON AIRLINE BAGGAGE RULES")]
     b.append(t(20, 62, "One rule, three ways; and what a checker adds", 25, 800, INK))
     b.append(card(84, "SOURCE LINE L275", f"“{rule['text'].lstrip('* ')}”", False))
     b.append(t(225, 196, "↓", 16, 700, MUTED, "middle"))

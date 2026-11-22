@@ -55,7 +55,7 @@ def cover_svg():
     ex = d["steer"]["examples"][0]
     T = {(r["model"], r["arm"]): r for r in json.loads((HERE / "results" / "leaderboard.json").read_text())}
     b = [kicker("SOUNDS LIKE ME · EPISODE 1", "RL FOR UNVERIFIABLE WRITING")]
-    b.append(headline("Can any model sound like you?", None, 64, 26))
+    b.append(headline("Unverifiable rewards: can a model sound like you?", None, 64, 26))
     y = 102
     b.append(t(24, y, "AUTHOR A, THEIR OWN EMAIL", 9.5, 700, MUTED, ls="0.08em"))
     b.append(
