@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Reproduce every number in the note "What does it mean to formalise a domain? A small demo".
+# Reproduce every number in the note "What is formalising a domain? A case study on airline baggage rules".
 # COSTS MONEY: a few dollars of Modal H100 time (vLLM generation). Everything else runs on a laptop.
 # Run from the repository root. --dry-run prints the commands without running them.
 set -e

@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Reproduce every number in the note "Can any model sound like you?" (Sounds Like Me, Episode 1).
+# Reproduce every number in the note "Unverifiable rewards: can a model sound like you?" (Sounds Like Me, Episode 1).
 # COSTS MONEY: about $11 of Modal GPU time and about $4 of OpenRouter batch calls (hard cap $8 in common.py).
 # Needs the Catch Me If You Can Enron and Blog splits in data/raw/ (see README). --dry-run prints the commands.
 # The private board (private_board.py) reads a private database and is not part of this script.
