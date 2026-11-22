@@ -48,7 +48,7 @@ LABEL = {
     "R3_voice": "Ep 2: harness + voice vector",
     "xR3_s0.3": "Ep 2: voice vector at 0.3 (exploratory)",
     "G2_gemini_harness": "Ep 2: Gemini in the harness",
-    "ep1-gemini-edits": "Ep 1: Gemini, samples + edits",
+    "ep1-gemini-edits": "Ep 1: Gemini, 3 more samples*",
 }
 TRAINED = {"sft_raw", "sft_notes", "sft_edits", "dpo", "grpo_best", "grpo_final"}
 CTRL = {"sft_shuffled", "base_raw"}
