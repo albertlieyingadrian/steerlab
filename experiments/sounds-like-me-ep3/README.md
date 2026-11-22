@@ -8,7 +8,7 @@ Open models only (Qwen3-8B, Qwen3-32B as a checker and simulated editor, DeBERTa
 
 | File | What it does |
 |---|---|
-| `data_ep3.py` | Training writers (149 public Enron and Blog authors, asserted disjoint from the 45 evaluation writers and the floor pool), content briefs, style notes, edit pairs, the four SFT sets, eval inputs, 60 training briefs |
+| `data_ep3.py` | Training writers (149 public Enron and Blog authors, disjoint from the 45 evaluation writers; one of the 50 floor writers slipped in through a trailing space in its name, and the code now strips names, so a rerun gives 148), content briefs, style notes, edit pairs, the four SFT sets, eval inputs, 60 training briefs (new prospects and sender companies, Episode 1's offer and fact tables) |
 | `modal_ep3.py` | Modal app: SFT, DPO and GRPO with LoRA on Qwen3-8B, vLLM generation with adapters, the voice RM, the detector |
 | `reward_fns.py` | The GRPO reward pieces: honesty proxy, copy flag, RM context, strict text form |
 | `train_ep3.py` | Orchestration: proxy check, RM, SFT, eval, scoring, DPO, GRPO (spawned, resumable), checkpoint evals |
@@ -27,10 +27,17 @@ Open models only (Qwen3-8B, Qwen3-32B as a checker and simulated editor, DeBERTa
 | `results/ruler_voice_rm.json`, `results/ruler_honesty_proxy.json` | the voice RM's model card and pass bars; the proxy's check on Episode 1's labels |
 | `results/sft_runs.json`, `results/dpo_sft_edits.json`, `results/grpo_*_config.json`, `results/grpo_best.json` | training runs, the GRPO configuration and the dev-best rule |
 | `results.tsv` | every tuning try and choice on development writers |
-| `data/drafts/*.jsonl` | drafts: `job`, `model`, `author`, `brief`, `arm`, `text` |
-| `data/honesty/*.json` | per job: `n_claims`, `n_unsupported`, `unsupported`, `invented_relationship` |
 | `data/dpo_pairs.jsonl` | `messages`, `chosen` (a simulated edit by Qwen3-32B), `rejected` (the SFT draft); labelled simulated |
-| `data/runs/grpo_sft_edits/log.jsonl` | per GRPO step: `reward`, `voice`, `voice_z`, `honesty_proxy`, `detector`, `copy`, `words`, `grad_norm`, `sample` |
+
+The per-draft files (`data/drafts/`, `data/honesty/` and the GRPO log in `data/runs/`) stay private because drafts copy
+real names, addresses and phone numbers from the writers' samples; the note shows redacted drafts only.
+
+The run as published differs from the current code in four ways found in code review afterwards, none retrained:
+102 of the 1,763 style-notes examples had a note made partly from their own target text (now each such target gets
+its own note); SFT and DPO examples over 2,048 tokens were cut from the front, dropping the system prompt (178
+edit-pair, 100 raw and 102 shuffled examples, 45 of 627 DPO pairs; the cap is now 4,096 and cuts the middle of the
+context instead); the DPO reference pass ran with LoRA dropout on (now off); and the honesty proxy has no check for
+names, though the plan listed one (unchanged, so the reward matches the run; disclosed in the note).
 
 The voice RM holds no human preference labels: it learned authorship from public writers. Simulated edits are labelled as
 simulated wherever they appear. Adapters live on a Modal volume, not in the repository.
