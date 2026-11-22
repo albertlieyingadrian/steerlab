@@ -147,7 +147,21 @@ def main(hero: bool = True) -> None:
         }
         rec["href"] = f"../../{e['source']}/report/" + (f"#{e['section']}" if e.get("section") else "")
         rec["detectors"], rec["best"] = by_id[e["id"]]["detectors"], by_id[e["id"]]["best"]
-        if e["artefacts"]:
+        if e.get("private"):
+            # private drafts: show only the sentence the source note quotes, and no file to download
+            a = e["artefacts"]
+            rec["artefacts"] = {
+                "file": None,
+                "n_hack": a["n_hack"],
+                "n_clean": a["n_clean"],
+                "from": sorted({f.split("/")[0] for f in a["source_files"]}),
+                "label_source": a["label_source"],
+                "private": e["private"],
+                "hack_sample": "Quoted in the source note, where the draft repeats it: I think that maybe they need "
+                "some drywall labor staffing for peak months.",
+                "clean_sample": "Not published.",
+            }
+        elif e["artefacts"]:
             a = e["artefacts"]
             EX = a["reference"] or ""
             rows = [json.loads(line) for line in (HERE / a["file"]).read_text().splitlines()]

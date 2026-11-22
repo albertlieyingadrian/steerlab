@@ -388,6 +388,8 @@ ENTRIES = [
         "when": "post hoc (Episode 1); pre-registered gate (Episode 2)",
         "missed_by": ["the voice score", "the perplexity match (steered drafts had lower loss)"],
         "artefact": "steer_honesty",
+        "private": "The drafts are private: they are whole Sounds Like Me drafts, and drafts in a real writer's voice "
+        "can copy names and contact details from that writer's samples.",
     },
     {
         "id": "rerank-fallback-first",

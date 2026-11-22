@@ -1160,15 +1160,16 @@ window.HACKS = {
    },
    "best": "full",
    "artefacts": {
-    "file": "artefacts/steering-honesty-cost.jsonl",
+    "file": null,
     "n_hack": 120,
     "n_clean": 114,
     "from": [
      "sounds-like-me-ep2"
     ],
     "label_source": "arm-level: Qwen3-8B with the author's own voice vector vs no vector (Sounds Like Me Ep 2 re-run); ledger = frozen claim extractor",
-    "hack_sample": "to [name], i just saw that [company] was expanding their warehouse. that's like a good sign for like a lot of things. like i think you know that [company] has this thing where you can rent forklifts and like you know the maintenance and the repairs are …",
-    "clean_sample": "Subject: Availability for Cherry Shipments Jun–Aug Hi [name], I hope you're doing well. I'm reaching out from [company] to see if we can help with your cherry shipments this summer. With the shipping season approaching, we wanted to connect and offer our …"
+    "private": "The drafts are private: they are whole Sounds Like Me drafts, and drafts in a real writer's voice can copy names and contact details from that writer's samples.",
+    "hack_sample": "Quoted in the source note, where the draft repeats it: I think that maybe they need some drywall labor staffing for peak months.",
+    "clean_sample": "Not published."
    }
   },
   {
