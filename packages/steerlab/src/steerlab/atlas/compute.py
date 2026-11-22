@@ -26,9 +26,10 @@ torch is imported at module import; the package `steerlab.atlas` itself does not
 from __future__ import annotations
 
 import contextlib
+import functools
 import math
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, TypeVar, cast
 
 import torch
 
@@ -36,6 +37,20 @@ NB = 112  # histogram bins: bin b >= 1 covers [2^((b-OFFSET)/4), 2^((b-OFFSET+1)
 OFFSET = 64  # 2^(-64/4) = 2^-16 is the smallest edge; the top edge is 2^((NB-OFFSET)/4) = 2^12
 HEAD_START = 16  # heads: positions before this are left out of statistics (a query with few keys attends sharply)
 TINY = 2.0 ** (-OFFSET / 4)
+
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def no_grad(fn: F) -> F:
+    """`torch.no_grad()` as a typed decorator (mypy sees torch as untyped where it is not installed)."""
+
+    @functools.wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        with torch.no_grad():
+            return fn(*args, **kwargs)
+
+    return cast(F, wrapper)
 
 
 class _Stop(Exception):
@@ -99,10 +114,10 @@ class Parts:
     # MLP weights
 
     def gate(self, layer: int) -> torch.Tensor:
-        return self.blocks[layer].mlp.gate_proj.weight.detach().float()  # type: ignore[no-any-return]
+        return self.blocks[layer].mlp.gate_proj.weight.detach().float()  # type: ignore[no-any-return,unused-ignore]
 
     def up(self, layer: int) -> torch.Tensor:
-        return self.blocks[layer].mlp.up_proj.weight.detach().float()  # type: ignore[no-any-return]
+        return self.blocks[layer].mlp.up_proj.weight.detach().float()  # type: ignore[no-any-return,unused-ignore]
 
     def down(self, layer: int) -> torch.Tensor:
         """`[d_model, d_mlp]`: column n is neuron n's write (Gemma: times the post-feedforward norm's weight)."""
@@ -111,7 +126,7 @@ class Parts:
         return w * self.norm_weight(post)[:, None] if post is not None else w
 
     def act_fn(self, layer: int) -> Callable[[torch.Tensor], torch.Tensor]:
-        return self.blocks[layer].mlp.act_fn  # type: ignore[no-any-return]
+        return self.blocks[layer].mlp.act_fn  # type: ignore[no-any-return,unused-ignore]
 
     def normed_embeddings(self, ids: torch.Tensor | None, weight: torch.Tensor) -> torch.Tensor:
         """Token embeddings as a layer's norm would hand them on: RMS-normalized, times the norm's weight."""
@@ -169,7 +184,7 @@ def quantiles(hist: torch.Tensor, total: int, qs: Sequence[float]) -> list[torch
     return out
 
 
-@torch.no_grad()
+@no_grad
 def corpus_stats(
     parts: Parts,
     docs: Sequence[Sequence[int]],
@@ -326,7 +341,7 @@ def _head_batch(
     return int(hvalid.sum())
 
 
-@torch.no_grad()
+@no_grad
 def token_drivers(
     parts: Parts,
     contexts: Sequence[Sequence[int]],
@@ -388,14 +403,14 @@ def token_drivers(
 # Reads from the weights
 
 
-@torch.no_grad()
+@no_grad
 def write_logits(parts: Parts, layer: int, neuron: int, pole: int) -> torch.Tensor:
     """The pole's write read through the logit lens: `W_U · (γ_final ⊙ pole · W_down[:, n])`, one score per token."""
     w = parts.down(layer)[:, neuron] * pole
     return parts.W_U.float() @ (parts.final_norm() * w)  # type: ignore[no-any-return,unused-ignore]
 
 
-@torch.no_grad()
+@no_grad
 def layer_write_rms(parts: Parts, layer: int, chunk: int = 8192) -> torch.Tensor:
     """Per token, the root mean square over the layer's poles of the write's logit-lens score: the z-score's scale.
 
@@ -408,7 +423,7 @@ def layer_write_rms(parts: Parts, layer: int, chunk: int = 8192) -> torch.Tensor
     return out.clamp_min(1e-12)
 
 
-@torch.no_grad()
+@no_grad
 def read_activations(parts: Parts, layer: int, neuron: int, pole: int, ids: torch.Tensor | None = None) -> torch.Tensor:
     """The pole's activation if the MLP input held only each token's normalized embedding (exact at L0 only)."""
     x = parts.normed_embeddings(ids, parts.mlp_norm(layer))
@@ -435,7 +450,7 @@ def _rms_norm_rows(x: torch.Tensor, module: Any, gemma: bool) -> torch.Tensor:
     return x / x.pow(2).mean(-1, keepdim=True).add(1e-6).sqrt() * weight  # type: ignore[no-any-return,unused-ignore]
 
 
-@torch.no_grad()
+@no_grad
 def head_reads(parts: Parts, layer: int, head: int, candidates: Sequence[int], k: int = 12) -> dict[str, Any]:
     """A head's OV and QK circuits over candidate tokens, from the weights alone (position-free: RoPE at offset 0).
 
@@ -490,7 +505,7 @@ def head_reads(parts: Parts, layer: int, head: int, candidates: Sequence[int], k
     }
 
 
-@torch.no_grad()
+@no_grad
 def read_directions(parts: Parts, layer: int) -> torch.Tensor:
     """`[2, d_mlp, D]`: each pole's read direction, `ĝ ± û` (unit gate and up rows times the MLP norm's weight)."""
     weight = parts.mlp_norm(layer)
@@ -502,7 +517,7 @@ def read_directions(parts: Parts, layer: int) -> torch.Tensor:
     return both / both.norm(dim=-1, keepdim=True).clamp_min(1e-12)  # type: ignore[no-any-return,unused-ignore]
 
 
-@torch.no_grad()
+@no_grad
 def unit_edges(
     parts: Parts,
     layer: int,
@@ -560,7 +575,7 @@ def unit_edges(
     }
 
 
-@torch.no_grad()
+@no_grad
 def unit_trace(parts: Parts, ids: Sequence[int], layer: int, kind: str, index: int, pole: int = 1) -> list[float]:
     """One unit's value at every position of a prompt: a pole's activation (× its sign) or a head's output norm."""
     acts, zs, handles = _capture(parts, [layer], heads=kind == "head", stop_after=layer)
