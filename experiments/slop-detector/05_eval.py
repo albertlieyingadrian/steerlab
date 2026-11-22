@@ -1,4 +1,4 @@
-"""Lesson 05: score our detector on the benchmarks and compare it with voi-slop-detect-4B on the very same rows.
+"""Score our detector on the benchmarks and compare it with voi-slop-detect-4B on the very same rows.
 
     python 05_eval.py --run runs/pilot-0.6b            # score (cached per split) and compare
     python 05_eval.py --run runs/pilot-0.6b --splits test
@@ -41,7 +41,8 @@ def our_scores(run: Path, split: str, texts: list[str], cache: dict) -> np.ndarr
         cfg = json.loads((run / "config.json").read_text())
         dev = train.device()
         tok = AutoTokenizer.from_pretrained(run / "adapter")
-        base = AutoModelForSequenceClassification.from_pretrained(cfg["base"], num_labels=1, dtype=torch.bfloat16)
+        heads = 4 if cfg.get("head") == "buckets" else 1
+        base = AutoModelForSequenceClassification.from_pretrained(cfg["base"], num_labels=heads, dtype=torch.bfloat16)
         base.config.pad_token_id = tok.pad_token_id
         cache.update(model=PeftModel.from_pretrained(base, run / "adapter").to(dev).eval(), tok=tok, dev=dev, mod=train)
     mod, tok = cache["mod"], cache["tok"]
