@@ -446,10 +446,10 @@ def _s_block(model: Any, base: Any, valid: Any, acc: Accumulator, half: int, sta
         tangent = torch.zeros_like(out)
         rows = torch.arange(b, device=out.device)
         tangent[rows[:, None], v[None, :], (start + rows)[:, None]] = 1
-        return fwad.make_dual(out, tangent)  # type: ignore[no-untyped-call]
+        return fwad.make_dual(out, tangent)  # type: ignore[no-untyped-call,unused-ignore]
 
     def read(target: str, i: int, h: Any) -> None:
-        tangent = fwad.unpack_dual(h).tangent  # type: ignore[no-untyped-call]
+        tangent = fwad.unpack_dual(h).tangent  # type: ignore[no-untyped-call,unused-ignore]
         if tangent is not None:
             acc.sums[(target, half)][i, :, start : start + b] += tangent[:, v].float().mean(1).T.cpu()
 
@@ -522,7 +522,7 @@ class Reader:
         if lens == "logit":
             return h
         M = self.lenses[lens][layer]
-        return h @ M if lens == "S" else h @ M.T  # type: ignore[no-any-return]
+        return h @ M if lens == "S" else h @ M.T  # type: ignore[no-any-return,unused-ignore]
 
     def logits(self, h: torch.Tensor, layer: int, lens: str) -> torch.Tensor:
         """`[..., vocab]`: logit/J/R apply the final RMSNorm then `W_U`; S scores `c · K_L (W_E[v] − mean)`."""
@@ -530,13 +530,13 @@ class Reader:
 
         x = self.mapped(h, layer, lens)
         if lens == "S":
-            return x @ self.E.T  # type: ignore[no-any-return]
+            return x @ self.E.T  # type: ignore[no-any-return,unused-ignore]
         x = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps) * self.g
-        return x @ self.W_U.T  # type: ignore[no-any-return]
+        return x @ self.W_U.T  # type: ignore[no-any-return,unused-ignore]
 
     def _unit_read(self, x: torch.Tensor, lens: str) -> torch.Tensor:
         y = x if lens == "S" else x * self.g
-        return y / y.norm(dim=-1, keepdim=True).clamp_min(1e-12)  # type: ignore[no-any-return]
+        return y / y.norm(dim=-1, keepdim=True).clamp_min(1e-12)  # type: ignore[no-any-return,unused-ignore]
 
     def z_scale(self, layer: int, lens: str) -> torch.Tensor:
         """Per token, the std of its score over the layer's MLP writes ±W_down[:, n], each read through `lens` as a
@@ -548,13 +548,13 @@ class Reader:
             cov = X.T @ X / X.shape[0]
             U = self.E if lens == "S" else self.W_U
             self._z[key] = ((U @ cov) * U).sum(-1).clamp_min(1e-12).sqrt()
-        return self._z[key]  # type: ignore[no-any-return]
+        return self._z[key]  # type: ignore[no-any-return,unused-ignore]
 
     def z_logits(self, h: torch.Tensor, layer: int, lens: str) -> torch.Tensor:
         """Layer-contrastive scores: each token's score on the unit read vector, over its std at this layer."""
         x = self._unit_read(self.mapped(h, layer, lens), lens)
         U = self.E if lens == "S" else self.W_U
-        return (x @ U.T) / self.z_scale(layer, lens)  # type: ignore[no-any-return]
+        return (x @ U.T) / self.z_scale(layer, lens)  # type: ignore[no-any-return,unused-ignore]
 
     def top(
         self, h: torch.Tensor, layer: int, lens: str, k: int = 8, *, z: bool = False
