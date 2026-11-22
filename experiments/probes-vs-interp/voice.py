@@ -13,6 +13,7 @@ over a 4-draft episode. The vector recipe and its layer/strength are Part C's de
 from __future__ import annotations
 
 import json
+import re
 import sys
 from functools import lru_cache
 
@@ -290,6 +291,17 @@ def run():
     print("voice authors:", len(res))
 
 
+def redact(text, author):
+    """A public example draft: the writer's name parts (3+ letters) become [name], and emails, phone numbers and
+    addresses go too (Sounds Like Me's privacy.py); drafts copy them from the writer's samples."""
+    sys.path.append(str(SLM))
+    from privacy import redact_contact
+
+    for p in sorted((p for p in re.split(r"\W+", author) if len(p) >= 3 and not p.isdigit()), key=len, reverse=True):
+        text = re.sub(rf"\b{re.escape(p)}\b", "[name]", text, flags=re.IGNORECASE)
+    return redact_contact(text)
+
+
 def score():
     A = slm_authors()
     recs = {a["author"]: a for a in A["authors"]}
@@ -347,7 +359,7 @@ def score():
             p8=dict(gain_ratio=ratio_gain, cost_ratio=ratio_cost, fluent=fluent, hit=p8),
             p9=dict(diff_vec8_minus_shot8=d9, hit=bool(d9["mean"] > 0.05)),
             n_authors=len(per),
-            examples={c: res[0]["outputs"][c][0] for c in ("none", "vec12", "lora12", "shot8")},
+            examples={c: redact(res[0]["outputs"][c][0], res[0]["name"]) for c in ("none", "vec12", "lora12", "shot8")},
         ),
     )
     for c in conds:

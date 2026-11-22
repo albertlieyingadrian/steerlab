@@ -5,7 +5,9 @@
 Reads results/*.json and the scored held-out drafts (data/scored/, regenerated, not committed). Writes only aggregate
 numbers and a few example drafts. Authors appear as "Author A".."Author D": no corpus names. The author excerpts are
 short, hand-picked passages from the public Enron and Blog corpora with every person's name replaced by a role.
-Drafts are model text for synthetic briefs; the author's own name parts are redacted from them as well.
+Drafts are model text for synthetic briefs; the author's own name parts, names copied from the samples, and any email,
+phone number or address (privacy.py) are redacted from them as well. Authors are picked by their position in the
+held-out list, so no part of a corpus name appears here.
 Nothing here calls a model: the arena page has no backend, no key and no generation endpoint.
 """
 
@@ -13,6 +15,7 @@ import json
 import re
 
 from common import DATA, HERE, authors, briefs
+from privacy import copied_names, redact_contact
 
 R = HERE / "results"
 LABEL = {
@@ -60,7 +63,7 @@ ARM = {
 ARENA_AUTHORS = [
     (
         "Author A",
-        "Ger",
+        8,
         "enron",
         "a contracts lawyer at an energy company",
         [
@@ -77,7 +80,7 @@ ARENA_AUTHORS = [
     ),
     (
         "Author B",
-        "Vir",
+        7,
         "enron",
         "a settlements analyst at a power-trading desk",
         [
@@ -93,7 +96,7 @@ ARENA_AUTHORS = [
     ),
     (
         "Author C",
-        "Mar",
+        20,
         "enron",
         "an in-house lawyer who manages paralegals",
         [
@@ -110,7 +113,7 @@ ARENA_AUTHORS = [
     ),
     (
         "Author D",
-        "313",
+        26,
         "blog",
         "a music and politics blogger",
         [
@@ -132,7 +135,7 @@ ARENA_CONTESTANTS = [
     ("Qwen3-8B", "k0"),
     ("partc-Qwen3-8B", "own"),
 ]
-STEER_EXAMPLE = ("Ger", ["fr05", "co07"])  # Author A: a fluent steered draft and a looping one
+STEER_EXAMPLE = (8, ["fr05", "co07"])  # Author A: a fluent steered draft and a looping one
 
 
 def load_scored():
@@ -147,9 +150,9 @@ def load_scored():
 
 
 def redactor(full_name):
-    parts = [p for p in re.split(r"[\s.,]+", full_name) if len(p) > 1 and not p.isdigit()]
+    parts = [p for p in re.split(r"[\s.,]+", full_name) if len(p) > 1 and not p.isdigit()] + copied_names("ep1")
     pat = re.compile(r"\b(" + "|".join(map(re.escape, parts)) + r")\b", re.IGNORECASE) if parts else None
-    return (lambda t: pat.sub("[name]", t)) if pat else (lambda t: t)
+    return (lambda t: redact_contact(pat.sub("[name]", t))) if pat else redact_contact
 
 
 def brief_card(b):
@@ -199,7 +202,7 @@ def note_data(drafts, eps):
         )
     A = {a["author"]: a for a in authors()["authors"]}
     B = {b["id"]: b for b in briefs()}
-    who = next(n for n in A if n.startswith(STEER_EXAMPLE[0]) and A[n]["split"] == "heldout")
+    who = [n for n in A if A[n]["split"] == "heldout"][STEER_EXAMPLE[0]]
     red = redactor(who)
     ex = []
     for bid in STEER_EXAMPLE[1]:
@@ -220,8 +223,8 @@ def arena_data(drafts, eps):
     A = {a["author"]: a for a in authors()["authors"] if a["split"] == "heldout"}
     B = {b["id"]: b for b in briefs()}
     out = []
-    for tag, prefix, corpus, role, excerpts in ARENA_AUTHORS:
-        who = next(n for n in A if n.startswith(prefix))
+    for tag, index, corpus, role, excerpts in ARENA_AUTHORS:
+        who = list(A)[index]
         red = redactor(who)
         bid = sorted({k[3] for k in drafts if k[0] == "gemini-4-carbon" and k[2] == who})[0]  # first brief, by rule
         ds = []

@@ -30,7 +30,8 @@ Open models only (Qwen3-8B, Qwen3-32B as a checker and simulated editor, DeBERTa
 | `data/dpo_pairs.jsonl` | `messages`, `chosen` (a simulated edit by Qwen3-32B), `rejected` (the SFT draft); labelled simulated |
 
 The per-draft files (`data/drafts/`, `data/honesty/` and the GRPO log in `data/runs/`) stay private because drafts copy
-real names, addresses and phone numbers from the writers' samples; the note shows redacted drafts only.
+real names, addresses and phone numbers from the writers' samples; the note shows redacted drafts only (names, emails,
+phone numbers and addresses replaced by Episode 1's `privacy.py`).
 
 The run as published differs from the current code in four ways found in code review afterwards, none retrained:
 102 of the 1,763 style-notes examples had a note made partly from their own target text (now each such target gets

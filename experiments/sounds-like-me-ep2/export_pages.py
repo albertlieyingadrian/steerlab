@@ -3,11 +3,14 @@
     python export_pages.py      -> report/data.js (window.SLM2)
 
 Drafts are model text written for synthetic briefs. The real authors are never named: each is "Author A" and so on,
-and any of the author's name parts or initials that a draft copied from the samples are replaced with [name].
+and any of the author's name parts or initials that a draft copied from the samples are replaced with [name], as are
+emails, phone numbers and addresses (Episode 1's privacy.py).
 """
 
 import json
 import re
+
+from privacy import copied_names, redact_contact  # Episode 1's folder, on the path via ep2
 
 from ep2 import RES, authors
 from make_figures import LABEL
@@ -50,11 +53,12 @@ VIEW_ARMS = ["ep1-gemini-edits", "R1_prompt", "R2_harness", "R4_persona", "R3_vo
 
 
 # Hand-reviewed: names the displayed drafts copied from the writers' samples (found by listing capitalised words that
-# appear in the writer's samples but not in the brief, then read by eye).
-EXTRA_NAMES = ["Lauren", "Tamiathen", "James S."]
+# appear in the writer's samples but not in the brief, then read by eye). The list stays in the lab (privacy.py).
+EXTRA_NAMES = copied_names("ep2")
 
 
 def redact(text, author):
+    """The writer's name parts and initials, the hand-found copied names, then emails, phones and addresses."""
     for n in EXTRA_NAMES:
         text = re.sub(rf"\b{re.escape(n)}", "[name]", text)
     parts = [p for p in re.split(r"\W+", author) if len(p) >= 3]
@@ -63,7 +67,7 @@ def redact(text, author):
         text = re.sub(rf"\b{re.escape(p)}\b", "[name]", text, flags=re.IGNORECASE)
     if len(initials) >= 2:
         text = re.sub(rf"\b{re.escape(initials)}\b", "[name]", text, flags=re.IGNORECASE)
-    return text
+    return redact_contact(text)
 
 
 def main():
