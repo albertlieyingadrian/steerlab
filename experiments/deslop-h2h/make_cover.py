@@ -54,7 +54,9 @@ def main() -> None:
     ax.spines["bottom"].set_color(FAINT)
     ax.set_xlabel("chat-assistant habits per 1,000 words (each dot one reply, Qwen3-8B)", fontsize=7.5, color=FAINT)
     fig.text(0.03, 0.93, "MODEL VOICE · EPISODE 3", fontsize=8, color=ACCENT, weight="bold")
-    fig.text(0.03, 0.875, "Every way to remove slop, on the same 48 prompts", fontsize=12.5, color=INK, weight="bold")
+    fig.text(
+        0.03, 0.875, "A de-slop benchmark: every method on the same 48 prompts", fontsize=12.5, color=INK, weight="bold"
+    )
     fig.text(0.965, 0.93, "human band ← 33.6", fontsize=7.5, color=FAINT, ha="right")
     out = HERE / "report" / "figures" / "hero.jpg"
     out.parent.mkdir(parents=True, exist_ok=True)

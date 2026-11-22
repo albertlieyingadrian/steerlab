@@ -219,7 +219,7 @@ def hero():
     ax.grid(axis="x", color=RULE, lw=1)
     ax.set_xlabel("within-writer correlation with the writer's own 1-5 rating of their voice (61 writers)", fontsize=18)
     fig.suptitle(
-        "Does the voice ruler agree with people?", x=0.02, y=0.97, ha="left", fontsize=34, color=INK, fontweight="bold"
+        "Does the voice score agree with people?", x=0.02, y=0.97, ha="left", fontsize=34, color=INK, fontweight="bold"
     )
     fig.text(
         0.02,
@@ -236,6 +236,12 @@ def hero():
     og = Image.new("RGB", (1200, 630), "white")
     og.paste(im.resize((1120, 630)), (40, 0))
     og.save(OUT / "og.jpg", quality=90)
+    # The 720x480 card thumb: a centre crop of the cover, as Episode 2 makes it.
+    w = round(im.height * 720 / 480)
+    thumb = im.crop(((im.width - w) // 2, 0, (im.width - w) // 2 + w, im.height)).resize(
+        (720, 480), Image.Resampling.LANCZOS
+    )
+    thumb.save(HERE.parent / "shared" / "thumbs" / "sounds-like-me-ep4.jpg", quality=84, optimize=True)
     (OUT / "_hero.png").unlink()
 
 

@@ -246,8 +246,8 @@ def main(hero: bool = True) -> None:
     idx.write_text(text[:i] + "\n" + "\n".join(items) + "\n    " + text[j:])
 
     # ---- cover: the matrix as a grid, beside the counts ----
-    body = kicker("THE TASTE STACK · EPISODE 8 (V0)", "AN OPEN BENCHMARK OF TASTE-REWARD HACKS")
-    body += t(20, 62, "39 hacks we caught, and what cheap checks see", 25, 800, INK)
+    body = kicker("THE TASTE STACK · EPISODE 8 (V0)", "AN OPEN BENCHMARK")
+    body += t(20, 62, "39 taste-reward hacks", 25, 800, INK)
     kinds = Counter(r["kind"] for r in out)
     y = 104
     body += t(20, y, "THE 39 ENTRIES", 9.5, 700, MUTED, ls="0.08em")
