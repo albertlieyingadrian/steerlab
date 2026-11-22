@@ -97,7 +97,11 @@ def main() -> None:
             "lab_check": e["lab_check"],
             "source": e["source"],
         }
-        if e["artefacts"]:
+        if e.get("private") and not (HERE / e["artefacts"]["file"]).exists():
+            # the drafts are not published: keep this entry's recorded verdicts instead of rescoring it
+            recorded = json.loads((HERE / "results/detection.json").read_text())["table"]
+            rec = next(t for t in recorded if t["id"] == e["id"])
+        elif e["artefacts"]:
             rows = [json.loads(line) for line in (HERE / e["artefacts"]["file"]).read_text().splitlines()]
             rec["detectors"] = score(e, rows)
             verdicts = [d["verdict"] for d in rec["detectors"].values()]

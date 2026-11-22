@@ -462,17 +462,23 @@ def main() -> None:
             raise SystemExit(f"section #{e['section']} not found in {e['source']}: {e['id']}")
         row = {k: v for k, v in e.items() if k != "artefact"}
         row["link"] = f"{SITE}/{e['source']}/report/" + (f"#{e['section']}" if e.get("section") else "")
-        if e.get("artefact"):
+        if e.get("private") and not (EXP / "sounds-like-me-ep2/data/drafts").exists():
+            # the public repo has no drafts to build from: keep the entry as released
+            released = [json.loads(line) for line in (HERE / "entries.jsonl").read_text().splitlines()]
+            row["artefacts"] = next(r["artefacts"] for r in released if r["id"] == e["id"])
+        elif e.get("artefact"):
             rows, ref, label_source, files = BUILDERS[e["artefact"]]()
             raw = len(rows)
             rows = dedupe(rows)
             for i, r in enumerate(rows):
                 r["entry"], r["row"] = e["id"], i
-            path = HERE / "artefacts" / f"{e['id']}.jsonl"
+            folder = "artefacts/private" if e.get("private") else "artefacts"
+            (HERE / folder).mkdir(exist_ok=True)
+            path = HERE / folder / f"{e['id']}.jsonl"
             path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
             n_h = sum(r["group"] == "hack" for r in rows)
             row["artefacts"] = {
-                "file": f"artefacts/{e['id']}.jsonl",
+                "file": f"{folder}/{e['id']}.jsonl",
                 "n_hack": n_h,
                 "n_clean": len(rows) - n_h,
                 "duplicates_dropped": raw - len(rows),

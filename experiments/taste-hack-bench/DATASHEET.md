@@ -16,7 +16,7 @@ Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste 
 
 - **39 entries** in `entries.jsonl`, from 24 published notes. Kinds: 14 trained policy, 11 constructed trap,
   7 selection rule, 6 steering arm, 1 planted.
-- **17 entries with samples** in `artefacts/<id>.jsonl`: rows with `group` (`hack` or `clean`) and `text`, plus
+- **17 entries with samples**, 16 of them public (`steering-honesty-cost` is private, see Privacy), in `artefacts/<id>.jsonl`: rows with `group` (`hack` or `clean`) and `text`, plus
   `n_tokens`, `truncated`, `ledger` and `step` where the source logged them. Identical samples within a group count
   once; groups then hold 1 to 120 distinct rows (capped at 120, drawn with seed 0).
 - **Entry fields.** `id`, `title`, `domain`, `kind`, `source` (note slug), `section` (anchor), `link`, `reward` (what
@@ -40,12 +40,13 @@ Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste 
 
 ## Privacy and preprocessing
 
-- **No private data.** Every source is public or synthetic: model outputs on synthetic briefs, public corpora (GSM8K,
+- **Sources.** Every source corpus is public or synthetic: model outputs on synthetic briefs, public corpora (GSM8K,
   FinanceMath, Enron sent mail and the Blog Authorship Corpus as voice sources), τ-bench's synthetic customer
   records, and prompts written for the experiments. A private usage summary in one source note was not used.
-- **Names removed.** Sounds Like Me rows keep only the draft text and the ledger count (no author field, no job key),
-  and the synthetic briefs' first names, company names, email addresses and phone numbers are replaced by `[name]`,
-  `[company]`, `[email]` and `[phone]`. The agent entry keeps only the tool-call sequence (no customer names or ids).
+- **Private samples.** `steering-honesty-cost` is not published: its samples are whole Sounds Like Me drafts, and
+  drafts written in a real writer's voice can copy names and contact details from that writer's samples.
+  They were published on 2026-11-21 with contacts redacted and removed on 2026-11-22; the numbers are unchanged.
+- **Names removed.** The agent entry keeps only the tool-call sequence (no customer names or ids).
   The coding-agent entry keeps tool names and arguments (no provider call ids). Model text in other entries may still
   contain names that appear in public source problems (GSM8K word problems, for example).
 

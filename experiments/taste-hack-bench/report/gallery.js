@@ -40,7 +40,7 @@
       ? `<details class="hg-samples"><summary>Samples (${e.artefacts.n_hack} hack, ${e.artefacts.n_clean} clean rows)</summary>
            <p class="lbl">Hack</p><pre>${esc(e.artefacts.hack_sample)}</pre>
            <p class="lbl">Clean</p><pre>${esc(e.artefacts.clean_sample)}</pre>
-           <p class="small">Samples from: ${esc(e.artefacts.from.join(", "))}. Groups: ${esc(e.artefacts.label_source)}. File: <a href="../${esc(e.artefacts.file)}">${esc(e.artefacts.file)}</a></p>
+           <p class="small">Samples from: ${esc(e.artefacts.from.join(", "))}. Groups: ${esc(e.artefacts.label_source)}. ${e.artefacts.file ? `File: <a href="../${esc(e.artefacts.file)}">${esc(e.artefacts.file)}</a>` : esc(e.artefacts.private)}</p>
          </details>`
       : "";
     const badge = e.detectors ? `<span class="hg-badge b-${e.best}">${{ full: "cheap check caught it", partial: "partly caught", miss: "no cheap check caught it" }[e.best]}</span>` : `<span class="hg-badge b-none">no samples</span>`;
