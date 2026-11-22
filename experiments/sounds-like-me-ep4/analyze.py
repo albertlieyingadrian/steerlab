@@ -16,6 +16,7 @@ import numpy as np
 from common4 import HERE, RES, auroc, boot, dump, perm_floor, rm_corr, spearman
 
 PANEL = ["qwen3-32b", "gemma-3-27b", "llama-3.1-8b"]
+P6_NOT_TESTED = "not tested: the human rating arm was replaced at the user's request"
 RATINGS = HERE / "rate" / "ratings" / "sounds-like-me-ep4-ratings.json"
 
 
@@ -388,10 +389,33 @@ def h3(split):
 
 # ---------------------------------------------------------------- the user
 def user():
+    """The author's own blind ratings (n = 1). Not collected: replaced by an LLM stand-in at the user's request."""
+    out = rated(RATINGS)
+    if out["status"] == "pending":
+        out.update(status="not_collected", reason=P6_NOT_TESTED)
+    return out
+
+
+def llm_standin():
+    """An open LLM judge on the same blind pairs, standing in for the author's ratings (user decision 2026-11-22).
+    Not human evidence: reported as its own arm, never merged with the author's."""
+    out = rated(RES / "llm_standin_ratings.json")
+    if out["status"] == "rated":
+        j = J("standin_judge.json")
+        out.update(model=j["model"], check=j["check"], choice_counts=j["choice_counts"], rule=j["rule"])
+        # both orders are judged, so a swapped repeat is the same two prompts as its original: not test-retest
+        # reliability (plan amendment 2). Consistency across the two orders, on the 150 originals, stands in for it.
+        main = [v for k, v in j["pairs"].items() if not k.startswith("r")]
+        out["test_retest"] = None
+        out["both_orders_agree"] = [round(float(np.mean([v["choice"] != "tie" for v in main])), 4), len(main)]
+    return out
+
+
+def rated(path):
     idx = J("user_pairs_index.json")
-    if not RATINGS.exists():
+    if not path.exists():
         return dict(status="pending", n_pairs=idx["n_pairs"])
-    R = json.loads(RATINGS.read_text())
+    R = json.loads(path.read_text())
     if R.get("set_hash") != idx["hash"]:
         raise SystemExit("ratings are for a different pair set")
     S, P = J("scores_local_user.json"), J("scores_pref.json")
@@ -408,11 +432,13 @@ def user():
     rat = R["ratings"]
     main = [p for p in idx["pairs"] if p["repeat_of"] is None and p["pair"] in rat]
     nontie = [p for p in main if rat[p["pair"]]["choice"] in ("a", "b")]
+    flags = [rat[p["pair"]]["machine"] for p in main if rat[p["pair"]]["machine"] is not None]
     out = dict(
         status="rated",
         n_rated=len(main),
         n_ties=len(main) - len(nontie),
-        machine_flag_share=round(float(np.mean([rat[p["pair"]]["machine"] for p in main])), 4) if main else None,
+        # the LLM stand-in gives no "machine-written" flag (None)
+        machine_flag_share=round(float(np.mean(flags)), 4) if flags else None,
         agreement={},
     )
     for name, m in M.items():
@@ -505,28 +531,24 @@ def score(s):
             "<= +0.05",
             bool(d <= 0.05),
         )
-    u = s["user"]
+    u, llm = s["user"], s.get("llm_standin", {})
+    p6 = "The user agrees with LUAR on most pairs"
     if u["status"] == "rated":
         a = u["agreement"]["luar"]
-        add(
-            "P6",
-            "The user agrees with LUAR on most pairs",
-            "user agreement with LUAR, ties excluded",
-            a[0],
-            a[1:],
-            ">= 0.60",
-            bool(a[0] >= 0.60),
-        )
+        add("P6", p6, "user agreement with LUAR, ties excluded", a[0], a[1:], ">= 0.60", bool(a[0] >= 0.60))
     else:
-        add(
-            "P6",
-            "The user agrees with LUAR on most pairs",
-            "user agreement with LUAR, ties excluded",
-            None,
-            None,
-            ">= 0.60",
-            "pending",
-        )
+        # P6 is about a person, so LLM output can never make it a hit or a miss (plan amendment 3)
+        add("P6", p6, "user agreement with LUAR, ties excluded", None, None, ">= 0.60", "not tested")
+        out[-1]["reason"] = P6_NOT_TESTED
+        if llm.get("status") == "rated":
+            a = llm["agreement"]["luar"]
+            out[-1]["exploratory"] = dict(
+                label="exploratory LLM stand-in, not human evidence; not a score of P6",
+                metric="LLM stand-in agreement with LUAR, ties excluded",
+                value=a[0],
+                interval=a[1:],
+                line=0.60,
+            )
     return out
 
 
@@ -536,6 +558,7 @@ def main():
         h2=dict(heldout=h2("heldout"), dev=h2("dev"), gold=h2_gold(), position=h2_position()),
         h3=dict(heldout=h3("heldout"), dev=h3("dev")),
         user=user(),
+        llm_standin=llm_standin(),
     )
     s["user_pairs"] = {k: v for k, v in J("user_pairs_index.json").items() if k != "pairs"}
     dump(RES / "summary.json", s)

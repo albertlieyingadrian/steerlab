@@ -40,11 +40,14 @@ Clone each into `data/raw/<name>/repo` (see `reproduce.sh`).
 | `results/scores_pref.json` | the preference model's check and its score per item |
 | `results/scores_panel_<model>.json` | the panel's expected answer per item (1-5; H2: probability that B is closer, per order and averaged) |
 | `results/summary.json` | every number in the note, per dataset and split |
-| `results/predictions.json` | P1-P6: metric, value, interval, threshold, hit (P6 "pending" until the user has rated) |
+| `results/predictions.json` | P1-P6: metric, value, interval, threshold, hit (P6 "not tested": the human rating arm was replaced at the user's request; the LLM stand-in sits beside it as exploratory) |
 | `results/user_pairs_index.json` | the frozen pair set: ids, writer pseudonyms, briefs, arms, sides, hash (no text) |
 | `results.tsv` | every dev tuning try |
 
 ## The user arm
 
 Open `rate/index.html` locally (run `python user_pairs.py` first). Save the downloaded file as
-`rate/ratings/sounds-like-me-ep4-ratings.json` and rerun `python analyze.py`. Until then the note marks the arm "pending".
+`rate/ratings/sounds-like-me-ep4-ratings.json` and rerun `python analyze.py`.
+
+This arm was not collected: the human rating arm was replaced at the user's request by an LLM stand-in
+(`python rulers_modal.py standin`). The stand-in is exploratory and is not human evidence; P6 is logged as not tested.
