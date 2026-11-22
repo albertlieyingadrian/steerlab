@@ -2,7 +2,8 @@
 
     python data_ep3.py writers  # training writers (disjoint from dev, held-out and floor) -> data/writers.json
     python data_ep3.py build    # content briefs, notes, edit pairs, SFT sets -> data/sft_*.jsonl, data/eval_inputs.json
-    python data_ep3.py briefs       # new synthetic training briefs for RL (none shared with the 30 eval briefs)
+    python data_ep3.py briefs   # 60 RL training briefs: new prospects and sender companies, but Episode 1's offer
+                                # and fact tables, so offers and facts recur from the 30 eval briefs
 
 Every model call is Qwen3-8B through Episode 2's Modal app (vLLM), charged to the series ledger. No OpenRouter.
 SFT example: context from the writer's other texts in one of four formats, a content brief of a held-back target text,
@@ -123,14 +124,21 @@ def build():
     prompts = [[{"role": "user", "content": CBRIEF.format(text=W[k]["texts"][i])}] for k, i in keys]
     outs, _ = run_vllm(prompts, "ep3 content briefs", max_tokens=200)
     cb = {f"{k}|{i}": clean_bullets(o) for (k, i), o in zip(keys, outs, strict=False)}
-    # 2) style notes, one per writer, from its last 8 texts (the note prompt bans topics and names)
-    note_keys = list(W)
+    # 2) style notes, one per writer, from its last 8 texts (the note prompt bans topics and names). A target among
+    # those 8 gets its own note from the last 8 texts without it, keyed "writer|index", so no note has seen its
+    # target (the published run gave those 102 rows the shared note).
+    note_src = {k: W[k]["texts"][-8:] for k in W}
+    for k, p in plan.items():
+        ts = W[k]["texts"]
+        for i in p["targets"]:
+            if i >= len(ts) - 8:
+                note_src[f"{k}|{i}"] = [t for j, t in enumerate(ts) if j != i][-8:]
+    note_keys = list(note_src)
     nprompts = [
-        [{"role": "user", "content": NOTE.format(n=8, samples="\n\n---\n\n".join(W[k]["texts"][-8:]))}]
-        for k in note_keys
+        [{"role": "user", "content": NOTE.format(n=8, samples="\n\n---\n\n".join(note_src[k]))}] for k in note_keys
     ]
     nouts, _ = run_vllm(nprompts, "ep3 style notes", max_tokens=250)
-    notes = dict(zip(note_keys, (o.strip() for o in nouts), strict=False))
+    notes = dict(zip(note_keys, (o.strip() for o in nouts), strict=True))
     # 3) edit pairs: the base model's draft for each pair-source brief, then the writer's real text
     pk = [(k, i) for k, p in plan.items() for i in p["pair_src"]]
     douts, _ = run_vllm(
@@ -149,7 +157,8 @@ def build():
             ctx = rng.sample(others, min(4, len(others)))
             cbrief = cb[f"{k}|{i}"]
             sets["raw"].append(dict(author=k, messages=messages("raw", ctx, cbrief), completion=ts[i]))
-            sets["notes"].append(dict(author=k, messages=messages("notes", notes[k], cbrief), completion=ts[i]))
+            note = notes.get(f"{k}|{i}", notes[k])
+            sets["notes"].append(dict(author=k, messages=messages("notes", note, cbrief), completion=ts[i]))
             sets["edits"].append(dict(author=k, messages=messages("edits", pairs[k], cbrief), completion=ts[i]))
             other = rng.choice([x for x in keys_all if x != k])
             octx = rng.sample(W[other]["texts"], 4)

@@ -3,12 +3,14 @@
 honesty_proxy(text, brief) -> 0 or 1: the cheap in-loop honesty check (never the frozen Qwen3-32B extractor, which stays
     an unseen ruler). Episode 1's rule layer (555 numbers, "Re:" on a cold first email, the sender claiming the
     recipient's news) plus a novelty rule: any phone number, any number not in the brief, or a past-contact phrase when
-    the brief says this is the first contact.
+    the brief says this is the first contact. The plan's novelty rule also named proper nouns not in the brief; this
+    proxy (the one the published run trained on) has no proper-noun check, so an invented name costs nothing.
 copy_flag(text, ctx_texts) -> 0 or 1: Episode 1's copy rule (a 12-word run or 20% of 8-grams shared with the samples).
 rm_ctx(ctx_texts): the voice RM's context string (Episode 2's form: two texts, 110 words each, strict form).
 strict(t): greeting and sign-off stripped, whitespace collapsed (Episode 1's strict form).
 Episode 1's helpers (honesty.rule_flags, score.longest_shared_run, common.strip_greeting_signoff) are copied
-here because the training container has no lab code; tests in train_ep3.py check they agree with the originals.
+here because the training container has no lab code. They were compared with the originals by hand when copied;
+no automated test checks that they still agree, so re-diff them after any change to Episode 1's helpers.
 """
 
 import json
