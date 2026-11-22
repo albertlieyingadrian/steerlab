@@ -300,9 +300,10 @@ def redact(text, author):
     parts = [p for p in re.split(r"\W+", author) if len(p) >= 3 and not p.isdigit()]
     for p in sorted(parts, key=len, reverse=True):
         text = re.sub(rf"\b{re.escape(p)}\b", "[name]", text, flags=re.IGNORECASE)
-    initials = "".join(p[0] for p in parts if p[0].isupper())
-    if len(initials) >= 2:  # sign-offs such as "JMF" (Episode 2's rule)
-        text = re.sub(rf"\b{re.escape(initials)}\b", "[name]", text, flags=re.IGNORECASE)
+    tokens = [t for t in re.split(r"[\s.,]+", author) if t and t[0].isalpha()]
+    for initials in {"".join(p[0] for p in parts if p[0].isupper()), "".join(t[0].upper() for t in tokens)}:
+        if len(initials) >= 2:  # sign-offs made of the writer's initials, with or without a middle initial
+            text = re.sub(rf"\b{re.escape(initials)}\b", "[name]", text, flags=re.IGNORECASE)
     return redact_contact(text)
 
 
