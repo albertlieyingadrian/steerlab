@@ -1,6 +1,6 @@
 """The Edit room: concept edits in the weights (mirror, project out, amplify along an axis), with their controls.
 
-    GET    /api/edit/info               model shape, whether edits are exact here, the example edit, the edit list
+    GET    /api/edit/info               model id and its Units-room slug, shape, exactness, the example, the edit list
     POST   /api/edit/units              {axis, units}            the units an edit would touch, with their loadings
     POST   /api/edit/compare            {axis, units, k, ...}    before / after / random axis / random units
     POST   /api/edit/restore            weights back and checked: logits bit-identical to the startup fingerprint
@@ -307,13 +307,14 @@ def register(app: FastAPI, ctx: RoomContext) -> None:
 
     @app.get("/api/edit/info")
     def info() -> dict[str, Any]:
-        from steerlab.edits.reflection import lens_available
+        from steerlab.edits.reflection import lens_available, model_slug
 
         def compute() -> dict[str, Any]:
             s = room()
             arch = s.editor.arch
             return {
                 "model": ctx.model_id,
+                "slug": model_slug(ctx.model_id),  # how the Units room names it (its ?model= links)
                 "family": arch.family,
                 "n_layers": arch.n_layers,
                 "n_heads": arch.n_heads,

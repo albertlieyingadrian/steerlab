@@ -126,3 +126,15 @@ def test_trace_runs_under_the_shared_list(client: TestClient, inspector: Inspect
     rid = client.get("/api/edit/stack").json()["stack"][0]["id"]
     client.post(f"/api/edit/stack/{rid}/toggle")
     assert client.post("/api/run", json={"text": "hello wor"}).json() == plain  # off again: identical
+
+
+def test_the_units_room_basket_link(client: TestClient) -> None:
+    """The Units room opens /edit?model=<slug>&units=L1/n4+,L0/h2; the page puts those ids in the unit list, compares
+    `model` with `slug`, and the backend parses them as they come."""
+    assert client.get("/edit?model=tiny-random-qwen2&units=L1%2Fn4%2B,L0%2Fh2").status_code == 200
+    info = client.get("/api/edit/info").json()
+    assert info["slug"] == "tiny-random-qwen2"
+    sent = ["L1/n4+", "L0/h2", "L1/n9-"]  # the basket link, split on commas
+    units = client.post("/api/edit/units", json={"axis": AXIS, "units": {"selection": "ids", "ids": sent}}).json()
+    assert units["ids"] == ["L1.N4", "L1.N9", "L0.H2"]
+    assert units["links"][0]["href"] == "/units/tiny-random-qwen2/L1/n4+"
