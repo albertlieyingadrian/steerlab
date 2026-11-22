@@ -3,10 +3,12 @@
  * Orange = the edit's effect, fader blue = the controls you set, grey = random controls. Model text goes in with
  * textContent (api.el) only.
  * Keys (in this room, not while typing): c compare · x load the example · r restore · a add to the edit list.
- * Deep link: /edit?example=1 loads the mother ↔ father example; &run=1 also compares.
+ * Deep links: /edit?example=1 loads the mother ↔ father example (&run=1 also compares); /edit?model=<slug>&units=
+ * L8/n344+,L3/h5 (what the Units room's basket sends) puts those units in the unit list.
  */
 let alive = false;
 let keyHandler = null;
+let applyRoute = null;
 const S = { info: null, result: null, stack: [], busy: false };
 
 const fmt = (v, d = 2) => (v === null || v === undefined || Number.isNaN(v) ? "–" : Number(v).toFixed(d));
@@ -422,14 +424,37 @@ export async function mount(root, api, route) {
   F.per.max = String(i.d_mlp);
   S.stack = i.stack;
   renderStack();
-  if (route?.params?.get("example")) {
-    loadExample();
-    if (route.params.get("run")) compare();
-  }
+  applyRoute = (r) => {
+    const params = r?.params;
+    if (!params) return;
+    if (params.get("example")) {
+      loadExample();
+      if (params.get("run")) compare();
+    }
+    const ids = (params.get("units") || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!ids.length) return;
+    F.selection.value = "ids";
+    F.ids.value = ids.join("\n");
+    syncSel();
+    const from = params.get("model");
+    if (from && from !== S.info.slug && from !== S.info.model) {
+      say(`${ids.length === 1 ? "This unit comes" : `These ${ids.length} units come`} from ${from}, but the loaded model is ${S.info.model} (${S.info.slug}). `
+        + `Restart with that model to edit them here.`, true);
+      return;
+    }
+    say(`${ids.length} unit${ids.length === 1 ? "" : "s"} from the Units room are in the unit list. Pick an axis, then Preview units or Compare.`);
+    if (parsePairs(F.pairs.value).length) previewUnits();
+  };
+  applyRoute(route);
+}
+
+export function update(route) {
+  if (applyRoute) applyRoute(route);
 }
 
 export function unmount() {
   alive = false;
+  applyRoute = null;
   if (keyHandler) document.removeEventListener("keydown", keyHandler);
   keyHandler = null;
 }
