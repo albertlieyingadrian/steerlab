@@ -26,3 +26,11 @@ run "$PY analyze.py"
 run "$PY opener.py"                                                     # exploratory: agreeing openers
 run "$PY make_figures.py"
 run "$PY make_cover.py"
+# Amendment 1 (pre-registered follow-up)
+run "$PY make_heldout.py fresh && $PY screen.py confirm"                 # fresh confirmation items
+run "MODAL_PROFILE=albertlieyingadrian modal run modal_app.py --stage confirm" # alpha = +/-2 and 5 new random directions
+run "MODAL_PROFILE=albertlieyingadrian modal run modal_app.py --stage opgen"   # Qwen3-1.7B writes its own replies
+run "$PY build_sft.py onpolicy"
+run "MODAL_PROFILE=albertlieyingadrian modal run modal_app.py --stage optrain" # easy_op, hard_op: train + test
+run "$PY judge.py submit && $PY judge.py collect"
+run "$PY analyze_amendment.py"
