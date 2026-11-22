@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Reproduce every number in the note "An open benchmark of taste-reward hacks (v0)".
+# Reproduce every number in the note "39 taste-reward hacks".
 # Free: CPU only, about a minute, no model or API calls. Run from the repository root.
 # --dry-run prints the commands without running them.
 set -e
