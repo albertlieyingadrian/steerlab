@@ -220,7 +220,10 @@ def matched_cut():
     """Length check, version two (added after review): every Episode 1 contestant's draft is cut to the word count of
     Inkling's draft for the same job (strict form), so both sides carry the same length; Inkling stays uncut."""
     A = {a["author"]: a for a in authors()["authors"]}
-    ink = {r["job"]: len(strict(r["text"]).split()) for r in complete_rows(HERE / "data" / "drafts" / "inkling-2-mini__heldout.jsonl")}
+    ink = {
+        r["job"]: len(strict(r["text"]).split())
+        for r in complete_rows(HERE / "data" / "drafts" / "inkling-2-mini__heldout.jsonl")
+    }
     profile, out = {}, {}
     for m in EP1_MODELS:
         d = json.loads((EP1 / "data" / "scored" / f"{m}__heldout.json").read_text())

@@ -81,7 +81,9 @@ def settle(reserved, usd, note):
         _reserved[0] -= reserved
         LEDGER.parent.mkdir(parents=True, exist_ok=True)
         with LEDGER.open("a") as fh:
-            fh.write(json.dumps({"t": time.time(), "provider": "openrouter", "usd": round(usd, 7), "note": note}) + "\n")
+            fh.write(
+                json.dumps({"t": time.time(), "provider": "openrouter", "usd": round(usd, 7), "note": note}) + "\n"
+            )
 
 
 def post(body, key, worst, note):
@@ -107,10 +109,14 @@ def post(body, key, worst, note):
             if 400 <= e.code < 500 and e.code != 429:
                 settle(worst, 0.0, f"{note} ({e.code}, rejected before generation)")
                 return {"error": err}
-        except Exception as e:  # noqa: BLE001 -- timeouts, dropped connections, bad JSON: the provider may still have billed
+        except Exception as e:  # timeouts, dropped connections, bad JSON: the provider may still have billed
             err = f"{type(e).__name__}: {e}"
         cost = (r or {}).get("usage", {}).get("cost") if r else None
-        settle(worst, float(cost) if cost is not None else worst, note + ("" if cost is not None else " (cost unknown: reservation charged)"))
+        settle(
+            worst,
+            float(cost) if cost is not None else worst,
+            note + ("" if cost is not None else " (cost unknown: reservation charged)"),
+        )
         if r is not None and "error" not in r:
             return r
         last = err or json.dumps(r.get("error"))[:300]
