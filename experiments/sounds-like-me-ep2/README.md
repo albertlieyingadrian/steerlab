@@ -1,4 +1,4 @@
-# Sounds Like Me, Episode 2: a harness on an unverifiable reward
+# Sounds Like Me, Episode 2: Can a harness make a model sound like you?
 
 The note: [report/index.html](report/index.html). Episode 1 (benchmark, rulers, voice vectors): [../sounds-like-me/](../sounds-like-me/).
 This folder reuses Episode 1's data, writers, briefs and rulers (imported from `../sounds-like-me`, never copied).

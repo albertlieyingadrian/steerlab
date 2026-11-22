@@ -1,4 +1,4 @@
-# Every way to remove slop, on the same 48 prompts (Model voice, Episode 3)
+# A de-slop benchmark: every method on the same 48 prompts (Model voice, Episode 3)
 
 The note: [report/index.html](report/index.html). Episode 1: [../deslop/](../deslop/) (methods on Qwen3-4B), Episode 2:
 [../slop-detector/](../slop-detector/) (the 9B detector used here). Steering units come from
