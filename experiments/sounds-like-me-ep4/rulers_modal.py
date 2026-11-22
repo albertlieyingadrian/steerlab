@@ -240,8 +240,139 @@ def panel(pilot=False):
     print(f"panel ${usd:.2f} ({time.time() - t0:.0f}s wall)")
 
 
+# ---------------------------------------------------------------- LLM stand-in for the author's blind ratings
+# strong, open, not in the panel (user decision 2026-11-22). The AWQ build fits one H100; the bf16 build did not run
+# (switched before any output was seen; prompts, pairs, rule and threshold unchanged)
+STANDIN = "Qwen/Qwen2.5-72B-Instruct-AWQ"
+STANDIN_MAX_LEN = 4096  # the longest prompt is 2,056 tokens
+
+
+def p_pair(refs, a, b):
+    """The rating page's question: the writer's emails, then two drafts, all redacted as on the page (the page also
+    collapses runs of blank lines when it displays an email; the prompt keeps them)."""
+    blocks = "\n\n".join(f"<email{i + 1}>\n{t.strip()}\n</email{i + 1}>" for i, t in enumerate(refs))
+    return (
+        f"Here are {len(refs)} real emails by one writer:\n\n{blocks}\n\nTwo drafts were written for the same "
+        f"made-up sales brief.\n\n<A>\n{a.strip()}\n</A>\n\n<B>\n{b.strip()}\n</B>\n\n"
+        "Which draft sounds more like this writer: their word choice, rhythm, punctuation and tone? Ignore whether "
+        "the sales pitch is good. Answer with one letter: A or B."
+    )
+
+
+def p_voice_pair(refs, a, b):
+    """Known-answer version of the pair question on H1: the writer's other unassisted text as the reference."""
+    blocks = "\n\n".join(f"<text{i + 1}>\n{t.strip()}\n</text{i + 1}>" for i, t in enumerate(refs))
+    return (
+        f"Here are {len(refs)} texts by one writer:\n\n{blocks}\n\n<A>\n{a.strip()}\n</A>\n\n<B>\n{b.strip()}\n</B>\n\n"
+        "Which text, A or B, sounds more like this writer: their word choice, rhythm, punctuation and tone? Ignore "
+        "what it is about. Answer with one letter: A or B."
+    )
+
+
+def standin(smoke=False):
+    """The frozen 150 + 10 blind pairs through one open judge, each in both orders (sides as on the page, then
+    swapped). The pick is the side with P > 0.5 averaged over both orders; when the two orders pick different sides
+    the answer is 'tie' (the page's 'can't tell'), since the pick then follows position, not the drafts.
+    Known-answer checks, as for the panel: H1 own vs other text (pairwise, same reference) and H2's test triplets.
+    smoke: a few pairs plus the longest prompt; prints operational counts only (never an answer) and saves nothing."""
+    import modal
+
+    L1, T1, L2, X2, _L3, _T3, U = load()
+    refs = h1_refs(L1)
+    jobs = []  # (kind, key, order, prompt)
+    for p in U:
+        r3 = p["refs"]  # the rating page's three emails, with user_pairs.redact already applied (amendment 2)
+        jobs.append(("pair", p["pair"], 1, p_pair(r3, p["a"], p["b"])))
+        jobs.append(("pair", p["pair"], 2, p_pair(r3, p["b"], p["a"])))
+    ka = h1_known_answer(refs)
+    for k in ka:
+        R, own, oth = [T1[u] for u in k["ref"]], T1[k["own"]], T1[k["other"]]
+        jobs.append(("ka", k["own"], 1, p_voice_pair(R, own, oth)))
+        jobs.append(("ka", k["own"], 2, p_voice_pair(R, oth, own)))
+    gold = [t for t in L2 if t["golden"] and t["gold"]]
+    for t in gold:
+        A, Bx, Cx = X2[t["a"]], X2[t["b"]], X2[t["c"]]
+        jobs.append(("gold", t["tri"], 1, p_triplet(A, Bx, Cx)))
+        jobs.append(("gold", t["tri"], 2, p_triplet(A, Cx, Bx)))
+    print(len(jobs), "prompts")
+    if smoke:
+        longest = max(jobs, key=lambda j: len(j[3]))
+        jobs = [*jobs[:10], longest]
+    modal_guard(3.5)  # the judge's 45-minute timeout on one H100
+    t0 = time.time()
+    r = modal.Function.from_name("slm-ep4", "judge").remote(
+        dict(model=STANDIN, prompts=[j[3] for j in jobs], choices=["A", "B", "C"], max_model_len=STANDIN_MAX_LEN)
+    )
+    what = "smoke test" if smoke else "judge"
+    usd = charge_modal(r["seconds"] + 60, f"stand-in {what} {STANDIN} {len(jobs)} prompts")
+    if smoke:
+        found = sum(any(c in lp for c in ("A", "B", "C")) for lp in r["logprobs"])
+        print(f"smoke: answered {found}/{len(jobs)}, truncated {r['truncated']}, {r['seconds']}s, ${usd:.2f}")
+        return
+    first = {}  # (kind, key, order) -> P(the first-listed option)
+    missing = 0
+    for (kind, key, order, _), lp in zip(jobs, r["logprobs"]):
+        v = expected(lp, ["B", "C"] if kind == "gold" else ["A", "B"], [1.0, 0.0])
+        if v is None:
+            missing += 1
+            continue
+        first[(kind, key, order)] = v
+    pairs = {}
+    for p in U:
+        o1, o2 = first.get(("pair", p["pair"], 1)), first.get(("pair", p["pair"], 2))
+        if o1 is None or o2 is None:
+            continue
+        pa2 = 1 - o2  # order 2 lists the page's B first
+        pa = (o1 + pa2) / 2
+        choice = "tie" if (o1 > 0.5) != (pa2 > 0.5) else ("a" if pa > 0.5 else "b")
+        pairs[p["pair"]] = dict(p_a=round(pa, 4), order1=round(o1, 4), order2_pa=round(pa2, 4), choice=choice)
+
+    def both(kind, keys, right_first):
+        ok = [k for k in keys if (kind, k, 1) in first and (kind, k, 2) in first]
+        hits = [
+            ((first[(kind, k, 1)] > 0.5) == right_first(k)) and ((first[(kind, k, 2)] > 0.5) != right_first(k))
+            for k in ok
+        ]
+        pos = [first[(kind, k, o)] > 0.5 for k in ok for o in (1, 2)]
+        return dict(
+            right_both_orders=round(float(np.mean(hits)), 4),
+            first_position_rate=round(float(np.mean(pos)), 4),
+            n=len(ok),
+        )
+
+    gl = {t["tri"]: t["gold"] for t in gold}
+    check = dict(
+        h1_own_vs_other=both("ka", [k["own"] for k in ka], lambda k: True),
+        h2_gold=both("gold", list(gl), lambda k: gl[k] == "b"),
+    )
+    for name, bar in (("h1_own_vs_other", 0.65), ("h2_gold", 0.80)):
+        check[name].update(pass_bar=bar, passed=check[name]["right_both_orders"] >= bar)
+    ch = [v["choice"] for v in pairs.values()]
+    out = dict(
+        model=STANDIN,
+        quantisation="AWQ 4-bit (changed from bf16 before any output was seen)",
+        max_model_len=STANDIN_MAX_LEN,
+        role="LLM stand-in for the author's blind ratings (user decision 2026-11-22); not human evidence",
+        rule="each pair in both orders; pick = mean P > 0.5; the two orders disagree -> tie",
+        check=check,
+        n_missing=missing,
+        truncated=r["truncated"],
+        seconds=r["seconds"],
+        usd=round(usd, 3),
+        choice_counts={c: ch.count(c) for c in ("a", "b", "tie")},
+        pairs=pairs,
+    )
+    dump(RES / "standin_judge.json", out)
+    idx = json.loads((RES / "user_pairs_index.json").read_text())
+    ratings = {k: dict(choice=v["choice"], machine=None) for k, v in pairs.items()}
+    dump(RES / "llm_standin_ratings.json", dict(set_hash=idx["hash"], rater=f"llm-standin:{STANDIN}", ratings=ratings))
+    print({k: v for k, v in out.items() if k != "pairs"}, f"${usd:.2f} ({time.time() - t0:.0f}s)")
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "pref":
         pref()
     elif sys.argv[1] == "panel":
         panel(pilot="--pilot" in sys.argv)
+    elif sys.argv[1] == "standin":
+        standin(smoke="--smoke" in sys.argv)

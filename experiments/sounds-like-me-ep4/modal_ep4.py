@@ -26,7 +26,20 @@ image = (
 )
 
 
-@app.function(image=image, gpu="H100", secrets=[hf], volumes={"/cache": cache}, timeout=2 * 60 * 60)
+@app.function(image=image, cpu=4, memory=8192, secrets=[hf], volumes={"/cache": cache}, timeout=3 * 60 * 60)
+def prefetch(repo: str) -> dict:
+    """Download a model into the shared volume on a CPU container, so no GPU is billed while it downloads.
+    (The first AWQ smoke test spent its 45 GPU minutes downloading 28 of 41.6 GB.)"""
+    from huggingface_hub import snapshot_download
+
+    t0 = time.time()
+    path = snapshot_download(repo, allow_patterns=["*.json", "*.safetensors", "*.txt", "*.model", "*.tiktoken"])
+    cache.commit()
+    return {"path": path, "seconds": round(time.time() - t0, 1)}
+
+
+# 45-minute timeout: about $3.30 of H100 at worst per call, so a hung run stays inside the episode's $20 cap
+@app.function(image=image, gpu="H100", secrets=[hf], volumes={"/cache": cache}, timeout=45 * 60)
 def judge(payload: dict) -> dict:
     """payload: {model, prompts: [user message], choices: [answer strings], max_model_len}."""
     from vllm import LLM, SamplingParams
