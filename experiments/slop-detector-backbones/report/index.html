@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slop detector backbones: on the same data, no other base beats Qwen3.5-9B, and the gap opens off-domain</title>
+<meta name="description" content="Pre-registered bake-off on the slop-detector note's data and recipe: Mistral-NeMo-12B, Llama-3.1-8B, ModernBERT-large and DeBERTa-v3-large all trail Qwen3.5-9B on 6,000 fresh EditLens texts (0.884, 0.881, 0.831, 0.825 against 0.909), and on Enron emails the LLM backbones call half of fully AI-written emails merely AI-edited.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Slop detector backbones: on the same data, no other base beats Qwen3.5-9B, and the gap opens off-domain">
+<meta property="og:description" content="Pre-registered bake-off on the slop-detector note&#x27;s data, recipe and tests: Mistral-NeMo-12B, Llama-3.1-8B, ModernBERT-large and DeBERTa-v3-large each took one look at 6,000 fresh EditLens texts and all trail Qwen3.5-9B (0.884, 0.881, 0.831, 0.825 against 0.909). On Enron emails the LLM backbones still tell human from AI (AUROC 0.985) but call about half of fully AI-written emails merely AI-edited.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Vertical bar chart of calibrated 3-way macro-F1 on 6,000 fresh EditLens texts: DeBERTa-v3-large 0.825, ModernBERT-large 0.831, Llama-3.1-8B 0.881, Mistral-NeMo-12B 0.884 in orange; Qwen3.5-4B 0.899 and Qwen3.5-9B 0.909 in blue.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Slop detector backbones: on the same data, no other base beats Qwen3.5-9B, and the gap opens off-domain">
+<meta name="twitter:description" content="Pre-registered bake-off on the slop-detector note&#x27;s data, recipe and tests: Mistral-NeMo-12B, Llama-3.1-8B, ModernBERT-large and DeBERTa-v3-large each took one look at 6,000 fresh EditLens texts and all trail Qwen3.5-9B (0.884, 0.881, 0.831, 0.825 against 0.909). On Enron emails the LLM backbones still tell human from AI (AUROC 0.985) but call about half of fully AI-written emails merely AI-edited.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-22">
+<meta property="article:modified_time" content="2026-11-22">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Slop detector backbones: on the same data, no other base beats Qwen3.5-9B, and the gap opens off-domain",
+ "description": "Pre-registered bake-off on the slop-detector note's data, recipe and tests: Mistral-NeMo-12B, Llama-3.1-8B, ModernBERT-large and DeBERTa-v3-large each took one look at 6,000 fresh EditLens texts and all trail Qwen3.5-9B (0.884, 0.881, 0.831, 0.825 against 0.909). On Enron emails the LLM backbones still tell human from AI (AUROC 0.985) but call about half of fully AI-written emails merely AI-edited.",
+ "abstract": "Model voice, Episode 4. Same data v2 with 4 buckets (79,120 rows), the same trainer (04_train.py, LoRA r 16 for LLMs, full fine-tune for encoders), 2 epochs, learning rate chosen per arm on validation only (Mistral 4e-4, Llama 2e-4, encoders 2e-5). Fresh test, calibrated 3-way macro-F1, paired against Qwen3.5-9B (0.909): Mistral-NeMo-12B 0.884 (-0.025 [-0.031, -0.019]), Llama-3.1-8B 0.881 (-0.028 [-0.034, -0.021]), ModernBERT-large 0.831 (-0.077), DeBERTa-v3-large 0.825 (-0.084); Qwen3.5-4B 0.899. Fixed cut-offs give the same order. Enron (unseen domain): Qwen3.5-9B 0.878, DeBERTa 0.808, Llama 0.774, Mistral 0.750, ModernBERT 0.660; AUROC 0.984-0.985 for the three LLMs, but fully AI-generated emails called AI-edited: Qwen3.5-9B 17.5%, Llama 49.6%, Mistral 54.1%, ModernBERT 70.7%. Llama-written text: 0.925 vs 0.902 for both new LLMs; no own-family gain for Llama. Qwen-ness check on data v2's test split: every detector misses Qwen-written text less than other AI text, and the Qwen detector's gap is the smallest (2.8 points vs 4.6-4.7). Epoch AI style imitations missed: 7 (Qwen3.5-9B), 27, 34, 48, 36 of 297. Training cost on one H100: Llama $7.2, Mistral $10.4, DeBERTa $1.3, ModernBERT $0.8; the bake-off used $29 of Modal time. Caveat: the data and recipe were developed on Qwen. Predictions 3 of 5 hit.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-22",
+ "dateModified": "2026-11-22",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI text detection, AI-edited text, backbone comparison, DeBERTa-v3, EditLens, Enron, Epoch AI, fresh test set, Llama-3.1-8B, LoRA, Mistral NeMo, ModernBERT, out of distribution, paired bootstrap, pre-registration, Qwen3.5-9B, sequence classification, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.03154"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://aclanthology.org/2025.genaidetect-1.40.pdf"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2601.20006"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.01702"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-22">Nov 22, 2026</time></p>
+  <h1>Slop detector backbones: on the same data, no other base beats Qwen3.5-9B, and the gap opens off-domain</h1>
+  <p class="dek ruled">Published AI-text detectors are built on Mistral, Llama and small encoders, and our slop detector was built on Qwen alone. With the data, recipe and tests held fixed, four other backbones each took one look at 6,000 fresh EditLens texts. All four trail Qwen3.5-9B. The biggest gap is on emails: the LLM backbones still tell human from AI, but they call about half of fully AI-written emails merely “AI-edited”.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Vertical bar chart on a cream background of 3-way macro-F1 on 6,000 fresh EditLens texts, calibrated cut-offs, axis starting at 0.80 with the break marked. Orange, the four new backbones: DeBERTa-v3-large 0.825, ModernBERT-large 0.831, Llama-3.1-8B 0.881, Mistral-NeMo-12B 0.884. Blue, the slop-detector note's references: Qwen3.5-4B 0.899, Qwen3.5-9B 0.909.">
+    <figcaption>Cover: the one look at the fresh test (6,000 texts from EditLens’s train split, 2,000 per class, frozen in the slop-detector note before any model here trained). 3-way macro-F1 with each arm’s two cut-offs fitted on EditLens validation. Orange: the four backbones trained here; blue: the earlier note’s Qwen runs, not retrained. Intervals and the fixed cut-off arm are in Figure 1.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Mistral-NeMo-Base-2407 (12B) and Llama-3.1-8B with LoRA; ModernBERT-large and DeBERTa-v3-large, full fine-tune; references Qwen3.5-9B and Qwen3.5-4B from the <a href="../../slop-detector/report/">slop-detector note</a></dd></div>
+    <div><dt>Data</dt><dd>The slop-detector note’s data v2 with 4 buckets (79,120 training rows); benchmarks EditLens (test, Enron, Llama, fresh), Human Detectors and Epoch AI, test only</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/slop-detector-backbones/</a>, importing the slop-detector note’s trainer and metrics</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/bakeoff.json">results/bakeoff.json</a> (every number below), <a href="../results/lr_choice.json">results/lr_choice.json</a>, <a href="../results/spend.jsonl">results/spend.jsonl</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Would the slop detector have been better on the backbone published detectors use?</strong></p>
+    <p>Not on our data. With everything else fixed, Mistral-NeMo-12B (Pangram’s production backbone) and Llama-3.1-8B each trail Qwen3.5-9B by about 0.03 macro-F1 on 6,000 fresh EditLens texts, and two 0.4B encoders trail by about 0.08. All four tell human from AI text nearly as well (AUROC 0.946–0.968 against 0.972). What they lose is the middle of the scale. On Enron emails, Mistral and Llama call 54% and 50% of fully AI-written emails “AI-edited”, against 17.5% for Qwen3.5-9B. A Qwen detector did not favour Qwen-written text, and a Llama detector did not favour Llama-written text. One caution: the data and recipe were built while training Qwen, so this is a comparison on Qwen’s home ground.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does another backbone beat Qwen3.5-9B on the fresh test (one look per arm)?</td><td>No. Mistral-NeMo-12B 0.884, −0.025 [−0.031, −0.019]; Llama-3.1-8B 0.881, −0.028 [−0.034, −0.021]; ModernBERT-large 0.831, −0.077; DeBERTa-v3-large 0.825, −0.084</td><td>Qwen3.5-9B 0.909 [0.901, 0.916] (calibrated); Qwen3.5-4B 0.899</td></tr>
+          <tr><td>Out of distribution: Enron emails (unseen domain)</td><td>The gap widens: Llama 0.774 (−0.104), Mistral 0.750 (−0.128), DeBERTa 0.808 (−0.070), ModernBERT 0.660 (−0.218)</td><td>Qwen3.5-9B 0.878</td></tr>
+          <tr><td>What is lost on Enron?</td><td>Not detection: AUROC (human vs any AI) 0.985 for Llama and Mistral. Fully AI-generated emails called “AI-edited”: Mistral 54.1%, Llama 49.6%, ModernBERT 70.7%</td><td>Qwen3.5-9B: AUROC 0.984, 17.5% called edited</td></tr>
+          <tr><td>Out of distribution: Llama-written text (unseen generator)</td><td>Mistral 0.902, Llama 0.902, ModernBERT 0.850, DeBERTa 0.834. No own-family gain for the Llama detector (P5 missed)</td><td>Qwen3.5-9B 0.925</td></tr>
+          <tr><td>Does a Qwen detector learn “Qwen-ness” (data v2 is 27% Qwen-written AI text)?</td><td>No. Every detector misses Qwen text less than other AI text; Qwen3.5-9B’s gap is the smallest (2.8 points, against 4.6–4.7 for Mistral and Llama)</td><td>P4: within ±2 points of the non-Qwen LLMs, hit (−1.9)</td></tr>
+          <tr><td>Style imitations (Epoch AI) and human flags at a 1%-of-our-humans cut</td><td>Imitations missed: Mistral 27/297, Llama 34, ModernBERT 48, DeBERTa 36. Human Detectors humans flagged: 7, 9, 16, 4 of 150</td><td>Qwen3.5-9B: 7/297 missed, 3/150 flagged</td></tr>
+          <tr><td>Cost</td><td>Training on one H100: Llama $7.2 (1.8 h), Mistral $10.4 (2.5 h), DeBERTa $1.3, ModernBERT $0.8. Scoring: 2–3 s per 1,000 texts for the encoders, 18–26 s for the LLMs</td><td>The whole bake-off: $29 of Modal time</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask a chatbot to write a sales email from scratch and a good AI-text detector should say “AI-generated”. Ask it to fix the grammar in an email you wrote and the detector should say “AI-edited”, or nearly human. Our slop detector, a Qwen3.5-9B trained in the <a href="../../slop-detector/report/">slop-detector note</a>, puts every text on that scale. This note asks whether the base model under it was the right choice.</p>
+  <p><strong>What is known.</strong> Most published detectors are not built on Qwen. EditLens, the benchmark we score on, found its best model on a Mistral Small 24B backbone, and Pangram’s production detector is a Mistral NeMo 12B with LoRA (<a href="https://arxiv.org/abs/2510.03154">EditLens</a>; <a href="https://aclanthology.org/2025.genaidetect-1.40.pdf">Pangram at GenAI Detection Task 3</a>). A 16-model comparison found Llama and Mistral the strongest families for per-family detection and Qwen the weakest (<a href="https://arxiv.org/abs/2601.20006">arXiv 2601.20006</a>). Small encoders win shared tasks: a DeBERTa-v3-base won the COLING 2025 English track.</p>
+  <p><strong>What is missing.</strong> Those comparisons change the data along with the backbone, or test only in distribution, where every backbone scores about the same. Our note trained only Qwen. Its data was also partly written by Qwen models, so a Qwen detector might partly be spotting “Qwen-ness” rather than AI writing.</p>
+  <p class="question-callout">With the data, recipe and tests held fixed, does another backbone make a better slop detector than Qwen3.5-9B?</p>
+  <p><strong>What this note does.</strong> It trains four other backbones on the same data with the same recipe, picks each one’s learning rate on validation only, and scores each once on the same frozen fresh test. Its contributions:</p>
+  <ol>
+    <li>A controlled backbone comparison: two LLMs from the families the literature favours and two encoders, against the Qwen references, on identical rows with paired intervals.</li>
+    <li>A finding about where backbones differ: not in telling human from AI, but in placing AI text on the edited-to-generated scale, which breaks on an unseen domain.</li>
+    <li>A check of the “Qwen-ness” worry: a split of our own test set by which model wrote the AI text.</li>
+    <li>Costs per arm, and code that adds a backbone in one table row.</li>
+  </ol>
+  <p>Success, fixed before any held-out score in a pre-registered plan: (1) the references reproduce the earlier note’s numbers on our scoring; (2) every arm sees the same training rows and is scored on the same test rows; (3) no test text is tuned on, and the fresh set is looked at once per arm; (4) “beats” or “trails” is claimed only when the paired 95% interval excludes zero.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="task" data-short="Task and labels">2.1 The task and the labels</h3>
+  <p>A detector reads the first 512 tokens of a text and gives a score from 0 (human) to 1 (AI-generated). Two cut-offs turn the score into three classes: <em>human</em>, <em>AI-edited</em> (a person wrote it, an LLM changed it) and <em>AI-generated</em>. The score is the expected class of a 4-bucket head (buckets 0–3, divided by 3), trained with cross-entropy on data v2 relabelled by how each text was made, exactly as the earlier note’s final model.</p>
+  <p>The <strong>macro-F1</strong> score averages the per-class F1 over the three classes, so a detector that confuses edited and generated text loses as much as one that confuses human and AI. <strong>AUROC</strong> asks only the yes/no question: the chance a random AI text (edited or generated) scores above a random human one.</p>
+
+  <h3 id="arms" data-short="The arms">2.2 The arms</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Base</th><th class="num">Parameters</th><th>Recipe</th><th class="num">Chosen lr</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen3.5-9B (reference)</td><td>the earlier note’s final run, not retrained</td><td class="num">9B</td><td>LoRA r 16, bf16</td><td class="num">2e-4</td></tr>
+        <tr><td>Qwen3.5-4B (reference)</td><td>the earlier note’s 4B run, not retrained</td><td class="num">4B</td><td>LoRA r 16, bf16</td><td class="num">2e-4</td></tr>
+        <tr><td>Mistral-NeMo-12B</td><td><code>mistralai/Mistral-Nemo-Base-2407</code></td><td class="num">12.2B</td><td>LoRA r 16 on attention and MLP, head in full, bf16</td><td class="num">4e-4</td></tr>
+        <tr><td>Llama-3.1-8B</td><td><code>meta-llama/Llama-3.1-8B</code> (base)</td><td class="num">8.0B</td><td>same</td><td class="num">2e-4</td></tr>
+        <tr><td>ModernBERT-large</td><td><code>answerdotai/ModernBERT-large</code></td><td class="num">0.40B</td><td>full fine-tune, fp32 weights, bf16 compute</td><td class="num">2e-5</td></tr>
+        <tr><td>DeBERTa-v3-large</td><td><code>microsoft/deberta-v3-large</code></td><td class="num">0.44B</td><td>same</td><td class="num">2e-5</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Shared by every arm: the 79,120 training rows, 512 tokens with fenced code emptied, batches of at least 64 rows, a cosine schedule with 3% warm-up, 2 epochs and seed 0. The trainer is the earlier note’s <code>04_train.py</code>, imported unchanged; only the model loader differs for the full fine-tunes.</p>
+
+  <h3 id="tests" data-short="Tests">2.3 Tests</h3>
+  <p>All test only, never trained or tuned on: <strong>EditLens test</strong> (6,115 texts, in distribution), <strong>Enron</strong> (6,147 emails, an unseen domain), <strong>Llama</strong> (5,957 texts from an unseen generator), the <strong>fresh set</strong> (6,000 texts frozen in the earlier note, the headline), <strong>Human Detectors</strong> (150 human and 150 AI articles) and <strong>Epoch AI</strong> (495 human passages, 297 plain AI passages and 297 written to imitate a person). For the generator-family check we split data v2’s own test split (9,650 rows) by which model wrote each AI text.</p>
+  <p>Cut-offs come two ways, as in the earlier note: <strong>fixed</strong> at the bucket head’s 1/6 and 5/6, and <strong>calibrated</strong>, fitted on 2,396 clean EditLens validation texts. The yes/no benchmarks use a <strong>flag cut</strong> that flags 1% of each detector’s own validation humans.</p>
+
+  <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan.</strong> Arms, tests, the learning-rate rule and five predictions were written and committed before any held-out score.</li>
+    <li><strong>Smoke runs</strong> (640 rows) on each arm checked loading, training and scoring. Two fixes came out of them: the LLMs ran out of memory at 8,192 tokens per forward pass, so they use the 2,048 the reference used, and DeBERTa’s tokenizer is loaded from a copy converted on the Mac (the Modal image misread its file).</li>
+    <li><strong>Learning-rate sweep:</strong> 12 runs, 3 rates per arm, 16,000 rows for 1 epoch each, scored on the first 2,000 validation rows. The rule picked the best (Mistral 4e-4; the others the middle value). The choice was committed before any test score.</li>
+    <li><strong>Training:</strong> 4 full runs, 2 epochs on all 79,120 rows, on H100s across three Modal workspaces.</li>
+    <li><strong>Reload check:</strong> each saved model rescored 2,000 validation texts and matched its training-time scores (correlation ≥ 0.9999).</li>
+    <li><strong>Scoring:</strong> each arm scored every test split once, including its one look at the fresh set. The Qwen references were scored on the splits they lacked (the 4B on all of them, the 9B on data v2’s test split).</li>
+    <li><strong>Analysis</strong> from saved scores only. It first checks that Qwen3.5-9B reproduces the earlier note’s fresh-set numbers (fixed 0.902, calibrated 0.909; both match).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any test score</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Arms, data, recipe, epochs, tests, cut-off rules, claim rule, predictions; the learning-rate grid and rule; each arm’s chosen rate</td><td>Nothing in the runs. Added afterwards, as description only: the edited-vs-generated breakdown on Enron (Section 4.2) and the reload check</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">Conditions: bf16 inference, 4,096 tokens per scoring pass, one H100 per run; seed 0 for every arm.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="fresh" data-short="Fresh test">4.1 Every new backbone trails Qwen3.5-9B on the fresh test</h3>
+  <figure>
+    <img src="figures/fresh.png" alt="Dot plot of 3-way macro-F1 on 6,000 fresh EditLens texts per arm, with 95% bootstrap intervals. Calibrated (filled) and fixed (hollow). Qwen3.5-9B 0.909, Qwen3.5-4B 0.899, Mistral-NeMo-12B 0.884, Llama-3.1-8B 0.881, ModernBERT-large 0.831, DeBERTa-v3-large 0.825.">
+    <figcaption>Figure 1. The one look at the fresh set, 6,000 texts (2,000 per class). Filled dots: cut-offs calibrated on EditLens validation, with 95% bootstrap intervals over texts. Hollow dots: fixed cut-offs (1/6, 5/6). Blue: references from the earlier note; orange: backbones trained here.</figcaption>
+  </figure>
+  <p>Figure 1 shows the headline. The two LLM backbones land together, 0.025–0.028 below Qwen3.5-9B, with paired intervals well clear of zero (Mistral −0.025 [−0.031, −0.019], Llama −0.028 [−0.034, −0.021]). They also trail the smaller Qwen3.5-4B (0.899). The two encoders sit another 0.05 lower. The fixed cut-offs give the same order (9B 0.902, Mistral 0.878, Llama 0.876, DeBERTa 0.820, ModernBERT 0.816), so calibration does not explain the ranking.</p>
+
+  <h3 id="ood" data-short="Off-domain">4.2 Off-domain, the LLM backbones still detect AI text but mislabel how much</h3>
+  <figure>
+    <img src="figures/ood.png" alt="Two dot plots of calibrated 3-way macro-F1. Left, Enron emails: Qwen3.5-9B 0.878, Qwen3.5-4B 0.874, DeBERTa 0.808, Llama 0.774, Mistral 0.750, ModernBERT 0.660. Right, Llama-written text: Qwen3.5-9B 0.925, Qwen3.5-4B 0.922, Mistral 0.902, Llama 0.902, ModernBERT 0.850, DeBERTa 0.834.">
+    <figcaption>Figure 2. Out of distribution, calibrated cut-offs, 95% bootstrap intervals. Left: Enron emails, a domain absent from training (6,147 texts). Right: text written by Llama, a generator absent from training (5,957 texts).</figcaption>
+  </figure>
+  <p>On Llama-written text (Figure 2, right) the ranking is the fresh one, a little higher. On Enron emails (left) the gap opens: Mistral falls to 0.750 and Llama to 0.774, against 0.878 for Qwen3.5-9B. DeBERTa, last on the fresh set, comes third here.</p>
+  <p>The Enron loss is not a loss of detection. Asked only “human or AI?”, Mistral and Llama score AUROC 0.985 on Enron, level with Qwen3.5-9B (0.984), and they flag about as few human emails. What breaks is the edited/generated boundary:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th class="num">AUROC, Enron</th><th class="num">AI-generated called “edited”, EditLens test</th><th class="num">AI-generated called “edited”, Enron</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen3.5-9B</td><td class="num">0.984</td><td class="num">2.5%</td><td class="num">17.5%</td></tr>
+        <tr><td>Mistral-NeMo-12B</td><td class="num">0.985</td><td class="num">2.8%</td><td class="num">54.1%</td></tr>
+        <tr><td>Llama-3.1-8B</td><td class="num">0.985</td><td class="num">4.6%</td><td class="num">49.6%</td></tr>
+        <tr><td>ModernBERT-large</td><td class="num">0.977</td><td class="num">12.2%</td><td class="num">70.7%</td></tr>
+        <tr><td>DeBERTa-v3-large</td><td class="num">0.965</td><td class="num">6.4%</td><td class="num">26.6%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>A fully AI-written email is, for Mistral, closer to a coin flip between “edited” and “generated” (1,847 such emails; calibrated cut-offs). Our training data has no emails, so a backbone has to carry its sense of “how AI is this?” across from reviews, news and forum posts. Qwen3.5 carries it best. Our data cannot tell us why: Qwen3.5’s pretraining, its hybrid attention, or simply that the recipe was tuned on Qwen.</p>
+
+  <h3 id="family" data-short="Qwen-ness">4.3 No sign that the Qwen detector learned “Qwen-ness”</h3>
+  <figure>
+    <img src="figures/family.png" alt="Horizontal bars of the share of AI texts missed at the flag cut on data v2's test split, per arm, for Qwen-written AI text (dark) and other generators (light). Qwen3.5-9B 21.4% and 24.1%; Qwen3.5-4B 21.2% and 25.3%; Mistral 21.9% and 26.5%; Llama 23.7% and 28.3%; ModernBERT 25.2% and 30.8%; DeBERTa 60.6% and 69.0%.">
+    <figcaption>Figure 3. AI texts missed at each detector’s flag cut (1% of its validation humans) on data v2’s test split: 1,966 Qwen-written and 5,252 other AI texts (DeepSeek, gpt-oss, Gemma, GLM, Kimi); misses include light edits that change few words. Dark: Qwen-written; light: other generators.</figcaption>
+  </figure>
+  <p>If the Qwen detector had learned to spot Qwen’s style, it would miss Qwen-written text much less often than other AI text, and more so than the other detectors. Figure 3 shows the opposite. Every detector finds Qwen text easier, and Qwen3.5-9B’s gap is the smallest: 2.8 points, against 4.7 for Mistral and 4.6 for Llama. Prediction P4 (within ±2 points of the non-Qwen LLMs) is a hit at −1.9. The same holds for Llama: the Llama detector gains nothing on Llama-written text relative to EditLens test, compared with Mistral (P5 missed, −0.0002).</p>
+  <p>DeBERTa’s 60–69% misses come from its flag cut, not its ranking. Its scores for human validation texts spread high, so the cut that flags 1% of them sits at 0.75, and many AI texts score below it (AUROC on this split 0.95).</p>
+
+  <h3 id="yesno" data-short="Imitations and flags">4.4 More missed imitations and more flagged humans</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th class="num">Epoch AI imitations missed (of 297)</th><th class="num">Epoch AI plain missed (of 297)</th><th class="num">Epoch AI humans flagged (of 495)</th><th class="num">Human Detectors humans flagged (of 150)</th><th class="num">Human Detectors AI missed (of 150)</th></tr></thead>
+      <tbody>
+        <tr><td>Qwen3.5-9B</td><td class="num">7</td><td class="num">0</td><td class="num">1</td><td class="num">3</td><td class="num">0</td></tr>
+        <tr><td>Qwen3.5-4B</td><td class="num">13</td><td class="num">0</td><td class="num">3</td><td class="num">3</td><td class="num">0</td></tr>
+        <tr><td>Mistral-NeMo-12B</td><td class="num">27</td><td class="num">0</td><td class="num">7</td><td class="num">7</td><td class="num">0</td></tr>
+        <tr><td>Llama-3.1-8B</td><td class="num">34</td><td class="num">0</td><td class="num">10</td><td class="num">9</td><td class="num">0</td></tr>
+        <tr><td>ModernBERT-large</td><td class="num">48</td><td class="num">0</td><td class="num">5</td><td class="num">16</td><td class="num">0</td></tr>
+        <tr><td>DeBERTa-v3-large</td><td class="num">36</td><td class="num">5</td><td class="num">5</td><td class="num">4</td><td class="num">37</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>At the same rule for the flag cut, the new backbones miss 4–7 times as many AI passages written to imitate a person, and flag more human writing. No arm misses a plain AI passage except DeBERTa.</p>
+
+  <h3 id="cost" data-short="Cost">4.5 The encoders are ten times cheaper to run, and 0.08 worse</h3>
+  <figure>
+    <img src="figures/cost.png" alt="Scatter of fresh-set macro-F1 (calibrated) against H100 seconds per 1,000 texts on a log scale: ModernBERT 2.3 s and 0.831, DeBERTa 3.3 s and 0.825, Llama 18.1 s and 0.881, Qwen3.5-4B 22.9 s and 0.899, Mistral 25.7 s and 0.884, Qwen3.5-9B 46.0 s and 0.909.">
+    <figcaption>Figure 4. Fresh-set macro-F1 against scoring time. New arms: measured H100 seconds per 1,000 texts (about 300 tokens each), model load excluded. The Qwen references: wall time of one scoring call including model load and queueing, an upper bound, because their runs live in the earlier note’s app.</figcaption>
+  </figure>
+  <p>Training cost per arm on one H100: Llama $7.2 (1.8 hours), Mistral $10.4 (2.5 hours), DeBERTa $1.3 and ModernBERT $0.8, plus $0.3–2.6 for each arm’s sweep. The whole bake-off, smoke runs and reference scoring included, used $29 of Modal time. ModernBERT scores 1,000 texts in 2.3 seconds. That makes it a cheap first pass in front of a 9B: score everything with the encoder, and send only the unsure cases to the large model.</p>
+
+  <h3 id="predictions" data-short="Predictions">4.6 Predictions</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th>Result</th><th>Hit?</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>No new arm beats Qwen3.5-9B on the fresh test by much</td><td>best new − 9B &lt; +0.015</td><td>−0.025 (Mistral)</td><td>Hit</td></tr>
+        <tr><td>P2</td><td>Mistral-NeMo-12B is the best arm out of distribution</td><td>highest mean of Enron and Llama</td><td>Qwen3.5-9B 0.902; Llama 0.838; Mistral 0.826</td><td>Miss</td></tr>
+        <tr><td>P3</td><td>Encoders trail the best LLM backbone</td><td>gap ≥ 0.03</td><td>0.052</td><td>Hit</td></tr>
+        <tr><td>P4</td><td>No Qwen-ness</td><td>within ±2 points</td><td>−1.9</td><td>Hit</td></tr>
+        <tr><td>P5</td><td>Llama gains on Llama text</td><td>&gt; 0</td><td>−0.0002</td><td>Miss</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>P1’s hit is weak: it would also have hit had Mistral won by 0.01. Post-mortem. <em>Surprise:</em> how far behind the families the literature favours fell, and that the loss sits on the edited/generated boundary, not on detection. <em>What I’d change:</em> sweep the reference too, and add an email-domain validation set so the edited/generated cut-offs can be checked off-domain. <em>Lesson:</em> a binary AUROC hides most of what separates 3-way detectors; report the confusion off-domain.</p>
+
+  <h2 id="safety" data-short="AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Detectors like these are used as monitors (is this text AI-written?) and as rewards (how much AI is in it?). The two uses part ways here. As a yes/no monitor on an unseen domain, every LLM backbone we tried is about as good as the next (AUROC 0.984–0.985 on Enron). As a graded score, the backbone decides whether a fully AI-written email reads as “lightly edited”: Mistral and Llama say so half the time. A policy trained against such a score could learn that the cheapest way to look human is to move into a domain the detector never saw. <strong>Before using a detector’s score as a reward or a grade, check its edited-vs-generated confusion on the domain it will see, not just its AUROC.</strong></p>
+
+  <h2 id="limits" data-short="Limits"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Home advantage.</strong> The data mix, the 4-bucket labels, the head and the learning rate were all developed while training Qwen. A backbone that needs a different recipe could do better with one. We gave each new arm a learning-rate sweep the reference never had, and nothing else.</li>
+    <li><strong>One seed per arm.</strong> A second 4B seed in the earlier note moved validation macro-F1 by about 0.004. The LLM gaps here (0.025–0.028) are several times that, but the order between Mistral and Llama (0.003 apart) is not settled.</li>
+    <li><strong>Short sweeps.</strong> Each learning rate was judged after 16,000 rows; the full runs saw 158,000. A rate that only pays off late would be missed.</li>
+    <li><strong>No humanizers, no Pangram.</strong> The slop-detector data has no humanizer split, and the commercial Pangram API was not run.</li>
+    <li><strong>Sizes differ.</strong> The arms range from 0.4B to 12B. This is a comparison of practical choices, not of architectures at matched size.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p><code>experiments/slop-detector-backbones/reproduce.sh --scores</code> recomputes every number and figure from the saved scores, and checks first that the Qwen3.5-9B reference reproduces the earlier note. <code>--dry-run</code> lists every command: deploy the Modal app, upload data v2 and the test texts, sweep, choose, train, score, analyse. Inputs are those of the slop-detector note (its data v2 with 4 buckets, the EditLens clone, Epoch AI’s detector test) plus a Hugging Face token with Llama-3.1 access.</p>
+
+  <h2 id="next" data-short="Next"><span class="num">08</span>What’s next</h2>
+  <p>A second round with the same data, recipe and tests: Gemma-3-12B (Gemma has SAEs, useful for reading what the detector reads), Qwen3-14B-Base (the base of the PAN 2025 winner) and Nemotron. After that, an email validation set to calibrate the edited/generated cut-offs off-domain, and a rewriter trained against the detector, to see whether the domain gap is the first thing it finds.</p>
+
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="qa-pangram">Pangram uses Mistral NeMo. Does this mean their choice is wrong?</h3>
+  <p>No. Pangram trains on far more and more varied data, with hard-negative mining, and tunes for a binary yes/no on RAID. On our data and our 3-way task, Mistral-NeMo-12B trailed Qwen3.5-9B by 0.025, and its yes/no AUROC on emails matched it.</p>
+  <h3 id="qa-encoder">Is a 0.4B encoder good enough?</h3>
+  <p>For a cheap first pass, yes: ModernBERT-large scores 1,000 texts in 2.3 seconds, with AUROC 0.956 on the fresh set. As the final judge, no: it loses 0.08 macro-F1 and flags 16 of 150 human articles at our cut.</p>
+  <h3 id="qa-qwen">Did training data written by Qwen inflate the Qwen detector?</h3>
+  <p>Not that we can see. On our own test split every detector found Qwen-written text easier to catch, and the Qwen detector’s advantage on it was the smallest (Section 4.3).</p>
+
+  <h2 id="appendix" data-short="Appendix: files"><span class="num">A</span>Appendix: files and citation</h2>
+  <h3 id="files" data-short="Files">A.1 Files</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>results/bakeoff.json</code></td><td>Per arm: calibrated cut-offs and flag cut; per split <code>n</code>, <code>auroc</code>, <code>fixed</code>, <code>calibrated</code>, their 95% intervals and paired differences against Qwen3.5-9B (<code>diff</code>, <code>ci</code>); Human Detectors and Epoch AI flags and misses; generator-family miss rates and AUROC; cost; the scored predictions; total spend</td></tr>
+        <tr><td><code>results/enron_confusion.json</code></td><td>Share of AI-generated texts called edited, and of human texts called AI, on EditLens test and Enron</td></tr>
+        <tr><td><code>results/lr_choice.json</code></td><td>Sweep validation macro-F1 per learning rate and the chosen rate, per arm</td></tr>
+        <tr><td><code>results/spend.jsonl</code></td><td>One row per paid call: time, what, GPU, seconds, estimated dollars, Modal workspace</td></tr>
+        <tr><td><code>runs/bb-&lt;arm&gt;/</code></td><td><code>config.json</code>, <code>log.jsonl</code> (loss per 10 steps, validation per epoch), <code>val_scores.json</code>, <code>timing.json</code>, <code>scores/&lt;split&gt;.json</code> (one score per benchmark row, in the benchmark’s order)</td></tr>
+        <tr><td><code>runs/sweep-&lt;arm&gt;-&lt;lr&gt;/</code>, <code>runs/ref-&lt;arm&gt;/</code></td><td>Sweep runs; reference scores for splits the earlier note had not scored</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="cite" data-short="Cite">A.2 How to cite</h3>
+  <pre><code>Lie, A. (2026). Slop detector backbones: on the same data, no other base beats Qwen3.5-9B, and the gap opens off-domain.
+steerlab. https://albertlieyingadrian.github.io/steerlab/experiments/slop-detector-backbones/report/</code></pre>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
