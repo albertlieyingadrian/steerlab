@@ -217,8 +217,13 @@ fader per direction. It ships tuned directions for Qwen3-8B, Llama-3.1-8B and bo
 uv run steerlab serve --model qwen8b          # then open http://127.0.0.1:8765 and http://127.0.0.1:8765/admin
 ```
 
-Or open the **layer explorer** on Qwen2.5-0.5B-Instruct (CPU): type words and watch each layer push toward the next
-word, open a neuron, switch it off, and dose it against random neurons ([guide](https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/)):
+Or open the **inspector** on Qwen2.5-0.5B-Instruct (CPU), a local web app in rooms:
+
+- **Trace**, the layer explorer: type words and watch each layer push toward the next word, open a neuron, switch it
+  off, and dose it against random neurons ([guide](https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/)).
+- **Edit**: concept edits in the weights (mirror, project out, amplify along an axis), undone bit for bit.
+- **Workbench**: chat with the model under steering, branch replies, read probes token by token, save artifacts.
+- **Model**: the loaded model's shape and what steerlab has for it.
 
 ```bash
 uv run steerlab inspect --download            # then open http://127.0.0.1:8770

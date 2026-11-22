@@ -465,6 +465,16 @@
     renderEdit();
   }
 
+  /* The shared edit list (Edit room, /api/edit/stack): the same neuron edits, applied under its comparisons. */
+  async function sendToEditList() {
+    try {
+      const data = await S.src.call("edit/stack/neurons", { edits: S.edits, replace: true });
+      status(`Edit list: ${data.stack.length} edit${data.stack.length === 1 ? "" : "s"} (open the Edit room, g e)`);
+    } catch (error) {
+      status(error.message, true);
+    }
+  }
+
   function editRow(e, i) {
     const value = el("input", {
       type: "number", step: "0.5", value: e.value, "aria-label": `Value for ${nid(e.layer, e.neuron)}`,
@@ -524,7 +534,11 @@
           el("button", {
             type: "button", disabled: !S.edits.length,
             onclick: () => { S.edits = []; S.editResult = null; S.editError = null; renderEdit(); },
-          }, "Clear")),
+          }, "Clear"),
+          el("button", {
+            type: "button", disabled: !S.edits.length, title: "Share these neuron edits with the Edit room's edit list",
+            onclick: () => sendToEditList(),
+          }, "Send to edit list")),
       );
     }
     if (S.editError) kids.push(problem(S.editError));
@@ -677,6 +691,9 @@
       return;
     }
     $("run").disabled = S.src.isStatic;
+    if (!S.src.isStatic) {
+      $("mode").textContent = S.run.shared_edits ? `live · edit list on: ${S.run.shared_edits.join(" + ")}` : "live";
+    }
     S.target = S.run.target.id;
     S.pos = S.src.isStatic ? null : S.run.pos;
     S.editResult = null; S.editError = null; S.editKey = null;
@@ -760,7 +777,7 @@
     for (const name of TABS) $(`tab-${name}`).addEventListener("click", () => setTab(name));
     document.addEventListener("keydown", (e) => {
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
-      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (typing || e.metaKey || e.ctrlKey || e.altKey || !inTrace()) return;
       if (e.key === "/") { e.preventDefault(); $("prompt").focus(); }
       else if (/^[1-5]$/.test(e.key)) setTab(TABS[Number(e.key) - 1], true);
     });
@@ -814,5 +831,11 @@
     await applyParams(params);
   }
 
-  init();
+  /* Rooms (shell.js): the explorer is the Trace room. It starts when Trace is first shown, and its keys only act
+     while Trace is the room on screen. The static export has no rooms, so it starts at once. */
+  function inTrace() { return (document.documentElement.dataset.room || "trace") === "trace"; }
+  let started = false;
+  function start() { if (!started) { started = true; init(); } }
+  if (inTrace()) start();
+  else window.addEventListener("steerlab:trace", start);
 })();

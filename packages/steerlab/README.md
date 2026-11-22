@@ -18,6 +18,10 @@ one token at a time, and lets you change that vector mid-reply.
 - **The terminal** (`steerlab chat`, `steerlab control set|off`, `steerlab doctor`): chat with a model in one
   terminal and steer it from another while it writes. `doctor` reports the device, what is cached and which
   directions exist, offline, and never prints a token.
+- **The inspector** (`steerlab inspect`, then open http://127.0.0.1:8770): a local web app in rooms. **Trace** splits
+  the next word's score into one share per layer, head and neuron and lets you switch neurons off; **Edit** makes
+  concept edits in the weights (mirror, project out, amplify) and undoes them exactly; **Workbench** chats with the
+  model under steering, with probes, branching replies and saved artifacts; **Model** shows the loaded model's shape.
 
 Strength is measured in *class gaps*: strength 1.0 moves the residual stream as far along a direction as the average
 gap between the two example sets the direction was built from.
