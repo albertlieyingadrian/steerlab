@@ -16,3 +16,6 @@ def _plain_wide_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("NO_COLOR", "1")
     monkeypatch.setenv("TERM", "dumb")
     monkeypatch.setenv("COLUMNS", "200")
+    # The inspect Workbench room fits its bundled probes in a background thread on startup; tests that build the
+    # inspect app with the default cache must not write probes into ~/.cache. Workbench tests turn it back on.
+    monkeypatch.setenv("STEERLAB_WORKBENCH_AUTOFIT", "0")

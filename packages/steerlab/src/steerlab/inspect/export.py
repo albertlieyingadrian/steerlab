@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from steerlab.inspect.core import Inspector
 
 STATIC = Path(__file__).parent / "static"
-STATIC_FILES = ("inspect.css", "inspect.js")
+STATIC_FILES = ("inspect.css", "inspect.js", "shell.js")
 
 PRESETS: list[dict[str, str]] = [
     {
