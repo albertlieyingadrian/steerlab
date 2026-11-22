@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Every way to remove slop, on the same 48 prompts: a prompt plus a sampler wins, steering barely beats random, and no method gets past a detector</title>
+<meta name="description" content="Model voice E3, pre-registered. Every family of method for removing the chat-assistant voice, on the same 48 held-out prompts and one scorer, on Qwen3-8B: a system prompt plus a backtracking sampler cuts habits from 61.7 to 11.8 per 1,000 words; steering (a register direction, a probe direction, 16 SAE features) moves them 0-10 points beyond random directions and loops once a prompt is added; SFT and DPO reach 22; every arm that writes normal text is flagged by our 9B detector on 92-100% of replies.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Every way to remove slop, on the same 48 prompts: a prompt plus a sampler wins, steering barely beats random, and no method gets past a detector">
+<meta property="og:description" content="Model voice E3, pre-registered. Every family of method for removing the chat-assistant voice, on the same 48 held-out prompts and one scorer, on Qwen3-8B: a system prompt plus a backtracking sampler cuts habits from 61.7 to 11.8 per 1,000 words; steering (a register direction, a probe direction, 16 SAE features) moves them 0-10 points beyond random directions and loops once a prompt is added; SFT and DPO reach 22; every arm that writes normal text is flagged by our 9B detector on 92-100% of replies.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Thirteen rows of dots, one per method, each dot one of 96 Qwen3-8B replies at its count of chat-assistant habits per 1,000 words, with a pale band for the human range: the system prompt plus sampler and SFT plus sampler sit inside it, the steering rows spread as widely as the original.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Every way to remove slop, on the same 48 prompts: a prompt plus a sampler wins, steering barely beats random, and no method gets past a detector">
+<meta name="twitter:description" content="Model voice E3, pre-registered. Every family of method for removing the chat-assistant voice, on the same 48 held-out prompts and one scorer, on Qwen3-8B: a system prompt plus a backtracking sampler cuts habits from 61.7 to 11.8 per 1,000 words; steering (a register direction, a probe direction, 16 SAE features) moves them 0-10 points beyond random directions and loops once a prompt is added; SFT and DPO reach 22; every arm that writes normal text is flagged by our 9B detector on 92-100% of replies.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-22">
+<meta property="article:modified_time" content="2026-11-22">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Every way to remove slop, on the same 48 prompts: a prompt plus a sampler wins, steering barely beats random, and no method gets past a detector",
+ "description": "Model voice E3, pre-registered. Every family of method for removing the chat-assistant voice, on the same 48 held-out prompts and one scorer, on Qwen3-8B: a system prompt plus a backtracking sampler cuts habits from 61.7 to 11.8 per 1,000 words; steering (a register direction, a probe direction, 16 SAE features) moves them 0-10 points beyond random directions and loops once a prompt is added; SFT and DPO reach 22; every arm that writes normal text is flagged by our 9B detector on 92-100% of replies.",
+ "abstract": "Model voice series, Episode 3 (pre-registered head-to-head). Track A: Qwen3-8B (thinking off), 48 held-out prompts x 2 samples, 13 arms + 9 norm-matched random directions, steering settings chosen on 24 dev prompts. Habit score per 1,000 words (human band <= 33.6): original 61.7 [52.8, 71.3]; system prompt 36.9; backtracking sampler 18.8; prompt + sampler 11.8 [9.8, 13.9] (94/96 in band, no loops); register direction (L18, -2 class gaps) 51.6, 10.1 below its random controls [-15.7, -4.5]; probe direction 63.3 (+4.3 vs random); SAE direction (16 Qwen-Scope L18 features) 54.1 (-4.6 [-12.4, +4.6] vs random); SAE ablation never usable on dev (91.1, 32% looping); prompt + register 31.4 with 49% looping, prompt + SAE 23.0 with 84% looping; SFT LoRA 22.1, DPO + NLL 22.5 (paired +0.4 [-3.0, +3.7]), KL 0.045 and 0.028; SFT + sampler 10.9. Detectors at 1%-human thresholds: our 9B detector flags 92-100% of every arm looping < 35%; prompt + SAE 0.34 (looping). gemma-3-27b-it judge (40/40 known-answer) prefers the original over 11 of 12 arms. Track B: Episode 1's 13 Qwen3-4B arms re-scored, same ordering, 9B flags 98-100%. Habit vs EQ-Bench Spearman 0.74. Predictions: P1 hit, P2 hit, P3 miss, P4 hit, P5 hit, P6 miss. Modal about $31; Pangram not run (no key).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-22",
+ "dateModified": "2026-11-22",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI slop, deslop, steering, SAE features, sparse autoencoders, DPO, LoRA, AI text detection, LLM judge, Qwen3",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.15061"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2509.19163"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2305.18290"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2404.19733"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2308.10248"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .rv-controls { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: end; margin: 0.4rem 0 0.6rem; font-family: var(--font-display); font-size: 0.85rem; }
+  .rv-controls label { display: grid; gap: 0.25rem; color: var(--ink-soft); }
+  .rv-controls select { font: inherit; font-size: 0.85rem; min-height: 34px; padding: 0.2rem 0.5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); max-width: 100%; }
+  .rv-controls select:focus-visible { outline: 2px solid var(--control); outline-offset: 2px; }
+  .rv-prompt { font-size: 0.9rem; color: var(--ink-soft); margin: 0 0 0.4rem; }
+  .rv-stats { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-meta); margin: 0 0 0.4rem; }
+  .rv-stats .bad { color: var(--accent-text); font-weight: 600; }
+  .rv-text { white-space: pre-wrap; word-break: break-word; font-size: 0.86rem; line-height: 1.5; border-left: 2px solid var(--rule); padding: 0.2rem 0 0.2rem 0.8rem; max-height: 26rem; overflow: auto; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Model voice · Episode 3<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-22">Nov 22, 2026</time></p>
+  <h1>Every way to remove slop, on the same 48 prompts: a prompt plus a sampler wins, steering barely beats random, and no method gets past a detector</h1>
+  <p class="dek ruled">Our earlier notes each tried a few ways to take the chat-assistant voice out of a model, on different prompts and with different rulers. Here every family (a system prompt, a sampler, three kinds of steering, SFT and DPO, and their combinations) runs on the same 48 prompts and is scored the same way.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Thirteen rows of dots, one per method, each dot one of 96 held-out replies from Qwen3-8B placed at its count of chat-assistant habits per 1,000 words, with a pale band from 0 to 33.6 for the human range. The original model's dots spread from about 20 to past 120 with a mean of 61.7; the system prompt plus sampler and the SFT LoRA plus sampler sit almost entirely inside the human band, with means of 11.8 and 10.9; the four steering rows in orange spread as widely as the original." width="1600" height="900">
+    <figcaption>Cover: every Track A reply (96 per method) at its habit score, clipped at 120; bars are each method's mean; orange rows steer activations. Drawn by <a href="../make_cover.py">make_cover.py</a> from <code>results/per_reply.csv</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Model voice, Episode 3</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (Track A); Qwen3-4B (Track B, re-scored)</dd></div>
+    <div><dt>Method</dt><dd>Pre-registered; 13 arms, 9 random controls, 48 held-out prompts; about $31</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/deslop-h2h/</a> · <a href="../results/summary.json">results/summary.json</a> · <a href="../results/per_reply.csv">per_reply.csv</a> · <a href="../results/gen/original.jsonl">every reply</a> · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Once every method faces the same prompts and the same rulers, which removes slop best?</strong></p>
+    <p>A one-paragraph system prompt plus a backtracking sampler, with no change to the model, cut Qwen3-8B's chat-assistant habits from 61.7 to 11.8 per 1,000 words, with 94 of 96 replies inside the human range. Steering did little: a difference-of-means direction lowered habits by 10 points beyond random directions, a detector probe's direction and 16 SAE features did no better than random, and adding a system prompt on top made steered replies loop (49% and 84%). SFT and DPO LoRAs both reached 22 with the least drift on human text, and the SFT LoRA with the sampler matched the prompt plus sampler (10.9). No method that still writes normal text got past our 9B AI detector: it flagged 92-100% of their replies. The one arm it missed often (34% flagged) loops in 84% of its replies. A blind judge preferred the untouched model's reply over 11 of the 12 methods.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>Which method removes the most habits without touching weights?</td><td><strong>System prompt + sampler: 11.8 [9.8, 13.9]</strong>, 94/96 replies in the human band, no loops</td><td>Original 61.7 [52.8, 71.3], 16/96; system prompt alone 36.9; sampler alone 18.8</td></tr>
+      <tr><td>Does steering beat random directions of the same size?</td><td><strong>Barely.</strong> Register direction 10.1 below the random mean [−15.7, −4.5]; SAE direction −4.6 [−12.4, +4.6]; probe direction +4.3 [−0.7, +9.5]</td><td>3 norm-matched random directions per arm (range 54.7-62.8)</td></tr>
+      <tr><td>Does steering add to a system prompt?</td><td><strong>It breaks the text.</strong> Prompt + SAE direction 23.0 with 84% of replies looping; prompt + register 31.4 with 49% looping</td><td>System prompt alone 36.9, 1% looping (Figure 2)</td></tr>
+      <tr><td>Do post-training arms do better?</td><td><strong>SFT 22.1 and DPO 22.5 [19.1, 26.3], level with each other</strong> (paired +0.4 [−3.0, +3.7]), at the lowest drift (KL 0.045 and 0.028 nats per token); SFT + sampler 10.9</td><td>Steering's drift 0.09-0.37; system prompt 0.14</td></tr>
+      <tr><td>Does any method get past AI detectors?</td><td><strong>No method that writes normal text.</strong> Our 9B detector flags 92-100% of replies of every arm with under 35% loops, at a threshold that flags 1% of human passages</td><td>The only arm it mostly misses: prompt + SAE direction (34% flagged, 84% looping)</td></tr>
+      <tr><td>What does a blind judge prefer?</td><td><strong>The untouched model's reply</strong>, over 11 of 12 methods (prompt + sampler: 5 wins, 68 losses, 23 ties); only the sampler alone ties (12/11/73)</td><td>The judge passed 40/40 known-answer pairs, both orders</td></tr>
+      <tr><td>Does Episode 1's Qwen3-4B ranking hold under the new rulers?</td><td><strong>Yes:</strong> prompt + sampler 13.5, 100toolkit's model 9.2, steering 57.1; every arm flagged by the 9B detector on 98-100% of replies</td><td>Same ordering as Qwen3-8B (Figure 4)</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: what is a "habit score", and what is steering?</p>
+    <p>Chat models have a recognisable voice: em dashes, "it's not X, it's Y", lists of three, a question they answer themselves, signposts like "let's dive in", words like "delve". Our toolkit's <em>habit score</em> counts these per 1,000 words, weighted; 90% of 318 human-written passages score 33.6 or less (the <em>human band</em>). <em>Steering</em> edits the model's internal activations while it writes: you add a fixed vector (a <em>direction</em>) at one layer, or remove the part of the activation that some <em>SAE features</em> (sparse, labelled pieces of the activation) explain. A <em>random direction</em> of the same size is the control: if it moves the score as much, the direction did nothing special.</p>
+  </aside>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Qwen3-8B for a short blog post about remote work and it opens: "Remote work has become more than just a trend—it's a fundamental shift in how we approach employment and productivity." Give it one paragraph of style instructions and a sampler that backs up whenever it starts an em dash or a stock phrase, and the same request gets: "Remote work has changed how we think about time and space. I've seen it help people focus better, avoid the daily commute, and spend more time with family. But it's not all good." No weights changed and no activations were touched.</p>
+  <p>We already knew pieces of this. <a href="../../deslop/report/">Episode 1</a> compared a prompt, a sampler, a register direction, neuron edits and a distilled LoRA on Qwen3-4B. <a href="../../probes-vs-interp/report/">The Taste Stack's first episode</a> found that 16 SAE features steered a detector's score twice as far as a probe direction on Qwen3-8B emails. <a href="../../sounds-like-me-ep3/report/">Sounds Like Me, Episode 3</a> trained SFT and GRPO on a voice reward. But each used its own prompts, model and rulers, so their numbers can't be lined up: the SAE result was scored on one detector only, the 4B note had no SAEs, and the voice note measured a different target. What was missing is one test where every family faces the same prompts and the same rulers.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison with the earlier notes"><table>
+    <caption>Table 0. What each earlier note compared, against this one.</caption>
+    <thead><tr><th>Note</th><th>Prompt / sampler</th><th>Direction steering</th><th>SAE features</th><th>SFT / preference</th><th>Same scorer for all</th></tr></thead>
+    <tbody>
+      <tr><td>Model voice E1 (deslop, Qwen3-4B)</td><td>✓</td><td>✓</td><td>✗</td><td>SFT only</td><td>✓ within the note</td></tr>
+      <tr><td>Taste Stack E1 (Qwen3-8B emails)</td><td>one prompt</td><td>✓ probe</td><td>✓</td><td>✗</td><td>one detector only</td></tr>
+      <tr><td>Sounds Like Me E3 (voice)</td><td>✓</td><td>✗</td><td>✗</td><td>✓ SFT, DPO, GRPO</td><td>a different target</td></tr>
+      <tr class="hl"><td>This note</td><td>✓</td><td>✓ two kinds</td><td>✓ added and ablated</td><td>✓ SFT, DPO</td><td>✓ habits, an outside slop score, 3 detectors, damage, loops, a judge</td></tr>
+    </tbody>
+  </table></div>
+  <p>This note contributes:</p>
+  <ol>
+    <li><strong>A head-to-head</strong> of 13 methods and 9 random controls on Qwen3-8B, every reply scored by one scorer (<a href="../table.py">table.py</a>).</li>
+    <li><strong>A replication</strong>: Episode 1's 13 Qwen3-4B arms re-scored with the same rulers.</li>
+    <li><strong>A negative result for steering</strong>: three kinds of direction move habits 0-10 points beyond random, and break text once combined with a prompt.</li>
+    <li><strong>A detector check</strong>: no method that keeps text fluent gets past our 9B detector.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Prompts.</strong> Episode 1's 48 held-out requests: 10 topics × 4 genres (blog, LinkedIn post, explainer, opinion piece), plus 4 emails and 4 personal reflections. Two samples per prompt per arm, so 96 replies; the 48 prompts are the unit for every interval. Steering settings were chosen on Episode 1's 24 dev prompts (training topics), never these.</p>
+  <p><strong>Two tracks.</strong> Qwen-Scope has SAEs for Qwen3-8B but not for Qwen3-4B (we checked the Hub on Nov 22), so the head-to-head (Track A) runs on Qwen3-8B with thinking off, every arm generated fresh. Track B re-scores Episode 1's saved Qwen3-4B-Instruct-2507 replies with the same rulers; nothing there was regenerated.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 1, the arms"><table>
+    <caption>Table 1. The Track A arms. Decoding everywhere: temperature 0.7, top-p 0.8, top-k 20, no repetition penalty, 512 new tokens.</caption>
+    <thead><tr><th>Arm</th><th>What changes</th><th>Family</th></tr></thead>
+    <tbody>
+      <tr><td>original</td><td>nothing</td><td>baseline</td></tr>
+      <tr><td>system prompt</td><td>Episode 1's one-paragraph plain-style instructions</td><td>prompt</td></tr>
+      <tr><td>sampler</td><td>backtracks when a banned habit appears (Episode 1's toolkit)</td><td>decoding</td></tr>
+      <tr><td>register direction</td><td>difference of means between the model's own replies with and without the system prompt (288 training prompts), subtracted at layer 18, −2 class gaps</td><td>steering</td></tr>
+      <tr><td>probe direction</td><td>minus the Taste Stack E1 layer-18 AI-vs-human probe's weights, 32% of the residual norm</td><td>steering</td></tr>
+      <tr><td>SAE direction</td><td>minus the summed decoder directions of the 16 most AI-leaning layer-18 SAE features, 32% of the residual norm</td><td>steering (SAE)</td></tr>
+      <tr><td>SAE ablation</td><td>removes those 16 features' decoded part (c = 1)</td><td>steering (SAE)</td></tr>
+      <tr><td>random (×3 each)</td><td>a random direction at the register, probe and SAE direction's chosen size</td><td>control</td></tr>
+      <tr><td>SFT (LoRA)</td><td>LoRA on the best of three prompt + sampler replies to each of 235 training prompts that passed Episode 1's filter, from the bare prompt</td><td>post-training</td></tr>
+      <tr><td>DPO + NLL (LoRA)</td><td>DPO (β 0.1) on the same teacher reply against the original model's reply, plus an NLL term on the teacher reply that anchors fluency</td><td>post-training</td></tr>
+      <tr><td>combinations</td><td>prompt + sampler, prompt + register, prompt + SAE direction, SFT + sampler</td><td>combined</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>The scorer</strong>, applied to every reply of both tracks:</p>
+  <ul>
+    <li><strong>Habit score</strong> (the primary measure) and the <em>in-band</em> count (replies at or under 33.6).</li>
+    <li><strong>EQ-Bench's slop score</strong>, computed with its own code, an outside measure our sampler was not built on.</li>
+    <li><strong>Three AI detectors</strong>: our <a href="../../slop-detector/report/">Qwen3.5-9B slop detector</a>, voi-slop-detect-380M and Desklib, each at a threshold that flags 1% of the 318 human passages (it flags 4 of 318 for each). A reply is <em>flagged</em> when it is on the AI side.</li>
+    <li><strong>Task fit</strong> (genre checks: a stance in an opinion piece, a greeting in an email, first person in a reflection) and <strong>invented claims</strong> (a made-up study or statistic).</li>
+    <li><strong>Damage</strong>: KL drift on 24 human passages (how far the method moves the model's next-word predictions on text a person wrote, nats per token) and a 30-question factual quiz.</li>
+    <li><strong>Loops</strong>: a reply <em>loops</em> when any 4-word phrase appears more than three times. Earlier notes found fluency and voice checks that passed looping text, so this is reported for every arm.</li>
+    <li><strong>A blind judge</strong> (gemma-3-27b-it, another family from both generators): each arm's reply against the original's for the same prompt and sample, "which is better writing for this request?", in both orders; a <em>win</em> or <em>loss</em> needs both orders to agree, otherwise a <em>tie</em>.</li>
+    <li><strong>Pangram</strong>, the commercial detector, has a scorer ready (<a href="../pangram.py">pangram.py</a>) but was not run: we have no key.</li>
+  </ul>
+  <p><strong>What counts as success</strong>, fixed in the plan: a method must (1) lower the habit score with a paired interval below zero, (2) beat random directions of the same size, if it steers, (3) keep loops and task fit near the original's, and (4) show the gain on the outside slop score too, not only on our regexes.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan.</strong> Arms, grids, the selection rule, the scorer, the judge's known-answer test and six predictions were written down and committed before any reply was generated.</li>
+    <li><strong>Inputs.</strong> 288 training prompts × the original and the system-prompt arm (576 replies) to build the register direction; 288 × 3 teacher replies (prompt + sampler, 864) for SFT and DPO.</li>
+    <li><strong>Choose steering settings on dev.</strong> 23 settings × 24 dev prompts (<a href="../tune.py">tune.py</a>). A setting was usable when at least 22 of 24 replies were fluent, task fit was within 2 of the original's, no reply was empty and loops did not rise by more than one reply; the lowest mean habit score among usable settings won.</li>
+    <li><strong>Train.</strong> 235 of 288 training prompts kept a teacher reply under the human median after Episode 1's filter; SFT (60 steps) and DPO (118 steps) LoRAs on Qwen3-8B.</li>
+    <li><strong>Generate.</strong> 13 arms + 9 random controls × 96 held-out replies (2,112 replies).</li>
+    <li><strong>Score.</strong> Damage (24 passages, 30 questions per arm), three detectors on 3,054 texts (both tracks and the human passages), the judge on 2,592 pairs in both orders (after passing its known-answer test), then the shared table.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed before vs changed after"><table>
+    <thead><tr><th>Fixed before any reply was scored</th><th>Changed after</th></tr></thead>
+    <tbody><tr>
+      <td>Prompts, arms, the selection rule, the human band, detector thresholds (1% of human passages), the judge question and its known-answer test, the loop rule, predictions P1-P6, the $150 cap</td>
+      <td>Before any generation: the probe and SAE-direction grid moved from {2-16}% to {4-32}% and the register grid from {0.5-3} to {−1 to −6} class gaps, because the earlier notes' chosen settings sat at or past the old grids' edge. After the dev sweep: nothing; two dev choices (probe and SAE direction at 32%) sit on the grid's edge again, reported in section 6 rather than re-tuned. SAE ablation was never usable on dev; the rule's fallback (the most fluent setting, c = 1) ran, flagged</td>
+    </tr></tbody>
+  </table></div>
+  <p>Conditions: Qwen3-8B in bf16 on H100s with Hugging Face generate; the sampler runs token by token in Python. All on Modal, about $31 billed. No closed model or API was used.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="ranking" data-short="The ranking">4.1 A system prompt plus a sampler removes the most habits, with no change to the model</h3>
+  <p>Figure 1 shows every Track A arm. <strong>The system prompt plus the sampler cut the habit score from 61.7 [52.8, 71.3] to 11.8 [9.8, 13.9] (paired −49.9 [−58.8, −41.7]), with 94 of 96 replies in the human band, no loops, task fit 0.82 against the original's 0.78 and every quiz answer right.</strong> Each half helps alone: the prompt to 36.9, the sampler to 18.8. The outside slop score agrees on the pair (8.6 per reply against 28.8 for the original), and less on the sampler alone (21.1): the sampler bans exactly the patterns our score counts, so its own number flatters it. Across all 26 named arms of both tracks, the habit score and EQ-Bench's score agree at Spearman 0.74.</p>
+  <figure class="plot">
+    <img src="figures/methods.png" alt="Dot plot of the mean habit score with 95% intervals for 13 Track A arms. From lowest: SFT plus sampler 10.9, prompt plus sampler 11.8, sampler 18.8, SFT 22.1, DPO 22.5, prompt plus SAE direction 23.0, prompt plus register 31.4, system prompt 36.9, register direction 51.6, SAE direction 54.1, original 61.7, probe direction 63.3, SAE ablation 91.1 with an interval from 48 to 161. Grey bars under the three steering directions mark their random controls, 54.7 to 62.8. A shaded band from 0 to 33.6 marks the human range." width="1490" height="912">
+    <figcaption><span class="label">Figure 1.</span> Mean habit score per reply on 48 held-out prompts × 2 samples (Qwen3-8B), with 95% bootstrap intervals over prompts. Orange: steering arms; black: everything else. Grey bar under a steering arm: the range of its 3 norm-matched random directions. Shaded: the human band. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="steering" data-short="Steering vs random">4.2 Steering moves habits 0-10 points beyond random directions</h3>
+  <p><strong>The register direction is the only steering arm that clearly beats its controls: 51.6, 10.1 below the mean of three random directions of the same size [−15.7, −4.5]. The SAE direction lands at 54.1, inside its random range (54.7-61.8 for the three controls; −4.6 [−12.4, +4.6] against their mean). The probe direction does nothing (63.3; +4.3 [−0.7, +9.5]).</strong> All three were chosen as the best fluent setting on dev, and two of those choices sat at the top of the grid (32% of the residual norm), so stronger settings might do more; on dev the strongest settings were already starting to loop (section 4.3).</p>
+  <p>Removing the 16 SAE features outright (the ablation) never passed the fluency rule on dev. Its fallback setting averages 91.1 with an interval of [48.0, 160.7] because a few replies degenerate into strings of em dashes (one scores 2,740); its median reply, 43.0, is lower than the original's 54.5. Read as a whole, it is a broken arm: 32% of its replies loop and its task fit falls to 0.61.</p>
+  <p>This is a weaker showing for SAE features than <a href="../../probes-vs-interp/report/">the Taste Stack's first episode</a>, where the same 16 features lowered a detector's AI score twice as much as the probe direction. Here they also beat the probe direction on habits (−9.2 [−16.5, −0.2]), but neither beats random directions by much. The difference is the target: that note measured one detector's score on emails, this one counts writing habits across six genres.</p>
+
+  <h3 id="loops" data-short="Steering plus a prompt loops">4.3 Steering on top of a system prompt makes replies loop</h3>
+  <p>Figure 2 puts each arm's habit score against its loop share. <strong>The settings chosen on dev without a system prompt loop once the prompt is added: prompt + register loops in 49% of replies (habits 31.4), prompt + SAE direction in 84% (habits 23.0), against 1% for the prompt alone.</strong> Their low habit scores are the loops: a reply that repeats "It lets you work from where you want. It lets you work when you want." has no em dashes or lists of three. The judge saw it: prompt + SAE direction lost 94 of 96 pairs, prompt + register 87. Their quiz scores dropped to 29 of 30, the only arms below 30.</p>
+  <figure class="plot">
+    <img src="figures/loops.png" alt="Scatter of habit score against the share of replies that loop for every Track A arm. Most arms sit at under 5% looping; probe direction 10%, SAE direction 16%, SAE ablation 32%, prompt plus register 49% at habit 31.4, and prompt plus SAE direction 84% at habit 23.0. Random directions cluster at 2-5% looping and habits 55-63." width="1204" height="739">
+    <figcaption><span class="label">Figure 2.</span> Habit score against the share of the 96 replies that loop (a 4-word phrase said more than 3 times), every Track A arm; grey: random directions. Shaded: the human band. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>The same thing happened in a gentler form on Qwen3-4B in Episode 1 (prompt + register: 23% looping, Track B), and the general lesson is an old one in this lab: the system prompt changes the best steering setting, so a setting must be chosen under the conditions it will be used in.</p>
+
+  <h3 id="training" data-short="SFT and DPO">4.4 SFT and DPO land in the same place, at the least drift</h3>
+  <p><strong>The SFT LoRA reached 22.1 [18.8, 25.9] and DPO with an NLL anchor 22.5 [19.1, 26.3]; the paired difference is +0.4 [−3.0, +3.7].</strong> Both had the smallest drift on human text of any arm that changes the model (KL 0.045 and 0.028 nats per token, against 0.09-0.37 for steering and 0.14 for the system prompt, which changes the context), kept the quiz at 30 of 30, and did not loop. DPO's preference separated every training pair by step 10 of 118 (loss 0.015, then near 0), so the NLL term on the teacher reply did most of the shaping; with the same teacher replies as SFT, it learned the same style. Adding the sampler to the SFT LoRA gave the lowest score of all, 10.9 [9.0, 12.9], level with prompt + sampler.</p>
+
+  <h3 id="detectors" data-short="Detectors still flag them">4.5 No method that writes normal text gets past the detectors</h3>
+  <p>Figure 3 shows the flag rate of each detector on each arm of both tracks. The thresholds flag 4 of the 318 human passages for each detector and every reply of both untouched models. <strong>Our 9B detector flagged 92-100% of the replies of every arm whose loop share is under 35%, including prompt + sampler and SFT + sampler (100%), which sit deep in the human band on habits.</strong> The one arm it mostly missed, prompt + SAE direction (34% flagged [24%, 45%]), is the one that loops in 84% of replies; voi-380M still flags 77% of it and Desklib 100%. Breaking the text is not a way to write like a person.</p>
+  <figure class="plot">
+    <img src="figures/detect.png" alt="Dot plot of the share of replies flagged as AI by three detectors for every arm of both tracks. Nearly every dot sits at 1.0. Exceptions on Qwen3-8B: SAE direction (9B 0.98, voi-380M 0.90), SAE ablation (9B 0.92), prompt plus register (9B 0.83, Desklib 0.95), and prompt plus SAE direction (9B 0.34, voi-380M 0.77, Desklib 1.0). On Qwen3-4B: Desklib 0.96 for steering, 0.85 for prompt plus steering, 0.88 for 100toolkit's model." width="1483" height="1463">
+    <figcaption><span class="label">Figure 3.</span> Share of each arm's replies flagged as AI, with 95% bootstrap intervals over prompts, by our 9B detector (orange), voi-380M (black) and Desklib (grey), each at a threshold that flags 1% of the 318 human passages. 8B: Track A (96 replies); 4B: Track B (48). Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+  <p>The habit score and the detectors measure different things. Habits are surface patterns a regex can find; the detectors were trained on whole texts, and what they read survives a prompt, a sampler and a LoRA that remove every pattern we count.</p>
+
+  <h3 id="judge" data-short="The judge prefers the original">4.6 A blind judge prefers the untouched model's reply</h3>
+  <p>The judge first passed its known-answer test: it chose a reply over the same reply with its sentences shuffled, and an on-topic reply over an off-topic one, in both orders on 40 of 40 pairs (first-position rate 0.56). On the harder question "which of these was written by a person?", it was right in both orders on 12 of 20 human passages against original replies. <strong>Against the original model, the judge preferred the original over 11 of the 12 methods; the only exception is the sampler alone (12 wins, 11 losses, 73 ties). Prompt + sampler lost 68 of 96 pairs and won 5; SFT lost 62 and DPO 61.</strong> The same held on Qwen3-4B: every arm lost to its original except the neuron flips and the random controls, which barely change the text, and 100toolkit's model lost all 48. A general-purpose judge rewards the polished assistant reply this whole series is trying to remove, as Episode 1's (different) judge did.</p>
+
+  <h3 id="viewer-sec" data-short="Read the replies">4.7 Read the replies</h3>
+  <p>The viewer below shows the first sample for 12 held-out prompts (two per genre) under eight arms, each with its habit score, whether it loops, and the 9B detector's score.</p>
+  <div id="viewer">
+    <div class="rv-controls">
+      <label>Prompt <select id="rv-prompt"></select></label>
+      <label>Method <select id="rv-arm"></select></label>
+    </div>
+    <p class="rv-prompt" id="rv-ptext"></p>
+    <p class="rv-stats" id="rv-stats"></p>
+    <div class="rv-text" id="rv-text" tabindex="0" aria-live="polite">Loading the replies… (needs JavaScript; every reply is in <a href="../results/gen/original.jsonl">results/gen/</a>)</div>
+  </div>
+
+  <h3 id="replication" data-short="The 4B replication">4.8 Episode 1's Qwen3-4B ranking holds under the new rulers</h3>
+  <p>Figure 4 sets the same method families side by side on the two models. <strong>The order is the same on both: prompt + sampler (13.5 on 4B, 11.8 on 8B) far below steering (57.1, 51.6), with the distilled LoRA in between (24.1, 22.1).</strong> 100toolkit's released Qwen3-4B model remains the lowest single arm (9.2), and is flagged by our 9B detector on all 48 replies. The 4B replies start further from human prose (89.7 against 61.7) and the 4B register direction moved them more (−32.7 against −10.0), at a KL drift of 0.67, the largest of any single method in either track.</p>
+  <figure class="plot">
+    <img src="figures/tracks.png" alt="Grouped bars of the mean habit score for seven method families on Qwen3-4B and Qwen3-8B: original 89.7 and 61.7, system prompt 44.2 and 36.9, sampler 27.3 and 18.8, prompt plus sampler 13.5 and 11.8, register direction 57.1 and 51.6, prompt plus register 29.3 and 31.4, SFT LoRA 24.1 and 22.1. A dashed line at 33.6 marks the top of the human band." width="1122" height="687">
+    <figcaption><span class="label">Figure 4.</span> Mean habit score for the same method families on Qwen3-4B-Instruct-2507 (grey, Episode 1's 48 replies re-scored) and Qwen3-8B (this note, 96 replies). Dashed: the top of the human band. Drawn by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <h3 id="checks" data-short="The boring explanations">4.9 The boring explanations</h3>
+  <ul>
+    <li><strong>Shorter replies score lower?</strong> No: mean words per reply stay 237-269 for every arm except the SAE ablation (286), and habits are counted per 1,000 words.</li>
+    <li><strong>Noise?</strong> Two samples of the same untouched model differ by 7.9 points on average [3.7, 12.1], and other arms' two samples differ by −9 to +4 with no consistent sign (the SAE ablation, with its outliers, by +34): habit scores have a long tail. Differences under about 10 points between arms need their paired interval, which every claim above gives.</li>
+    <li><strong>The sampler grading itself?</strong> Partly: on EQ-Bench's outside score the sampler alone gains less than on ours (39.6 to 30.8 for the corpus score, against 61.7 to 18.8 on habits), while prompt + sampler gains on both (to 10.0).</li>
+    <li><strong>Loops passing as low slop?</strong> Yes, for the combined steering arms (section 4.3); every table here reports loops beside habits.</li>
+  </ul>
+
+  <h3 id="predictions" data-short="Predictions">4.10 Predictions</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Predictions"><table>
+    <thead><tr><th>#</th><th>Prediction (written before scoring)</th><th>Threshold</th><th>Result</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>The best no-weight-change arm is prompt + sampler, and it beats every steering arm</td><td>paired interval vs the best steering arm below 0</td><td>prompt + sampler − register: −39.8 [−47.6, −32.9]</td><td>Hit</td></tr>
+      <tr><td>P2</td><td>SAE-feature steering lowers habits more than the probe direction</td><td>paired interval below 0</td><td>SAE direction − probe: −9.2 [−16.5, −0.2]</td><td>Hit (narrowly)</td></tr>
+      <tr><td>P3</td><td>No arm gets the 9B detector's flag rate below 50%</td><td>≥ 0.50 for every arm</td><td>prompt + SAE direction 0.34 (84% of its replies loop)</td><td>Miss</td></tr>
+      <tr><td>P4</td><td>Every steering arm drifts more than the SFT LoRA</td><td>KL above SFT's 0.045 for all four</td><td>0.088-0.371</td><td>Hit</td></tr>
+      <tr><td>P5</td><td>The judge prefers the original over most methods</td><td>losses &gt; wins for ≥ 2/3 of arms</td><td>11 of 12</td><td>Hit</td></tr>
+      <tr><td>P6</td><td>DPO beats SFT on habits at no more drift</td><td>paired interval below 0, KL ≤ 1.2 × SFT's</td><td>+0.4 [−3.0, +3.7]; KL 0.028 vs 0.045</td><td>Miss</td></tr>
+    </tbody>
+  </table></div>
+  <p>What surprised me: P3 failed in the way the plan's list of boring explanations warned about, through broken text rather than human-like text; and steering, the method our interpretability notes are built around, was the weakest family once it faced the same rulers. What I would change: choose steering settings under the system prompt too, and use a preference pair that is not trivially separable (DPO learned nothing SFT did not). The lesson: a combination arm needs its own dev selection; settings chosen alone do not transfer to a combination.</p>
+
+  <h2 id="implications" data-short="Implications for AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Three things follow for anyone using slop detection or removal as a monitor or a reward. First, a regex-level habit score is easy to satisfy (a sampler and a prompt do it with no training), so a model optimised against one will look human to it while trained detectors still see AI in every reply. Second, the detectors' one blind spot here was degenerate text, so a policy trained to evade them would likely find loops before it found a human voice; a loop check belongs beside any detector used as a reward. Third, steering on the features a detector reads did not move writing far beyond random directions, so "find the AI features and turn them down" is not yet a reliable fix, even when those features are real.</p>
+  <p><strong>Recommendation: to remove chat-assistant habits, use a plain-style prompt and a backtracking sampler (or distil them into a LoRA), check every result for loops, and do not read a low habit score as text that passes for human: the detectors still flag it.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>Two open models, 48 prompts.</strong> Six genres of short prose, in English, at 512 tokens. Long-form writing, fiction and other models may rank differently.</li>
+    <li><strong>Steering may be under-tuned.</strong> Two dev choices sat at the top of the grid (32%), and the SAE ablation never found a usable setting. We kept the pre-registered rule rather than extend the grid after seeing dev results; a wider grid could move those arms, though on dev the strongest register settings already looped.</li>
+    <li><strong>One set of SAE features.</strong> The 16 features were chosen in another note to separate AI from human emails; features chosen for these habits might steer better.</li>
+    <li><strong>Post-training was light.</strong> One SFT and one DPO run, LoRA, 235 examples, one seed each; no RL. Sounds Like Me Episode 3 shows RL against a voice reward hacks it; we did not try RL here.</li>
+    <li><strong>The judge is one open model.</strong> It passed its known-answer test, but it also reads polish as quality; its verdict is about preference, not about human-likeness.</li>
+    <li><strong>No commercial detector.</strong> Pangram was not run (no key); its numbers could differ, though Episode 1 found every open detector agreeing.</li>
+    <li><strong>No human readers.</strong> "Human band" means the habit counts of 318 human passages, not people's judgement.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce it"><span class="num">07</span>Reproduce it</h2>
+  <pre>experiments/deslop-h2h/reproduce.sh --dry-run   # every command, in order
+experiments/deslop-h2h/reproduce.sh --scores    # re-score saved replies: detectors (cached), table, figures</pre>
+  <p>The full run needs a Modal account (H100s, about $31), Hugging Face access to gemma-3-27b-it for the judge, the slop-detector app with its 9B run, Episode 1's app for Desklib, and the Taste Stack E1 layer-18 units. Every paid call and its Modal workspace are in <a href="../results/spend.jsonl">results/spend.jsonl</a>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What's next</h2>
+  <ul>
+    <li><strong>Rewrite until it passes the detector</strong>: train a rewriter with RL against our 9B detector, with a loop penalty, and check what it changes against Pangram, people and a freshly retrained detector. Section 4.5 predicts it will find broken text first.</li>
+    <li>Choose steering settings under the system prompt, and SAE features selected for these habits rather than for emails.</li>
+    <li>A small human read of prompt + sampler against the original, since the judge's preference may not be people's.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions and answers"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q0">What is the cheapest way to remove chat-assistant habits from an open model?</h3>
+  <p>A one-paragraph plain-style system prompt plus a backtracking sampler: on Qwen3-8B it cut habits from 61.7 to 11.8 per 1,000 words with no training and no loops. A LoRA distilled from that pair keeps most of it without the prompt (22.1).</p>
+  <h3 id="q1">Does steering on SAE features remove slop?</h3>
+  <p>Not much: subtracting 16 AI-leaning SAE features' directions lowered habits to 54.1 from 61.7, within the range of random directions of the same size, and with a system prompt added the replies looped.</p>
+  <h3 id="q2">Will a de-slopped model pass AI detectors?</h3>
+  <p>No. Our 9B detector flagged 92-100% of the replies of every method that kept writing normal text, including the two whose replies sit inside the human range on habits.</p>
+  <h3 id="q3">Is DPO better than SFT for this?</h3>
+  <p>Not here: on the same teacher replies they reached 22.5 and 22.1 (paired +0.4 [−3.0, +3.7]); DPO drifted slightly less (KL 0.028 against 0.045).</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Data files"><table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/gen/original.jsonl">results/gen/&lt;arm&gt;.jsonl</a></td><td>Every reply: <code>arm</code>, <code>id</code> (prompt), <code>sample</code>, <code>text</code>, <code>n_tokens</code>, <code>finished</code> (ended before 512 tokens); sampler arms add <code>backtracks</code>, <code>accepted</code></td></tr>
+      <tr><td><a href="../results/per_reply.csv">results/per_reply.csv</a></td><td>One row per reply of both tracks: <code>group</code>, <code>id</code>, <code>sample</code>, <code>habit</code>, <code>in_band</code>, <code>eqbench</code>, <code>task_fit</code>, <code>invented</code>, <code>mattr</code>, <code>words</code>, <code>loop</code>, <code>empty</code>, <code>finished</code>, each detector's score and <code>_flag</code></td></tr>
+      <tr><td><a href="../results/summary.json">results/summary.json</a></td><td>Per arm every measure with its interval, paired differences against the original, random bands, the checks of section 4.9, thresholds and the scored predictions</td></tr>
+      <tr><td><a href="../results/table.csv">results/table.csv</a></td><td>The comparison table as a spreadsheet</td></tr>
+      <tr><td><a href="../results/rulers/scores.json">results/rulers/scores.json</a></td><td>Detector scores for every text: <code>voi380</code>, <code>nine_b</code>, <code>desklib</code>, <code>binoculars</code>, <code>fastdetect</code></td></tr>
+      <tr><td><a href="../results/judge/check.json">results/judge/</a></td><td>The judge's known-answer test and every verdict: <code>first</code>, <code>second</code> (the letter picked in each order), <code>result</code></td></tr>
+      <tr><td><a href="../results/drift.json">results/drift.json</a></td><td>KL per human passage and quiz answers per arm</td></tr>
+      <tr><td><a href="../results/tune_sweep.json">results/tune_sweep.json</a></td><td>The dev sweep: habit, fluent, task fit, loops, empty and words for each of 23 settings</td></tr>
+      <tr><td><a href="../results/train/teacher.jsonl">results/train/</a></td><td>The kept teacher replies, filter counts and both training logs</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="cite" data-short="How to cite">How to cite</h3>
+  <pre>@misc{lie2026deslophead2head,
+  title  = {Every way to remove slop, on the same 48 prompts: a prompt plus a sampler wins, steering barely beats random, and no method gets past a detector},
+  author = {Lie, Albert},
+  year   = {2026},
+  note   = {Model voice, Episode 3. steerlab},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/deslop-h2h/report/}
+}</pre>
+
+  <h2 id="references" data-short="References"><span class="num">R</span>References</h2>
+  <ul class="refs">
+    <li><em>Antislop: A Comprehensive Framework for Identifying and Eliminating Repetitive Patterns in Language Models</em>, 2025: <a href="https://arxiv.org/abs/2510.15061">arxiv.org/abs/2510.15061</a></li>
+    <li><em>Measuring AI "Slop" in Text</em>, 2025: <a href="https://arxiv.org/abs/2509.19163">arxiv.org/abs/2509.19163</a></li>
+    <li><em>Direct Preference Optimization: Your Language Model is Secretly a Reward Model</em>, 2023: <a href="https://arxiv.org/abs/2305.18290">arxiv.org/abs/2305.18290</a></li>
+    <li><em>Iterative Reasoning Preference Optimization</em> (DPO with an NLL term), 2024: <a href="https://arxiv.org/abs/2404.19733">arxiv.org/abs/2404.19733</a></li>
+    <li><em>Steering Language Models With Activation Engineering</em>, 2023: <a href="https://arxiv.org/abs/2308.10248">arxiv.org/abs/2308.10248</a></li>
+    <li>EQ-Bench slop score: <a href="https://github.com/sam-paech/slop-score">github.com/sam-paech/slop-score</a></li>
+    <li>Qwen-Scope SAEs: <a href="https://huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50">huggingface.co/Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_50</a></li>
+    <li>100toolkit's qwen3-4b-deslop: <a href="https://100toolkit.com/blog/deslop-model/">100toolkit.com/blog/deslop-model</a></li>
+    <li>The earlier notes: <a href="../../deslop/report/">Model voice E1</a>, <a href="../../slop-detector/report/">Model voice E2</a>, <a href="../../probes-vs-interp/report/">The Taste Stack E1</a>, <a href="../../sounds-like-me-ep3/report/">Sounds Like Me E3</a></li>
+  </ul>
+
+</article>
+</div>
+<script src="data.js"></script>
+<script>
+(function () {
+  var D = window.H2H, ps = document.getElementById("rv-prompt"), as = document.getElementById("rv-arm");
+  if (!D || !ps) return;
+  D.prompts.forEach(function (p, i) { var o = document.createElement("option"); o.value = i; o.textContent = p.genre + " · " + p.id; ps.appendChild(o); });
+  D.arms.forEach(function (a) { var o = document.createElement("option"); o.value = a.id; o.textContent = a.label; as.appendChild(o); });
+  as.value = "plain+sampler";
+  function show() {
+    var p = D.prompts[+ps.value], r = p.replies[as.value];
+    document.getElementById("rv-ptext").textContent = "Request: " + p.prompt;
+    var s = document.getElementById("rv-stats");
+    s.textContent = "habits " + r.habit.toFixed(1) + " per 1,000 words · " + r.words + " words · 9B detector " + r.nine_b.toFixed(2);
+    if (r.loop) { var b = document.createElement("span"); b.className = "bad"; b.textContent = " · loops"; s.appendChild(b); }
+    document.getElementById("rv-text").textContent = r.text || "(empty)";
+  }
+  ps.addEventListener("change", show); as.addEventListener("change", show); show();
+})();
+</script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
