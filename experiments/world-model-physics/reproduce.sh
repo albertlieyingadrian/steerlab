@@ -10,7 +10,7 @@ DRY=0
 [[ "${1:-}" == "--dry-run" ]] && DRY=1
 run() { echo "+ $*"; if [[ "$DRY" == 0 ]]; then "$@"; fi; }
 
-# Pre-training: three seeds per world, Part 18's recipe (datasets are simulated and cached on first use)
+# Pre-training: three seeds per world, the base project's recipe (datasets are simulated and cached on first use)
 for s in 2610 2611 2612; do run $PY $D/train.py --world base --seed $s; done
 for s in 2620 2621 2622; do run $PY $D/train.py --world const --seed $s; done
 

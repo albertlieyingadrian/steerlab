@@ -9,11 +9,11 @@ Looking inside one base-world model: presence (probes) and use (interventions). 
                                                predicted step's kinetic energy move by Delta E?           (use)
     collision_edit(...)                        subtract the collision-imminent direction on frames with a bounce
                                                next: does the predicted bounce disappear?                 (use)
-    interchange_taus(...)                      Part 18 lesson 04's donor swap (tau) for velocity and energy
+    interchange_taus(...)                      the base project's donor swap (tau) for velocity and energy
 
 Every use measure has a random-direction null of the same norm (and the same constraint: random directions for the
 energy edit have the velocity directions removed too). Site s = 0 is the embedding, s = 1..4 the outputs of blocks
-0..3 (Part 18's convention); edits happen at block outputs, layer = s - 1.
+0..3 (the base project's convention); edits happen at block outputs, layer = s - 1.
 
 Gain: the edit's expected effect on the predicted next frame, E (6 numbers), is what the probe says should happen
 (velocity: DT times the change in every velocity probe's reading). The observed effect O is the change in the
@@ -311,7 +311,7 @@ def collision_edit(model, probes, data, eps_c, frames_c, eps_f, frames_f, device
     return {"collision_frames": nc, "free_frames": nf, "random_directions": n_random, "blocks": out}
 
 
-# --- use: interchange (Part 18 lesson 04) ---------------------------------------------------------------------------------
+# --- use: interchange, as in the base project ------------------------------------------------------------------------
 
 
 def interchange_taus(model, probes, data, device, rng, n_pairs=2000, n_random=N_RANDOM):

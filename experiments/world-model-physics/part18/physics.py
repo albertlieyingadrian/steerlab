@@ -1,5 +1,5 @@
 """
-The Part 18 world: balls bouncing elastically in a box, simulated exactly (KTD1).
+The base project's world: balls bouncing elastically in a box, simulated exactly.
 
 An event-driven simulator. Between collisions every ball moves in a straight line, so instead of stepping time in
 small slices it asks "when is the next contact?", jumps straight there, applies the bounce, and repeats until the
@@ -9,11 +9,11 @@ gets an exact time.
     simulate(pos0, vel0, ...)         one episode from given starting positions and velocities
     random_start(rng, energy, ...)    non-overlapping random positions, velocities scaled to a total energy
     make_split(n, seed, energy_range) a whole split: arrays for the model (positions) and for us (everything else)
-    matched_negatives(arrays, rng)    KTD9's "same distance, moving the other way" partner for every collision
+    matched_negatives(arrays, rng)    the "same distance, moving the other way" partner for every collision
 
-Conventions (plan A1): a unit box [0, 1]^dim, radius 0.05, mass 1, no gravity or friction, frames 0.05 time units
-apart, 64 frames per episode. The collision code is written per axis, so `dim=3` works too (A10, an offer to
-Part 19, not a promise).
+Conventions: a unit box [0, 1]^dim, radius 0.05, mass 1, no gravity or friction, frames 0.05 time units
+apart, 64 frames per episode. The collision code is written per axis, so `dim=3` works too (offered as is,
+not a promise).
 
 Collision types for dim 2: 0 = wall-x, 1 = wall-y, 2 = ball-ball (in general: axes 0..dim-1, then ball-ball = dim).
 A label at frame t means "this collision happens after frame t and at or before frame t+1".
@@ -173,11 +173,11 @@ def random_start(rng, energy, *, n_balls=N_BALLS, dim=DIM, radius=RADIUS, box=BO
     return pos, vel
 
 
-# --- 3. Checks the lesson runs on every episode (R2) -----------------------------------------------------------------
+# --- 3. Checks run on every episode -----------------------------------------------------------------
 
 
 def audit(episode, *, radius=RADIUS, box=BOX, masses=None) -> dict:
-    """The four R2 numbers for one simulated episode (worst case over its frames and collisions).
+    """The four audit numbers for one simulated episode (worst case over its frames and collisions).
 
     `overlap` is measured at every frame AND at every contact (where two balls are closest), so it is not
     trivially zero just because frames happen to fall between collisions."""
@@ -212,7 +212,7 @@ def make_split(n_episodes, seed, energy_range, *, n_frames=N_FRAMES, n_balls=N_B
     """Simulate `n_episodes` episodes. Episode e is drawn from np.random.default_rng([seed, e]), so any one
     episode can be regenerated on its own and the split does not depend on the order episodes are run in.
 
-    Returns (arrays, worst) where `arrays` is ready for save_npz and `worst` holds the worst R2 numbers.
+    Returns (arrays, worst) where `arrays` is ready for save_npz and `worst` holds the worst audit numbers.
     Shapes (E episodes, T frames, N balls, D dims, P pairs, K collision types = D + 1):
       positions, velocities [E, T, N, D] float64; energy [E]; ke_ball [E, T, N]
       wall_next [E, T-1, N, D], pair_next [E, T-1, P], collides_next [E, T-1, K]   bool
@@ -263,7 +263,7 @@ def make_split(n_episodes, seed, energy_range, *, n_frames=N_FRAMES, n_balls=N_B
     return arrays, worst
 
 
-# --- 5. Matched negatives (KTD9) -------------------------------------------------------------------------------------
+# --- 5. Matched negatives -------------------------------------------------------------------------------------
 
 
 def wall_gap_and_approach(positions, velocities, *, radius=RADIUS, box=BOX):
@@ -309,7 +309,7 @@ def _match(pos_index, pos_gap, neg_index, neg_gap, rng, tol):
 
 
 def matched_negatives(arrays, rng, *, tol=0.01):
-    """KTD9's matched sets. A wall collision correlates with being near the wall, so each wall positive
+    """The matched sets. A wall collision correlates with being near the wall, so each wall positive
     (a ball that hits a wall on that axis before the next frame, approaching it at frame t) gets a negative at the
     same gap to the nearest wall on that axis but moving away. Each ball-ball positive gets a pair at the same
     separation but moving apart.

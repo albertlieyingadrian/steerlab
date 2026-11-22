@@ -1,5 +1,5 @@
 """
-Looking inside the Part 18 world model: capture activations, fit linear probes, and run interchange patching.
+Looking inside the base project's world model: capture activations, fit linear probes, and run interchange patching.
 
     capture(model, positions)          residual stream at every site, every frame: [5 sites, E, 63, d_model]
     frame_labels(data, episodes)       the answer key for each (episode, frame) row: position, velocity, energy,
@@ -7,8 +7,8 @@ Looking inside the Part 18 world model: capture activations, fit linear probes, 
     fit_ridge(X, Y, groups)            RidgeCV on standardised inputs and targets, alpha chosen by GroupKFold
     r2(y, y_hat)                       R² averaged over output columns
     raw_direction(probe, k)            output k's probe as a unit vector in raw activation space
-    interchange(model, layer, u, ...)  overwrite the component along u with a donor's (KTD6) and finish the pass
-    tau(dg, dphi)                      transfer correlation, the KTD6 metric
+    interchange(model, layer, u, ...)  overwrite the component along u with a donor's and finish the pass
+    tau(dg, dphi)                      transfer correlation, the interchange metric
 
 Sites: 0 is the input to block 0 (the frame's embedding plus the positional embedding); 1 to 4 are the outputs of
 blocks 0 to 3. The blocks are pre-norm, so each block's output is the residual stream at that depth.
@@ -154,7 +154,7 @@ def orthogonalise(u, others) -> np.ndarray:
     return (v / np.linalg.norm(v)).astype(np.float32)
 
 
-# --- 3. Interchange (KTD6) ---------------------------------------------------------------------------------------------
+# --- 3. Interchange ---------------------------------------------------------------------------------------------
 
 
 @torch.no_grad()
@@ -167,7 +167,7 @@ def residual_at(model, layer, positions, device) -> torch.Tensor:
 
 
 def swap_hook(u_t, donor_proj, mask=None):
-    """The KTD6 forward hook: replace the output's component along unit vector u_t with donor_proj [B, T] (only where
+    """The interchange forward hook: replace the output's component along unit vector u_t with donor_proj [B, T] (only where
     mask [B, T] is 1, when given)."""
 
     def hook(module, inputs, output):
@@ -181,7 +181,7 @@ def swap_hook(u_t, donor_proj, mask=None):
 
 @torch.no_grad()
 def interchange(model, layer, u, target_pos, donor_h, frames, device, *, only_frame_t=False):
-    """KTD6: at block `layer`'s output, replace the component along unit vector u with the donor's,
+    """At block `layer`'s output, replace the component along unit vector u with the donor's,
         h  ->  h + u (<u, h_donor> − <u, h>)
     then finish the forward pass. By default every frame 0..62 is patched (so later layers cannot read the old
     value back from an earlier frame); only_frame_t patches just the frame the readout is taken at.
@@ -225,18 +225,18 @@ def implied_energy(pred_next, current) -> np.ndarray:
 
 
 def tau(dg, dphi) -> float:
-    """Transfer correlation (KTD6): Pearson correlation of the readout's change with the true change."""
+    """Transfer correlation: Pearson correlation of the readout's change with the true change."""
     dg, dphi = np.asarray(dg, dtype=np.float64), np.asarray(dphi, dtype=np.float64)
     if dg.std() < 1e-12 or dphi.std() < 1e-12:
         return 0.0
     return float(np.corrcoef(dg, dphi)[0, 1])
 
 
-# --- 4. Target-donor pairs and readouts (lesson 04) -----------------------------------------------------------------------
+# --- 4. Target-donor pairs and readouts -----------------------------------------------------------------------
 
 
 def make_pairs(n_episodes, n_pairs, rng, frames=(8, 62)) -> dict:
-    """KTD6 pairs: a target episode, a different donor episode, and one frame index t shared by both."""
+    """Interchange pairs: a target episode, a different donor episode, and one frame index t shared by both."""
     target = rng.integers(0, n_episodes, n_pairs)
     donor = (target + rng.integers(1, n_episodes, n_pairs)) % n_episodes  # never the target itself
     t = rng.integers(frames[0], frames[1] + 1, n_pairs)
@@ -253,7 +253,7 @@ def true_changes(data, pairs) -> dict:
 
 
 def readouts(pred, energy_head, current) -> dict:
-    """The scalars g read from a prediction (KTD6): ball 0's implied x-velocity, the implied total energy, and the
+    """The scalars g read from a prediction: ball 0's implied x-velocity, the implied total energy, and the
     energy head's estimate in energy units (Model C only)."""
     out = {"velocity": implied_velocity(pred, current)[:, 0], "energy": implied_energy(pred, current)}
     if energy_head is not None:
@@ -297,7 +297,7 @@ class PairRunner:
 
 
 def random_directions(n, d, rng) -> np.ndarray:
-    """n uniformly random unit vectors in d dimensions (the KTD6 null; the paper also rescales to |w|, which a
+    """n uniformly random unit vectors in d dimensions (the interchange null; the paper also rescales to |w|, which a
     unit-vector swap does not need)."""
     r = rng.standard_normal((n, d))
     return (r / np.linalg.norm(r, axis=1, keepdims=True)).astype(np.float32)
@@ -307,7 +307,7 @@ def head_rows(model) -> np.ndarray:
     """The directions through which the last block's output reaches the prediction linearly: the six rows of W_head
     scaled by the final LayerNorm's gain, plus the all-ones direction (LayerNorm subtracts the mean, so a shift along
     the ones vector changes every coordinate's centred value). Removing these from a direction removes its linear
-    routes to the prediction (KTD6). LayerNorm's rescaling by the standard deviation is not linear and cannot be
+    routes to the prediction. LayerNorm's rescaling by the standard deviation is not linear and cannot be
     projected out; a direction that changes |h| still reaches the output through it. [7, d]"""
     w = model.head.weight.detach().float().cpu().numpy()
     g = model.ln_f.weight.detach().float().cpu().numpy()
@@ -349,7 +349,7 @@ def null_band(values) -> list[float]:
 
 
 def verdict(tau_value, band, *, present=True) -> str:
-    """KTD6's verdict, two-sided: above the band is "used"; below it is "reversed" (the prediction moves AGAINST the
+    """The interchange verdict, two-sided: above the band is "used"; below it is "reversed" (the prediction moves AGAINST the
     donor more than any random direction makes it, which is not "unused"); inside it is "present but unused" when the
     probe beat its input baseline, else "inside the null"."""
     lo, hi = band

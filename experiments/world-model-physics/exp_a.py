@@ -3,7 +3,8 @@ Experiment A: present versus used, on three freshly pre-trained base-world model
 
 For each seed: fit velocity, energy and collision-imminent probes at every site (presence: test R^2 / AUROC against
 an input baseline), then intervene (use): add velocity directions, add the energy direction, subtract the
-collision-imminent direction, and run Part 18's donor interchange, each against random directions of the same norm.
+collision-imminent direction, and run the base project's donor interchange, each against random directions of
+the same norm.
 
     .venv/bin/python experiments/world-model-physics/exp_a.py            # all three seeds
     .venv/bin/python experiments/world-model-physics/exp_a.py --seeds 2610 --n-random 10 --tag _smoke
@@ -49,7 +50,7 @@ def analyse(model, seed, device, train, test, n_random=I.N_RANDOM, n_frames=1000
     if verbose:
         p = res["presence"]
         print(
-            f"  velocity R2 {p['velocity_r2']} (input {p['baseline']['velocity_r2']:.3f}); energy R2 "
+            f"  velocity R² {p['velocity_r2']} (input {p['baseline']['velocity_r2']:.3f}); energy R² "
             f"{p['energy_r2']} (input {p['baseline']['energy_r2']:.3f}); collision AUROC {p['collision_auroc']} "
             f"(input {p['baseline']['collision_auroc']:.3f})",
             flush=True,

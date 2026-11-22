@@ -1,13 +1,14 @@
 """
 Shared plumbing for the world-model-physics study: paths, seeds, data splits, model loading.
 
-The study reuses a course capstone's pieces, copied into part18/: the exact event-driven simulator
+The study reuses an earlier 2D world-model project's pieces, copied into part18/: the exact event-driven simulator
 (physics.py), the tiny GPT world model (worldmodel.py) and the probing / interchange helpers (probing.py, which needs
 sandbagkit from packages/). This file puts part18/ on sys.path, so every script can `import physics, worldmodel,
 probing`.
 
 Two worlds:
-    base   Part 18's world: 3 balls, elastic, no gravity, no friction (exact simulator, physics.py). Experiments A, C.
+    base   the base project's world: 3 balls, elastic, no gravity, no friction (exact simulator,
+           physics.py). Experiments A, C.
     const  the same box with gravity g (pulling -y) and linear drag gamma varied per episode (sim_const.py). Exp. B.
 
 Big files (datasets, checkpoints, activations) go to data/ (gitignored); small result tables go to results/.
@@ -23,7 +24,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
-PART18 = HERE / "part18"  # copies of the course capstone's simulator, model and probing helpers
+PART18 = HERE / "part18"  # copies of the base 2D world-model project's simulator, model and probing helpers
 sys.path.insert(0, str(PART18))
 sys.path.insert(0, str(HERE))
 
@@ -36,7 +37,7 @@ for _p in (DATA, MODELS, RESULTS, FIGURES):
 
 # One seed per job, fixed in PREREGISTRATION.md before any main run.
 SEEDS = {
-    # base world splits: the same seeds as Part 18, so the data is Part 18's data
+    # base world splits: the same seeds as the base project, so the data is identical
     "base_train": 18001,
     "base_val": 18002,
     "base_test": 18003,
@@ -59,10 +60,10 @@ SEEDS = {
     "sft": 2641,
 }
 
-CONFIG = {"d_model": 128, "n_layers": 4, "n_heads": 4, "d_mlp": 512}  # Part 18's Model A, unchanged
+CONFIG = {"d_model": 128, "n_layers": 4, "n_heads": 4, "d_mlp": 512}  # the base project's Model A, unchanged
 EPOCHS = 40
 
-BASE_PLAN = {  # Part 18 plan A1, plus two fresh splits for experiment C
+BASE_PLAN = {  # The base project's splits, plus two fresh splits for experiment C
     "train": (20_000, (0.5, 2.0)),
     "val": (2_000, (0.5, 2.0)),
     "test": (2_000, (0.5, 2.0)),
