@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which neurons does post-training change? A per-neuron read diff mostly can't tell</title>
+<meta name="description" content="Every MLP neuron and attention head of Qwen3-8B read through Jacobian lenses before and after training, against a lens swap, seed twins and clean twins. A lens swap on identical weights moves neuron reads almost as far as post-training, and their per-neuron rankings agree at Spearman 0.73 within a layer.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Which neurons does post-training change? A per-neuron read diff mostly can&#x27;t tell">
+<meta property="og:description" content="Every MLP neuron (both poles) and attention head of Qwen3-8B read through Jacobian R- and S-lenses before and after training: public base-to-chat post-training and 13 LoRA comparisons, each beside a lens swap on identical weights, seed twins and clean twins from the same random init. A lens swap moves neuron reads almost as far as post-training (0.50 vs 0.43 of the top-20 tokens kept) and its per-neuron ranking agrees at Spearman 0.73 within a layer; for LoRAs, the random init decides which neurons move. De-slopping shows up as a residual direction, not as a set of units.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Three heat strips of Qwen3-8B&#x27;s 36 layers by neuron, showing how far each neuron&#x27;s read moved under a lens swap on identical weights, under a weight change with one lens, and under both; the three look alike.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Which neurons does post-training change? A per-neuron read diff mostly can&#x27;t tell">
+<meta name="twitter:description" content="Every MLP neuron (both poles) and attention head of Qwen3-8B read through Jacobian R- and S-lenses before and after training: public base-to-chat post-training and 13 LoRA comparisons, each beside a lens swap on identical weights, seed twins and clean twins from the same random init. A lens swap moves neuron reads almost as far as post-training (0.50 vs 0.43 of the top-20 tokens kept) and its per-neuron ranking agrees at Spearman 0.73 within a layer; for LoRAs, the random init decides which neurons move. De-slopping shows up as a residual direction, not as a set of units.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-22">
+<meta property="article:modified_time" content="2026-11-22">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Which neurons does post-training change? A per-neuron read diff mostly can't tell",
+ "description": "Every MLP neuron (both poles) and attention head of Qwen3-8B read through Jacobian R- and S-lenses before and after training: public base-to-chat post-training and 13 LoRA comparisons, each beside a lens swap on identical weights, seed twins and clean twins from the same random init. A lens swap moves neuron reads almost as far as post-training (0.50 vs 0.43 of the top-20 tokens kept) and its per-neuron ranking agrees at Spearman 0.73 within a layer; for LoRAs, the random init decides which neurons move. De-slopping shows up as a residual direction, not as a set of units.",
+ "abstract": "Standalone note, pre-registered (5 predictions, 3 dated amendments). Qwen3-8B-Base vs Qwen3-8B, and 12 rank-16 LoRAs on Qwen3-8B (deslop SFT/DPO, Sounds Like Me Ep 3 voice SFT/DPO/GRPO, plus seed, random-label and clean twins). Weight-only reads of 442,368 neurons x 2 poles and 1,152 heads through stdlogits/rs-lenses (R: what a write says; S: what drives a read), fp32; activations on 1,000 fixed emails. Public post-training: median neuron keeps 0.43 of its top-20 write tokens (own lenses), 0.58 (base lens), and a lens swap on identical weights keeps 0.50; per-neuron change vs lens swap Spearman 0.73 within a layer (0.94 pooled); 1.7% of neurons past the swap's 99th percentile; read change vs weight change 0.02 within a layer. LoRAs: median top-20 overlap 1.00; which neurons move: same objective other init 0.42, other objective same init 0.57, other objective other init 0.41. Register direction: deslop SFT minus clean twins of the same init -1.74, -1.57, -1.65 (AI-human gap 3.35); public post-training +1.97. Voice SFT activations move 59% as far as public post-training. Predictions 2/5 (P3 not robust, P5).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-22",
+ "dateModified": "2026-11-22",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "post-training, mechanistic interpretability, neurons, attention heads, Jacobian lens, R-lens, S-lens, LoRA, model diffing, Qwen3-8B, neuron-lens, pre-registered",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/stdlogits/neuron-lens"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/stdlogits/rs-lenses"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/Qwen/Qwen3-8B"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/Qwen/Qwen3-8B-Base"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  table.num td.n, table.num th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .tok { font-family: var(--font-mono); font-size: .78rem; background: var(--panel); border: 1px solid var(--rule);
+         border-radius: 3px; padding: 0 .25rem; margin: 0 .12rem .12rem 0; display: inline-block; white-space: pre; max-width: 100%; overflow: hidden; }
+  .tok.new { border-color: var(--accent); color: var(--accent-text); }
+  #units { margin: 1rem 0 1.6rem; }
+  .ux-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .7rem; }
+  .ux-tab { font: 600 .8rem var(--font-display); padding: .35rem .65rem; border: 1px solid var(--rule); border-radius: 999px;
+            background: var(--canvas); color: var(--ink); cursor: pointer; }
+  .ux-tab[aria-selected="true"] { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .ux-desc { color: var(--ink-soft); font-size: .92rem; margin: .1rem 0 .6rem; }
+  .ux-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr)); gap: .65rem; }
+  .ux-card { border: 1px solid var(--rule); border-radius: 8px; padding: .6rem .7rem; min-width: 0; }
+  .ux-card h4 { margin: 0 0 .3rem; font: 700 .95rem var(--font-display); }
+  .ux-card .s { font-family: var(--font-mono); font-size: .7rem; color: var(--ink-soft); }
+  .ux-row { margin: .25rem 0; font-size: .8rem; color: var(--ink-soft); }
+  .ux-row b { display: inline-block; width: 3.6rem; font-weight: 600; color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-22">Nov 22, 2026</time></p>
+  <h1>Which neurons does post-training change? A per-neuron read diff mostly can't tell</h1>
+  <p class="dek ruled">We read every neuron and attention head of Qwen3-8B before and after training. Swapping only the lens, on identical weights, moves the median neuron's read almost as far as public post-training does (0.50 of its top-20 tokens kept, against 0.43), and the two rankings of changed neurons agree at Spearman 0.73 within a layer.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="Three heat strips of Qwen3-8B's 36 layers (rows) and their neurons (columns, sorted by how much a lens swap moves them): lens swapped on identical weights, weights changed under one lens, and both. The three look alike: early and middle layers bright (reads move), late layers dark (reads stay).">
+    <figcaption>Cover: how far each neuron's read moved (brighter is further), by layer. Left: identical weights through the base model's lens and the post-trained model's. Middle: both models' weights through the base lens. Right: each model through its own lens. Every row is sorted by the left panel and averaged in 96 bins. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/unit_grids.json</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Standalone note</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B-Base and Qwen3-8B; 12 rank-16 LoRAs on Qwen3-8B (7 from earlier notes, 5 trained here as controls) in 13 comparisons</dd></div>
+    <div><dt>Method</dt><dd>Weight-only R-lens and S-lens reads of 442,368 neurons × 2 poles and 1,152 heads, plus activations on 1,000 fixed texts; five pre-registered predictions</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/posttrain-diff/</a> · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/summary.json">Per-pair summaries</a>, <a href="../results/predictions.json">scored predictions</a> and every other file, listed in <a href="#appendix">the appendix</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What does post-training change inside a language model, neuron by neuron?</strong></p>
+    <p>A per-neuron read diff mostly cannot say. We read all 442,368 MLP neurons and 1,152 attention heads of Qwen3-8B before and after training. Public post-training leaves the median neuron with 0.43 of its top-20 output tokens; reading identical weights through the other model's lens already leaves 0.50. The two change rankings agree at Spearman 0.73 within a layer, though only 15% of their top 1% is shared. For rank-16 LoRAs, reads barely move, and which neurons move is set by the LoRA's random init, not by what it was trained on. One objective did show as a direction: LoRAs trained on de-slopped replies moved the residual 1.3 to 2.3 units away from an AI-register direction (AI and human texts sit 3.4 apart), against clean twins started from the same init, at each of three seeds. That ruler was planned as secondary; the predicted effect on our primary ruler did not replicate.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Question</th><th>Answer</th></tr></thead>
+        <tbody>
+          <tr><td>How much does public post-training change a neuron's read?</td><td>The median neuron keeps <strong>0.43</strong> of its top-20 write tokens with each model's own lens, and 0.58 with the base lens on both. Swapping the lens alone keeps <strong>0.50</strong>. At the last layer, which needs no lens, the weights alone leave 0.88.</td></tr>
+          <tr class="hl"><td>Do the changed neurons stand out from the lens swap?</td><td><strong>Only a little.</strong> Per-neuron change tracks the swap's at <strong>Spearman 0.73</strong> within a layer (0.94 pooled, which also counts depth). 1.7% of neurons pass the swap's 99th percentile, against 1% by construction (heads: 3.4%). The most-moved 1% overlap by 15%. Read change does not follow weight change (0.02 within a layer).</td></tr>
+          <tr><td>Do LoRA fine-tunes move reads?</td><td>Hardly. Median top-20 overlap is 1.00 in all 13 comparisons, and mean change is 0.1–1.2% of public post-training's. Which neurons move follows the LoRA's random init: a de-slopping SFT agrees with an untrained-style twin from the same init at <strong>0.57</strong> within a layer, and with itself from another init at only <strong>0.42</strong>, the same as with an unrelated twin from another init (0.41).</td></tr>
+          <tr><td>Do they move what units do on text?</td><td>More. On the same 1,000 texts the median neuron's before–after correlation is 0.925 for the voice SFT, 0.990 for the deslop SFT and <strong>0.873</strong> for public post-training.</td></tr>
+          <tr><td>Does the training objective show up?</td><td>For de-slopping, as a direction on a secondary ruler: <strong>−1.57 to −1.74</strong> along the AI-register direction, SFT minus clean twins from the same init, at each of three seeds. Not as a set of units: the most-moved 1% lean toward AI text no more than average (1.00 [0.98, 1.02]).</td></tr>
+          <tr><td>Does RL add much after SFT?</td><td>200 GRPO steps moved reads a fourteenth as far as the SFT before them (mean change 0.0004 vs 0.0059).</td></tr>
+          <tr><td>Predictions</td><td>2 of 5 hit (P3, P5). P3 does not hold in the seed twins.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <aside class="bg-note" id="lens-101" aria-labelledby="lens-label">
+    <p class="label" id="lens-label">Background · 101: neurons, poles, lenses</p>
+    <p>One analogy throughout: the model is a line of cooks, one per layer, passing a dish down. The dish is the <em>residual stream</em>, a list of 4,096 numbers per word that every layer reads and adds to. An <em>MLP neuron</em> is one of 12,288 small workers in a layer. It reads the dish through two fixed recipes, its <em>gate</em> and <em>up</em> rows, and when it fires it adds a fixed vector back, its <em>write</em>.</p>
+    <p>A Qwen neuron can fire with either sign, and the two signs often mean different things, so each neuron has two <em>poles</em>, + and −. An <em>attention head</em> moves information between words; its <em>OV circuit</em> decides what it copies.</p>
+    <p>A <em>lens</em> is a fitted matrix, one per layer and per model, that translates a vector at that layer into words. The <strong>R-lens</strong> is the one that says which output tokens a write pushes up. The <strong>S-lens</strong> is the one that says which input tokens drive a read. A neuron's <em>read</em> is its list of top tokens under a lens: the label on a jar. This note asks whether training relabels the jars.</p>
+  </aside>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Take neuron 4,993 in Qwen3-8B's last layer. Before post-training it pushes the model to say " stop", " stops", " stopped". After post-training it still does. Now take neuron 9,206 in layer 2: before, its top tokens are word fragments, and after, they are commas and " nearly". Did training rewire the second neuron, or was its label never readable?</p>
+  <p>The <a href="https://github.com/stdlogits/neuron-lens">neuron-lens</a> project makes the question askable. It fitted R- and S-lenses for Qwen3 at five sizes, base and post-trained, and keeps unit indices aligned between the two, so each neuron can be diffed against itself. What is missing is a floor: how far a read moves when the unit's weights did not change, or changed for an unrelated reason.</p>
+  <p>This note runs the diff with those floors beside it, on public post-training of Qwen3-8B and on LoRA fine-tunes whose behaviour earlier notes measured: de-slopping (<a href="../../deslop-h2h/report/">deslop-h2h</a>) and writing voice (<a href="../../sounds-like-me-ep3/report/">Sounds Like Me, Episode 3</a>).</p>
+  <p>Contributions:</p>
+  <ol>
+    <li>A diff of every neuron pole and head of Qwen3-8B across public post-training and 13 LoRA comparisons, against a lens swap, seed twins and clean twins.</li>
+    <li>A negative result about the method: for LoRAs the list of most-changed neurons is set by the random init, and for public post-training the ranking follows a lens swap and not the weight change. A raw list of changed units is weak evidence about what training did.</li>
+    <li>A lead on where an objective does show: a residual direction that moves with the style of the training replies, across three seeds.</li>
+  </ol>
+  <p>What counts as success, set before the runs: post-training must move reads past the lens swap, the moved units must repeat across seeds more than across unrelated arms, and a link to the objective must hold against clean twins.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Pairs.</strong> Each comparison has a before and an after side, with unit indices aligned.</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Pair</th><th>Before → after</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>public, own lenses</td><td>Qwen3-8B-Base → Qwen3-8B, each through its own lens</td><td>public post-training</td></tr>
+      <tr><td>public, base lens</td><td>the same two models, both through the base lens</td><td>weights alone</td></tr>
+      <tr><td>lens swap</td><td>Qwen3-8B → itself, base lens → its own lens</td><td>floor: the lens alone</td></tr>
+      <tr><td>deslop SFT, DPO</td><td>Qwen3-8B → + LoRA trained toward plain replies</td><td>objective</td></tr>
+      <tr><td>deslop SFT, seeds 1 and 2</td><td>same recipe and data, other seeds</td><td>seed floor</td></tr>
+      <tr><td>random labels, style kept</td><td>de-slopped replies shuffled across prompts</td><td>style without the prompt match</td></tr>
+      <tr><td>own replies (clean twin)</td><td>SFT on the model's own replies to the same 235 prompts</td><td>fine-tuning floor</td></tr>
+      <tr><td>own replies, random labels</td><td>the model's own replies shuffled across prompts</td><td>random-label floor, same rank and steps</td></tr>
+      <tr><td>voice SFT, DPO, GRPO 60 and 200</td><td>Qwen3-8B → + Sounds Like Me Ep 3 LoRAs (DPO and GRPO start from the SFT)</td><td>objective</td></tr>
+      <tr><td>voice SFT, wrong writer</td><td>the same 442-step SFT with another writer's context</td><td>floor for the voice arms</td></tr>
+      <tr><td>GRPO alone</td><td>voice SFT → GRPO step 200</td><td>what RL added</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Every LoRA is rank 16, alpha 32, on all seven projections. The deslop SFTs and twins are 60 steps. The seed twins' losses match the original's (about 0.65 → 0.22; <code>results/twins.json</code>).</p>
+  <p><strong>Reads</strong> use weights only, after neuron-lens's <code>readout.py</code> and <code>08_reads.py</code>:</p>
+  <ul>
+    <li><em>Write read</em>: a pole's write through the R-lens and the unembedding, with each token's score z-scored across the layer's neurons, over the readable vocabulary.</li>
+    <li><em>Read direction</em>: the pole's gate ± up row pulled back to the input embeddings by the S-lens.</li>
+    <li><em>Head OV read</em>: what each head copies, over 20k tokens.</li>
+  </ul>
+  <p><strong>Measures.</strong> <em>Top-20 overlap</em> is the share of the top-20 tokens that stay (1 is unchanged). The <em>change score</em> is 1 minus the Spearman correlation of the two sides' scores on their top-50 tokens, averaged over both poles. <em>Weight change</em> is the change in the write vector relative to its length.</p>
+  <p><strong>Activations.</strong> Both sides read the same 1,000 emails from <a href="../../probes-vs-interp/report/">probes-vs-interp</a> (500 human, 500 AI-written, half fit, half eval), each wrapped as the reply to "Write a short text." with thinking off, at most 256 tokens. Three rulers measure AI register in the residual:</p>
+  <ul>
+    <li>primary: AI minus human residual means on the fit split (AUROC 0.95 on the eval split at layer 18);</li>
+    <li>secondary: deslop-h2h's register direction at layers 12, 18 and 24 (default replies minus plain-prompted replies);</li>
+    <li>secondary: the probes-vs-interp layer-18 AI-vs-human probe.</li>
+  </ul>
+  <p><strong>AI-lean</strong> of a neuron is its activation d′ between AI and human texts on the fit split, before training.</p>
+
+  <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li>Exploration: a pilot on layers 0, 18 and 35 of two pairs, and training of the five control LoRAs.</li>
+    <li>Committed the plan: pairs, measures, rulers and five predictions.</li>
+    <li>Read every unit for 17 pairs, including an identical-model self-check.</li>
+    <li>Ran both sides of 14 pairs on the fixed texts.</li>
+    <li>Scored the predictions with <code>analyze.py</code>.</li>
+    <li>Found a rounding artifact, dated a second amendment, and reran all 17 read pairs in fp32.</li>
+    <li>Found that every seed-0 LoRA shares one random init (their A matrices have cosine 0.96–0.99; across seeds, 0.00). Dated a third amendment, then trained clean twins at seeds 1 and 2 and measured them the same way (4 more read and activation pairs).</li>
+  </ol>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Fixed before the full runs</th><th>Changed or added later</th></tr></thead>
+    <tbody>
+      <tr><td>Pairs, twins, corpus, vocabulary, k = 20 and 50, the three rulers, AI-lean, the five predictions and thresholds</td><td><strong>After the pilot:</strong> the ranking score became 1 − Spearman, because overlap ties at 1.0 under a LoRA. <strong>After the full results:</strong> the wrong-writer twin became the voice arms' floor (no prediction uses it); the lens-stable subset, the last-layer number, the AI-minus-human shift and the emphasis on the register ruler were added, so treat them as exploratory. Also added: correlations within each layer, because the pooled ones count layer depth. <strong>Precision:</strong> the first run ranked fp16 scores, and rounding inflated the median LoRA change 1.4 to 2.9 times. All reads here are from the fp32 rerun; no prediction changed (<code>precision_check.json</code>, <code>predictions_fp16.json</code>).</td></tr>
+      <tr><td>Two planned controls</td><td><strong>Not run:</strong> stratifying change by write-norm decile, and matching each arm to the twin nearest in weight change.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Conditions: weights merged and token scores ranked in fp32 for reads; LoRAs left unmerged in bf16 for activations, where merging would round the update away. One Modal H100 per pair, about 80 seconds each with weights cached. No sampling.</p>
+  <p>Checks on the rulers, with bars set in advance:</p>
+  <ul>
+    <li>An identical model reads exactly 1.0 on every measure: passed (3 layers).</li>
+    <li>Layer-2 S-lens reads look like tokens: loosely passed. By eye, under half of 10 random poles form a clear family, such as <span class="tok">Lie</span><span class="tok"> liar</span><span class="tok"> lied</span>.</li>
+    <li>The fitted AI direction reaches AUROC 0.9 out of sample: passed (0.95).</li>
+    <li>Read change grows with weight change (Spearman above 0.2): <strong>failed</strong> (−0.10 pooled). Read every per-unit number below with that failure in mind.</li>
+  </ul>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="public" data-short="Public post-training vs the lens">4.1 Post-training moves reads little further than a lens swap does</h3>
+  <p>Through each model's own lens, the median neuron keeps 0.43 of its top-20 write tokens. But read the post-trained weights through the base model's lens and through their own, changing nothing in the neuron, and it keeps only 0.50. With the base lens on both models, so only the weights differ, it keeps 0.58: the weights alone move reads less than the lens alone does. Figure 1 shows this by layer. The S-lens read directions follow the same order (0.58 own lenses, 0.63 lens swap, 0.78 weights alone).</p>
+  <p>The lens swap is not pure noise. A lens summarises the layers downstream, and training changed those layers, so part of the swap is real post-training seen from elsewhere in the model. What it rules out is the per-unit claim: that a changed read means <em>this</em> neuron's weights were rewired.</p>
+  <figure>
+    <img src="figures/layers.png" width="1308" height="616" alt="Median top-20 overlap by layer. All three curves rise from about 0.1-0.2 at layer 0 to 0.88-1.0 at layer 35. Own lenses are lowest (0.30-0.43 in layers 8-21). The base lens on both models is highest in early and middle layers (0.45-0.55). The lens swap sits between and reaches 1.0 at layer 35.">
+    <figcaption>Figure 1. Median top-20 overlap of neuron write reads by layer, 12,288 neurons per layer, poles averaged. Orange: base vs post-trained, own lenses. Ink: the same through the base lens. Dashed blue: identical weights, lens swapped. At layer 35 the lens is the identity, so the swap gives 1.0 and the other two meet at 0.88.</figcaption>
+  </figure>
+  <p>Exploratory: in the 24% of neurons that keep at least 0.8 of their top 20 under the swap (99% of them in layers 23–35), post-training keeps 0.80 (0.83 through one lens). Heads that pass that test keep 0.85. Where a read is stable enough to trust, it mostly survives post-training. That subset is selected on stability, so this cannot show that the other 76% kept their function.</p>
+  <p>The median write vector keeps cosine 0.997 and moved 8% of its length. On the same texts the median neuron's activation correlates 0.87 between the two models, lowest around layer 18 (0.81).</p>
+
+  <h3 id="same-units" data-short="Change follows the lens swap">4.2 A neuron's change under training follows its change under a lens swap</h3>
+  <p>If post-training rewired particular neurons, they should stand out from the ones a lens swap moves. Figure 2 compares the two. Pooled over 442,368 neurons they agree at Spearman 0.94, but that counts depth: early layers move under anything. Within a layer they agree at 0.73 (median over layers; 10th to 90th percentile 0.48–0.82), and at 0.60 with post-training read through one lens. 1.7% of neurons pass the swap's 99th percentile, where 1% of the swap's own neurons lie; for heads it is 3.4%. The very top differs more: only 15% of post-training's most-moved 1% are also in the swap's.</p>
+  <figure>
+    <img src="figures/sameunits.png" width="1343" height="715" alt="Two 2-D histograms over 442,368 neurons: change under a lens swap (x) against change under post-training (y). Both clouds hug the diagonal, within-layer Spearman 0.73 with own lenses and 0.60 with one lens; 0.94 and 0.91 pooled.">
+    <figcaption>Figure 2. Per-neuron change score under post-training (y) against under a lens swap on identical weights (x), 442,368 neurons, log-colour counts. Left: own lenses. Right: the base lens on both models. Dotted: equal change.</figcaption>
+  </figure>
+  <p>The simplest explanation is <em>fragility</em>. A top-token list is a ranking, and some rankings are nearly flat, so any nudge reshuffles them. A sharp ranking, like a late neuron that writes " icon", " Icon", " icons", survives. Two observations fit. Read change is unrelated to how far the neuron's weights moved (0.02 within a layer). And 89% of the most-moved 1% sit in layers 0–6, where lens reads are least stable and often list glitch tokens such as <span class="tok">webElementXpaths</span> and <span class="tok">-cmpr</span>. Fragility was not measured directly.</p>
+  <p>The explorer shows readable units that moved, next to stable and random ones.</p>
+
+  <div id="units" aria-label="Unit explorer">
+    <div class="ux-tabs" role="tablist"></div>
+    <p class="ux-desc"></p>
+    <div class="ux-grid"></div>
+  </div>
+  <script src="units.js"></script>
+  <noscript><p>The explorer needs JavaScript. The same units are in <code>results/top_units.json</code>, and examples are in Table 1.</p></noscript>
+
+  <div class="table-wrap">
+  <table class="num">
+    <caption>Table 1. Hand-picked examples among units that pass the lens-swap test, before and after public post-training.</caption>
+    <thead><tr><th>Unit</th><th>Base model</th><th>Post-trained</th><th class="n">Overlap</th></tr></thead>
+    <tbody>
+      <tr><td>L35 neuron 4993 +</td><td><span class="tok"> stop</span><span class="tok"> stops</span><span class="tok"> Stop</span></td><td><span class="tok"> stop</span><span class="tok"> stops</span><span class="tok"> Stop</span></td><td class="n">1.00</td></tr>
+      <tr><td>L35 neuron 10647 +</td><td><span class="tok"> module</span><span class="tok">模块</span><span class="tok"> modules</span></td><td><span class="tok"> module</span><span class="tok">模块</span><span class="tok"> modules</span></td><td class="n">1.00</td></tr>
+      <tr><td>L10 neuron 8140 +</td><td><span class="tok">象</span><span class="tok">#line</span><span class="tok">,sizeof</span></td><td><span class="tok"> occured</span><span class="tok"> seperate</span><span class="tok"> succesfully</span></td><td class="n">0.05</td></tr>
+      <tr><td>L23 neuron 3836 +</td><td><span class="tok">_Statics</span><span class="tok">_MetadataUsageId</span></td><td><span class="tok">-actions</span><span class="tok">-boot</span><span class="tok">-ball</span></td><td class="n">0.05</td></tr>
+      <tr><td>L8 head 27 (OV)</td><td><span class="tok">—and</span><span class="tok"> stuff</span><span class="tok"> favour</span></td><td><span class="tok">—</span><span class="tok"> folks</span><span class="tok">—and</span></td><td class="n">0.60</td></tr>
+      <tr><td>L0 head 30 (OV)</td><td><span class="tok">spNet</span><span class="tok">oolStrip</span><span class="tok">_gshared</span></td><td><span class="tok"> in</span><span class="tok"> and</span><span class="tok"> the</span></td><td class="n">0.20</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>In several of these the base read is junk and the post-trained read is a clean family: common misspellings, hyphenated suffixes, function words. They are leads. Whether training sharpened those units needs an intervention (section 9).</p>
+
+  <h3 id="lora" data-short="LoRAs: the init picks the neurons">4.3 For LoRAs, the random init decides which neurons move</h3>
+  <p>The median neuron's top-20 tokens are unchanged in all 13 comparisons. Mean change is 0.0004–0.0062, against 0.52 for public post-training. All of the deslop SFT's most-moved 1% sit in layers 1–3.</p>
+  <p>Which neurons move is decided mostly before training starts. The training recipe seeds the random number generator before it creates the LoRA, so every arm trained with seed 0 starts from the same random matrices. With clean twins trained at every seed (amendment 3), the comparison separates objective from init:</p>
+  <div class="table-wrap">
+  <table class="num">
+    <thead><tr><th>Deslop SFT compared with</th><th class="n">Within-layer Spearman</th><th class="n">Top-1% shared</th></tr></thead>
+    <tbody>
+      <tr><td>itself from another init (same data and objective)</td><td class="n">0.42</td><td class="n">72%</td></tr>
+      <tr class="hl"><td>a clean twin from the same init (other replies, no style)</td><td class="n">0.57</td><td class="n">84%</td></tr>
+      <tr><td>a clean twin from another init</td><td class="n">0.41</td><td class="n">72%</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Means over 3 seeds × 2 twin kinds; ranges in <code>results/matched_init.json</code>. The objective adds about 0.01 to the agreement; the init adds about 0.15; and a large shared core (0.41, 72% of the top 1%) moves under any of these fine-tunes. The cheap baseline finds the same neurons: 83% of the deslop SFT's top 1% are also in its top 1% by relative weight change.</p>
+  <figure>
+    <img src="figures/agreement.png" width="1352" height="1144" alt="Heat map of within-layer Spearman correlations between the change scores of 13 LoRA comparisons, from about 0.24 to 0.99. Deslop seeds agree at 0.42, deslop SFT and the random-label twin at 0.57, deslop and voice SFT at 0.36; voice arms sharing an SFT start agree most.">
+    <figcaption>Figure 3. Within-layer Spearman correlation (median over 36 layers, 12,288 neurons each) between per-neuron change scores, for every pair of LoRA comparisons. Controls in blue. The bright deslop block (deslop SFT, DPO, the shuffled-label arm and both clean twins) is one shared seed-0 init, not a shared objective. Voice DPO and GRPO start from the voice SFT.</figcaption>
+  </figure>
+  <p>Activations separate the arms more (Figure 4). The voice SFT moved reads 1.1% as far as public post-training and activations 59% as far (median correlation 0.925 against 0.873). The wrong-writer twin moved activations further still (0.911), so this measures how far a fine-tune drifted, not whether it hit its objective. One untested explanation is that small weight changes upstream add up in what reaches each neuron, while its own write barely changes.</p>
+  <figure>
+    <img src="figures/readsacts.png" width="1333" height="713" alt="Scatter of 14 comparisons: mean read change (log x) against 1 minus median activation correlation (y). Public post-training is at (0.52, 0.13), voice arms near x 0.006 and y 0.07-0.09, deslop arms x 0.001-0.003 and y 0.004-0.03, the clean twin at (0.0015, 0.001).">
+    <figcaption>Figure 4. Per comparison: mean change score over all neurons (log scale) against 1 − the median per-neuron activation correlation on the same 1,000 texts. Orange: trained on de-slopped replies. Blue: controls. Ink: the rest.</figcaption>
+  </figure>
+
+  <h3 id="objective" data-short="The objective as a direction">4.4 De-slopping shows up on a register direction, not in a set of units</h3>
+  <p>On deslop-h2h's register direction, a secondary ruler, the arms split by what they trained on (Figure 5). On the 250 eval AI texts:</p>
+  <ul>
+    <li>three deslop SFT seeds moved −1.55, −1.47 and −1.49, and DPO −1.26;</li>
+    <li>the same replies shuffled across prompts moved −2.29;</li>
+    <li>the six clean twins (three inits) moved between +0.08 and +0.31;</li>
+    <li>public post-training moved +1.97, the direction you would expect if chat training creates the register.</li>
+  </ul>
+  <p>Against clean twins from its own init, each SFT seed moved −1.74, −1.57 and −1.65 (95% intervals within ±0.04). AI and human texts sit 3.35 apart on this ruler before training. The deslop shifts are larger on AI texts than on human ones; the twins show little such gap.</p>
+  <figure>
+    <img src="figures/register.png" width="1535" height="996" alt="Two dot plots with 95% intervals. Left, shift on AI texts: public post-training +1.97, deslop SFT seeds -1.55, -1.47, -1.49, DPO -1.26, shuffled labels -2.29, clean twins +0.08 and +0.31, voice arms -0.30 to -0.68, wrong writer -0.71, GRPO alone -0.31. Right, AI minus human: public +1.02, deslop -0.35 to -0.68, twins +0.02 and +0.04, voice -0.16 to -0.27, wrong writer -0.72.">
+    <figcaption>Figure 5. Residual shift (after − before) along deslop-h2h's register direction, mean of layers 12, 18 and 24. Left: 250 eval AI texts. Right: that shift minus the shift on 250 human texts. 95% bootstrap intervals over texts. Orange: trained on de-slopped replies. Blue: controls.</figcaption>
+  </figure>
+  <p>Four things keep this a lead:</p>
+  <ul>
+    <li>The direction is default replies minus plain-prompted replies, and the training replies came from the plain prompt, so the ruler is close to the training data.</li>
+    <li>The shuffled-label arm moves furthest: the effect follows reply style, not the prompt-to-reply mapping.</li>
+    <li>The voice arms move (−0.30 to −0.68), but their wrong-writer twin moves more (−0.71), so their shift is not specific to the writer.</li>
+    <li>The direction was built on Qwen3-8B, and for the public pair it is also applied to the base model's residual.</li>
+  </ul>
+  <p>The pre-registered test (P3) used the primary ruler, arm minus the mean clean twin, over layers 18–35. It went as predicted for the deslop SFT (−0.38 [−0.51, −0.25]) and DPO (−0.85 [−0.98, −0.71]), which share their twins' init. Against twins from their own init, the other two seeds give +0.06 [−0.06, 0.20] and +0.84 [0.69, 0.99]. All are under 2% of that ruler's 48-unit AI–human gap. P3 is a hit by its rule and should not be believed. The layer-18 probe, the other secondary ruler, agrees with the register direction in sign: each seed sits below its own twins, by 0.105, 0.025 and 0.052, intervals below zero.</p>
+  <p>At the unit level the link fails (P4). The 1% of neurons the deslop SFT moved most beyond its clean twins have 1.00 [0.98, 1.02] times the average |AI-lean|, inside the 0.97–1.03 range of random sets (1.07 against sets matched on activation size). Against twins from their own init, the other seeds give 1.01 and 1.09 [1.06, 1.11]; the voice arms give 0.82–0.84. So there is no consistent sign. The 64 most AI-leaning layer-18 neurons from probes-vs-interp rank at mean percentile 0.67 [0.59, 0.74] in the deslop SFT's change, and 0.56 and 0.55 in its seed twins.</p>
+
+  <h3 id="rl" data-short="RL after SFT">4.5 RL after SFT moves units less than the SFT did</h3>
+  <p>GRPO step 200, read against the SFT it started from, moved reads a fourteenth as far as the SFT had (mean change 0.0004 vs 0.0059; median 0.0001 vs 0.0010). It moved activations about an eighteenth as far (1 − median correlation 0.004 vs 0.075). P5 hit. Sounds Like Me Ep 3 found that the same GRPO run learned reward hacks, so a small internal change is not a small behavioural one.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A per-unit diff is an appealing audit: compare a model with its fine-tune and list the units that changed. Here such a list always exists. For our LoRAs it was set mostly by the random init, and a twin trained on unrelated text from the same init produced most of it. A small read diff is no reassurance either: the GRPO run that learned hacks barely moved any read.</p>
+  <p>Activations on fixed text and residual directions separated the arms better, and only next to matched twins.</p>
+  <p><strong>Before trusting a claim that particular neurons changed in training, ask for the same ranking under a lens swap, a seed twin and a clean twin, and discount the units that top those lists too.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Prediction (confidence)</th><th>Result</th><th>Hit?</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>Public post-training's median top-20 overlap is at least 0.10 below the lens swap's (75%)</td><td>0.43 vs 0.50, gap 0.075</td><td>miss</td><td>The lens swap moves reads far more than expected</td></tr>
+      <tr><td>P2</td><td>Moved neurons repeat across seeds: Spearman ≥ 0.30 and above an unrelated arm (50%)</td><td>Seeds 0.56, 0.57; random-label twin 0.68 (first run: 0.65, 0.65; 0.73)</td><td>miss</td><td>The random-label twin shared the SFT's init; against twins from another init the seeds lead by about 0.01 within a layer</td></tr>
+      <tr><td>P3</td><td>Deslop SFT and DPO push the residual away from the AI direction on AI texts, beyond clean twins (65%)</td><td>−0.38 [−0.51, −0.25]; −0.85 [−0.98, −0.71]</td><td>hit, not robust</td><td>Against their own twins the other seeds give +0.06 and +0.84</td></tr>
+      <tr><td>P4</td><td>The top 1% objective-specific neurons lean toward AI text at least 1.3× average (45%)</td><td>1.00 [0.98, 1.02] (first run: 1.01)</td><td>miss</td><td>The objective is not in which reads moved</td></tr>
+      <tr><td>P5</td><td>GRPO after SFT moves units less than the SFT did (70%)</td><td>median 0.0001 vs 0.0010 (first run: 0.0004 vs 0.0013)</td><td>hit</td><td>A small update on top of a larger one</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Under the second amendment, read-based predictions had to hit in both the fp16 and the fp32 run; none differed.</p>
+  <p>What surprised me: the lens alone changes half of the median neuron's top tokens. What I would change: rank in fp32 from the start, give every control its own random init, measure each unit's fragility first, and test a direction on seed twins before registering it. The lesson for the design guide: a per-unit change score needs a floor per unit, not one per study.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>That changed units matter, or that unchanged ones don't.</strong> Nothing was ablated or patched back. Behaviour was measured in the LoRAs' own notes.</li>
+    <li><strong>Lens noise on its own.</strong> The swap compares two models' lens fits. A refit of one model's lens on split halves would separate fitting noise from real downstream change; it was not run.</li>
+    <li><strong>The catalog's exact reads.</strong> Ours skip neuron-lens's residual metric and its handling of SwiGLU's negative lobe, and use 20k tokens for heads. The full recipe may be more stable.</li>
+    <li><strong>Other models or larger updates.</strong> Qwen3-8B only, rank 16, 60 or 442 SFT steps. The monitor-evasion LoRA sits on Qwen2.5-1.5B, which has no fitted lens, and was left out.</li>
+    <li><strong>Register in generation.</strong> The shifts are measured on fixed emails, not on the models' own replies.</li>
+    <li><strong>Inits for the voice arms.</strong> The voice SFT and its wrong-writer twin start from different inits, so part of their difference is init, as section 4.3 shows for the deslop arms.</li>
+    <li><strong>Independent units.</strong> Intervals resample texts or units; neurons in a layer are not independent, so unit-level intervals are too narrow.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce it"><span class="num">08</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh">reproduce.sh</a> runs the study (<code>--dry-run</code> prints the commands). It needs Modal, a Hugging Face secret, the seven LoRAs from the two earlier notes, and the probes-vs-interp text set, which is not redistributed here. The GPU work, both read runs included, is logged at list price (<code>results/spend.jsonl</code>). Lenses: <a href="https://huggingface.co/stdlogits/rs-lenses">stdlogits/rs-lenses</a>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What's next</h2>
+  <ul>
+    <li>Patch the readable moved units back to their base weights and measure whether chat behaviour or register follows.</li>
+    <li>Refit one lens on split halves, give every unit a fragility score, and rank by change beyond it.</li>
+    <li>Rank units by activation change beyond the seed and clean twins, then test those against the objective.</li>
+    <li>Repeat at the other Qwen3 sizes, where the lenses and aligned indices exist.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions readers ask"><span class="num">10</span>Questions readers ask</h2>
+  <h3 id="q-how-much">How much does post-training change Qwen3-8B's neurons?</h3>
+  <p>The median last-layer neuron keeps 0.88 of its top-20 output tokens. Across all layers the median keeps 0.43, but swapping the lens on identical weights already leaves only 0.50.</p>
+  <h3 id="q-which">Can you tell which neurons post-training rewired?</h3>
+  <p>Not from read diffs alone: per-neuron change under post-training agrees with change under a lens swap at Spearman 0.73 within a layer, and does not follow how far the weights moved.</p>
+  <h3 id="q-lora">Do LoRA fine-tunes change what neurons mean?</h3>
+  <p>Their weight-based reads hardly change at rank 16: median top-20 overlap is 1.00 in all 13 comparisons. Activations change more, up to about 70% of public post-training's shift for the wrong-writer voice twin.</p>
+  <h3 id="q-where">Where does a de-slopping fine-tune show up inside the model?</h3>
+  <p>On an AI-register direction in the residual, which moved by −1.3 to −2.3 on AI texts and −1.57 to −1.74 against clean twins from the same init, on a secondary ruler. It did not show up as a set of AI-leaning neurons.</p>
+  <h3 id="q-lens">What is an R-lens?</h3>
+  <p>An R-lens is a fitted Jacobian, one matrix per layer, that maps a vector in the residual stream to the words it would make the model say.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data and references</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../results/summary.json">summary.json</a></td><td>Per pair: median, mean, percentiles and per-layer medians of each measure. <code>wR</code> is the write read, <code>rS</code> the S-lens read, <code>ovR</code> the head OV read; <code>_ov</code> is top-20 overlap and <code>_rho</code> top-token Spearman; <code>*_cos</code> are weight cosines and <code>*_rel</code> relative weight changes. Also floors, lens-stable subsets and the self-check</td></tr>
+      <tr><td><a href="../results/agreement.json">agreement.json</a></td><td>Spearman and top-1% overlap of per-neuron change between every two comparisons; change against weight change</td></tr>
+      <tr><td><a href="../results/acts.json">acts.json</a></td><td>Activation correlations and shifts; ruler shifts on AI and human texts with 95% intervals, gaps before training, shifts against clean twins</td></tr>
+      <tr><td><a href="../results/objective.json">objective.json</a></td><td>AI-lean of each arm's top 1%, random and size-matched baselines, the 64 probe neurons' percentiles</td></tr>
+      <tr><td><a href="../results/top_units.json">top_units.json</a></td><td>Most-moved, stable, random and lens-stable units with before and after tokens</td></tr>
+      <tr><td><a href="../results/known_answer_c_layer2_sreads.json">known_answer_c_layer2_sreads.json</a></td><td>The ten layer-2 reads inspected by eye</td></tr>
+      <tr><td><a href="../results/predictions.json">predictions.json</a>, <a href="../results/predictions_fp16.json">predictions_fp16.json</a></td><td>P1–P5 scored, on the fp32 rerun and on the first run</td></tr>
+      <tr><td><a href="../results/matched_init.json">matched_init.json</a></td><td>Amendment 3: agreement by objective and init, and each SFT seed against clean twins from its own init on the three rulers</td></tr>
+      <tr><td><a href="../results/precision_check.json">precision_check.json</a></td><td>Each comparison's change scores in fp16 against fp32</td></tr>
+      <tr><td><a href="../results/twins.json">twins.json</a>, <a href="../results/corpus_manifest.json">corpus_manifest.json</a>, <a href="../results/spend.jsonl">spend.jsonl</a></td><td>Control training runs; corpus ids and hash; compute ledger</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>References: <a href="https://github.com/stdlogits/neuron-lens">neuron-lens</a> (MIT) and its <a href="https://huggingface.co/stdlogits/rs-lenses">R/S lenses</a>; <a href="https://huggingface.co/Qwen/Qwen3-8B">Qwen3-8B</a> and <a href="https://huggingface.co/Qwen/Qwen3-8B-Base">Qwen3-8B-Base</a>; <a href="../../deslop-h2h/report/">deslop-h2h</a>, <a href="../../sounds-like-me-ep3/report/">Sounds Like Me Ep 3</a> and <a href="../../probes-vs-interp/report/">probes-vs-interp</a>.</p>
+  <h3 id="cite">How to cite</h3>
+<pre><code>@misc{lie2026posttraindiff,
+  title  = {Which neurons does post-training change? A per-neuron read diff mostly can't tell},
+  author = {Lie, Albert},
+  year   = {2026},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/posttrain-diff/report/}
+}</code></pre>
+  <footer class="note">Pre-registered; every prediction, amendment and deviation is listed on this page.</footer>
+</article>
+</div>
+<script>
+(function () {
+  var U = window.UNITS; if (!U) return;
+  var root = document.getElementById("units");
+  var tabs = [
+    ["moved_readable", "Readable and moved", "Units below the last layer whose read survives a lens swap (overlap at least 0.8), ranked by how far post-training moved them. Tokens new in the post-trained read are outlined."],
+    ["stable", "Stable", "Late-layer neurons whose reads post-training left in place."],
+    ["moved_any", "Moved most overall", "The most-moved neurons of all. Most are early-layer reads that were unreadable to begin with."],
+    ["random", "Random", "Eight neurons drawn at random, for scale."],
+    ["heads", "Heads", "Heads whose OV read survives a lens swap, ranked by how far post-training moved them."],
+    ["deslop", "Deslop LoRA", "Neurons the deslop SFT moved most beyond its clean twins."]
+  ];
+  var tl = root.querySelector(".ux-tabs"), desc = root.querySelector(".ux-desc"), grid = root.querySelector(".ux-grid");
+  function show(t) { return t.replace(/\r/g, "").replace(/\n/g, "↵").replace(/\t/g, "⇥").replace(/^ /, "·"); }
+  function chips(list, other) {
+    return list.slice(0, 8).map(function (t) {
+      var s = document.createElement("span"); s.className = "tok" + (other && other.indexOf(t) < 0 ? " new" : ""); s.textContent = show(t); return s.outerHTML;
+    }).join("");
+  }
+  function render(key) {
+    tabs.forEach(function (t, i) { tl.children[i].setAttribute("aria-selected", t[0] === key ? "true" : "false"); });
+    desc.textContent = tabs.filter(function (t) { return t[0] === key; })[0][2];
+    grid.innerHTML = (U[key] || []).map(function (u) {
+      var name = "L" + u.layer + (u.neuron !== undefined ? " · neuron " + u.neuron + " " + u.pole : " · head " + u.head);
+      return '<div class="ux-card"><h4>' + name + '</h4><div class="s">top-20 overlap ' + u.overlap20.toFixed(2) +
+        (u.w_cos !== undefined ? " · weight cosine " + u.w_cos.toFixed(3) : " · OV cosine " + u.ov_cos.toFixed(3)) + '</div>' +
+        '<div class="ux-row"><b>before</b>' + chips(u.before) + '</div><div class="ux-row"><b>after</b>' + chips(u.after, u.before) + '</div></div>';
+    }).join("");
+  }
+  tabs.forEach(function (t) {
+    var b = document.createElement("button"); b.className = "ux-tab"; b.type = "button"; b.setAttribute("role", "tab");
+    b.textContent = t[1]; b.onclick = function () { render(t[0]); }; tl.appendChild(b);
+  });
+  render("moved_readable");
+})();
+</script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
