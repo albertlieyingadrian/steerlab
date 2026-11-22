@@ -19,9 +19,9 @@ one token at a time, and lets you change that vector mid-reply.
   terminal and steer it from another while it writes. `doctor` reports the device, what is cached and which
   directions exist, offline, and never prints a token.
 - **The inspector** (`steerlab inspect`, then open http://127.0.0.1:8770): a local web app in rooms. **Trace** splits
-  the next word's score into one share per layer, head and neuron and lets you switch neurons off; **Units** is an
-  atlas of every neuron pole and head (labels, top contexts, token drivers, reads, wiring), from the neuron-lens
-  catalog or computed; **Edit** makes
+  the next word's score into one share per layer, head and neuron and lets you switch neurons off; **Lens** reads
+  every layer and position as words through the logit, J, R and S lenses; **Units** is an atlas of every neuron pole
+  and head (labels, top contexts, token drivers, reads, wiring), from the neuron-lens catalog or computed; **Edit** makes
   concept edits in the weights (mirror, project out, amplify) and undoes them exactly; **Workbench** chats with the
   model under steering, with probes, branching replies and saved artifacts; **Model** shows the loaded model's shape.
 

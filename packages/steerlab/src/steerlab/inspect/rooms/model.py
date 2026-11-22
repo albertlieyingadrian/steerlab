@@ -24,7 +24,7 @@ ROOM = {"id": "model", "title": "Model", "order": 60, "key": "m"}
 # Qwen3 models (post-trained and base) in the stdlogits/neuron-lens catalog
 CATALOG_MODELS = frozenset(
     f"Qwen/Qwen3-{size}{suffix}" for size in ("0.6B", "1.7B", "4B", "8B", "14B") for suffix in ("", "-Base")
-) | {"google/gemma-4-12b-it"}
+) | {"google/gemma-4-12B"}
 
 
 def mlp_type(inspector: Any) -> str:

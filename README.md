@@ -221,6 +221,8 @@ Or open the **inspector** on Qwen2.5-0.5B-Instruct (CPU), a local web app in roo
 
 - **Trace**, the layer explorer: type words and watch each layer push toward the next word, open a neuron, switch it
   off, and dose it against random neurons ([guide](https://albertlieyingadrian.github.io/steerlab/experiments/layer-explorer/report/)).
+- **Lens**: every layer and position read as words through the logit lens or the fitted J, R and S lenses (loaded
+  from the published rs-lenses for Qwen3, or fitted with `steerlab.lens.jacobian`), with layer-contrastive reads.
 - **Units**: an atlas of every neuron pole and attention head, with labels, top contexts, exact token drivers,
   reads, wiring and lineage; read from the [neuron-lens catalog](https://huggingface.co/datasets/stdlogits/neuron-lens)
   for Qwen3 and Gemma 4, computed from the loaded model otherwise.
