@@ -34,9 +34,15 @@ Episode 1 comparators `ep1-*`.
 | `results/projection.json`, `results/assistant_direction.json` | persona test (a); the direction's size and cosines |
 | `results/arm_costs.json`, `results/closed_cost.json` | GPU seconds and dollars per arm; Gemini batch bills |
 | `results.tsv` | every tuning try on development writers |
-| `data/drafts/*.jsonl` | final drafts: `job`, `model`, `author`, `brief`, `arm`, `text`, `nll`, `stage` (draft or revise), `n_pool` |
-| `data/honesty/*.json` | per job: `n_claims`, `n_unsupported`, `unsupported` (quotes), `invented_relationship` |
-| `data/profiles_*_v2.json` | per writer: measured facts, inferred and kept habits, the character card |
+| `data/drafts/*.jsonl` (private) | final drafts: `job`, `model`, `author`, `brief`, `arm`, `text`, `nll`, `stage` (draft or revise), `n_pool` |
+| `data/honesty/*.json` (private) | per job: `n_claims`, `n_unsupported`, `unsupported` (quotes), `invented_relationship` |
+| `data/profiles_*.json` (private) | per writer: measured facts, inferred and kept habits, the character card |
 
 The preference model is trained on simulated pairs and authorship pairs from development writers only; it holds no
 human preference labels. Candidate pools (`data/pools/`) are regenerated, not committed.
+
+The files marked private are not in this folder: drafts copy real names, phone numbers, emails and addresses from the
+writers' samples, and the honesty replies and profiles quote them (so does `data/dev_k0_default.json`, also private).
+`reproduce.sh` regenerates them. Results keyed by writer (`results/robustness.json`, `results/ruler_attributer.json`,
+`results/ruler_pref.json`) name each writer `Author NN`, its position in Episode 1's `data/authors.json`. The draft
+viewer shows a few drafts redacted by Episode 1's `privacy.py` (`[name]`, `[email]`, `[phone]`, `[address]`).

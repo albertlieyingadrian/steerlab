@@ -35,6 +35,14 @@ runs on an open model on Modal instead.
 
 - Voices are public human corpora only. The raw corpora and scored drafts are regenerated, not committed
   (`data/raw/`, `data/drafts/`, `data/scored/` are gitignored).
+- Per-draft and per-writer text stays private: drafts copy real names, phone numbers, emails and addresses from the
+  writers' samples, and the corpora name the writers. Not in this folder: `data/authors.json` (real corpus names;
+  `freeze_authors.py` rebuilds it), `data/honesty/` (the extractor's replies, which quote drafts), the labelling sheets
+  `data/honesty_*to_label.json`, `data/style_notes.json`, `data/sim_edits.json`, and the hand-kept list of names
+  copied from samples (`privacy.py` reads it when present). `reproduce.sh` regenerates all but that list.
+- Public files keyed by writer (`data/honesty_*labels.json`, `results/ruler_honesty*.json`) name each writer
+  `Author NN`, its position in `data/authors.json`. The pages show a few drafts redacted by `privacy.py`: the writer's
+  name parts, copied names, emails, phone numbers and addresses become `[name]`, `[email]`, `[phone]`, `[address]`.
 - Briefs are synthetic: invented companies and people. Freight facts come from public commodity guides.
 - Simulated edits are labelled as simulated everywhere. No reply outcome is simulated.
 - The private board reads a sales tool's database read-only and writes only aggregate rates per writer model,
