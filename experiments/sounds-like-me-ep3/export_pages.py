@@ -4,7 +4,8 @@ drafts for a few dev writers (the same writer and brief at every GRPO checkpoint
     python export_pages.py      -> report/data.js (window.SLM3)
 
 Writers are never named ("Writer A"); name parts and initials a draft copied from the samples become [name] (Episode 2's
-redaction rule, copied here), plus a hand-reviewed list.
+redaction rule, copied here), plus a hand-reviewed list kept in the lab; emails, phone numbers and addresses become
+[email], [phone] and [address] (Episode 1's privacy.py).
 """
 
 import json
@@ -18,19 +19,14 @@ sys.path.append(str(HERE.parent / "sounds-like-me"))
 from analyze_ep3 import EP2_ARMS  # noqa: E402
 from common import authors  # noqa: E402
 from make_figures import LABEL  # noqa: E402
+from privacy import copied_names, redact_contact  # noqa: E402
 
 R = HERE / "results"
 D = HERE / "data" / "drafts"
 RUN = "grpo_sft_edits"
-EXTRA_NAMES = [
-    "Rahil",
-    "Jafry",
-    "JMF",
-    "Mark F",
-    "Mark",
-    "Buss",
-]  # hand-reviewed after reading the slider's drafts: names copied
-# from writers' samples or invented as a signature (brief recipients such as "Brenda" are synthetic and stay)
+# Hand-reviewed after reading the slider's drafts: names copied from writers' samples or invented as a signature (brief
+# recipients such as "Brenda" are synthetic and stay). The list stays in the lab (privacy.py).
+EXTRA_NAMES = copied_names("ep3")
 TRAINED = ("sft_raw", "sft_notes", "sft_edits", "dpo", "grpo_best", "grpo_final")
 
 
@@ -45,7 +41,7 @@ def redact(text, author):
         text = re.sub(rf"\b{re.escape(p[0].upper() + p[1:])}\b", "[name]", text)
     if len(initials) >= 2:
         text = re.sub(rf"\b{re.escape(initials)}\b", "[name]", text, flags=re.IGNORECASE)
-    return text
+    return redact_contact(text)
 
 
 def episode(a):

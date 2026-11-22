@@ -21,6 +21,8 @@ from collections import Counter
 from common4 import EP2, HERE, LOCAL, RES, SEED, dump
 
 sys.path.append(str(EP2))
+from privacy import copied_names  # Episode 1
+
 from common import authors, briefs, texts  # Episode 1
 from score_ep2 import broken  # Episode 2's loop / degenerate rule
 
@@ -37,7 +39,7 @@ ARMS = [
     "ep1-qwen8b-k0",
 ]
 PER_WRITER, N_REPEAT = 5, 10
-EXTRA_NAMES = ["Lauren", "Tamiathen", "James S."]  # Episode 2's hand-reviewed copied names
+EXTRA_NAMES = copied_names("ep2")  # Episode 2's hand-reviewed copied names (a lab-only list, privacy.py)
 
 
 def redact(text, author):

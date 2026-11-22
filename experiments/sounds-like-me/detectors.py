@@ -58,6 +58,6 @@ def cascade(texts, frac=0.10, cut=0.5):
 
 
 if __name__ == "__main__":
-    human = "Phillip,\n\nI talked to Mike about the Q3 numbers. He wants the curve updated by Friday, not Monday. Can you get it to me Thursday night so I can look before the call?\n\nThanks\nJohn"
+    human = "Dana,\n\nI talked to Mike about the Q3 numbers. He wants the curve updated by Friday, not Monday. Can you get it to me Thursday night so I can look before the call?\n\nThanks\nSam"
     ai = "I hope this message finds you well! I wanted to reach out to explore how our innovative solutions can help streamline your operations and unlock new levels of efficiency. Would you be open to a quick call to discuss how we can partner together?"
     print("sanity voi380 human/ai:", voi380([human, ai]).round(3))
