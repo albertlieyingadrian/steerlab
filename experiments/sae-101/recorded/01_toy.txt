@@ -1,0 +1,28 @@
+Part A. One activation through a tiny SAE, by hand
+   x = [2.0, 0.0, 1.0]
+   pre = x @ W_enc + b_enc = [2.0, 0.0, 1.0, 1.5]   (latent 3: 2*0.6 + 1*0.8 - 0.5 = 1.5)
+   keep the 2 biggest: latents [0, 3], z = [2.0, 0.0, 0.0, 1.5]
+   x̂ = z @ W_dec = [2.9, 0.0, 1.2]   error |x - x̂|² = 0.85
+   Two parts explain x: 'the first number' (2.0) and the mixed latent (1.5 x [0.6, 0, 0.8]).
+   With k = 3, latent 2 would join and the error would change; that is the sparsity/accuracy trade-off.
+
+Part B. Five concepts in two dimensions
+   600 points; 54 with no concept, 348 with one, 198 with two
+   TopK SAE, 5 latents, k = 1: FVU 0.092; best cosine of each concept to a decoder row [0.99, 0.99, 1.0, 1.0, 1.0]
+   TopK SAE, 5 latents, k = 2: FVU 0.000; best cosine of each concept to a decoder row [0.91, 0.96, 0.96, 0.87, 0.98]
+   TopK SAE, 5 latents, k = 3: FVU 0.000; best cosine of each concept to a decoder row [0.98, 0.85, 0.97, 0.99, 1.0]
+
+   Angle between each tool's direction and concept A's true arrow (0 = the same line):
+   PCA, first component          55.7 degrees
+   logistic probe                 1.6 degrees
+   difference of means            1.4 degrees
+   SAE latent for A (k = 1)       8.1 degrees
+
+   wrote results/toy.json
+
+Self-checks:
+  ✅ by hand: the rebuild is 2.0 x latent 0 + 1.5 x latent 3 = [2.9, 0, 1.2]
+  ✅ the toy's rebuild error falls with k (0.092, 0.000, 0.000)
+  ✅ with k = 1 every concept has a decoder row within 10 degrees (cosines [0.99, 0.994, 0.999, 0.996, 1.0])
+  ✅ with k = 2 the rebuild is near perfect (FVU 0.0000) but the arrows slide (lowest cosine 0.87 < k = 1's 0.99)
+  ✅ PCA's first direction is not concept A's arrow (56 degrees off; bar > 20)

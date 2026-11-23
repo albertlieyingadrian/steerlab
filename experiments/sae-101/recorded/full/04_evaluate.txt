@@ -1,0 +1,40 @@
+
+1. Held-out data: 2,000 eval windows (1,017,024 text tokens) for FVU and L0; 10,000 interp windows for firing frequencies; the first 200 eval windows for cross-entropy.
+
+2. hand-written: d_sae 16,384, k 64
+   FVU 0.1248 (explained variance 87.5%); L0 64.00
+   dead 5 (0.0%) and dense 39 (0.24%) of 16,384 latents, over 5,085,252 tokens
+   cross-entropy (nats/token, 200 windows): clean 2.7435, SAE spliced in 2.8290 (+0.0855, 95% CI [0.0795, 0.0921])
+     layer mean-ablated 8.9848, zero-ablated 12.9506; rebuild + error term 2.7435
+   CE recovered vs mean-ablation 0.9863 [0.9852, 0.9872]; vs zero-ablation 0.9916
+   random push of the same length: +0.0499 nats; the SAE's error costs 1.7x as much [1.6, 1.8]
+
+2. hand-written, exported to SAELens format: d_sae 16,384, k 64
+   FVU 0.1248 (explained variance 87.5%); L0 64.00
+   dead 5 (0.0%) and dense 39 (0.24%) of 16,384 latents, over 5,085,252 tokens
+   cross-entropy (nats/token, 200 windows): clean 2.7435, SAE spliced in 2.8291 (+0.0856, 95% CI [0.0795, 0.0921])
+     layer mean-ablated 8.9848, zero-ablated 12.9506; rebuild + error term 2.7435
+   CE recovered vs mean-ablation 0.9863 [0.9852, 0.9872]; vs zero-ablation 0.9916
+
+2. SAELens: d_sae 16,384, k 64
+   FVU 0.1241 (explained variance 87.6%); L0 64.00
+   dead 0 (0.0%) and dense 35 (0.21%) of 16,384 latents, over 5,085,252 tokens
+   cross-entropy (nats/token, 200 windows): clean 2.7435, SAE spliced in 2.8290 (+0.0855, 95% CI [0.0795, 0.0922])
+     layer mean-ablated 8.9848, zero-ablated 12.9506; rebuild + error term 2.7435
+   CE recovered vs mean-ablation 0.9863 [0.9853, 0.9872]; vs zero-ablation 0.9916
+   random push of the same length: +0.0496 nats; the SAE's error costs 1.7x as much [1.6, 1.8]
+
+3. Cheap baseline, PCA rebuilt from its top components (dense, fitted on 203,443 other tokens): k=8: FVU 0.817, k=16: FVU 0.738, k=32: FVU 0.636, k=64: FVU 0.505, k=128: FVU 0.340, k=256: FVU 0.162
+
+
+4. Transfer to Qwen/Qwen2.5-0.5B-Instruct (no bar): FVU 0.1378; cross-entropy clean 2.7978, SAE spliced in 2.8809 (+0.0831)
+
+Self-checks (the pass bars from the plan):
+  ✅ FVU < 0.25 (0.1248)
+  ✅ L0 = k (mean 64.000, k 64)
+  ✅ dead latents < 10% (0.03%)
+  ✅ dense latents < 1% (0.24%)
+  ✅ CE recovered vs mean-ablation >= 0.90 (0.9863)
+  ✅ rebuild + error term gives the clean model back (relative difference 2.2e-06 < 1e-4)
+  ✅ the SAE beats PCA with the same number of numbers per token (FVU 0.125 vs 0.505)
+  ✅ the SAELens-format export gives the same FVU (0.124786 vs 0.124786)

@@ -1,0 +1,19 @@
+
+1. SAELens 6.56.1, loading from the Hub: albertlieadrian/qwen2.5-0.5b-sae-101
+
+2. blocks.11.hook_resid_post: FVU 0.1248 (local 0.1248); L0 64.00; dead 5 (local 5); CE with the SAE 2.8291 (local 2.8290); CE recovered 0.9863
+This SAE has non-empty model_from_pretrained_kwargs. 
+For optimal performance, load the model like so:
+model = SAETransformerBridge.boot_transformers(..., **cfg.metadata.model_from_pretrained_kwargs)
+or, with transformer-lens<4.0:
+model = HookedSAETransformer.from_pretrained_no_processing(..., **cfg.metadata.model_from_pretrained_kwargs)
+
+2. saelens-trained/blocks.11.hook_resid_post: FVU 0.1241 (local 0.1241); L0 64.00; dead 0 (local 0); CE with the SAE 2.8290 (local 2.8290); CE recovered 0.9863
+
+
+3. blocks.11.hook_resid_post through TransformerBridge vs model.layers.11 in transformers: max difference 1.73e-02 (1.7e-03 of the largest activation)
+
+Self-checks:
+  ✅ blocks.11.hook_resid_post: the Hub copy matches the local numbers (FVU off by 4.4e-08, CE by 3.1e-05; < 1e-3)
+  ✅ saelens-trained/blocks.11.hook_resid_post: the Hub copy matches the local numbers (FVU off by 0.0e+00, CE by 1.8e-06; < 1e-3)
+  ❌ the TransformerLens hook name reads the same activations (relative difference 1.7e-03 < 1e-4)

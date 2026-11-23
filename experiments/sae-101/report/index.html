@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to train a sparse autoencoder: a 101 on a small language model</title>
+<meta name="description" content="A step-by-step tutorial that trains a sparse autoencoder on Qwen2.5-0.5B by hand and with SAELens (FVU 0.125 and 0.124 on the same 102M tokens), checks it against pass bars, reads its latents, compares it with a probe, and publishes it on the Hugging Face Hub.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to train a sparse autoencoder: a 101 on a small language model">
+<meta property="og:description" content="A step-by-step tutorial that trains a sparse autoencoder on Qwen2.5-0.5B by hand and with SAELens (FVU 0.125 and 0.124 on the same 102M tokens), checks it against pass bars, reads its latents, compares it with a probe, and publishes it on the Hugging Face Hub.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A table of seven rows on cream, one per step of making a sparse autoencoder, each with a number measured in this run: the attention-sink outlier, FVU 0.125 and 0.124 for the two trainers, 98.6% of the loss won back, a use test, a probe comparison and the Hub reload.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to train a sparse autoencoder: a 101 on a small language model">
+<meta name="twitter:description" content="A step-by-step tutorial that trains a sparse autoencoder on Qwen2.5-0.5B by hand and with SAELens (FVU 0.125 and 0.124 on the same 102M tokens), checks it against pass bars, reads its latents, compares it with a probe, and publishes it on the Hugging Face Hub.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-23">
+<meta property="article:modified_time" content="2026-11-23">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "How to train a sparse autoencoder: a 101 on a small language model",
+ "description": "A step-by-step tutorial that trains a sparse autoencoder on Qwen2.5-0.5B by hand and with SAELens (FVU 0.125 and 0.124 on the same 102M tokens), checks it against pass bars, reads its latents, compares it with a probe, and publishes it on the Hugging Face Hub.",
+ "abstract": "101 E3. TopK SAE (16,384 latents, k = 64) on Qwen2.5-0.5B's residual stream after block 11, 102M FineWeb-Edu tokens, first 3 positions skipped (attention sinks, 86x the usual norm). Hand-written (60 lines) vs SAELens 6.56.1 on identical tokens: held-out FVU 0.125 vs 0.124, dead 5 vs 0 of 16,384, spliced-in CE 2.829 for both (clean 2.744, mean-ablated 8.985): 98.6% recovered [98.5, 98.7]; PCA with 64 components FVU 0.505; the SAE's error costs 1.7x a same-norm random error [1.6, 1.8]. 12 latents drawn at random: removing one moves the next-token prediction 4.3x more than a random direction [3.3, 5.6], 12/12. Llama-3.3-70B labels: detection 0.84 vs 0.58 with a wrong label. Code vs prose and digit tokens: logistic probe 1.000 vs best single latent 0.985 and 0.706 (5 latents 0.968); LEACE erases code (0.500) but not digits on held-out documents (0.378). Exploratory sweep: ReLU+L1 at L0 23 FVU 0.545 vs TopK 0.24-0.29 at L0 16-32; a 10x low learning rate, 1/20 of the tokens, the wrong layer (1.6x error) and a missing decoder bias (4.2x) hurt; no AuxK, no normalisation and leaving sinks in cost nothing at that size. Published in SAELens format on the Hugging Face Hub and reloaded in a fresh process. Predictions 3/4.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-23",
+ "dateModified": "2026-11-23",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "sparse autoencoder, SAE, TopK SAE, SAELens, interpretability, superposition, Qwen2.5-0.5B, Hugging Face, Neuronpedia, linear probe, tutorial",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.04093"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://transformer-circuits.pub/2023/monosemantic-features"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2309.08600"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/decoderesearch/SAELens"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://nickjiang.substack.com/p/a-primer-on-sparse-autoencoders"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .toy { margin: 1.25rem 0 0.5rem; }
+  .toy-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
+  .toy-tabs button { font-family: var(--font-mono); font-size: 0.75rem; padding: 0.3rem 0.65rem; border: 1px solid var(--rule);
+    background: var(--canvas); color: var(--ink-soft); border-radius: 999px; cursor: pointer; }
+  .toy-tabs button[aria-selected="true"] { border-color: var(--control); color: var(--ink); box-shadow: inset 0 0 0 1px var(--control); }
+  .toy-plot { display: block; width: 100%; max-width: 30rem; aspect-ratio: 1 / 1; margin: 0 auto; }
+  .toy-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.1rem; align-items: center; justify-content: center; margin: 0.6rem 0;
+    font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft); }
+  .toy-controls label { display: inline-flex; gap: 0.4rem; align-items: center; cursor: pointer; }
+  .toy-controls input { accent-color: var(--control); }
+  .toy-controls input[type=range] { width: 7rem; }
+  .toy-next { font-family: var(--font-mono); font-size: 0.75rem; padding: 0.25rem 0.6rem; border: 1px solid var(--control);
+    color: var(--ink); background: none; border-radius: 4px; cursor: pointer; }
+  .toy-readout { font-size: 0.95rem; color: var(--ink-soft); min-height: 4.5em; margin: 0.25rem 0 0; }
+  .snip { font-family: var(--font-mono); font-size: 0.8rem; }
+  .snip mark { background: var(--accent-soft); color: var(--ink); padding: 0 0.1em; border-radius: 2px; }
+  .tool-pick { border-left: 2px solid var(--control); padding: 0.1rem 0 0.1rem 1rem; margin: 1.25rem 0; }
+  .tool-pick p { margin: 0 0 0.5rem; }
+  .tool-pick .label { display: block; font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.4rem; }
+  .fail { color: var(--accent-text); font-weight: 600; }
+  .sub { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-soft); white-space: nowrap; }
+  .snip { white-space: normal; overflow-wrap: anywhere; }
+  .t-latents td:nth-child(2) { min-width: 15rem; }
+  .t-eval td:nth-child(2) { white-space: nowrap; }
+  /* a right-edge shadow while a wide table can still scroll sideways */
+  .table-wrap { background: linear-gradient(to right, var(--canvas) 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--canvas) 30%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.14), transparent) right / .75rem 100% no-repeat scroll; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-23">Nov 23, 2026</time></p>
+  <h1>How to train a sparse autoencoder: a 101 on a small language model</h1>
+  <p class="dek ruled">Every step from the maths on three numbers to a sparse autoencoder anyone can download: train one by hand and one with SAELens on Qwen2.5-0.5B, check it against bars set in advance, read what its latents mean, see when a plain probe does better, and publish it on the Hugging Face Hub. Every number comes from the run that made the published file.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="s101-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="The seven steps of making and publishing a sparse autoencoder on Qwen2.5-0.5B, each with a number measured in this run: the toy, the attention-sink outlier, training two ways, evaluation, interpretation, the probe comparison and the Hub reload." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">101 · INTERPRETABILITY</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">QWEN2.5-0.5B · ONE A10G</text><text x="20" y="64" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800">Seven steps to a published sparse autoencoder</text><rect x="20" y="100" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="127" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">1  What an SAE is</text><text x="250" y="127" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">5 concepts in 2 dimensions: with k = 1 the SAE finds all 5 (cosine ≥ 0.99)</text><rect x="20" y="150" width="840" height="42" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="177" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">2  Collect activations</text><text x="250" y="177" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">the first token&#x27;s activation is 86x the rest: drop it, then scale by 1.80</text><rect x="20" y="200" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="227" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">3  Train</text><text x="250" y="227" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">hand-written and SAELens on the same 102M tokens: FVU 0.125 and 0.124</text><rect x="20" y="250" width="840" height="42" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="277" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">4  Evaluate</text><text x="250" y="277" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">spliced into the model, the SAE wins back 98.6% of what mean-ablation costs</text><rect x="20" y="300" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="327" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">5  Interpret</text><text x="250" y="327" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">removing a latent moves the next word 4.3x more than a random push</text><rect x="20" y="350" width="840" height="42" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="377" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">6  Compare</text><text x="250" y="377" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">code vs prose: probe 1.000, best single latent 0.985 AUROC</text><rect x="20" y="400" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="427" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">7  Publish</text><text x="250" y="427" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:450">reloaded from the Hub in a fresh process: FVU matches to 4e-08</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">EVERY NUMBER FROM THIS RUN: 16,384 LATENTS · K = 64 · 102M TRAINING TOKENS · HELD-OUT FINEWEB-EDU</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: the seven steps of this tutorial, each with a number measured in its run; drawn from <code>results/</code> by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>Qwen2.5-0.5B (base); residual stream after block 11 of 24</dd></div>
+    <div><dt>Data</dt><dd>FineWeb-Edu, sample-10BT: 102M training tokens, 6M held out</dd></div>
+    <div><dt>The SAE</dt><dd><a href="https://huggingface.co/albertlieadrian/qwen2.5-0.5b-sae-101">albertlieadrian/qwen2.5-0.5b-sae-101</a> on the Hugging Face Hub · <a href="../dashboard/">feature dashboard</a></dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/sae-101/</a>, one script per step, each ending in self-checks · <a href="../README.md">README</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What does it take to train, check and publish a sparse autoencoder on a small language model?</strong> About an hour of one rented GPU and a handful of checks. A 60-line hand-written TopK SAE (16,384 latents, 64 on per token) trained on 102M tokens of Qwen2.5-0.5B’s middle layer misses 12.5% of the variance on held-out text; SAELens on the same tokens misses 12.4%. Spliced into the model, it wins back 98.6% of the loss that mean-ablating the layer costs, though its error hurts the model 1.7 times as much as a random error of the same size. Latents drawn at random read cleanly, and removing one where it fires moves the next-word prediction 4.3 times more than a random push. For detecting a labelled concept, a plain logistic probe matched or beat the best single latent (1.000 against 0.985 and 0.706). The SAE is on the Hugging Face Hub in SAELens’s format, and loading it back on a fresh machine reproduces its numbers to 10<sup>−4</sup>.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <ul>
+      <li><strong>Hand-written and SAELens agree:</strong> held-out FVU 0.125 and 0.124 on the same 102M tokens (bar &lt; 0.25), 5 and 0 dead latents of 16,384, and the same spliced-in cross-entropy, 2.829 nats per token.</li>
+      <li><strong>The model still works on the SAE’s rebuild:</strong> 98.6% of the mean-ablation loss is won back (95% CI [98.5%, 98.7%]; bar 90%); PCA with the same 64 numbers per token misses 50.5% of the variance, against 12.5%.</li>
+      <li><strong>But the SAE’s error is not noise:</strong> it raises cross-entropy 1.7 times as much as a random error of the same size (95% CI [1.6, 1.8]).</li>
+      <li><strong>Latents carry what the model uses:</strong> removing one of 12 latents drawn at random moves the next-token prediction 4.3 times more than a same-length random direction (95% CI [3.3, 5.6]); 12 of 12 beat their random twin.</li>
+      <li><strong>Cheap labels check out, with a caveat:</strong> an open model’s labels pick out held-out firing snippets 0.84 of the time against 0.58 with another latent’s label (48 latents, $0.03).</li>
+      <li><strong>A probe matches or beats the best single latent:</strong> 1.000 AUROC on code vs prose and on digit tokens, against 0.985 and 0.706; the SAE splits “digit” over several latents (five of them reach 0.968).</li>
+      <li><strong>Published and reloaded:</strong> both SAEs are on the Hugging Face Hub in SAELens’s format; downloaded on a fresh machine through <code>SAE.from_pretrained</code>, they give the same FVU to within 4 × 10<sup>−8</sup> and the same cross-entropy to within 3 × 10<sup>−5</sup> (bar 10<sup>−3</sup>).</li>
+    </ul>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Feed Qwen2.5-0.5B the sentence “A natural arrangement of British plants: according to their relations to…” and, at the word “according”, its residual stream holds 896 numbers that mean nothing to a person. Pass them through the sparse autoencoder this note trains and one of 16,384 latents lights up: #13894, which fires on 0.04% of tokens and whose 30 strongest firings in 5M held-out tokens are all on the word “according”. Remove that one latent from the model's activations where it fires, and the model's guess for the next word moves 73 times further than when a random direction of the same size is removed. That is what an SAE gives you: a readable list of the parts the model is using, some of which it really relies on.</p>
+  <p><strong>What is known.</strong> A sparse autoencoder (SAE) is a small network that rewrites a model's activation as a short list of directions from a large learned dictionary. Since <a href="https://transformer-circuits.pub/2023/monosemantic-features">Towards Monosemanticity</a> and <a href="https://arxiv.org/abs/2309.08600">Sparse Autoencoders Find Highly Interpretable Features</a>, SAEs have become a standard way to read language models, and releases such as <a href="https://arxiv.org/abs/2408.05147">Gemma Scope</a> publish hundreds of them. The recipe has settled: TopK sparsity with an auxiliary loss for dead latents (<a href="https://arxiv.org/abs/2406.04093">Scaling and evaluating sparse autoencoders</a>), trained with libraries such as <a href="https://github.com/decoderesearch/SAELens">SAELens</a>.</p>
+  <p><strong>What is missing.</strong> The pieces are spread over papers, library docs and notebooks. A newcomer rarely sees one SAE go all the way from raw text to a published file, with the checks that say whether it is any good, the traps that break it, and an honest look at when a plain probe would have done the job.</p>
+  <p class="question-callout">What does it take to train, check and publish a sparse autoencoder on a small language model, and how do you know it works?</p>
+  <p><strong>What this note does.</strong> It walks one SAE through every step, with the code, the printed output and the numbers of the run that produced the published file. Its contributions:</p>
+  <ol>
+    <li>A hand-written TopK SAE in about sixty lines of PyTorch, trained beside SAELens on the same 102M tokens, so the two can be compared number for number.</li>
+    <li>An evaluation with pass bars written before the run, a random-error control and a cheap baseline, and a comparison of the SAE with a probe, a difference-of-means direction and PCA on two concepts with free labels.</li>
+    <li>A published SAE (<a href="https://huggingface.co/albertlieadrian/qwen2.5-0.5b-sae-101">on the Hugging Face Hub</a>, in SAELens's format, with a model card), checked by loading it back on a fresh machine, and a <a href="../dashboard/">feature dashboard</a>.</li>
+  </ol>
+  <p><strong>What counts as a working SAE.</strong> Fixed in the plan before the full run:</p>
+  <ol>
+    <li>It rebuilds held-out activations: FVU (the fraction of variance it misses) under 0.25.</li>
+    <li>The model still works when it runs on the SAE's rebuild: at least 90% of the cross-entropy lost by mean-ablating the layer is won back.</li>
+    <li>Its dictionary is used: under 10% of latents never fire, under 1% fire on more than one token in ten.</li>
+    <li>The published file reproduces these numbers when loaded from the Hub in a fresh process, to 0.001.</li>
+  </ol>
+
+  <aside class="bg-note" aria-labelledby="words-label">
+    <span class="label" id="words-label">Six words used throughout</span>
+    <p><strong>Latent</strong>: one of the SAE's 16,384 learned directions (also called a feature). <strong>FVU</strong>, the fraction of variance unexplained: how much of an activation's spread the SAE fails to rebuild, from 0 (perfect) to 1 (no better than the average). <strong>L0</strong>: how many latents are on for a token. <strong>Cross-entropy</strong>: how surprised the model is by the real next word, in nats; lower is better. <strong>Mean-ablation</strong>: replacing a layer's activations with their average, the "remove what this layer knows" floor. <strong>AUROC</strong>: how well a score separates two groups, from 0.5 (a coin flip) to 1 (perfectly).</p>
+    <p>Short on time? Read section 2, then 4.3, 4.4 and the “Which tool should I use?” box in 4.5.</p>
+  </aside>
+
+  <h2 id="what" data-short="What an SAE is"><span class="num">02</span>What an SAE is, on a toy you can see</h2>
+  <p><strong>An SAE is a parts list for activations.</strong> At every token, Qwen2.5-0.5B passes 896 numbers from layer to layer: the residual stream. They hold whatever the model knows about the text so far, but not one number per idea: the model tracks far more ideas than it has numbers, so ideas share them. Reading them directly is like reading a smoothie. An SAE keeps a large pantry of directions, its <em>latents</em> (here 16,384), and writes each activation's recipe card: these 64 directions, in these amounts. The card is easy to read, and the test of a good card is that blending its ingredients gives the smoothie back.</p>
+  <p>The whole SAE is three lines. With <code>x</code> the activation:</p>
+  <pre><code class="language-python">pre   = (x - b_dec) @ W_enc + b_enc      # a score for every latent             (the encoder)
+z     = keep the k biggest of pre, ReLU    # all other latents set to 0           (TopK)
+x_hat = z @ W_dec + b_dec                  # k decoder rows, weighted, plus a bias (the decoder)</code></pre>
+  <p>Training makes <code>|x - x_hat|²</code> small. On three numbers, by hand: take <code>x = [2, 0, 1]</code>, four latents (the three axes and a mixed one, <code>[0.6, 0, 0.8]</code>, with a bias of −0.5) and k = 2. The scores are <code>[2.0, 0.0, 1.0, 1.5]</code>; the two biggest are latents 0 and 3; the rebuild is 2.0 × [1, 0, 0] + 1.5 × [0.6, 0, 0.8] = <code>[2.9, 0, 1.2]</code>, off by 0.85 because only two parts were allowed. That is the trade-off between sparsity and accuracy in one line.</p>
+  <p><strong>Why every decoder row has length 1.</strong> A latent adds <code>z_i × W_dec[i]</code>. Without a rule, training could make a row ten times longer and its activation ten times smaller for the same rebuild, and "how strongly does this latent fire" would mean nothing. Fixing each row at length 1 puts all the size in <code>z</code>, so firing strengths can be compared across latents and tokens.</p>
+  <p><strong>Superposition, in two dimensions.</strong> Figure 1 squeezes five concepts into a plane. Five arrows cannot all sit at right angles in two dimensions; that crowding is superposition, and it is why no single axis means one concept. Each of 600 points uses one or two concepts at a time. Trained with one part per point (k = 1), a five-latent SAE puts a decoder arrow on every concept (cosine 0.99 or more) and misses 9.2% of the variance. With two parts per point it rebuilds every point exactly, but its arrows slide off the concepts (the worst falls to cosine 0.87), because in a plane almost any two arrows can rebuild any point. Sparsity is what pins the parts to something real; k must be small next to the room the data lives in, as k = 64 is next to 896 dimensions.</p>
+  <figure class="plot">
+    <div id="toy1" data-toy data-start="superposition"></div>
+    <noscript><img src="figures/fig0_toy.png" alt="Two panels of 600 grey points in a plane with five dashed concept arrows. Left, k = 1: five orange decoder arrows lie on the five concepts, FVU 0.092. Right, k = 2: FVU 0.000, but the orange arrows have slid off the concepts (lowest cosine 0.87)." width="1480" height="720"></noscript>
+    <figcaption><span class="label">Figure 1.</span> The 2-D toy (interactive). Tab 1: five concepts (dashed, A to E) in two dimensions; the circled point is drawn as the concepts it holds. Tab 2: the SAE's five decoder arrows (orange, each labelled with the concept it sits nearest) over the faint concepts, and how it rebuilds the circled point; the blue slider sets k. Tab 3 returns in <a href="#compare">section 4.5</a>. It is a picture of the idea, not of the real model: real latents in 896 dimensions are messier, with concepts split over several latents or absorbed into more specific ones. Data from <a href="../01_toy.py">01_toy.py</a>.</figcaption>
+  </figure>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan</strong>, with the pass bars of section 1 and four predictions (section 6), written before any full-size run.</li>
+    <li><strong>Laptop pilot</strong> of every step at the small size (4,096 latents, k = 32, 4M tokens) on an M-series Mac. It found the attention sinks at positions 1 and 2 (section 4.1) and a SAELens default that left 35% of its latents dead in a short run.</li>
+    <li><strong>Tokens</strong> on a CPU container: 213,000 windows of 512 tokens from 105,000 FineWeb-Edu documents, plus 1,000 windows from 115 Python files.</li>
+    <li><strong>A 600-step pilot</strong> on one A10G, to time the full run (0.12 s a step).</li>
+    <li><strong>Two full trainings</strong>, hand-written and SAELens, each on 101.7M tokens on its own A10G.</li>
+    <li><strong>Evaluation</strong> of both on 1.0M held-out tokens (FVU), 5.1M (firing frequencies) and 200 windows (cross-entropy).</li>
+    <li><strong>A sweep</strong> of 21 small SAEs (exploratory; section 4.2 and 4.8), the <strong>comparison</strong> with probes on two concepts, and the <strong>reading</strong> of 48 latents drawn at random.</li>
+    <li><strong>Labels</strong> for those 48 latents from an open model, each checked on 10 held-out snippets.</li>
+    <li><strong>Publish and reload</strong>: SAELens format, model card, upload, and the full evaluation repeated on the downloaded copy on a fresh machine.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any full-size run</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Model, layer, data and splits; d_sae 16,384, k = 64, learning rate 2e-4, batch 4,096, 100M tokens; pass bars; the four predictions; the 12 latents for the note drawn at random with seed 0</td><td><strong>The skipped positions</strong> (from the laptop pilot, before any full run): position 0 only became the first three positions, after the sinks at positions 1 and 2 were found.</td></tr>
+        <tr><td>Controls: a random error of the same size, a same-length random direction for the use test, 100 random directions, a wrong-label control for the labels</td><td><strong>SAELens's time limit</strong>: its first full run ran at 13,400 tokens a second and would have hit the 100-minute limit, so it was stopped after 30 minutes and restarted with a 180-minute limit and the same settings.</td></tr>
+        <tr><td>—</td><td><strong>Exploratory, labelled as such:</strong> the sweep of section 4.2 and the mistakes table of section 4.8 (one run each, no intervals).</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: the model in float32 with TF32 matrix multiplies on one NVIDIA A10G per step (Modal); the hand-written SAE trained in 51 minutes, SAELens in 75; every other step took 1 to 10 minutes. Cost: $4.23 of GPU and CPU time on Modal (billing report, including a cancelled first SAELens attempt and three failed starts) and $0.03 of OpenRouter calls for the labels, against a cap of $15 enforced in code.</p>
+
+  <h2 id="results" data-short="Step by step"><span class="num">04</span>Step by step, with the numbers</h2>
+
+  <h3 id="collect" data-short="Collect">4.1 Collect activations: drop the attention sinks, then scale by one number</h3>
+  <p><strong>Pick the model, the layer and the text.</strong> The model is Qwen2.5-0.5B, the base model rather than the chat one: it was trained on web text like the text the SAE will see, and most public SAEs are trained on base models (section 4.3 checks how well this one carries over to the Instruct model). The layer is the residual stream after block 11 of 24, the middle of the network. The text is FineWeb-Edu, open educational web text, streamed and cut into 512-token windows that each start with <code>&lt;|endoftext|&gt;</code> (Qwen has no beginning-of-text token). The splits come from the stream one after another, so no document is in two of them: 200,000 windows for training (101.7M text tokens), 2,000 for evaluation, 10,000 for reading latents, and 1,000 for the comparison in section 4.5.</p>
+  <p><strong>Drop the attention sinks.</strong> Look at how big each position's activation is and one number jumps out: the median norm at position 0 is 1,424, against 16.5 for an ordinary token, 86 times larger. The model parks its spare attention on the first token (an <em>attention sink</em>) and stores a huge vector there that says nothing about the text. In 28 of 256 windows the sink sat on position 1 or 2 instead (24 and 4 windows). One such token among a batch of 4,096 would dominate the squared error, and the SAE would spend itself rebuilding junk. The rule here: skip the first three positions of every window and every <code>&lt;|endoftext|&gt;</code>. After it, no token past position 2 has a sink-sized norm (0 of 256 windows). SAELens does the same with <code>seqpos_slice=(3, None)</code> and <code>exclude_special_tokens</code>.</p>
+  <p><strong>Scale by one number.</strong> Ordinary activations here have a mean squared length of 275. Multiplying by √(896 / 275) ≈ 1.80 brings it to 896, one per dimension, so a learning rate means the same at any layer of any model and published settings carry over. Section 4.6 folds the 1.80 back into the weights before publishing.</p>
+  <p><strong>Do not store the activations; stream them.</strong> 101.7M tokens times 896 numbers times 4 bytes is 365 GB. The token ids take 0.41 GB, and recomputing activations costs half a forward pass, because a hook stops the model after block 11. So training reads windows, computes their activations and mixes them in a <em>shuffle buffer</em> of about half a million tokens: fill it from many windows, shuffle, hand out half as batches, refill. Without the shuffle, a batch would be 4,096 tokens from about eight documents, and the SAE would learn one topic at a time.</p>
+
+  <h3 id="train" data-short="Train">4.2 Train it twice: 60 lines by hand and SAELens land 0.0007 apart</h3>
+  <p><strong>The hand-written trainer is one loop.</strong> Each step takes 4,096 shuffled, scaled activations from the buffer, encodes them, keeps each token's 64 biggest scores, decodes, and nudges every weight to shrink the squared error. Then every decoder row is set back to length 1. The whole SAE class and its training loop are in <a href="../sae101.py">sae101.py</a>; the heart of a step:</p>
+  <pre><code class="language-python">pre   = sae.pre(x)                                   # (x - b_dec) @ W_enc + b_enc, for 4,096 tokens
+vals, idx = pre.topk(k, dim=-1)                       # each token's 64 biggest scores
+z     = torch.zeros_like(pre).scatter(-1, idx, vals.relu())
+x_hat = z @ sae.W_dec + sae.b_dec
+dead  = (step - last_fired) &gt; 1000                    # latents silent for 1,000 steps
+loss  = ((x_hat - x) ** 2).sum(-1).mean() + aux_k_loss(sae, x, x_hat, pre, dead, k_aux=448) / 32
+loss.backward(); opt.step(); sae.normalise_decoder()  # Adam, then every decoder row back to length 1</code></pre>
+  <p>Three details do most of the work. <strong>AuxK</strong>: a latent that never makes a token's top 64 never gets a gradient and stays dead forever, so latents silent for 1,000 steps get a side job, rebuilding what the live latents missed, which pulls them back towards something useful. The <strong>decoder bias starts at the data's average</strong>, so on step 1 the SAE already rebuilds the "average token" and the latents only describe differences. And each <strong>encoder column starts on its own decoder row</strong>, so a latent first fires on inputs that point its way. The settings: 16,384 latents (18.3 times the 896 dimensions), k = 64, Adam with learning rate 2 × 10⁻⁴ falling to zero over the last 20% of training, 24,828 steps of 4,096 tokens.</p>
+  <p><strong>SAELens does the same job as a library call.</strong> <a href="../03b_train_saelens.py">03b_train_saelens.py</a> hands it the same windows (<code>override_dataset</code>), the same layer (it hooks the Hugging Face module <code>model.layers.11</code> directly), the same skipped positions, sizes, learning rate, batch and token count:</p>
+  <pre><code class="language-python">cfg = LanguageModelSAERunnerConfig(
+    sae=TopKTrainingSAEConfig(d_in=896, d_sae=16384, k=64, normalize_activations="expected_average_only_in"),
+    model_name="Qwen/Qwen2.5-0.5B", model_class_name="AutoModelForCausalLM", hook_name="model.layers.11",
+    context_size=512, prepend_bos=False, seqpos_slice=(3, None), exclude_special_tokens=[151643],
+    training_tokens=24_827 * 4096, train_batch_size_tokens=4096, lr=2e-4, lr_decay_steps=4965)
+sae = LanguageModelSAETrainingRunner(cfg, override_dataset=the_same_windows).run()</code></pre>
+  <p>Its defaults differ in small ways: it scales by √896 / mean |x| rather than √(896 / mean |x|²), starts decoder rows at length 0.1 and divides by their length inside the TopK instead of resetting them to 1, and weighs its own AuxK loss at 1.0. It writes the SAE in its own file format with the scale already folded in.</p>
+  <!-- table:train:start -->
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th class="num">Hand-written</th><th class="num">SAELens 6.56.1</th></tr></thead>
+      <tbody>
+        <tr><td>Code</td><td class="num">about 60 lines (<code>sae101.py</code>)</td><td class="num">a library call (<code>03b_train_saelens.py</code>)</td></tr>
+        <tr><td>Same windows, layer, d_sae, k, learning rate, batch, tokens</td><td class="num">yes</td><td class="num">yes</td></tr>
+        <tr><td>Minutes on one A10G</td><td class="num">51</td><td class="num">75</td></tr>
+        <tr class="hl"><td>Held-out FVU</td><td class="num">0.125</td><td class="num">0.124</td></tr>
+        <tr><td>Dead latents</td><td class="num">5</td><td class="num">0</td></tr>
+        <tr><td>CE recovered vs mean-ablation</td><td class="num">0.986</td><td class="num">0.986</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- table:train:end -->
+  <p>Trained on the same 101.7M tokens, the two SAEs end almost on top of each other: held-out FVU 0.1248 by hand and 0.1241 with SAELens, the same spliced-in cross-entropy to four decimals (2.8290), and 5 against 0 dead latents. The plan predicted they would land within 0.03 of each other; they landed 0.0007 apart. The hand-written run took 51 minutes on one A10G (about 33,000 tokens a second), SAELens 75 (about 23,000 tokens a second in the run that finished; its first attempt ran at 13,400 and was restarted, section 3). Why SAELens was slower here was not investigated. Figure 2 shows the hand-written run’s training curve: most of the gain comes early (training FVU 0.18 after 10M tokens, 0.12 at the end).</p>
+  <figure class="plot">
+    <img src="figures/fig1_training.png" alt="A falling orange curve of the hand-written SAE's training FVU against training tokens on a log axis: 0.60 at 0.4M tokens, 0.18 at 10M and 0.12 at 102M, ending at the held-out FVU of 0.125." width="1280" height="640" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> The hand-written SAE's FVU on its training batches, averaged over each 100 steps (log scale of tokens), with both SAEs' held-out FVU on 1.0M tokens at the end. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/train_handwritten.json">results/full/train_handwritten.json</a> and <a href="../results/full/evaluate.json">evaluate.json</a>.</figcaption>
+  </figure>
+  <p><strong>TopK beats the older penalty recipe at the same sparsity.</strong> The first SAEs made latents sparse with a penalty on their size: <code>z = ReLU(pre)</code>, and the loss adds a coefficient times the sum of <code>z</code>. A bigger coefficient turns more latents off but also shrinks the ones that stay on, because it charges for size, not count, so the rebuild suffers twice. TopK asks for exactly k latents and leaves their sizes free. In a sweep of small SAEs (4,096 latents, two passes over 3M tokens; exploratory), ReLU + L1 with 23 latents on per token misses 54% of the variance, while TopK misses 29% with 16 and 24% with 32 (Figure 3). <strong>BatchTopK</strong>, which keeps the k × 4,096 biggest scores across a whole batch so busy tokens can use more latents than simple ones, does slightly better than TopK at each k (0.237 against 0.240 at k = 32), and at inference becomes a fixed threshold.</p>
+  <figure class="plot">
+    <img src="figures/fig2_tradeoff.png" alt="Held-out FVU against L0 on a log axis. ReLU + L1 (grey) runs from 1.01 at L0 0.8 to 0.10 at L0 927 and sits well above TopK (orange: 0.35 at k = 8, 0.29 at 16, 0.24 at 32, 0.20 at 64, 0.16 at 128); BatchTopK (light orange) lies just under TopK." width="1280" height="680" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span> The trade-off between sparsity (L0, latents on per token, log scale) and held-out FVU on 250,000 tokens, for 15 small SAEs: ReLU + L1 at seven penalty strengths (grey), TopK at five values of k (orange), BatchTopK at three (light orange). Lower and to the left is better. One run each; exploratory. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/sweep.json">results/full/sweep.json</a>.</figcaption>
+  </figure>
+  <aside class="bg-note" aria-labelledby="matryoshka-label">
+    <span class="label" id="matryoshka-label">Background: Matryoshka SAEs</span>
+    <p>A Matryoshka SAE trains nested dictionaries at once: the first 128 latents must rebuild the activation on their own, so must the first 512, and so on up to all of them, like Russian dolls. Early latents are pushed to be broad ("a number") and later ones to refine them ("a year"), which reduces <em>feature absorption</em>, where a broad latent quietly stops firing on cases a narrower latent has taken over (<a href="https://arxiv.org/abs/2503.17547">Learning multi-level features with Matryoshka sparse autoencoders</a>). In SAELens it is <code>MatryoshkaBatchTopKTrainingSAEConfig</code> with a list of <code>matryoshka_widths</code>, a one-line change to the recipe above. Our upcoming DeBiasLens note uses one.</p>
+  </aside>
+
+  <h3 id="evaluate" data-short="Evaluate">4.3 Evaluate: every pass bar met, and the model keeps 98.6% of what it loses without the layer</h3>
+  <p><strong>Five numbers decide whether an SAE is worth reading.</strong> Each is measured on text the SAE never trained on, and each had its bar before the run:</p>
+  <ul>
+    <li><strong>FVU</strong> (fraction of variance unexplained): the squared rebuild error divided by the activations' own spread. 0 is a perfect rebuild; 1 is no better than always guessing the average activation.</li>
+    <li><strong>L0</strong>: how many latents are on per token. For TopK it is k by construction.</li>
+    <li><strong>Dead and dense latents</strong>: latents that never fire in 5.1M held-out tokens are wasted; latents that fire on more than one token in ten are too general to read.</li>
+    <li><strong>Spliced-in cross-entropy</strong>, the "does the model still work" test: replace the layer's activations with the SAE's rebuild, let the model finish its forward pass, and measure how well it predicts the next token. Compare with the clean model and with the layer <em>mean-ablated</em> (every activation replaced by the average one). <em>CE recovered</em> is the share of the loss mean-ablation costs that the SAE wins back.</li>
+    <li><strong>A random error of the same size</strong>, the control: add to the clean activation a random vector exactly as long as the SAE's error at that token. If the SAE's error hurts more, what the SAE misses is something the model uses, not noise.</li>
+  </ul>
+  <!-- table:eval:start -->
+  <div class="table-wrap t-eval">
+    <table>
+      <thead><tr><th>Measure</th><th>Bar</th><th class="num">Hand-written</th><th class="num">SAELens</th></tr></thead>
+      <tbody>
+        <tr><td>FVU (held-out)</td><td>&lt; 0.25</td><td class="num">0.125 · pass</td><td class="num">0.124 · pass</td></tr>
+        <tr><td>L0 (latents on per token)</td><td>= k</td><td class="num">64.00 · pass</td><td class="num">64.00 · pass</td></tr>
+        <tr><td>Dead latents (never fire)</td><td>&lt; 10%</td><td class="num">5 (0.0%) · pass</td><td class="num">0 (0.0%) · pass</td></tr>
+        <tr><td>Dense latents (&gt; 1 token in 10)</td><td>&lt; 1%</td><td class="num">39 (0.24%) · pass</td><td class="num">35 (0.21%) · pass</td></tr>
+        <tr><td>Cross-entropy with the SAE (nats)</td><td>—</td><td class="num">2.829 (+0.086)</td><td class="num">2.829 (+0.085)</td></tr>
+        <tr><td>CE recovered vs mean-ablation</td><td>≥ 0.90</td><td class="num">0.986 [0.985, 0.987] · pass</td><td class="num">0.986 [0.985, 0.987] · pass</td></tr>
+        <tr><td>Its error vs a random error of the same size</td><td>—</td><td class="num">1.7x [1.6, 1.8]</td><td class="num">1.7x [1.6, 1.8]</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- table:eval:end -->
+  <p>The hand-written SAE misses 12.5% of the variance (FVU 0.125) and leaves 5 of its 16,384 latents dead. PCA with the same 64 numbers per token, fitted on other tokens, misses 50.5%: the SAE's advantage is that each token may pick a different 64 directions. Spliced into the model, it raises cross-entropy from 2.744 to 2.829 nats per token (+0.086, 95% CI [0.080, 0.092] over 200 windows), against 8.985 with the layer mean-ablated: it wins back 98.6% of that loss (Figure 4).</p>
+  <p><strong>The part the SAE misses matters more than its size suggests.</strong> A random error of the same length per token raises cross-entropy by only 0.050, so the SAE's own error costs 1.7 times as much [1.6, 1.8]. The SAE drops directions the model uses, not random noise, a known property of SAE errors (<a href="https://www.lesswrong.com/posts/rZPiuFxESMxCDHe4B/sae-reconstruction-errors-are-empirically-pathological">SAE reconstruction errors are (empirically) pathological</a>). Two checks on the ruler itself: adding the error back (rebuild + error) gives the clean model to within 2 × 10⁻⁶, and the file exported in SAELens's format gives the same FVU to six decimals.</p>
+  <figure class="plot">
+    <img src="figures/fig3_cross_entropy.png" alt="Horizontal bars of cross-entropy in nats per token: clean model 2.74, hand-written SAE spliced in 2.83, random error of the same size 2.79, layer mean-ablated 8.98, layer zero-ablated 12.95." width="1280" height="580" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span> Next-token cross-entropy on 200 held-out windows (about 100,000 tokens) with the layer after block 11 left alone, replaced by each SAE's rebuild, nudged by a random error as long as the hand-written SAE's, mean-ablated and zero-ablated. Lower is better; the axis starts at zero. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/evaluate.json">results/full/evaluate.json</a>.</figcaption>
+  </figure>
+  <figure class="plot">
+    <img src="figures/fig4_frequency.png" alt="A histogram of log10 firing frequency for the 16,384 latents, peaking near 1 token in 1,000 and falling off by 1 in 10; 5 latents never fire and 39 lie right of the dense line." width="1280" height="600" loading="lazy">
+    <figcaption><span class="label">Figure 5.</span> How often each latent fires over 5.1M held-out tokens (log scale; latents that never fire are counted in the legend, not plotted). Right of the dashed line: dense latents, on more than one token in ten. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/evaluate.json">results/full/evaluate.json</a>.</figcaption>
+  </figure>
+  <p><strong>It carries over to the chat model.</strong> On the same text, Qwen2.5-0.5B-Instruct's activations at the same layer are rebuilt with FVU 0.138, and splicing the SAE in costs the Instruct model 0.083 nats per token (2.798 to 2.881): the chat model's middle layer is close enough to the base model's for one SAE to serve both on plain text. Chat transcripts were not tested.</p>
+
+  <h3 id="interpret" data-short="Interpret">4.4 Interpret: latents drawn at random read cleanly, and removing one changes the next word 4.3 times more than a random push</h3>
+  <p><strong>Read latents drawn at random, not the ones that look best.</strong> Picking the prettiest latents to show is the easiest way to oversell an SAE, so 48 latents were drawn with a fixed seed from the 16,294 that fire on between 1 token in 100,000 and 1 in 10, and the note shows the first 12. For each, the script scans 5.1M held-out tokens for the 20 places it fires hardest. The table below shows each one's strongest example.</p>
+  <!-- table:latents:start -->
+  <div class="table-wrap t-latents">
+    <table>
+      <thead><tr><th>Latent</th><th>Strongest example (firing token marked)</th><th>Automatic label</th><th class="num">Label check · use test</th></tr></thead>
+      <tbody>
+        <tr><td>#360<br><span class="sub">0.61% of tokens</span></td><td><span class="snip">will fall from the sky. People often look for scientific explanations<mark> in</mark> order to explain spirituality</span></td><td>Preposition usage</td><td class="num">8/10 vs 6/10<br><span class="sub">use 1.9x</span></td></tr>
+        <tr><td>#10971<br><span class="sub">0.04% of tokens</span></td><td><span class="snip">to remove files, starting with the oldest files, in order<mark> to</mark> free up space on</span></td><td>Purpose clauses</td><td class="num">10/10 vs 10/10<br><span class="sub">use 1.2x</span></td></tr>
+        <tr><td>#13894<br><span class="sub">0.04% of tokens</span></td><td><span class="snip">245.⏎- A natural arrangement of British plants:<mark> according</mark> to their relations to</span></td><td>Preposition &quot;according to&quot; detection</td><td class="num">10/10 vs 6/10<br><span class="sub">use 73.3x</span></td></tr>
+        <tr><td>#2876<br><span class="sub">0.06% of tokens</span></td><td><span class="snip">whether they should undergo the more invasive tests (which could,<mark> theoretically</mark>, inform abortions).</span></td><td>Hedging language</td><td class="num">8/10 vs 4/10<br><span class="sub">use 1.7x</span></td></tr>
+        <tr><td>#1461<br><span class="sub">0.09% of tokens</span></td><td><span class="snip">cause changes in a person’s behavior and lead to confusion and<mark> halluc</mark>inations. It usually</span></td><td>Hallucinations</td><td class="num">6/10 vs 6/10<br><span class="sub">use 2.2x</span></td></tr>
+        <tr><td>#15290<br><span class="sub">0.10% of tokens</span></td><td><span class="snip">is unlikely to damage the ozone layer since it⏎falls apart<mark> before</mark> it can reach the</span></td><td>Temporal relationships</td><td class="num">6/10 vs 8/10<br><span class="sub">use 3.9x</span></td></tr>
+        <tr><td>#8351<br><span class="sub">0.28% of tokens</span></td><td><span class="snip">healthy diet is an important part of a healthy lifestyle at any<mark> time</mark>, but it is</span></td><td>Temporal or universal quantifiers</td><td class="num">8/10 vs 6/10<br><span class="sub">use 7.7x</span></td></tr>
+        <tr><td>#13345<br><span class="sub">0.14% of tokens</span></td><td><span class="snip">, adsorption onto sorptive media, ion exchange, and<mark> membrane</mark> filtration. However,</span></td><td>Membrane mentions</td><td class="num">10/10 vs 4/10<br><span class="sub">use 2.2x</span></td></tr>
+        <tr><td>#9915<br><span class="sub">0.08% of tokens</span></td><td><span class="snip">key of any ‘power’ actually lies in the apparent “<mark>se</mark>paration” eros and</span></td><td>Separation or &quot;se&quot; prefix detection</td><td class="num">10/10 vs 4/10<br><span class="sub">use 5.4x</span></td></tr>
+        <tr><td>#667<br><span class="sub">0.05% of tokens</span></td><td><span class="snip">look out for includes photos and media publications, such as old<mark> newspapers</mark>, which may provide</span></td><td>Named Entity Recognition</td><td class="num">6/10 vs 5/10<br><span class="sub">use 1.2x</span></td></tr>
+        <tr><td>#10335<br><span class="sub">0.03% of tokens</span></td><td><span class="snip">Du Bois (1868–196<mark>3</mark>), who had a</span></td><td>Year of death</td><td class="num">10/10 vs 6/10<br><span class="sub">use 1.7x</span></td></tr>
+        <tr><td>#7880<br><span class="sub">0.15% of tokens</span></td><td><span class="snip">see the 2007 International Religious Freedom Report.⏎<mark>d</mark>. Freedom of Movement</span></td><td>Section headings</td><td class="num">8/10 vs 4/10<br><span class="sub">use 1.5x</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- table:latents:end -->
+  <p>Most read cleanly as one idea, and many are about grammar or word form rather than topic: “in order to” (#10971), “according to” (#13894), a hedge such as “theoretically” (#2876), the word piece “halluc” (#1461), “before” in a time clause (#15290), a year of death inside parentheses (#10335). A few are topical (membranes, #13345). Some are vague: a label such as “named entity recognition” (#667) fits many latents and checks out on only 6 of 10 snippets. Reading 20 snippets is how you form a hypothesis about a latent, not how you confirm one.</p>
+  <p><strong>Every latent's full picture is on the <a href="../dashboard/">feature dashboard</a></strong>: its top 20 snippets with every token shaded by the latent's activation, a histogram of how strongly it fires, its automatic label and how that label checked out, and the next tokens its decoder direction pushes up and down. That last view, the <em>logit lens</em> (the decoder direction run through the model's final norm and output layer), is mostly noise here: mixed-language word pieces such as “於” and “(strtolower”. Twelve blocks of processing lie between block 11 and the output, so a middle-layer direction says little about the next word on its own. Dashboards show it by default; at this depth, do not read much into it.</p>
+  <p><strong>Cheap labels, checked before they are trusted.</strong> An open model (Llama-3.3-70B-Instruct) read each latent's top 10 snippets, with the firing token marked, and wrote a label of at most eight words. Then the same model got the label and 10 new, unmarked snippets: 5 from the latent's 21st to 25th strongest examples, which the labeller never saw, and 5 random ones, and said which the label describes. With the latent's own label it was right on 0.84 of the snippets on average (95% CI [0.79, 0.90], 48 latents); with another latent's label, the control, 0.58 [0.51, 0.64]. The difference, +0.27 [0.20, 0.35], clears the bar set before the run (0.70, and 0.15 over the control). The control is not at 0.50 because the five firing snippets resemble each other, so a model can often pick them out with almost any label; that is why the control matters. 38 of 48 labels scored 8 or more out of 10, 4 scored 5 or fewer, and several are the same vague guess (“proper nouns” in some form for 4 latents, “named entities” for 2 more). The 144 calls cost $0.03.</p>
+  <p><strong>Presence is not use, so the latents were also removed.</strong> At each of the 12 latents' 20 strongest positions, the script subtracts exactly that latent's share of the rebuild from the residual stream and measures how far the model's next-token distribution moves (KL divergence), against subtracting a random direction of the same length at the same position. Removing the latent moves the prediction by 0.064 on average, the random direction by 0.015: 4.3 times as much (95% CI [3.3, 5.6]), and the latent beats its random twin for all 12 latents (Figure 6). The model uses what these latents carry.</p>
+  <figure class="plot">
+    <img src="figures/fig8_use_test.png" alt="For 12 latents, KL divergence on a log scale when the latent is removed (orange) and when a same-length random direction is removed (grey). Orange is above grey for all 12, by 1.2 times to 73 times." width="1280" height="560" loading="lazy">
+    <figcaption><span class="label">Figure 6.</span> For each of the 12 latents drawn for the note, the KL divergence of the next-token prediction when the latent is removed at its 20 strongest positions (orange) and when a random direction of the same length is removed at the same positions (grey squares), averaged over the 20 (log scale). Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/interpret.json">results/full/interpret.json</a>.</figcaption>
+  </figure>
+  <p><strong>Superposition, in the real model.</strong> 16,384 directions in 896 dimensions cannot all be at right angles. Each decoder direction's nearest neighbour sits at a median |cosine| of 0.310, against 0.136 for as many random directions, and 0.2% of latents have a near-twin above 0.9 (Figure 7). The dictionary is crowded in a structured way, which is what superposition predicts, and a near-twin is often a concept split in two.</p>
+  <figure class="plot">
+    <img src="figures/fig5_superposition.png" alt="Two histograms of nearest-neighbour |cosine|: the SAE's decoder directions (orange, median 0.31, with a long tail towards 1) sit to the right of random directions (grey, median 0.14)." width="1280" height="580" loading="lazy">
+    <figcaption><span class="label">Figure 7.</span> For each of 16,384 directions, the |cosine| with its nearest other direction: the SAE's decoder rows (orange) against 16,384 random directions in the same 896 dimensions (grey). Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/interpret.json">results/full/interpret.json</a>.</figcaption>
+  </figure>
+
+  <h3 id="compare" data-short="SAE vs probes">4.5 SAE, probe, difference of means, PCA: a plain probe matches or beats the best single latent</h3>
+  <p><strong>An SAE is one of four linear tools a beginner meets, and the other three are cheaper.</strong> Each gives directions in the residual stream; they differ in whether they need labels, how many concepts they find, and what they are good for.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tool</th><th>Needs labels?</th><th>Concepts</th><th>Sparse?</th><th>Read · detect · steer · erase</th><th>Typical failure</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SAE</strong></td><td>no</td><td>thousands at once</td><td>yes</td><td>read ✓ · detect ✓ · steer sometimes · erase ✗</td><td>a concept split over several latents, or absorbed into a narrower one; labels that are guesses</td></tr>
+        <tr><td><strong>Logistic probe</strong></td><td>yes</td><td>one per probe</td><td>no</td><td>read ✗ · detect ✓ · steer weak · erase ✗</td><td>learns any shortcut that predicts the label (a word, a format)</td></tr>
+        <tr><td><strong>Difference of means</strong></td><td>yes (two groups)</td><td>one</td><td>no</td><td>read ✗ · detect ✓ · steer ✓ · erase partly</td><td>picks up everything else that differs between the two groups</td></tr>
+        <tr><td><strong>PCA</strong></td><td>no</td><td>a few, ranked by spread</td><td>no</td><td>read ✗ · detect sometimes · steer ✗ · erase ✗</td><td>the biggest spread is often not the concept you want</td></tr>
+        <tr><td>LEACE (linear erasure)</td><td>yes</td><td>one</td><td>no</td><td>erase ✓</td><td>removes the concept only linearly, and only exactly on the data it was fitted on</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Figure 8 shows the difference on the toy from section 2 (tab 3). Label the points by whether they hold concept A. PCA's first direction follows the biggest spread and misses A by 56°; the logistic probe (the boundary between A and not-A, and the arrow across it) and the difference of means both land within 2° of A, because they were told what to look for; the SAE latent lands about 8° off without any labels, as one of five parts it found at once.</p>
+  <figure class="plot">
+    <div id="toy2" data-toy data-start="tools"></div>
+    <figcaption><span class="label">Figure 8.</span> The same toy as Figure 1, tab 3: the four tools on the label “concept A is on” (ringed points). Dotted line: PCA’s first component; solid line: the logistic probe’s boundary and the arrow across it; dashed arrow: the difference of means; orange: the SAE latent for A. Toggle each tool below the plot. Data from <a href="../01_toy.py">01_toy.py</a>.</figcaption>
+  </figure>
+  <p><strong>On real text the probe wins on detection, and the SAE shows how the model splits a concept.</strong> Two concepts come with free labels: <em>code vs prose</em> (every token of Python standard-library source against FineWeb-Edu text) and <em>digit tokens</em> (FineWeb-Edu tokens that contain a digit against all others). Every tool is fitted on half the documents and scored on the other half; intervals resample held-out documents; the floor is 100 random directions, each given its better sign on the training half.</p>
+  <!-- table:compare:start -->
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tool</th><th class="num">Code vs prose (60,000 held-out tokens)</th><th class="num">Digit tokens (39,582)</th></tr></thead>
+      <tbody>
+        <tr><td>Logistic probe</td><td class="num">1.000 [0.999, 1.000]</td><td class="num">1.000 [1.000, 1.000]</td></tr>
+        <tr><td>Difference of means</td><td class="num">0.995 [0.992, 0.997]</td><td class="num">0.999 [0.998, 0.999]</td></tr>
+        <tr class="hl"><td>Best single SAE latent</td><td class="num">0.985 [0.975, 0.992] (#3750)</td><td class="num">0.706 [0.693, 0.717] (#1675)</td></tr>
+        <tr><td>Probe on the 5 best SAE latents</td><td class="num">0.997 [0.995, 0.999]</td><td class="num">0.968 [0.962, 0.974]</td></tr>
+        <tr><td>PCA, first component</td><td class="num">0.978 [0.972, 0.984]</td><td class="num">0.996 [0.994, 0.997]</td></tr>
+        <tr><td>PCA, best of the first 10</td><td class="num">0.978 [0.972, 0.984] (PC1)</td><td class="num">0.996 [0.994, 0.997] (PC1)</td></tr>
+        <tr><td>Fresh probe after LEACE erasure</td><td class="num">0.500 [0.500, 0.500]</td><td class="num">0.378 [0.329, 0.428]</td></tr>
+        <tr><td>100 random directions: mean, max</td><td class="num">0.584, 0.835</td><td class="num">0.606, 0.865</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- table:compare:end -->
+  <p>On code vs prose, one latent (#3750) is a code detector: it fires on 98.1% of held-out code tokens and 4.0% of prose tokens, and scores 0.985 AUROC. The logistic probe scores 1.000, so a single latent is close but not the best detector. On digit tokens the gap is the lesson: the best single latent fires on only 41.4% of digit tokens (AUROC 0.706), while a probe on the five best latents reaches 0.968 and the difference of means 0.999. The SAE has split "a digit" across several latents, one per kind of number, which the toy's neat arrows never show. A probe has no such problem because it was told the label. Figure 9 shows the scores. Figure 10 shows that the tools point different ways even when they score alike: the code latent's decoder row sits at cosine 0.61 with the difference of means but only 0.24 with the probe, and the probe at 0.30 with the difference of means. All are far above the ±0.03 of two random directions and far below 1. A probe's direction is whatever separates the classes best, including directions that only cancel noise, so it need not point where the concept lives.</p>
+  <p><strong>PCA does well here for a dull reason.</strong> Its first component scores 0.978 and 0.996, but the comparison sets are half code (or half digit tokens) by construction, so the class split is the biggest spread in them: PC1 has cosine 0.96 and 0.98 with the difference of means. On ordinary text, where code is rare, the top component need not follow the concept at all, as in the toy (56° off).</p>
+  <figure class="plot">
+    <img src="figures/fig6_compare.png" alt="Two panels of held-out AUROC. Code vs prose: logistic probe 1.000, difference of means 0.995, best SAE latent 0.985, probe on 5 latents 0.997, PCA 0.978. Digit tokens: probe 1.000, difference of means 0.999, best SAE latent 0.706, probe on 5 latents 0.968, PCA 0.996. Random directions (grey band) span about 0.58 to 0.87." width="1480" height="640" loading="lazy">
+    <figcaption><span class="label">Figure 9.</span> Held-out AUROC with 95% intervals (resampling documents) for each tool on two concepts; 30,000 tokens per class per half at most. The grey band runs from the mean to the maximum of 100 random directions. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/compare.json">results/full/compare.json</a>.</figcaption>
+  </figure>
+  <figure class="plot">
+    <img src="figures/fig7_cosines.png" alt="Two 5 by 5 heatmaps of cosine similarity between the probe, the difference of means, the best SAE latent's decoder and encoder directions and PC1. Code: probe with difference of means 0.30, decoder with difference of means 0.61, decoder with probe 0.24, PC1 with difference of means 0.96. Digits: probe with difference of means 0.40, decoder with probe 0.16, PC1 with difference of means 0.98." width="1680" height="760" loading="lazy">
+    <figcaption><span class="label">Figure 10.</span> Cosine similarity between the directions each tool found, per concept (darker is closer to 1). Two random directions in 896 dimensions sit at about ±0.03. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/full/compare.json">results/full/compare.json</a>.</figcaption>
+  </figure>
+  <p><strong>Erasure removes a concept only where it was fitted.</strong> LEACE whitens the activations, removes the one direction along which the classes differ, and whitens back. On code vs prose a fresh probe trained after erasure scores exactly 0.500: nothing linear is left. On digit tokens it scores 0.378 on held-out documents, below chance, which means some linear signal survived on new documents (with its sign flipped). That missed the bar written before the run (within 0.1 of 0.5): the erasure is exact on the training documents, not on new ones.</p>
+  <div class="tool-pick">
+    <span class="label">Which tool should I use?</span>
+    <p><strong>You have labels and want to detect one concept:</strong> train a logistic probe (here 1.000 on both concepts). Check it with a random-direction floor and held-out documents.</p>
+    <p><strong>You want to push the model towards a concept:</strong> start with a difference of means (the steering-vector recipe); try SAE latents second, against random directions of the same size.</p>
+    <p><strong>You do not know what to look for:</strong> train or download an SAE and read latents drawn at random; treat what you see as hypotheses, and check them with a probe or an intervention.</p>
+    <p><strong>You want a concept gone from the representation:</strong> LEACE, then check on held-out data that a fresh probe really is at chance.</p>
+    <p><strong>You want the biggest axes of variation:</strong> PCA, but do not expect them to be the concept you care about.</p>
+  </div>
+  <p>This matches our earlier finding that <a href="../../probes-vs-interp/report/">small probes match SAE features at spotting AI text</a> (0.997 for a probe and 0.998 for SAE features there): for detection, an SAE's advantage is that it needs no labels, not that it detects better.</p>
+
+  <h3 id="publish" data-short="Publish">4.6 Package and publish: the Hub copy, loaded by a stranger, gives the same numbers</h3>
+  <p><strong>Ship the format other people's tools read.</strong> SAELens loads an SAE from a folder holding <code>cfg.json</code> (the architecture, sizes and what it was trained on) and <code>sae_weights.safetensors</code> (<code>W_enc</code>, <code>b_enc</code>, <code>W_dec</code>, <code>b_dec</code>); Neuronpedia reads the same layout. <a href="../07a_package.py">07a_package.py</a> writes both SAEs that way, each in a folder named for its hook (the <em>SAE id</em>), plus a <code>sparsity.safetensors</code> of firing frequencies that dashboards use.</p>
+  <p><strong>Fold the scale into the weights.</strong> The SAE was trained on activations times 1.80. Shipping that number separately invites someone to forget it, so it is folded in: <code>W_enc</code> times 1.80, <code>W_dec</code> and <code>b_dec</code> divided by 1.80. The latents are unchanged and the rebuild comes out in raw units, so whoever downloads the file feeds it raw activations. The exported file gives the same held-out FVU as the trained SAE to six decimals.</p>
+  <p><strong>Name the hook three ways.</strong> One activation has three names: <code>blocks.11.hook_resid_post</code> in TransformerLens, SAELens and Neuronpedia; the output of <code>model.layers.11</code> in Hugging Face Transformers; and <code>hidden_states[12]</code> when you ask Transformers for every layer (index 0 is the embeddings). The card gives all three, and the reload step checks that the TransformerLens name reads the same numbers. On the GPU it missed its bar (the two paths differ by 1.7 × 10<sup>−3</sup> of the largest activation, against a bar of 10<sup>−4</sup>), because TF32 matrix multiplies keep only about three significant digits; on a CPU in full float32 they agree to 2.8 × 10<sup>−6</sup> (<a href="../recorded/full/07c_bridge_cpu_check.txt">the follow-up check</a>). Same site, rounding apart.</p>
+  <p><strong>Write the card from the results.</strong> The <a href="https://huggingface.co/albertlieadrian/qwen2.5-0.5b-sae-101">model card</a> is generated from the result files, so every number on it comes from a run. It says the SAE is a teaching artifact; gives the model, layer, data, token count and skipped positions; the metrics of both SAEs; how to load it with SAELens and with plain PyTorch; its limits; and its licence. Qwen2.5-0.5B is Apache-2.0, which allows sharing derived weights with the licence; check this for every base model, because some carry their own terms.</p>
+  <pre><code class="language-python">from sae_lens import SAE
+sae = SAE.from_pretrained("albertlieadrian/qwen2.5-0.5b-sae-101", "blocks.11.hook_resid_post")
+latents = sae.encode(acts)   # raw activations after block 11; skip the first 3 positions
+rebuilt = sae.decode(latents)</code></pre>
+  <p><strong>Load it back as a stranger would.</strong> <a href="../07c_reload_check.py">07c_reload_check.py</a> runs on a fresh machine with nothing from training on its disk, downloads both SAEs through <code>SAE.from_pretrained</code>, and recomputes every number of section 4.3 through SAELens's own <code>encode</code> and <code>decode</code>. Both copies reproduce the local evaluation: held-out FVU within 4 × 10<sup>−8</sup> (hand-written) and 0 (SAELens-trained), cross-entropy within 3 × 10<sup>−5</sup>, the same dead counts (5 and 0). The bar was 10<sup>−3</sup>. The upload, the format and the folded scale are right.</p>
+  <p><strong>Neuronpedia</strong> hosts dashboards, search, steering and automatic explanations for public SAEs. Its <a href="https://docs.neuronpedia.org/sparse-autoencoders/upload-saes">upload guide</a> (as of Nov 23, 2026) offers two routes: fill in a short form pointing at the Hugging Face repo in SAELens format, after which their team builds the dashboards and inference and lists the release; or upload features yourself with the <code>neuronpedia</code> Python package and an API key, with dashboard data made by <a href="https://github.com/jbloomAus/SAEDashboard">SAEDashboard</a>. This tutorial's SAE was not submitted: it is a teaching artifact, and a release worth a listing would cover more layers.</p>
+
+  <h3 id="practice" data-short="What SAEs are good for">4.7 What SAEs are good for in practice: reading yes, detecting often, steering not automatically</h3>
+  <p><strong>An SAE gives you thousands of directions without asking for labels, which makes it a good tool for reading, a reasonable one for detecting, and an unreliable one for steering.</strong> Four of our own notes show where that line falls (each checked against the live page on Nov 23, 2026):</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Use</th><th>Note</th><th>What it found</th></tr></thead>
+      <tbody>
+        <tr><td>Steer, and its limit</td><td><a href="../../golden-gate/report/">Turning open models into Golden Gate fans</a></td><td>A Golden Gate direction (the difference of two activation averages) made Gemma-2 9B and 2B name the bridge in 14 of 15 unrelated answers, but SAE features labelled “Golden Gate” did not steer on their own. Llama-3.1-8B got there (11 of 15 held-out answers) only with a direction plus a clamped SAE feature. Random directions: 0 of 45.</td></tr>
+        <tr><td>Read a hidden behaviour</td><td><a href="../../tinker-qwen-scope/report/">Qwen-Scope finds the switch in a 7-cent password lock</a></td><td>Through a released SAE, 11 features switch on only when a password lock on Qwen3-8B is engaged, beyond anything a matched clean fine-tune moved. The SAE keeps only 8% to 42% of the lock's change to the residual stream, so the features are part of the picture.</td></tr>
+        <tr><td>Choose a unit to push</td><td><a href="../../voice-alchemy/report/">Mixing two writing voices inside Qwen</a></td><td>Difference-of-means directions moved 7 of 8 writing voices, SAE features 5, neuron communities 3, single neurons 1, attribution-graph circuits none.</td></tr>
+        <tr><td>Detect</td><td><a href="../../probes-vs-interp/report/">Small probes match SAE features at spotting AI text</a></td><td>Probes and probes on SAE features both scored 0.997–0.998 AUROC on held-out authors; pushing against SAE features lowered a detector's P(AI) by 0.16, twice the probe direction's 0.08.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>So, with a new SAE: <strong>read</strong> latents drawn at random and treat what you see as hypotheses (section 4.4); to <strong>detect</strong> a concept you can label, train a probe first and use latents when you do not know what to look for (section 4.5); to <strong>steer</strong>, add a latent's decoder direction against a random direction of the same size, at the reply length you care about, counting replies that loop, and expect a difference-of-means direction to be the stronger baseline.</p>
+
+  <h3 id="mistakes" data-short="Common mistakes">4.8 Common mistakes, each with what it cost here</h3>
+  <p><strong>Lists of SAE mistakes are hypotheses; here each one was run.</strong> Six training mistakes were each made on their own in a small SAE (4,096 latents, k = 32, two passes over 3M tokens), and two usage mistakes were made with the published SAE. All are single exploratory runs without intervals.</p>
+  <!-- table:mistakes:start -->
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Mistake</th><th class="num">Held-out FVU</th><th class="num">Never fired</th><th>Why it hurts</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>The right recipe (TopK, k = 32)</td><td class="num">0.240</td><td class="num">0.0%</td><td>—</td></tr>
+        <tr><td>No AuxK</td><td class="num">0.240</td><td class="num">0.0%</td><td>dead latents never get a gradient back</td></tr>
+        <tr><td>Learning rate 10x too high (4e-3)</td><td class="num">0.214</td><td class="num">11.7%</td><td>the steps overshoot</td></tr>
+        <tr><td>Learning rate 10x too low (4e-5)</td><td class="num">0.424</td><td class="num">0.0%</td><td>too slow for the token budget</td></tr>
+        <tr><td>No normalisation (raw activations)</td><td class="num">0.240</td><td class="num">0.0%</td><td>the learning rate means something else at this scale</td></tr>
+        <tr><td>Attention sinks left in</td><td class="num">0.240</td><td class="num">0.2%</td><td>a few huge tokens dominate the error</td></tr>
+        <tr><td>1/20 of the tokens</td><td class="num">0.530</td><td class="num">0.0%</td><td>the dictionary has not settled</td></tr>
+        <tr><td>Wrong layer, hidden_states[11]: block 10&#x27;s output (the main SAE)</td><td class="num">0.201</td><td class="num">—</td><td>used on the wrong numbers: 1.6x the error of the right use (0.124)</td></tr>
+        <tr><td>Wrong layer, hidden_states[13]: block 12&#x27;s output (the main SAE)</td><td class="num">0.193</td><td class="num">—</td><td>used on the wrong numbers: 1.6x the error of the right use (0.124)</td></tr>
+        <tr><td>Decoder bias forgotten (the main SAE)</td><td class="num">0.517</td><td class="num">—</td><td>used on the wrong numbers: 4.2x the error of the right use (0.124)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- table:mistakes:end -->
+  <p>Four mistakes cost a lot: too small a learning rate (FVU 0.424 against 0.240) and too few tokens (0.530) leave the dictionary unfinished, and using the SAE wrongly is worse than training it badly: decoding without the decoder bias misses 52% of the variance, and reading block 10's or block 12's output instead of block 11's increases the error by 56% to 62%. Too large a learning rate looked better on FVU (0.214) while leaving 11.7% of the latents unused. Three mistakes cost almost nothing <em>at this size</em>: no AuxK changed nothing (the same FVU to four decimals), most likely because no latent went 1,000 steps without firing in a 1,466-step run, so AuxK never switched on (in the laptop pilot, SAELens's short run left 35% of its latents dead); skipping normalisation changed nothing perhaps because this layer's activations (mean squared length 275) are within a factor of about 3 of the target of 896; and leaving the attention sinks in changed held-out FVU by 0.0006. They may matter more in longer runs, wider dictionaries or layers with larger activations, none of which was tested here, so the recipe keeps all three.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p><strong>An SAE is a cheap, checkable way to look inside a model, and checks matter more than the pictures.</strong> This one cost a few dollars of GPU time and rebuilds the middle of a small model well enough that the model keeps 98.6% of its performance. That makes SAEs practical for anyone auditing a model they can run: reading what a fine-tune changed, looking for a hidden behaviour, or finding a direction to monitor. Two results here limit what such an audit can claim. The SAE's error is not noise (it hurts the model 1.7 times as much as a random error of the same size), so whatever the SAE misses may be exactly what an audit is looking for; our <a href="../../tinker-qwen-scope/report/">password-lock study</a> found the same, with the SAE keeping only part of a lock's change. And for detecting a labelled concept, a plain probe matched or beat the best latent on both concepts tested. A latent that looks like the concept is a lead, not a detector or a lever, until a probe or an intervention has been run against it.</p>
+  <p><strong>Recommendation: publish every SAE with its spliced-in cross-entropy, a random-error control and a reload check, and test any latent you want to rely on against a probe and a random direction.</strong></p>
+
+  <h2 id="predictions"><span class="num">06</span>Predictions</h2>
+  <p>Written in the plan before the full run and scored by its thresholds:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Prediction (threshold; confidence)</th><th>Result</th><th>Hit?</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>The hand-written SAE passes the FVU and cross-entropy bars (FVU &lt; 0.25, CE recovered ≥ 0.90; 75%)</td><td>0.125; 0.986</td><td>hit</td></tr>
+        <tr><td>P2</td><td>SAELens on the same tokens lands within 0.03 of FVU of the hand-written SAE (60%)</td><td>0.0007</td><td>hit</td></tr>
+        <tr><td>P3</td><td>The SAE’s error costs more than twice a random error of the same size (70%)</td><td>1.7 [1.6, 1.8]</td><td><span class="fail">miss</span></td></tr>
+        <tr><td>P4</td><td>On code vs prose, a logistic probe matches or beats the best single latent (AUROC difference ≥ 0; 70%)</td><td>+0.015</td><td>hit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>P3 missed by its threshold, not in direction: the SAE’s error does hurt more than random noise of the same size, but 1.7 times as much rather than more than twice. <strong>What surprised me:</strong> how closely 60 hand-written lines and SAELens agreed (0.0007 of FVU), and that three “classic” mistakes cost nothing at the sweep’s size. <strong>What I’d change:</strong> run the mistakes at full size, and give the label check a harder control (snippets of a similar topic, not random ones). <strong>Lesson for the guide:</strong> a list of common mistakes is a list of hypotheses; run each one where it will matter before teaching it.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One small SAE.</strong> 16,384 latents, k = 64, one layer of one 0.5B model, 102M tokens of English educational web text. Larger models, wider dictionaries and more tokens give different numbers; public SAEs for research train on billions of tokens.</li>
+    <li><strong>One seed.</strong> Each SAE was trained once; the intervals are over held-out windows or documents, not over training runs. The hand-written and SAELens SAEs differ in initialisation and defaults as well as in code.</li>
+    <li><strong>The sweep and the mistakes are single exploratory runs</strong> on a small SAE (4,096 latents, 3M tokens), so a difference of a few thousandths of FVU there means nothing. Three mistakes cost almost nothing at that size; they were not tested at full size.</li>
+    <li><strong>Labels come from one model</strong> (Llama-3.3-70B-Instruct), checked on 10 snippets per latent with an easy control (0.58, not 0.50). A passing check says the label picks out the latent's own examples, not that it says what the latent does.</li>
+    <li><strong>The use test removes one latent at its top 20 positions.</strong> It shows the model uses what the latent carries there, not what it does on ordinary text, and it is not a steering test: no latent was added to generate text.</li>
+    <li><strong>The comparison uses two easy concepts</strong> with free, exact labels and balanced classes. Concepts that are rare, fuzzy or not linearly readable could favour different tools.</li>
+    <li><strong>Transfer was checked on plain text only.</strong> The Instruct model's chat transcripts were not tested.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>Every step is one script in <a href="../">experiments/sae-101/</a>; each prints what it measured and ends in self-checks. <code>./reproduce.sh --dry-run</code> prints every command behind this note's numbers.</p>
+  <pre><code class="language-bash"># the laptop version (4,096 latents, k = 32, 4M tokens): about 30 minutes on an M-series Mac
+python 01_toy.py
+python 02_collect.py --size small
+python 03a_train_handwritten.py --size small
+pip install sae-lens==6.56.1 &amp;&amp; python 03b_train_saelens.py --size small   # SAELens in its own environment
+python 04_evaluate.py --size small
+python 06_compare.py --size small &amp;&amp; python 05_interpret.py --size small
+
+# the full version on Modal (one A10G per step), then package, upload and reload
+MODAL_IMAGE_BUILDER_VERSION=2025.06 modal deploy modal_app.py
+python modal_app.py spawn tokens        # then collect, train_handwritten, train_saelens, evaluate, sweep, compare, interpret
+python 07a_package.py --repo &lt;you&gt;/qwen2.5-0.5b-sae-101 &amp;&amp; python 07b_upload.py --repo &lt;you&gt;/qwen2.5-0.5b-sae-101
+python modal_app.py spawn reload</code></pre>
+  <p>The full run's printed output is in <a href="../recorded/full/">recorded/full/</a>, the laptop run's in <a href="../recorded/small/">recorded/small/</a>. Big files (token windows, checkpoints) are not shipped; the scripts rebuild them.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>Steer with a latent.</strong> Take the latents section 4.4 drew and add each decoder direction at a few strengths, against random directions of the same size, scoring topic, fluency and loops at 120-token replies: the test our <a href="../../golden-gate/report/">Golden Gate note</a> says not to skip.</li>
+    <li><strong>A Matryoshka SAE on the same tokens</strong>, to see whether nested dictionaries keep the digit concept in one broad latent instead of splitting it (section 4.5).</li>
+    <li><strong>More layers, then submit.</strong> SAEs at blocks 5 and 17 with the same recipe, then the Neuronpedia form for the set.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q-what">What is a sparse autoencoder?</h3>
+  <p>A sparse autoencoder (SAE) is a small network that rewrites one of a model's activations as a short list of directions from a large learned dictionary: here, at most 64 of 16,384 directions for each token of Qwen2.5-0.5B. Each direction, a latent, often fires on one readable idea, such as the phrase “according to”, which makes the model's internal state easier to read.</p>
+  <h3 id="q-how-many-tokens">How many tokens do you need to train an SAE?</h3>
+  <p>For a 16,384-latent SAE on a 0.5B model, 102M tokens gave a held-out FVU of 0.125, and most of the gain came early: the training FVU was 0.178 at 10M tokens and 0.123 at 102M. With 1/20 of the tokens a small SAE missed 53% of the variance against 24%. Research SAEs use billions of tokens.</p>
+  <h3 id="q-good">How do you know if an SAE is good?</h3>
+  <p>Check five numbers on held-out text: FVU (here 0.125), L0 (64), dead latents (5 of 16,384), dense latents (39), and the cross-entropy of the model running on the SAE's rebuild (98.6% of the mean-ablation loss won back). Add a random error of the same size as a control and a cheap baseline such as PCA (0.505 with 64 components).</p>
+  <h3 id="q-saelens">Should I write my own SAE or use SAELens?</h3>
+  <p>Write a small one once to understand it, then use SAELens to train and publish. Here a 60-line hand-written TopK SAE and SAELens 6.56.1, trained on the same 102M tokens, reached held-out FVU 0.125 and 0.124, and SAELens writes the file format that other tools and Neuronpedia read.</p>
+  <h3 id="q-probe">Is an SAE better than a linear probe?</h3>
+  <p>Not for detecting a concept you can label. A logistic probe scored 1.000 AUROC on code vs prose and on digit tokens; the best single SAE latent scored 0.985 and 0.706. An SAE's advantage is that it needs no labels and finds thousands of concepts at once.</p>
+  <h3 id="q-publish">How do I publish an SAE on Hugging Face and Neuronpedia?</h3>
+  <p>Save it in SAELens's format (cfg.json and sae_weights.safetensors, with the normalisation folded in), write a model card with the model, layer, data and metrics, upload the folder, and check that <code>SAE.from_pretrained</code> loads it and reproduces your numbers. For Neuronpedia, fill in their upload form or use their Python package with an API key.</p>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix</h2>
+  <h3 id="data">Data files</h3>
+  <p>Every number in this note comes from these files; the <a href="../README.md">README</a> lists every field.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What it holds</th><th>Sections</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../results/toy.json">results/toy.json</a></td><td>The by-hand example; the toy's concepts, points and SAEs at k = 1, 2, 3; the four tools' directions</td><td>2, 4.5</td></tr>
+        <tr><td><a href="../results/full/collect.json">results/full/collect.json</a></td><td>Norms by position, sink counts, the scale, token counts, storage sizes</td><td>4.1</td></tr>
+        <tr><td><a href="../results/full/train_handwritten.json">train_handwritten.json</a>, <a href="../results/full/train_saelens.json">train_saelens.json</a></td><td>Settings, minutes, and the hand-written run's log every 100 steps (train FVU, AuxK loss, dead share, learning rate)</td><td>4.2</td></tr>
+        <tr><td><a href="../results/full/sweep.json">results/full/sweep.json</a></td><td>15 small SAEs (TopK, BatchTopK, ReLU + L1), 6 mistake runs, and the main SAE used wrongly</td><td>4.2, 4.8</td></tr>
+        <tr><td><a href="../results/full/evaluate.json">results/full/evaluate.json</a></td><td>FVU, L0, dead and dense latents, firing-frequency histograms, cross-entropy under six conditions with intervals, PCA, transfer to the Instruct model</td><td>4.3</td></tr>
+        <tr><td><a href="../results/full/interpret.json">results/full/interpret.json</a></td><td>For each drawn latent: frequency, top and held-out snippets with per-token activations, logit lens, histogram; the use test; superposition</td><td>4.4</td></tr>
+        <tr><td><a href="../results/full/autolabels.json">results/full/autolabels.json</a></td><td>Each latent's automatic label and its detection check against a wrong label; spend</td><td>4.4</td></tr>
+        <tr><td><a href="../results/full/compare.json">results/full/compare.json</a></td><td>AUROC with intervals for every tool on both concepts, random directions, cosines, LEACE</td><td>4.5</td></tr>
+        <tr><td><a href="../results/full/reload.json">results/full/reload.json</a></td><td>The Hub copies' numbers and their differences from the local ones; the hook-name check</td><td>4.6</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="further-reading">Further reading</h3>
+  <ul>
+    <li><a href="https://nickjiang.substack.com/p/a-primer-on-sparse-autoencoders">A primer on sparse autoencoders</a>: a gentle tour of features, superposition and how SAEs are labelled and checked.</li>
+    <li><a href="https://transformer-circuits.pub/2022/toy_model/index.html">Toy Models of Superposition</a>: where the picture in Figure 1 comes from.</li>
+    <li><a href="https://transformer-circuits.pub/2023/monosemantic-features">Towards Monosemanticity</a> and <a href="https://arxiv.org/abs/2309.08600">Sparse Autoencoders Find Highly Interpretable Features in Language Models</a>: SAEs on language models.</li>
+    <li><a href="https://arxiv.org/abs/2406.04093">Scaling and evaluating sparse autoencoders</a>: TopK and AuxK. <a href="https://arxiv.org/abs/2412.06410">BatchTopK sparse autoencoders</a>. <a href="https://arxiv.org/abs/2503.17547">Learning multi-level features with Matryoshka sparse autoencoders</a>.</li>
+    <li><a href="https://www.lesswrong.com/posts/rZPiuFxESMxCDHe4B/sae-reconstruction-errors-are-empirically-pathological">SAE reconstruction errors are (empirically) pathological</a>: the random-error control of section 4.3.</li>
+    <li><a href="https://arxiv.org/abs/2306.03819">LEACE: perfect linear concept erasure in closed form</a>. <a href="https://github.com/decoderesearch/SAELens">SAELens</a>, <a href="https://docs.neuronpedia.org/sparse-autoencoders/upload-saes">Neuronpedia's upload guide</a>, <a href="https://github.com/jbloomAus/SAEDashboard">SAEDashboard</a>.</li>
+  </ul>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Model</th><td>Qwen2.5-0.5B (Apache-2.0) in float32 with TF32 matrix multiplies, Hugging Face Transformers 5.24</td></tr>
+        <tr><th scope="row">SAEs</th><td>Hand-written PyTorch 2.15 (<a href="../sae101.py">sae101.py</a>); SAELens 6.56.1</td></tr>
+        <tr><th scope="row">Compute</th><td>One NVIDIA A10G per step on Modal: $4.23 in all (billing report); about 30 minutes on an M-series Mac for the small version</td></tr>
+        <tr><th scope="row">Labels</th><td>Llama-3.3-70B-Instruct through OpenRouter, temperature 0 (optional step)</td></tr>
+        <tr><th scope="row">Page</th><td>HTML, an inline-SVG widget with no libraries, figures by matplotlib</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 23, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026sae101,
+  author = {Albert Lie},
+  title  = {How to train a sparse autoencoder: a 101 on a small language model},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/sae-101/report/}
+}</code></pre>
+  <footer class="note">Data: FineWeb-Edu (ODC-By 1.0); short snippets appear in the dashboard and in this note. Code text for section 4.5: the Python standard library (PSF License). The SAE is released under Apache-2.0, the base model's licence.</footer>
+</article>
+</div>
+<script src="toy-data.js"></script>
+<script src="toy-widget.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
