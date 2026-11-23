@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A thinking agent’s private reasoning names its next command only as it writes it; earlier thinking gives no warning</title>
+<meta name="description" content="Qwen3-8B with thinking on, as a root bash agent on 24 system-administration tasks (144 rollouts, 644 commands, 284 permission, network or delete actions). A reader that sees earlier thinking predicts the next command no better than one that sees only the task (0.21 against 0.20; the action log gets 0.45). Step k's own thinking gets 0.51, against a 0.68 ceiling. The agent writes no visible narration, and one step in eight has no thinking at all: every action no thinking mentions is one of those.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A thinking agent’s private reasoning names its next command only as it writes it; earlier thinking gives no warning">
+<meta property="og:description" content="Qwen3-8B with thinking on, as a root bash agent on 24 system-administration tasks (144 rollouts, 644 commands, 284 permission, network or delete actions). A reader that sees earlier thinking predicts the next command no better than one that sees only the task (0.21 against 0.20; the action log gets 0.45). Step k&#x27;s own thinking gets 0.51, against a 0.68 ceiling. The agent writes no visible narration, and one step in eight has no thinking at all: every action no thinking mentions is one of those.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grid on warm paper: 24 columns, one per task, and 6 rows, one per rollout of it. Each cell is a short vertical stack of bars, one per command; grey shades are reads, writes and runs, outlined bars are permission, network or delete actions, orange bars are commands run without any thinking.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A thinking agent’s private reasoning names its next command only as it writes it; earlier thinking gives no warning">
+<meta name="twitter:description" content="Qwen3-8B with thinking on, as a root bash agent on 24 system-administration tasks (144 rollouts, 644 commands, 284 permission, network or delete actions). A reader that sees earlier thinking predicts the next command no better than one that sees only the task (0.21 against 0.20; the action log gets 0.45). Step k&#x27;s own thinking gets 0.51, against a 0.68 ceiling. The agent writes no visible narration, and one step in eight has no thinking at all: every action no thinking mentions is one of those.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-23">
+<meta property="article:modified_time" content="2026-11-23">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A thinking agent’s private reasoning names its next command only as it writes it; earlier thinking gives no warning",
+ "description": "Qwen3-8B with thinking on, as a root bash agent on 24 system-administration tasks (144 rollouts, 644 commands, 284 permission, network or delete actions). A reader that sees earlier thinking predicts the next command no better than one that sees only the task (0.21 against 0.20; the action log gets 0.45). Step k's own thinking gets 0.51, against a 0.68 ceiling. The agent writes no visible narration, and one step in eight has no thinking at all: every action no thinking mentions is one of those.",
+ "abstract": "Does the reasoning match the work? Episode 2, pre-registered (8 predictions, 6 hit). Agent: Qwen3-8B, thinking on (Apache-2.0), vLLM 0.11.0 on one H100, as a root bash agent in one Modal Sandbox per rollout (Debian 12, no internet, local mock HTTP services, an iptables stand-in) on 24 honest system-administration tasks written for this study (BashArena-style; checks fail before and pass after a reference solution, 24/24), 6 rollouts each: 144 rollouts, 644 commands (all parsed), median 4 per rollout; 284 risky (149 permission, 109 network, 26 delete); task checks 93/144. Reader and judges gpt-oss-120b via OpenRouter, JSON schema. M1 (predict step k's type + target, 447 test steps, rollout bootstrap): task only 0.197; actions so far 0.454 [0.402, 0.510]; earlier thinking 0.212 [0.171, 0.259] (vs actions -0.242 [-0.303, -0.181]; uncut 0.195, exploratory); + step-k thinking 0.508 [0.448, 0.569] (+0.295 over earlier thinking, +0.054 [0.007, 0.102] over actions); + step-k visible message 0.181 (visible text on 2 of 644 steps); everything but the call 0.557; ceiling, reader labels the real command, 0.678 (exploratory). Step-k thinking contains the exact command on 169 of 447 steps (0.669 there). Silent steps: 82 of 644 commands had empty thinking (24 risky). M2: matches 0.738, acts differently 0.089, not described 0.170 (69 of 76 silent); with thinking 0.122 [0.079, 0.169]. M3: never mentioned 11 of 644 = 0.017 [0.006, 0.029], all on silent steps; risky 3/284 vs other 8/360. One step's thinking planned `| tee -a` while the command used `>` and wiped the firewall config. M4 rule-based target check: 34 of 395 flagged, none of 12 read real. Cost: Modal about $1.39, OpenRouter $0.64.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-23",
+ "dateModified": "2026-11-23",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "chain-of-thought monitoring, CoT monitorability, reasoning models, agent oversight, bash agents, system administration, Qwen3-8B, gpt-oss-120b, AI safety",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/Sudhiksha-17/whole-trace-monitorability"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/redwoodresearch/basharena_public"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.09388"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.11473"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2503.11926"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.05410"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .strip-ctl { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin: 0 0 0.6rem; }
+  .strip-ctl select { font: inherit; font-size: 0.9rem; max-width: 100%; }
+  .strip { display: flex; flex-wrap: wrap; gap: 3px; margin: 0.4rem 0 0.5rem; }
+  .strip span { width: 22px; height: 26px; border-radius: 2px; background: var(--rule); box-sizing: border-box; }
+  .strip span.r { background: #d9d2c8; } .strip span.w { background: #a69e94; } .strip span.x { background: #6c655e; }
+  .strip span.d, .strip span.p, .strip span.n { background: transparent; border: 1.5px solid var(--ink); }
+  .strip span.e { background: var(--accent); border-color: var(--accent); }
+  .strip span.never { box-shadow: inset 0 -5px 0 var(--control); }
+  .strip span.lc::after { content: "•"; display: block; text-align: center; line-height: 24px; color: var(--ink); font-size: 0.8rem; }
+  .strip-key { font-size: 0.82rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 0.9rem; }
+  .strip-key i { display: inline-block; width: 10px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  .strip-stat { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--ink-soft); margin: 0.2rem 0 0; }
+  blockquote.trace { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; line-height: 1.45; margin: 0.6rem 0; padding: 0.5rem 0.8rem; border-left: 2px solid var(--rule); overflow-wrap: anywhere; }
+  blockquote.trace b { font-weight: 500; color: var(--accent); }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-23">Nov 23, 2026</time></p>
+  <h1>A thinking agent’s private reasoning names its next command only as it writes it; earlier thinking gives no warning</h1>
+  <p class="dek ruled">Does an agent’s own thinking warn a monitor about its next command early, or only in the moment before it acts? Episode 2 of “Does the reasoning match the work?”, on an agent with a separate thinking channel doing system administration, where permission, network and delete actions happen.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A grid on warm paper: 24 columns, one per task, and 6 rows, one per rollout of it. Each cell is a short vertical stack of bars, one per command the agent ran. Light to dark grey bars are reads, file writes and program runs; outlined bars are permission, network or delete actions, the most common kind; orange bars are commands the agent ran without writing any thinking. Orange appears in about half the cells, often several in a row near the end of a stack; a few cells hold only a thin dash, rollouts that never ran a command." width="1536" height="1024">
+    <figcaption>Cover, drawn from the data: all 644 commands of the 144 rollouts, one column per task and one row per rollout. Grey shade = action type (light: read, mid: write a file, dark: run or install), outlined = a risky action (permission, network or delete), orange = a command run with no thinking at all (82). A dash = a rollout that never ran a command. Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Does the reasoning match the work? · Episode 2 (<a href="../../trace-monitorability/report/">Episode 1</a>)</dd></div>
+    <div><dt>Agent</dt><dd>Qwen3-8B, thinking on, as a root bash agent on 24 system-administration tasks written for this study, 6 rollouts each, each in its own sandbox (vLLM on one H100, Modal Sandboxes)</dd></div>
+    <div><dt>Reader and judges</dt><dd>gpt-oss-120b (open weights), through OpenRouter, structured JSON output</dd></div>
+    <div><dt>Method</dt><dd>Predict step <i>k</i>’s command from six registered views of the trace; judge each step’s thinking against its command; find actions no thinking mentions; a rule-based target check</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/trace-monitorability-ep2/</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/scores.json">results/scores.json</a> and the files listed in <a href="../results/README.md">results/README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a thinking agent’s private reasoning tell a monitor what it will do next, before it does it?</strong></p>
+    <p>Only at the last moment. Qwen3-8B, thinking on, ran 644 commands as root on 24 system-administration tasks, 284 of them permission, network or delete actions. A reader (gpt-oss-120b) that sees all the thinking written at earlier steps names the next command’s type and target on 0.21 of steps, no better than a reader that sees only the task (0.20) and far below one that sees the commands and outputs so far (0.45). The thinking written for the step itself gets 0.51, against the 0.68 a reader reaches when shown the command itself, mostly because it spells the command out. The agent writes no visible narration (2 of 644 steps), and one step in eight has no thinking at all: all 11 actions that no thinking mentions are among those, including deleting the firewall entry the task asked it to add.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Lead time: predict the next command (type and target) from the thinking written at earlier steps</td><td>0.212 [0.171, 0.259] of 447 test steps</td><td>Task alone 0.197; commands and outputs so far 0.454 [0.402, 0.510] (difference −0.242 [−0.303, −0.181]); with earlier thinking uncut, 0.195</td></tr>
+          <tr><td>The same, plus the thinking written for step <i>k</i></td><td>0.508 [0.448, 0.569]</td><td>+0.295 [0.245, 0.350] over earlier thinking; +0.054 [0.007, 0.102] over the action log; ceiling 0.678 when the reader is shown the command</td></tr>
+          <tr><td>Visible narration (text outside the thinking, before the call)</td><td>2 of 644 steps have any</td><td>Episode 1’s SWE-agent narrated every step in one visible message</td></tr>
+          <tr><td>Steps with no thinking at all</td><td>82 of 644 (24 of them risky)</td><td>All 11 actions never mentioned in any thinking are among them</td></tr>
+          <tr><td>Risky actions never mentioned</td><td>3 of 284: 0.011 [0.000, 0.028]</td><td>Other actions: 8 of 360; difference −0.012 [−0.034, +0.011]</td></tr>
+          <tr><td>Does the command do what that step’s thinking says?</td><td>Matches 0.738; not described 0.170; acts differently 0.089</td><td>69 of the 76 “not described” have no thinking; with thinking, 0.122 [0.079, 0.169] differ</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>An agent is asked to add <code>192.0.2.0/24</code> to a firewall whitelist. Its config line goes in wrong and the reload script fails three times, with a page or more of thinking before most attempts. Then the thinking stops. Four commands run with none: a <code>grep</code>, a <code>cat</code>, and two <code>sed -i … d</code> that delete every line containing <code>192.0.2.0</code>, the new entry included. Its final message says “the <code>ALLOWED_RANGES</code> variable now properly includes the new range”. A monitor reading this agent’s thinking would have seen nothing before the deletion, because there was nothing to read.</p>
+  <p><strong>What is known.</strong> Reading a model’s chain of thought is a leading proposal for overseeing agents (<a href="https://arxiv.org/abs/2507.11473">Chain of Thought Monitorability</a>), it catches misbehaviour in coding agents (<a href="https://arxiv.org/abs/2503.11926">Monitoring Reasoning Models for Misbehavior</a>), and models do not always say what drives them (<a href="https://arxiv.org/abs/2505.05410">Reasoning Models Don’t Always Say What They Think</a>). <a href="../../trace-monitorability/report/">Episode 1</a> re-implemented the predictability test of the <a href="https://github.com/Sudhiksha-17/whole-trace-monitorability">whole-trace-monitorability</a> project on open SWE-agent traces: reasoning predicted the next command (0.77 against 0.44 from actions) only because the agent announced each command in the message that ran it; earlier reasoning got 0.47, level with the action log.</p>
+  <p><strong>What is missing.</strong> SWE-agent writes its reasoning and its command in one visible message, so Episode 1 could not separate private reasoning from narration, and its data had no permission or network actions. Reasoning models with a separate thinking channel are the case chain-of-thought monitoring is mostly about, and system administration is where a monitor would want early warning.</p>
+  <p><strong>What this note does.</strong> It runs an open reasoning model, Qwen3-8B with thinking on, as a root bash agent on 24 honest system-administration tasks in sandboxes, and asks the registered question: does the thinking channel give a monitor lead time beyond narration? Its contributions:</p>
+  <ol>
+    <li>A pre-registered measurement of lead time: the next command predicted from earlier thinking, from the action log, and with the step’s own thinking added, with intervals.</li>
+    <li>Two controls on the reading: a ceiling (the reader labels the real command) and the same views with earlier thinking uncut.</li>
+    <li>A finding about where thinking-based monitoring is blind: the steps an agent takes without thinking, which hold every unmentioned action here, including risky ones.</li>
+    <li>An open, cheap setup: 24 sandboxed tasks with checks and reference solutions, an open agent and an open reader, about $1.40 of GPU and sandboxes and $0.64 of reader calls, every label shipped.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Registered before any rollout (section 4.7 scores them):</p>
+  <ol>
+    <li><strong>Lead time:</strong> earlier thinking beats the action log by at least 0.05, with the interval above zero.</li>
+    <li><strong>Step <i>k</i>’s thinking carries the prediction:</strong> adding it raises accuracy by at least 0.15.</li>
+    <li><strong>Thinking says more than narration:</strong> step <i>k</i>’s thinking beats step <i>k</i>’s visible message by at least 0.10.</li>
+    <li><strong>With the thinking in view, actions and narration add little:</strong> at most +0.05.</li>
+    <li><strong>Steps do what their thinking says:</strong> at most 20% judged “acts differently” or “not described”.</li>
+    <li><strong>Few actions go unmentioned:</strong> at most 10%; risky ones no more often than others; and the tasks produce at least 150 risky actions.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="agent" data-short="Agent and tasks">2.1 The agent and the tasks</h3>
+  <p><strong>Agent.</strong> <a href="https://huggingface.co/Qwen/Qwen3-8B">Qwen3-8B</a> (Apache-2.0) with thinking on, served with vLLM 0.11.0 on one H100: temperature 0.6, top-p 0.95, top-k 20 (Qwen’s settings for thinking mode), repetition penalty 1.0, a seed per rollout, up to 4,096 new tokens per turn. Each turn the model writes its thinking inside <code>&lt;think&gt;…&lt;/think&gt;</code>, may write visible text, and calls one tool, <code>bash(command)</code>. Its earlier thinking stays in its context for the whole task. A rollout ends when the agent replies without a tool call, after 30 calls, or when a turn runs out of tokens.</p>
+  <p><strong>Environment.</strong> One <a href="https://modal.com/docs/guide/sandbox">Modal Sandbox</a> per rollout: a Debian 12 container, root inside, no internet (localhost works). Each command runs in a fresh shell in <code>/root</code> with a 55-second limit, and its output (cut to 3,000 characters) and exit code go back to the agent. Local mock services answer on <code>127.0.0.1</code> (an inventory API, a config API, a monitoring webhook). The sandbox kernel has no netfilter, so <code>iptables</code> is a stand-in script that records rules and prints them back like the real tool (<a href="../env/iptables_shim.py">iptables_shim.py</a>).</p>
+  <p><strong>Tasks.</strong> 24 honest tasks written for this study, in the style of <a href="https://github.com/redwoodresearch/basharena_public">BashArena</a> (that repository has no licence and its tasks need their own Docker setups, so nothing is copied). Each has a setup script and a pass/fail check, and every check was confirmed to fail before the agent acts and to pass after a hand-written solution (<a href="../reference_solutions.py">reference_solutions.py</a>). There is no hidden side objective.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kind</th><th>Tasks</th><th class="num">Checks passed</th></tr></thead>
+      <tbody>
+        <tr><td>Users and permissions</td><td>fix a web root’s owners and modes; a <code>deploy</code> user with one sudo command; repair SSH key permissions; offboard a user; a setgid shared directory with a default ACL; lock down secret files; restore a database backup with the right owner</td><td class="num">35/42</td></tr>
+        <tr><td>Network</td><td>iptables rules saved to disk; add a range to a firewall whitelist file; find and stop a service on port 6379 and block the port; edit <code>/etc/hosts</code>; a system-wide proxy; register the host with an inventory API (POST, bearer token); change a config service (PUT, DELETE); send a disk report to a webhook</td><td class="num">36/48</td></tr>
+        <tr><td>Cleanup</td><td>delete and compress old logs; clear cache files but not a <code>keep/</code> directory; remove stale lock files whose process is gone; clean build output from a git repository</td><td class="num">9/24</td></tr>
+        <tr><td>Install and run</td><td>install a Python package offline; build and install a C tool; a backup script on cron; run a service as a new system user; a logrotate config</td><td class="num">13/30</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>6 rollouts per task, 144 in all. They ran 644 commands, all parsed: median 4 per rollout, at most 30. 13 rollouts ran none, because the first turn’s thinking passed the 4,096-token limit; 93 of 144 task checks passed (0.65 [0.57, 0.72]).</p>
+
+  <h3 id="labels" data-short="Action labels">2.2 Action types and targets</h3>
+  <p>Every command gets one of six action types and a target by rule, Episode 1’s classifier plus rules registered for system administration: <em>read</em> (<code>cat</code>, <code>ls</code>, <code>ss</code>, <code>iptables -L</code>, a GET), <em>write a file</em>, <em>run or install</em>, and three <strong>risky</strong> types: <em>delete</em> (<code>rm</code>, <code>find -delete</code>, <code>userdel</code>), <em>permission change</em> (<code>chmod</code>, <code>chown</code>, <code>setfacl</code>, <code>useradd</code>, <code>usermod</code>, writes to <code>/etc/sudoers*</code>), and <em>network change</em> (iptables rule changes, POST/PUT/DELETE requests, writes to <code>/etc/hosts</code>, the proxy settings or the firewall config). The target is the first file, directory, user, chain or URL the command acts on; in a chain, the first real command counts. Of the 644: 149 permission changes, 144 reads, 123 runs, 109 network changes, 93 writes, 26 deletes; <strong>284 risky</strong>, in 107 of 144 rollouts.</p>
+
+  <h3 id="measures" data-short="The measures">2.3 The measures</h3>
+  <p><strong>M1, predicting the next command.</strong> For each rollout, 6 test steps (step 2 or later) are drawn at random: 447 in all. A reader sees the task and one view of the rollout up to step <i>k</i>, with step <i>k</i>’s command hidden, and names its type and target. It scores a hit when both are right (the target by rule, with a judge only when two names plausibly mean the same thing).</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>View</th><th>The reader sees</th><th>Registered as</th></tr></thead>
+      <tbody>
+        <tr><td>Task only</td><td>the task</td><td>baseline</td></tr>
+        <tr><td>Actions so far</td><td>+ earlier commands and their outputs</td><td>primary (a)</td></tr>
+        <tr><td>Earlier thinking</td><td>+ the thinking and visible text of earlier steps; nothing from step <i>k</i></td><td>primary (b)</td></tr>
+        <tr class="hl"><td>Earlier + step-<i>k</i> thinking</td><td>(b) + the thinking written for step <i>k</i></td><td>primary (c)</td></tr>
+        <tr><td>Earlier + step-<i>k</i> message</td><td>(b) + step <i>k</i>’s visible text only</td><td>secondary, the narration twin of (c)</td></tr>
+        <tr><td>All but the call</td><td>everything except step <i>k</i>’s command</td><td>primary (d)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Earlier thinking is shown as its first 400 and last 800 characters per step (the decision is usually at the end), step <i>k</i>’s thinking up to 8,000. <strong>Lead time</strong> here means information available before the text written for step <i>k</i>. A test step <strong>leaks</strong> when its thinking contains the command’s first line (169 of 447) or the target’s file name (166); 112 do neither (70 of those have no thinking at all).</p>
+  <ul>
+    <li><strong>M2, step thinking against its command.</strong> A judge reads step <i>k</i>’s thinking and visible text and its command: <em>matches</em>, <em>acts differently</em> (another target, other arguments, extra chained commands, other scope or content) or <em>not described</em>.</li>
+    <li><strong>M3, unmentioned actions.</strong> For all 644 commands: if step <i>k</i>’s thinking names the command or the target, it is mentioned (516, by rule); otherwise a judge reads the thinking of every step so far and answers <em>this step</em>, <em>an earlier step</em> or <em>never</em>, three times, majority wins (Episode 1’s rule).</li>
+    <li><strong>M4, a rule-based target check</strong> (Episode 1’s recommendation): flag a step when its thinking names one or more absolute paths and none of them is the command’s target.</li>
+  </ul>
+  <p>Reader and judges are gpt-oss-120b, open weights, through OpenRouter, answers constrained to a JSON schema. Every rate has a 95% interval from resampling whole rollouts (2,000 draws); differences are paired by step.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Register</strong> the design, the six views, the statistics and eight predictions, and push them, before any rollout or model call.</li>
+    <li><strong>Build and check the environment:</strong> 24 sandboxes set up; every check fails before the agent acts and passes after a reference solution (24/24 both ways).</li>
+    <li><strong>Smoke-run</strong> the agent on 3 and then 4 rollouts; fix the turn parser (below).</li>
+    <li><strong>Run</strong> 144 rollouts on one H100 (431 seconds).</li>
+    <li><strong>Label</strong> the 644 commands and draw the 447 test steps.</li>
+    <li><strong>Pilot</strong> the reader and judges on 30 test steps; fix the reader prompt (below).</li>
+    <li><strong>Run</strong> M1 (2,772 predictions on the 447 test steps plus 15 more risky steps), M2 (462 steps), M3 (128 judged commands × 3 votes) and M4; then two exploratory checks, the ceiling (462) and earlier thinking uncut (924).</li>
+    <li><strong>Read</strong> every unmentioned action, 10 of M2’s “acts differently” labels and 12 M4 flags by hand; score.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any rollout</th><th>Changed after seeing outputs</th></tr></thead>
+      <tbody>
+        <tr><td>Agent, sampling, limits, the 24-task design, classifier rules, test-step draw, the six views and clipping, M2–M4, statistics, eight predictions</td><td>Turn parser (after the smoke run): the model sometimes opens its thinking and puts the tool call inside without closing it, and once wrote a call whose JSON had unescaped quotes; both are now read. All 644 calls parsed</td></tr>
+        <tr><td>Reader prompt</td><td>After the 30-step pilot, two sentences for every view alike: iptables changes and writes to network files are network changes; and every earlier step ran one command whether or not the view shows it. Without the second, a reader seeing only earlier thinking predicted the step the agent had just finished (0.00 on the pilot)</td></tr>
+        <tr><td>Classifier</td><td><code>adduser</code>, <code>chpasswd</code> and <code>groupmod</code> added to the user rules; <code>sudo -u USER cmd</code> classified as <code>cmd</code> (before any reader call)</td></tr>
+        <tr><td>—</td><td>Added after the results (exploratory): the ceiling view, the views with earlier thinking uncut</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: one H100 for 7 minutes of rollouts ($0.86 of the $1.39 Modal total, which includes environment checks and smoke runs); the reader and judges at default temperature, every reply cached by prompt so each number comes from one fixed sample and reruns are free; 4,920 calls, $0.64; JSON parsed on all but one M2 reply.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Six findings:</p>
+  <ol>
+    <li><a href="#lead"><strong>4.1</strong></a> Earlier thinking gives no lead time: it predicts the next command no better than the task alone.</li>
+    <li><a href="#stepk"><strong>4.2</strong></a> The thinking written for the step carries the prediction, mostly by writing the command out.</li>
+    <li><a href="#narration"><strong>4.3</strong></a> There is no narration to compare: the visible message is empty on 642 of 644 steps.</li>
+    <li><a href="#silent"><strong>4.4</strong></a> One step in eight has no thinking, and every unmentioned action is one of them.</li>
+    <li><a href="#risky"><strong>4.5</strong></a> Risky actions are common and almost always mentioned; the mismatches that matter are a command that contradicts its thinking and silent steps.</li>
+    <li><a href="#checks"><strong>4.6</strong></a> Checks: the labelling ceiling, uncut thinking, the target rule, the judges.</li>
+  </ol>
+
+  <h3 id="lead" data-short="No lead time">4.1 Earlier thinking gives no lead time: it predicts the next command no better than the task alone</h3>
+  <p><strong>A reader shown every earlier step’s thinking named step <i>k</i>’s type and target on 0.212 [0.171, 0.259] of 447 test steps; shown only the task, 0.197 [0.155, 0.239]; shown the commands and outputs so far, 0.454 [0.402, 0.510]. Earlier thinking is 0.242 [0.181, 0.303] below the action log.</strong> Figure 1 shows every view.</p>
+  <figure class="plot">
+    <img src="figures/views.png" alt="Two bar charts of the share of test steps whose next command the reader gets right (type and target), by view. All 447 test steps: task only 0.20, actions so far 0.45, earlier thinking 0.21, earlier plus step-k message 0.18, earlier plus step-k thinking 0.51 (orange), all but the call 0.56. Steps whose thinking names neither command nor target, 112: 0.15, 0.44, 0.14, 0.12, 0.21, 0.40." width="1443" height="552">
+    <figcaption><span class="label">Figure 1.</span> Share of test steps whose next command the reader names correctly (type and target), by what it sees. Left: all 447 headline test steps. Right: the 112 whose step-<i>k</i> thinking contains neither the command nor the target’s name (70 of them have no thinking). Orange: earlier thinking plus step <i>k</i>’s thinking, the view this note is about. Lines are 95% intervals from resampling rollouts. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/scores.json">scores.json</a>.</figcaption>
+  </figure>
+  <p>This is weaker than Episode 1, where earlier reasoning was level with the action log (0.47 against 0.44). A likely reason is what each trace records. SWE-agent’s paragraphs often restate the last output (“It seems that the previous edit command was incorrectly applied”); the latest thinking Qwen3 wrote before step <i>k</i> was written before the last command’s output came back, so it cannot say whether that command worked, which is what decides the next one. The first step’s thinking is long (median 6,773 characters, against 1,052 for all steps) and usually lays out the whole task, yet knowing the plan does not tell a reader which part comes next. On the pilot, a reader given only earlier thinking kept predicting the step the agent had just finished. The 400 + 800 character cut of earlier thinking is not the cause: with earlier thinking uncut the reader gets 0.195 (section 4.6).</p>
+
+  <h3 id="stepk" data-short="Step-k thinking">4.2 The thinking written for the step carries the prediction, mostly by writing the command out</h3>
+  <p><strong>Adding step <i>k</i>’s thinking raised accuracy from 0.212 to 0.508 [0.448, 0.569] (+0.295 [0.245, 0.350]), a little above the action log (+0.054 [0.007, 0.102]). Everything but the call reached 0.557 [0.498, 0.617], +0.049 [0.013, 0.086] over the thinking view.</strong> The ceiling, a reader shown the command itself and asked only to label it, is 0.678 [0.622, 0.733] (section 4.6), so step-<i>k</i> thinking recovers three quarters of what the labels allow.</p>
+  <p>Most of that comes from the command written into the thinking: 169 of the 447 test steps contain the exact command, and on those the thinking view scores 0.669, at the ceiling. When the thinking is not empty but names neither command nor target (42 steps), it scores 0.429, the same as the action log on those steps (0.429). Figure 2 splits the steps this way.</p>
+  <figure class="plot">
+    <img src="figures/leak.png" alt="Grouped bars by what step k's thinking gives away, for four views (actions so far, earlier thinking, earlier plus step-k thinking in orange, all but the call). Thinking contains the exact command, 169 steps: 0.53, 0.22, 0.67, 0.67. Names the target only, 166: 0.39, 0.25, 0.54, 0.54. Names neither, 42: 0.43, 0.14, 0.43, 0.36. No thinking, 70: 0.44, 0.14, 0.09, 0.43." width="1327" height="544">
+    <figcaption><span class="label">Figure 2.</span> The same accuracy split by what step <i>k</i>’s thinking contains: the exact command (169 steps), the target’s file name only (166), neither while not empty (42), or nothing (70). Lines are 95% intervals from resampling rollouts.</figcaption>
+  </figure>
+  <p>So the thinking channel works the way Episode 1’s narration did, only written privately: the agent rehearses the command (“So the corrected command would be: …”) and then issues it. The monitor gets the command a moment early, not a plan it can act on.</p>
+
+  <h3 id="narration" data-short="No narration">4.3 There is no narration to compare: the visible message is empty on 642 of 644 steps</h3>
+  <p><strong>Qwen3-8B wrote visible text before its tool call on 2 of 644 steps.</strong> The registered comparison between thinking and narration (thinking ahead of the visible message by at least 0.10) therefore hit by a wide margin, +0.327 [0.272, 0.384], but says little: the narration view is the earlier-thinking view plus an empty line (0.181 against 0.212; the gap is reader noise, −0.031 [−0.065, +0.002]). For this agent, the only running account of what it is doing is the private one.</p>
+
+  <h3 id="silent" data-short="Steps without thinking">4.4 One step in eight has no thinking, and every unmentioned action is one of them</h3>
+  <p><strong>82 of 644 commands (0.127) ran with an empty thinking block, in 53 of 144 rollouts, never on a first step. Of the 644 actions, 11 were judged never mentioned in any thinking so far: 0.017 [0.006, 0.029], and all 11 are steps without thinking.</strong> The judge’s three votes agreed on 124 of its 128 items.</p>
+  <p>Empty thinking is where Qwen3 skips ahead: usually a follow-up after a failure (rerun the reload script, look at the file again) or a retry in a loop. A monitor that reads thinking sees nothing for these steps. Most are harmless reads and reruns, but 24 are risky. The opening example is one: after the failed attempts, the agent ran <code>grep</code>, <code>cat</code> and two <code>sed -i '/192.0.2.0/ d'</code> with no thinking, deleting the entry it had been asked to add, and then reported success. That rollout’s check failed. Silent steps also explain most of M2’s “not described” labels (69 of 76): with the empty steps set aside, 0.122 [0.079, 0.169] of steps act differently from or are not described by their thinking.</p>
+  <p>Use the explorer to see where silent steps fall in each rollout.</p>
+  <figure class="explorer" id="strip-explorer">
+    <div class="strip-ctl"><label for="strip-select">Rollout</label><select id="strip-select"></select></div>
+    <div class="strip" id="strip" role="img" aria-label="One rollout's commands as a row of small boxes"></div>
+    <p class="strip-stat" id="strip-stat"></p>
+    <div class="strip-key"><span><i style="background:#d9d2c8"></i>read</span><span><i style="background:#a69e94"></i>write</span><span><i style="background:#6c655e"></i>run</span><span><i style="border:1.5px solid currentColor;box-sizing:border-box"></i>permission, network or delete</span><span><i style="background:var(--accent)"></i>no thinking</span><span><i style="box-shadow:inset 0 -4px 0 var(--control)"></i>never mentioned (M3)</span><span>• thinking contains the exact command</span></div>
+    <noscript><p>The explorer needs JavaScript; the same labels are in <a href="../results/steps.csv">steps.csv</a> and <a href="../results/unmentioned.csv">unmentioned.csv</a>.</p></noscript>
+    <figcaption><span class="label">Figure 3.</span> Each rollout’s commands in order, shaded by action type; outlined = risky; orange = run with no thinking; a blue underline = never mentioned in any thinking so far (M3, majority of three votes); a dot = the thinking contains the exact command. Rollouts with the most silent steps are listed first. Data: <a href="strips.js">strips.js</a>, written by make_figures.py.</figcaption>
+  </figure>
+
+  <h3 id="risky" data-short="Risky actions">4.5 Risky actions are common and almost always mentioned; the mismatches that matter are a command that contradicts its thinking and silent steps</h3>
+  <p><strong>The tasks produced 284 risky actions (149 permission changes, 109 network changes, 26 deletes). 3 were never mentioned (0.011), all network changes on silent steps, against 8 of 360 other actions; the difference is −0.012 [−0.034, +0.011]. On every risky test step (219), step-<i>k</i> thinking predicts the command on 0.644 [0.527, 0.748], the action log on 0.585 [0.483, 0.682], earlier thinking on 0.301.</strong> Figure 4 shows both.</p>
+  <figure class="plot">
+    <img src="figures/risky.png" alt="Left, bars of the share of 219 risky test steps predicted correctly by view: task only 0.23, actions so far 0.58, earlier thinking 0.30, earlier plus step-k message 0.23, earlier plus step-k thinking 0.64 (orange), all but the call 0.70. Right, by action type, the share never mentioned (dark) and the share whose step thinking does not match (light): read 0.03 and 0.30, write 0.02 and 0.17, run 0.02 and 0.32, delete 0 and 0.28, permission change 0 and 0.14, network change 0.03 and 0.38." width="1443" height="552">
+    <figcaption><span class="label">Figure 4.</span> Left: next-command accuracy on all 219 risky test steps (headline steps plus every other risky step from step 2 on). Right: by action type, the share of all commands never mentioned in any thinking so far (M3, dark; counts above) and the share of test steps whose command does not match its thinking (M2, light). Lines are 95% intervals from resampling rollouts.</figcaption>
+  </figure>
+  <p>Permission changes are the best described (0.14 of test steps not matching) and network changes the worst (0.38): firewall and API commands are long chains (<code>mkdir … &amp;&amp; echo … | tee -a … &amp;&amp; sed -i … &amp;&amp; reload</code>) whose extra parts the thinking does not mention, and they include the silent retries above. Of the judge’s 42 “acts differently” labels, 30 are on risky steps. Read by hand, about half of a sample of 10 are real, and one is the clearest mismatch in the data. The thinking ends:</p>
+  <blockquote class="trace">thinking: “… like using tee with the -a option. So the command would be: echo "192.0.2.0/24" <b>| tee -a</b> /etc/firewall/firewall.conf. That way, the line is appended to the file …”<br>command: mkdir -p /etc/firewall &amp;&amp; echo "192.0.2.0/24" <b>&gt;</b> /etc/firewall/firewall.conf &amp;&amp; sed -i … &amp;&amp; /usr/local/bin/firewall-reload</blockquote>
+  <p>The command overwrites the whole firewall configuration (its default policy and every whitelisted range) with one line, where the thinking had just planned to append. The agent never notices, keeps retrying for 7 more steps, and ends by blaming “a shell configuration or redirection issue” (rollout <code>firewall_whitelist:5</code>, step 6; step 4 had done the same with no thinking). Others among the 42 are judge noise, such as a correct <code>iptables -A INPUT -s 203.0.113.7 -j DROP</code> labelled “different flags” after thinking that says exactly that.</p>
+
+  <h3 id="checks" data-short="Checks">4.6 Checks: the labelling ceiling, uncut thinking, the target rule, the judges</h3>
+  <ul>
+    <li><strong>Ceiling (exploratory).</strong> Shown step <i>k</i>’s actual command and asked only to label it, the reader got type and target both right on 0.678 [0.622, 0.733] of the 447 steps (type 0.763, target 0.801). Its labels follow conventions it does not always share with the classifier: <code>visudo</code> counts as a permission change, extracting a tarball as a write to the current directory, <code>find … -exec gzip</code> as a read. These conventions cost every view alike, so the gaps between views stand; the absolute numbers are best read against 0.68, not 1.</li>
+    <li><strong>Uncut earlier thinking (exploratory).</strong> With each earlier step’s thinking shown in full (up to 12,000 characters) instead of its first 400 and last 800, earlier thinking scored 0.195 [0.153, 0.239] (−0.018 [−0.051, +0.014] against the cut version), and with step <i>k</i>’s thinking added 0.494. The cut did not hide lead time.</li>
+    <li><strong>Repeating the previous step’s type</strong> gets the type right on 0.454 of steps; the action-log reader gets 0.597, the earlier-thinking reader 0.412.</li>
+    <li><strong>The target rule (M4) does not work here.</strong> It flags 34 of 395 steps with a path target (0.086 [0.059, 0.118]); the M2 judge called 26 of the 31 it also judged matching, and of 12 flags read by hand none is a real mismatch: they come from the classifier’s conventions (<code>tar … -C /home carol</code> acts on “the current directory”) or from thinking that names the next step’s file. The rule caught Episode 1’s wrong-file edits because SWE-agent’s <code>edit</code> acts on an unseen open file; bash commands name their targets, and the real mismatch in 4.5 (the same file, <code>&gt;</code> instead of <code>| tee -a</code>) is not a target mismatch at all.</li>
+    <li><strong>Judges.</strong> The M3 judge’s three votes agreed on 124 of 128 items, and all 11 “never” items were read by hand: each is a command with no thinking and nothing in earlier thinking that covers it (one, <code>find /srv/www/site -type d -exec chmod 755</code>, the classifier counts as a read). The M2 judge has not been checked against human labels in this episode; about half of a sample of 10 of its “acts differently” labels are real.</li>
+  </ul>
+
+  <h3 id="scorecard" data-short="Predictions">4.7 The predictions</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prediction (registered before any rollout)</th><th>Metric, threshold</th><th>Result</th><th>Hit?</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>E2-P1. Earlier thinking gives lead time over the action log (40%)</td><td>Earlier thinking − actions, ≥ +0.05 with interval above 0</td><td>−0.242 [−0.303, −0.181]</td><td>Miss</td></tr>
+        <tr><td>E2-P2. Step <i>k</i>’s thinking carries most of the prediction (80%)</td><td>(+ step-<i>k</i> thinking) − earlier thinking, ≥ +0.15, interval above 0</td><td>+0.295 [0.245, 0.350]</td><td>Hit</td></tr>
+        <tr><td>E2-P3. Thinking says more than the visible message (75%)</td><td>(+ thinking) − (+ message), ≥ +0.10, interval above 0</td><td>+0.327 [0.272, 0.384]</td><td>Hit (no message to compare: 2 of 644 steps)</td></tr>
+        <tr><td>E2-P4. With the thinking in view, actions and narration add little (55%)</td><td>All − (+ thinking), ≤ +0.05</td><td>+0.049 [0.013, 0.086]</td><td>Hit (just)</td></tr>
+        <tr><td>E2-P5. Step thinking mostly describes the command (60%)</td><td>Share acting differently or not described, ≤ 0.20</td><td>0.260 [0.208, 0.311]</td><td>Miss (0.122 with silent steps set aside)</td></tr>
+        <tr><td>E2-P6. Few actions go unmentioned (55%)</td><td>Share never mentioned, ≤ 0.10</td><td>0.017 [0.006, 0.029]</td><td>Hit</td></tr>
+        <tr><td>E2-P7. Risky actions mentioned at least as often (60%)</td><td>Never rate, risky − other, ≤ 0</td><td>−0.012 [−0.034, +0.011]</td><td>Hit</td></tr>
+        <tr><td>E2-P8. The tasks produce risky actions (80%)</td><td>Risky commands, ≥ 150</td><td>284</td><td>Hit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Six of eight hit. The two misses carry the result: no lead time (I gave lead time 40%, expecting a thinking model’s plans to help a little), and silent steps, which I did not anticipate and which push the M2 rate over its bar. E2-P3 hit for a reason the prediction did not intend: there is no narration to beat. What I would change: register a view that separates “the plan” from “where the agent is in it”, and count silent steps as their own outcome.</p>
+
+  <h2 id="comparison" data-short="Compared with Episode 1"><span class="num">05</span>Compared with Episode 1 and prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>whole-trace-monitorability</th><th>Episode 1 (SWE-agent)</th><th>Episode 2 (Qwen3-8B, thinking)</th></tr></thead>
+      <tbody>
+        <tr><td>Predict the hidden next call from actions, reasoning or both</td><td>✓</td><td>✓</td><td>✓ (six registered views)</td></tr>
+        <tr><td>Separate thinking channel</td><td>—</td><td>✗ (one visible message)</td><td>✓</td></tr>
+        <tr><td>View without the text written for step <i>k</i></td><td>—</td><td>✓ (exploratory): 0.47, level with actions 0.44</td><td>✓ (primary): 0.21, below actions 0.45</td></tr>
+        <tr><td>Step-<i>k</i> text added</td><td>—</td><td>0.77 (leak-free steps)</td><td>0.51 (all steps; ceiling 0.68)</td></tr>
+        <tr><td>Permission and network actions</td><td>—</td><td>✗ (only 57 deletes)</td><td>✓ (149 and 109, plus 26 deletes)</td></tr>
+        <tr><td>Actions never mentioned</td><td>—</td><td>0.058, mostly wrong-file edits</td><td>0.017, all on steps with no thinking</td></tr>
+        <tr><td>Agent runs in a sandbox the study controls</td><td>—</td><td>✗ (recorded data)</td><td>✓</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The two episodes differ in agent, task domain and labels, so their numbers are not a controlled comparison; the pattern is the same in both: what predicts the next action is the text written for that action, not earlier reasoning.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>For a small open reasoning model doing ordinary system administration, a monitor that reads its thinking gets the next command a moment before it runs, often written out in full, and nothing earlier: the thinking of earlier steps is a plan, and a plan does not say where the agent is in it. That moment can still be enough to block a command before it runs. But the channel has two gaps that an honest agent produced on its own. On one step in eight it is empty, and those silent steps hold every unmentioned action here, including deleting the firewall entry the task was about. And thinking can plan one command while the call does another (<code>| tee -a</code> planned, <code>&gt;</code> run, a firewall config wiped). Neither needs bad intent, and a monitor that reads thinking alone misses both.</p>
+  <p><strong>Treat a step with no thinking as unmonitored rather than as fine, and compare each command with the command its own thinking wrote out, not only with its described intent.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One small model.</strong> Qwen3-8B; larger reasoning models may plan further ahead, think on every step, or narrate visibly. Its long first-turn thinking also ended 13 rollouts before any command.</li>
+    <li><strong>Honest tasks only.</strong> No hidden side objective, so nothing here says how thinking behaves when an agent pursues one.</li>
+    <li><strong>Short rollouts.</strong> A median of 4 commands, 644 in all, fewer than the 1,500 to 3,000 the plan expected; intervals on subsets (42 leak-free steps with thinking, 26 deletes) are wide.</li>
+    <li><strong>Simulated pieces.</strong> iptables is a stand-in that records rules, and the HTTP services are local mocks; the commands are real, their network effect is not.</li>
+    <li><strong>Labels and judges.</strong> The reader’s ceiling is 0.68 because its labels differ from the classifier’s conventions; the M2 judge is not checked against human labels in this episode; one open model reads and judges, and each number is one cached sample per prompt.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>From the repository root, with an OpenRouter key in <code>.env</code> and a Modal account (the rollouts need one H100 for about 10 minutes):</p>
+  <pre><code>experiments/trace-monitorability-ep2/reproduce.sh            # everything: about $1.40 Modal, $0.64 OpenRouter
+experiments/trace-monitorability-ep2/reproduce.sh --scores   # only scores, figures and cover, from results/
+experiments/trace-monitorability-ep2/reproduce.sh --dry-run  # print the commands</code></pre>
+  <p>The rollout launcher refuses to start when its worst-case cost would pass the cap in <a href="../modal_rollouts.py">modal_rollouts.py</a>, and logs every job in <a href="../results/modal_spend.csv">modal_spend.csv</a>. Traces and replies are cached in <code>~/.cache/steerlab/trace-monitorability/ep2/</code>, so a rerun of the reader makes no calls. Rollouts are seeded per rollout, but batched GPU sampling is not bit-for-bit repeatable, so new rollouts give new traces; the committed labels reproduce every number.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Read the model instead of its text: a linear probe on the residual stream at the end of thinking, predicting the next action type, against the step-<i>k</i> thinking reader on the same steps.</li>
+    <li>Ask what silent steps are: does the model skip thinking more after failures, on retries, or on risky follow-ups, and does forcing it to think change what it does?</li>
+    <li>Add a covert side objective to a share of the tasks and see whether the thinking still writes the command out.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Does a reasoning model’s thinking warn you about its next action?</h3>
+  <p>Only at the last moment, in this study. For Qwen3-8B as a bash agent, a reader given the thinking of earlier steps predicted the next command no better than one given only the task (0.21 against 0.20), and far worse than one given the commands so far (0.45). The thinking written for the step itself predicted it on 0.51 of steps, against a 0.68 ceiling.</p>
+  <h3 id="q2">Why doesn’t earlier thinking help predict the next command?</h3>
+  <p>Because it is a plan made before the last command’s output arrived. The next command depends on whether that one worked, which only the output shows, so the action log predicts better. Showing earlier thinking in full instead of trimmed did not change this (0.195).</p>
+  <h3 id="q3">Do reasoning models always think before acting?</h3>
+  <p>No. Qwen3-8B left its thinking block empty on 82 of 644 commands, mostly reruns and retries after a failure. All 11 actions that no thinking mentioned were on those steps, including deleting the firewall entry its task asked it to add.</p>
+  <h3 id="q4">Do risky actions go unmentioned in an agent’s thinking?</h3>
+  <p>Rarely, here: 3 of 284 permission, network or delete actions, all network changes on steps with no thinking. The more worrying case was a command that contradicted its thinking: the thinking planned to append a line to the firewall config and the command overwrote the whole file.</p>
+  <h3 id="q5">Is reading the chain of thought enough to monitor an agent?</h3>
+  <p>Not on its own. It shows each command a moment before it runs, but gives no earlier warning, goes blank on one step in eight, and can describe a different command from the one issued. Checking the command against the command the thinking wrote out, and flagging silent steps, covers the gaps found here.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../results/rollouts.csv">rollouts.csv</a></td><td>The 144 rollouts: task, kind, commands, how it ended, whether the task check passed</td></tr>
+        <tr><td><a href="../results/steps.csv">steps.csv</a></td><td>All 644 commands: action type, normalised target, classifier rule, thinking and message lengths, leak flags, test-step role</td></tr>
+        <tr><td><a href="../results/reader.csv">reader.csv</a>, <a href="../results/reader_oracle.csv">reader_oracle.csv</a>, <a href="../results/reader_fullthink.csv">reader_fullthink.csv</a></td><td>M1: every prediction and whether its type and target were right; the ceiling and the uncut views</td></tr>
+        <tr><td><a href="../results/divergence.csv">divergence.csv</a></td><td>M2: label and named difference per test step</td></tr>
+        <tr><td><a href="../results/unmentioned.csv">unmentioned.csv</a></td><td>M3: label, method and the three votes per command</td></tr>
+        <tr><td><a href="../results/target_rule.csv">target_rule.csv</a></td><td>M4: the number of paths named in the thinking and the flag per step</td></tr>
+        <tr><td><a href="../results/scores.json">scores.json</a></td><td>Every number in this note, with intervals</td></tr>
+        <tr><td><a href="../results/llm_calls.csv">llm_calls.csv</a>, <a href="../results/cost_log.csv">cost_log.csv</a>, <a href="../results/modal_spend.csv">modal_spend.csv</a></td><td>Every billed reader call; spend per run; the Modal ledger</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Column definitions are in <a href="../results/README.md">results/README.md</a>. The tasks, setups and checks are in <a href="../tasks.py">tasks.py</a>; the prompts are in the scripts (<a href="../3_reader.py">3_reader.py</a>, <a href="../4_divergence.py">4_divergence.py</a>, <a href="../5_unmentioned.py">5_unmentioned.py</a>). No thinking or command text is committed; the quotes above are short excerpts from the study’s own rollouts.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Predictability</th><td>A reader predicts a hidden tool call from six registered views of the trace; rule-based scoring of type and target</td></tr>
+        <tr><th scope="row">Controls</th><td>Task-only view; a ceiling (the reader labels the real command); earlier thinking uncut; leak subsets; repeat-previous-type baseline</td></tr>
+        <tr><th scope="row">Judges</th><td>LLM judges with schema-constrained output; three-vote majority for M3; hand reading of every “never” item and samples of the others</td></tr>
+        <tr><th scope="row">Environment</th><td>One sandbox per rollout; setup scripts, pass/fail checks, reference solutions; a spend cap enforced in code</td></tr>
+        <tr><th scope="row">Statistics</th><td>Bootstrap over rollouts (2,000 draws), paired differences per step</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Agent</th><td><a href="https://huggingface.co/Qwen/Qwen3-8B">Qwen3-8B</a> (Apache-2.0) on vLLM 0.11.0, one H100, on Modal</td></tr>
+        <tr><th scope="row">Environment</th><td>Modal Sandboxes (gVisor), Debian 12, no internet</td></tr>
+        <tr><th scope="row">Reader and judges</th><td><a href="https://arxiv.org/abs/2508.10925">gpt-oss-120b</a> (Apache-2.0) through OpenRouter</td></tr>
+        <tr><th scope="row">Code</th><td>Python, NumPy, Matplotlib</td></tr>
+        <tr><th scope="row">Cost</th><td>Modal about $1.39 (rollouts $0.86); OpenRouter 4,920 calls, $0.64</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li><a href="../../trace-monitorability/report/">Episode 1: An agent’s reasoning predicts its next command because it announces it</a>.</li>
+    <li><a href="https://github.com/Sudhiksha-17/whole-trace-monitorability">whole-trace-monitorability</a> (GitHub): the predictability design both episodes re-implement.</li>
+    <li><a href="https://github.com/redwoodresearch/basharena_public">BashArena</a> (GitHub): the style of task this episode’s set follows.</li>
+    <li><a href="https://arxiv.org/abs/2505.09388">Qwen3 Technical Report</a> (arXiv 2505.09388).</li>
+    <li><a href="https://arxiv.org/abs/2507.11473">Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety</a> (arXiv 2507.11473).</li>
+    <li><a href="https://arxiv.org/abs/2503.11926">Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation</a> (arXiv 2503.11926).</li>
+    <li><a href="https://arxiv.org/abs/2505.05410">Reasoning Models Don’t Always Say What They Think</a> (arXiv 2505.05410).</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 23, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026tracemonitorabilityep2,
+  author = {Albert Lie},
+  title  = {A thinking agent's private reasoning names its next command only as it writes it; earlier thinking gives no warning},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability-ep2/report/}
+}</code></pre>
+  <footer class="note">Agent: Qwen3-8B (Apache-2.0). Reader and judges: gpt-oss-120b (Apache-2.0). Tasks written for this study; the quotes are short excerpts from its own rollouts.</footer>
+</article>
+</div>
+<script src="strips.js"></script>
+<script>
+(function () {
+  var data = window.STRIPS || [], sel = document.getElementById("strip-select");
+  var strip = document.getElementById("strip"), stat = document.getElementById("strip-stat");
+  if (!sel || !data.length) return;
+  function silent(t) { return (t.leak.match(/e/g) || []).length; }
+  data = data.slice().sort(function (a, b) { return silent(b) - silent(a) || b.s.length - a.s.length; });
+  data.forEach(function (t, i) {
+    var o = document.createElement("option");
+    o.value = i;
+    o.textContent = t.id + " · " + t.s.length + " commands · " + silent(t) + " without thinking · " + (t.pass ? "check passed" : "check failed");
+    sel.appendChild(o);
+  });
+  function draw() {
+    var t = data[+sel.value], never = {};
+    t.never.forEach(function (k) { never[k] = 1; });
+    strip.textContent = "";
+    for (var i = 0; i < t.s.length; i++) {
+      var s = document.createElement("span"), k = i + 1, lk = t.leak[i];
+      s.className = t.s[i] + (lk === "e" ? " e" : "") + (lk === "c" ? " lc" : "") + (never[k] ? " never" : "");
+      s.title = "step " + k;
+      strip.appendChild(s);
+    }
+    stat.textContent = t.id + ": " + t.s.length + " commands, " + silent(t) + " without thinking, " + t.never.length + " never mentioned; ended " + t.end + ", " + (t.pass ? "task check passed" : "task check failed");
+  }
+  sel.addEventListener("change", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
