@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a slop detector fix its own mistakes?</title>
+<meta name="description" content="Retraining our slop detector on the 2,000 pre-2022 web pages it scored most AI-like, labelled human, took held-out false positives from 127 in 20,000 to 0 in one round, at a cost of 3 to 5 points of recall on 2026 AI pages; pairing each page with an AI rewrite kept the fix and the recall.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Can a slop detector fix its own mistakes?">
+<meta property="og:description" content="Model voice E6, pre-registered. Retraining our slop detector on the 2,000 pre-2022 web pages it scored most AI-like, labelled human, took held-out false positives from 127 in 20,000 to 0 in one round, at a cost of 3 to 5 points of recall on 2026 AI pages; pairing each page with an AI rewrite kept the fix and the recall. Random pages did 72% as much; after one round there was nothing left to mine.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Three ribbons on a cream ground, one per arm, falling over five rounds: orange (hardest pages) drops from 0.64% to 0 in one step; light orange (hardest pages with AI pairs) follows; blue (random pages) falls more slowly.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can a slop detector fix its own mistakes?">
+<meta name="twitter:description" content="Model voice E6, pre-registered. Retraining our slop detector on the 2,000 pre-2022 web pages it scored most AI-like, labelled human, took held-out false positives from 127 in 20,000 to 0 in one round, at a cost of 3 to 5 points of recall on 2026 AI pages; pairing each page with an AI rewrite kept the fix and the recall. Random pages did 72% as much; after one round there was nothing left to mine.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-23">
+<meta property="article:modified_time" content="2026-11-23">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Can a slop detector fix its own mistakes?",
+ "description": "Model voice E6, pre-registered. Retraining our slop detector on the 2,000 pre-2022 web pages it scored most AI-like, labelled human, took held-out false positives from 127 in 20,000 to 0 in one round, at a cost of 3 to 5 points of recall on 2026 AI pages; pairing each page with an AI rewrite kept the fix and the recall. Random pages did 72% as much; after one round there was nothing left to mine.",
+ "abstract": "Model voice series, Episode 6 (pre-registered). Hard-negative rounds on the slop-detector note's Qwen3-1.7B detector (LoRA, 4-bucket head, data v2b), retrained from the base each round. Labels from crawl dates: 250,000 FineWeb pages crawled 2017 to October 2022 to mine, 20,000 held out by website. Arms: (a) the 2,000 highest-scored pool pages per round as human, 4 rounds; (b) the same plus an AI mirror of each page labelled AI, 3 rounds; (c) 2,000 random pages, 3 rounds; seed reruns of round 0 and a1. Fixed cut 0.3986 (1% of validation humans). Held-out web false positives: round 0 127/20,000 (0.64% [0.53, 0.74]); a1 0 (seed rerun 2), a2 2, a3 1, a4 0; b1 3, b2 1, b3 1; c1 36, c2 21, c3 13. Enron 10/1,992 to 0. Recall on 600+600 pages from four 2026 open models: a1 -3.3 [-4.8, -1.8] (old topics) and -4.5 [-6.3, -2.8] (new topics); b1 -0.5 and -0.5 (b over a +2.8 [+1.5, +4.3], +4.0 [+2.3, +5.7]). More rounds: pool above the cut 1,407, then 6, then 0; AI-edited EditLens recall falls 67.4% to 62.1% by a4 (-5.3 [-6.6, -4.2]). Recalibrating round 0 to flag 2 web pages leaves 83% recall on 2026 pages. Judge (exploratory, missed its human false-yes bar): mined pages machine-made 5.5% in round 1 vs 12.3% of random pages; blind reference agrees 113/120. Inside (margin readout, added after round 1): corporate pages +0.21 SD toward AI at round 0, -0.80 after a1; AI vs human separation 1.92-1.97 SD in every run. Predictions: 3 hit, 3 missed, 1 not scored. Cost: $82.55 Modal, $2.41 API.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-23",
+ "dateModified": "2026-11-23",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI text detection, hard-negative mining, false positives, self-training, FineWeb, pre-2022 web text, Qwen3-1.7B, LoRA, paired bootstrap, pre-registration, interpretability, probe, ablation, EditLens, Epoch AI, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://aclanthology.org/2025.genaidetect-1.40.pdf"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/HuggingFaceFW/fineweb"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.03154"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<style>
+.cut-explorer { margin: 0 0 0.5rem; }
+.cx-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center; font-family: var(--font-mono, monospace); font-size: 0.8125rem; color: var(--ink-soft); margin-bottom: 0.5rem; }
+.cx-controls select, .cx-controls button { font: inherit; color: var(--ink); background: var(--canvas); border: 1px solid var(--rule); border-radius: 4px; padding: 0.15rem 0.35rem; }
+.cx-controls input[type=range] { accent-color: var(--control); width: 11rem; vertical-align: middle; }
+.cx-controls output { color: var(--ink); display: inline-block; min-width: 9.5ch; }
+.cut-explorer svg { width: 100%; height: auto; display: block; font-family: var(--font-mono); }
+.cx-read { margin: 0.25rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft); }
+@media (max-width: 520px) { .cx-controls label { width: 100%; } .cx-controls input[type=range] { width: 60%; } }
+</style>
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-23">Nov 23, 2026</time></p>
+  <h1>Can a slop detector fix its own mistakes?</h1>
+  <p class="dek ruled">Adding a detector’s own false positives on old web pages back into training removed every one of them in a single round. Alone, that also taught it that polished web copy is human, and it missed more AI text; pairing each page with an AI rewrite kept the fix and the recall.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Three ribbons on a cream ground, one per arm, falling from left to right over five rounds: an orange ribbon drops from 0.64% to 0 in one step and stays at the floor; a lighter orange one follows it; a blue ribbon, the random-pages control, falls more slowly, still above the floor at round 3.">
+    <figcaption>Cover: held-out old web pages flagged per round (20,000 pages from websites never mined), with 95% intervals, drawn from <code>results/metrics.json</code>. Orange: the hardest pages (dark) and the hardest pages with AI pairs (light); blue: random pages. Figure 1 is the labelled version.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Model</dt><dd>The <a href="../../slop-detector/report/">slop-detector note</a>’s Qwen3-1.7B-Base detector (LoRA r 16, 4-bucket head, data v2b), retrained from the base model every round</dd></div>
+    <div><dt>Data</dt><dd>FineWeb pages crawled 2017 to October 2022 (250,000 to mine, 20,000 held out by website); EditLens test, Enron and Human Detectors; Epoch AI’s detector test; 1,200 pages from four 2026 open models</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/slop-hard-negatives/</a>, importing the slop-detector note’s trainer unchanged</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/metrics.json">results/metrics.json</a> (every number below), <a href="../results/interp.json">results/interp.json</a>, <a href="../results/spend.jsonl">results/spend.jsonl</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a slop detector fix its own mistakes on old web text?</strong></p>
+    <p>Yes, in one round, at a price you can avoid. Retraining our slop detector with the 2,000 pre-2022 web pages it scored most AI-like, labelled human, took its false positives on 20,000 held-out old web pages from 127 to 0, and on Enron emails from 10 to 0. On its own that cost 3 to 5 points of recall on pages written by four 2026 open models; adding an AI rewrite of each mined page, labelled AI, kept the false-positive gain and nearly all the recall. Hard pages beat the same number of random ones (36 false positives left), and more rounds had nothing left to mine: after round 1 the detector flagged 6 of 250,000 pool pages. Inside, the rounds flipped how the detector reads polished corporate prose (from slightly AI-leaning to clearly human-leaning) and left its AI-versus-human separation untouched. The label is a crawl date fixed from outside, so this is self-training, not self-improvement.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>One round of the 2,000 hardest old pages, labelled human (arm a)</td><td><strong>0 of 20,000</strong> held-out old web pages flagged (seed rerun: 2); Enron 0 of 1,992</td><td>Round 0: 127 (0.64% [0.53, 0.74]); Enron 10</td></tr>
+          <tr><td>What that cost</td><td>Recall on 2026 open-model pages −3.3 [−4.8, −1.8] (old topics) and −4.5 [−6.3, −2.8] points (new topics); AI-edited EditLens text −2.2 [−3.3, −1.1]</td><td>Round 0: 99.5% and 99.3%</td></tr>
+          <tr><td>Same pages plus an AI rewrite of each, labelled AI (arm b)</td><td>3 of 20,000 flagged; recall −0.5 [−1.3, +0.2] and −0.5 [−1.5, +0.5]: <strong>+2.8 [+1.5, +4.3] and +4.0 [+2.3, +5.7]</strong> points over arm a</td><td>Arm a, round 1</td></tr>
+          <tr><td>Is it the <em>hard</em> pages? 2,000 random old pages (arm c)</td><td>36 of 20,000 flagged after one round (hard pages: 0; difference 0.18 points [0.12, 0.24]); random pages catch up by round 3 (13 against 1) and raise Enron false positives to 15</td><td>Arm a, same rounds</td></tr>
+          <tr><td>Do more rounds help or hurt?</td><td>After round 1 the pool had 6 pages left above the cut, then none. Web false positives stay at 0 to 2 through round 4; 2026 recall holds, but AI-edited text loses 5.3 points [4.2, 6.6] by round 4</td><td>Rounds 1 to 4</td></tr>
+          <tr><td>Does mining feed spam back in? (exploratory judge)</td><td>Round 1’s mined pages were judged machine-made <em>less</em> often than random old pages (5.5% against 12%); later rounds at the random level. A blind reference check agrees with the judge on 113 of 120 pages</td><td>Random pool pages</td></tr>
+          <tr><td>What changed inside</td><td>Corporate-copy pages moved from +0.21 to −0.80 standard deviations of the head’s margin (toward “human”), while AI and human pages on the same topics stayed 1.92 to 1.97 apart in every run</td><td>Round 0; random pages −0.16</td></tr>
+          <tr><td>Predictions</td><td>3 hit, 3 missed, 1 not scored (its judge failed a pre-set bar); Section 06</td><td>Seven, written before any run</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Give an AI-text detector a page of web copy from 2019, the kind that sells tyre alignment or announces a company’s new subsidiary, and now and then it says “AI”. It cannot be right: the page was crawled three years before ChatGPT existed. A detector that makes this mistake on old pages makes it on people who write the same way today, and they are the ones who get accused.</p>
+  <p><strong>What is known.</strong> A write-up of a small open AI-text detector (<a href="https://lnkd.in/p/gzA7e6Nq">source</a>) reported this error rate on pre-2022 web text as 0.22%, mostly polished corporate writing, and cut it to 0.03% with one round of hard-negative mining: score a large pile of old pages, take the human pages the detector calls AI, add them back as human training data, retrain. Pangram’s production detector also mines hard negatives (<a href="https://aclanthology.org/2025.genaidetect-1.40.pdf">Pangram at GenAI Detection Task 3</a>). Our <a href="../../slop-detector/report/">slop-detector note</a> hit the same weakness from the other side: a flag cut fitted on our own human texts flagged 1% of them and 3% of human magazine articles.</p>
+  <p><strong>What is missing.</strong> The published result is one round, one number and no control. Three boring explanations fit it. Any extra human data might lower false positives, not only the hardest pages. The detector might learn that old topics or a corporate register mean “human”, which a 2026 model writing about the same topics could exploit. And old web text is not all human: mining its most AI-looking pages could feed machine-made spam back in labelled “human”. Nobody has shown what happens over several rounds, or what changes inside the detector.</p>
+  <p class="question-callout">If a slop detector adds the old web pages it scores as most AI-like back into its training as human, round after round, how far do its false positives fall, what does it pay in missed AI text, and is it the hard pages that help?</p>
+  <p><strong>What this note does.</strong> It runs that loop for up to four rounds on the slop-detector note’s detector, beside two controls, and scores every round on held-out sets the loop never touched. Its contributions:</p>
+  <ol>
+    <li>A per-round measurement of the trade: false positives on held-out old web pages, magazine articles and emails against recall on EditLens, Epoch AI’s style imitations and pages from four 2026 open models, with paired intervals.</li>
+    <li>Two controls the published version lacks: the same number of <em>random</em> old pages, and the hard pages paired with AI rewrites of the same content.</li>
+    <li>The loop’s dynamics: how many pages are still above the cut each round, how much of what it mines looks machine-made, and how far each round moves the scores.</li>
+    <li>A look inside: which directions in the detector’s final state its decision leans on, per round, tested by ablation against random directions.</li>
+  </ol>
+  <p><strong>This is not recursive self-improvement.</strong> The detector never labels its own data and never changes how it is trained. The label rule, “crawled before November 2022 means human”, is fixed and comes from outside; the loop only chooses <em>which</em> old pages to show it. That makes it self-training with an external label, the same family as hard-negative mining in spam filters and face recognition.</p>
+  <p>Success, fixed in a plan written before any run: (1) every number comes from sets the loop never mined or tuned on, split by website so no site appears on both sides; (2) the cut that turns a score into a flag is fixed at round 0 for every round and arm; (3) “fewer” or “more” is claimed only when a paired 95% interval excludes zero; (4) each effect is read against the random-pages control.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="detector" data-short="The detector">2.1 The detector and what “flagged” means</h3>
+  <p>The detector is the slop-detector note’s Qwen3-1.7B-Base with a LoRA adapter (rank 16) and a 4-way head: human, lighter AI edit, heavier AI edit, AI-generated. Its score is the expected bucket divided by 3, from 0 (human) to 1 (AI-generated). It reads the first 512 tokens. We use the 1.7B rather than the note’s published 9B because every round retrains every arm from the base model: about 65 H100-minutes for the 1.7B against 4.5 A100-hours for the 9B. On EditLens validation the 1.7B scored 0.899 macro-F1 against the 9B’s 0.909.</p>
+  <p>A text is <strong>flagged</strong> when its score is at or above <strong>0.3986</strong>, the score that flags 1% of round 0’s validation humans (2,414 short comments, reviews, abstracts and posts). The cut is fixed at round 0 and used for every round and arm, as a deployed detector would keep its threshold. A <strong>false positive</strong> is a flagged human text; <strong>recall</strong> is the share of AI texts flagged. Each round’s own refitted cut is reported beside it, and AUROC, which needs no cut.</p>
+
+  <h3 id="loop" data-short="The loop and arms">2.2 The loop and the three arms</h3>
+  <p>The labels come from dates. FineWeb, a cleaned Common Crawl, stamps every page with its crawl date; a page crawled before ChatGPT’s release in November 2022 was, with few exceptions, written without a chat model. We sampled one shard from each of eight crawls between January 2017 and October 2022 (every page dated 2017-01-16 to 2022-10-07), kept pages of at least 80 words, removed duplicates, and split them <em>by website</em>: a hash of each page’s host sends it to the mining pool (250,000 pages), the held-out evaluation set (20,000 pages) or a development set used for the interp concepts and the pilot. No website appears in two of them.</p>
+  <p>Each round, an arm adds K = 2,000 pages to the detector’s training data and retrains it from the base model with the original recipe, unchanged (data v2b’s 79,120 rows plus everything added so far; learning rate 2e-4, batch 64, 3.79 epochs, seed 0). Added pages carry the human weight the recipe already gives its human rows.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Added each round</th><th>Rounds</th><th>What it tests</th></tr></thead>
+      <tbody>
+        <tr><td>(a) hard</td><td>the 2,000 pool pages the previous round’s detector scores highest, labelled human</td><td class="num">4</td><td>the method</td></tr>
+        <tr><td>(b) hard + pairs</td><td>its own 2,000 hardest pages as human, plus an AI “mirror” of each, labelled AI-generated</td><td class="num">3</td><td>does it learn “old topic means human”?</td></tr>
+        <tr><td>(c) random</td><td>2,000 random pool pages, labelled human</td><td class="num">3</td><td>is it the <em>hard</em> pages, or just more human data?</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>A <strong>mirror</strong> keeps the topic and drops the words: an open model first writes a two-line summary and keywords of the human page, then a fresh call writes a new page from the summary alone, the slop-detector note’s own recipe for fully AI-written text, with its open-weight generator mix. Round 0 is the published adapter itself; a second copy trained with seed 1, and a seed-1 copy of arm (a)’s first round, give the seed spread.</p>
+
+  <h3 id="sets" data-short="Evaluation sets">2.3 Evaluation sets</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Set</th><th class="num">Human</th><th class="num">AI</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>Held-out old web (FineWeb, other websites)</td><td class="num">20,000</td><td class="num">–</td><td>the headline false-positive rate</td></tr>
+        <tr><td>Magazine articles (EditLens Human Detectors)</td><td class="num">150</td><td class="num">150</td><td>false positives off the web; recall</td></tr>
+        <tr><td>Enron emails (EditLens)</td><td class="num">1,992</td><td class="num">4,155</td><td>false positives off the web; recall on AI-written emails</td></tr>
+        <tr><td>Epoch AI detector test</td><td class="num">495</td><td class="num">594</td><td>false positives; recall on 297 plain and 297 style-imitation passages</td></tr>
+        <tr><td>EditLens test</td><td class="num">2,038</td><td class="num">4,077</td><td>recall on AI-written (2,046) and AI-edited (2,031) text; AUROC</td></tr>
+        <tr><td>2026 pages, old topics</td><td class="num">–</td><td class="num">600</td><td>mirrors of held-out-website pages from before 2022, by DeepSeek-V4.1-Flash, MiniMax-M3.1-Flash, GLM-5.3-Flash and Nemotron-3.5-Lightning (150 each)</td></tr>
+        <tr><td>2026 pages, new topics</td><td class="num">–</td><td class="num">600</td><td>the same four models and recipe, seeded from pages crawled in 2025</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>None of the four 2026 models wrote any training text. The old-topic and new-topic sets differ only in where their topics came from, so a detector that learned “2019 topics are human” would miss more of the first.</p>
+
+  <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan.</strong> Arms, K, rounds, the fixed cut, every evaluation set and seven predictions were written and committed before any run.</li>
+    <li><strong>Pools.</strong> 8 FineWeb shards sampled on a CPU container; dates checked (none after 2022-10-07); website overlap between pools checked (zero).</li>
+    <li><strong>Pilot</strong> on the development set only: round 0 flagged 125 of 20,000 development pages (0.63%), so 2,000 pages a round covers every page above the cut in the first round; a 4,000-row training run checked the launcher, scoring and the feature readout.</li>
+    <li><strong>Judge check.</strong> The open judge that labels mined pages as machine-made or not was scored on 300 pages of known origin before use (Section 4.5). It missed one of its two pre-set bars, so its labels are reported as exploratory, with a blind reference labelling beside them.</li>
+    <li><strong>Round 0:</strong> the published adapter scored every evaluation set and the 250,000-page pool.</li>
+    <li><strong>Rounds:</strong> each round mined with the previous round’s detector, (b) wrote its mirrors, and the arm retrained and scored every evaluation set once: 10 trainings plus 2 seed reruns.</li>
+    <li><strong>Inside:</strong> for every round, the state the head reads was saved for 1,600 development pages (Section 4.6).</li>
+    <li><strong>Analysis</strong> from saved scores only; predictions scored mechanically.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any run</th><th>Changed later, and when</th></tr></thead>
+      <tbody>
+        <tr><td>Detector, recipe, K, rounds, arms, the cut, evaluation sets, website split, predictions, the judge’s pass bar</td><td>After the pilot: the judge’s labels became exploratory (it failed its bar; the one allowed swap did worse); generation moved from one open-model provider to another, same models; the page-writing prompt asks for plain text (one generator wrote HTML); the readout check’s tolerance was set from bf16 precision. After reading round 1, as description only: the margin readout inside the detector (Section 4.6), the recalibration baseline fitted on held-out web (Section 4.3), and the profile of round 0’s false positives and flag rate per crawl (Section 4.5).</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">Conditions: bf16 training and scoring on one H100 per run, first 512 tokens, about 65 minutes per training; generation at temperature 0.8 and the judge at 0.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="one-round" data-short="One round">4.1 One round of hard pages removes every false positive on held-out old web</h3>
+  <figure>
+    <img src="figures/fpr.png" alt="Line chart of held-out old web pages flagged out of 20,000, per round, for three arms. Round 0: 127 (0.64%). Arm (a), hardest pages: 0, 2, 1 and 0 at rounds 1 to 4. Arm (b), hardest pages plus AI pairs: 3, 1 and 1. Arm (c), random pages: 36, 21 and 13. Black crosses: seed-1 reruns, 97 at round 0 and 2 at arm (a) round 1.">
+    <figcaption>Figure 1. Held-out old web pages flagged at the fixed cut (20,000 pages from websites the loop never saw), per round and arm, with 95% bootstrap intervals over pages. Orange: the two mining arms; blue: the random-pages control. Black crosses: the same training with seed 1.</figcaption>
+  </figure>
+  <p>Figure 1 shows the headline. Round 0 flags 127 of 20,000 held-out old web pages (0.64% [0.53, 0.74]). One round of adding its 2,000 highest-scored pool pages as human takes that to <strong>0 of 20,000</strong>; the seed-1 rerun of the same round flags 2. The paired version (b) flags 3. Every later round of either mining arm stays at 0 to 2 pages. The same round also clears Enron: 10 of 1,992 human emails flagged at round 0, none after round 1, a domain the loop never saw.</p>
+  <p>Two human sets did not move. Magazine articles stay at 7 to 12 flagged of 150 in every run, and Epoch AI’s human passages at 3 to 10 of 495; with sets this small, a change of a few texts is inside the interval, so these say “no detectable change”, not “no change”. Pooled, the off-web humans fell by about half (30 to 16 of 2,637) while web pages fell by all of it, the domain gap the plan predicted.</p>
+
+  <h3 id="cost" data-short="The recall cost">4.2 The price is 3 to 5 points of recall on new AI text, and pairing each page with an AI rewrite removes it</h3>
+  <figure>
+    <picture><source media="(max-width: 600px)" srcset="figures/trade_m.png"><img src="figures/trade.png" alt="Three scatter panels, each plotting old web pages flagged (x, percent) against AI pages caught (y, percent), one point per round, joined by arm. Arm (a) jumps from (0.64, 99.5) to about (0, 96) on 2026 old-topic pages and to about (0, 95) on new-topic pages; arm (b) moves to about (0.01, 99) on both; arm (c) moves left more slowly and stays near 98 to 99.5. Third panel, Epoch AI imitations: all arms between 79 and 87 percent."></picture>
+    <figcaption>Figure 2. The trade, one point per round (numbers mark the round). x: held-out old web pages flagged; y: AI texts caught, on 600 2026 pages about old topics (left), 600 about new topics (middle) and 297 Epoch AI style imitations (right). Fixed cut throughout.</figcaption>
+  </figure>
+  <p>The false positives did not come free (Figure 2). Arm (a)’s first round caught fewer pages from the four 2026 models: 96.2% of old-topic pages against 99.5% at round 0 (−3.3 points [−4.8, −1.8]) and 94.8% of new-topic pages against 99.3% (−4.5 [−6.3, −2.8]). It also caught fewer AI-edited EditLens texts (−2.2 [−3.3, −1.1]). Its seed-1 rerun paid the same (95.3% and 95.5%). This is a loss of ranking, not only of calibration: the chance that a 2026 page outscores a random old human page fell from 0.9999 to 0.993 (AUROC), and refitting the cut on our validation humans gives the same recall.</p>
+  <p>Arm (b), which adds an AI mirror of every mined page as AI, kept almost all of it: 99.0% and 98.8% after round 1 (differences from round 0 of −0.5 [−1.3, +0.2] and −0.5 [−1.5, +0.5]), with the same false-positive drop. Against arm (a) at round 1 that is +2.8 [+1.5, +4.3] and +4.0 [+2.3, +5.7] points of recall at no detectable cost in false positives. It kept that through three rounds (99.0% and 99.2% at round 3, with 1 of 20,000 web pages flagged), though its third round lost ground elsewhere (Section 4.4).</p>
+  <figure class="whole">
+    <div id="cut-explorer" class="cut-explorer"></div>
+    <noscript><p class="small">The interactive explorer needs JavaScript; Figures 1, 2 and 4 show the same numbers at the fixed cut.</p></noscript>
+    <figcaption>Figure 3. Try it. Each line is one detector’s trade-off as the flag cut moves: the share of a human set it flags (x) against the share of an AI set it catches (y). Up and to the left is better. Bold lines: round 0 (dark) and the highlighted arm’s rounds; faint lines: every other run (orange: mining arms, dashed for the paired arm; blue: random pages). Dots mark where the chosen cut sits on each bold line. At the fixed cut the dots reproduce Figures 1, 2 and 4; the y axis is zoomed (its start is printed above it). No cut moves round 0’s line onto the mining arms’ lines (Section 4.3): the rounds move the whole trade-off, not a point along it.</figcaption>
+  </figure>
+  <p>The plan’s worry was a <em>topic</em> shortcut, “old topics mean human”. The data say otherwise: arm (a) lost more on 2026 pages about <em>new</em> topics (−4.5) than on pages about old ones (−3.3). What it learned looks like a register, “reads like a web page means human”, and every 2026 page here was written to read like one. The paired AI mirrors are written the same way, which is why they cancel it.</p>
+  <figure>
+    <picture><source media="(max-width: 600px)" srcset="figures/recall_m.png"><img src="figures/recall.png" alt="Six small line charts of recall per round for the three arms: EditLens AI-written (99.8 to 100% throughout), EditLens AI-edited (65 to 68%), Epoch AI plain (all near 100%), magazine-style AI (100%), 2026 old topics and 2026 new topics, where arm (a) drops 3 to 5 points at round 1 and arms (b) and (c) stay near round 0."></picture>
+    <figcaption>Figure 4. Recall at the fixed cut on every AI set, per round and arm, with 95% bootstrap intervals. Only the 2026 sets and AI-edited text move by more than their intervals.</figcaption>
+  </figure>
+
+  <h3 id="random" data-short="Hard vs random">4.3 Hard pages beat random pages, most clearly in the first round</h3>
+  <p>Arm (c) adds the same number of random old pages. After one round it flags 36 of 20,000 web pages against arm (a)’s 0 (difference 0.18 points [0.12, 0.24]): 2,000 random pages did 72% of what 2,000 hard pages did. More random pages keep helping, 21 after round 2 and 13 after round 3, so by round 3 random pages had removed 0.57 of the 0.64 points; hard pages still flag fewer (difference 0.06 [0.03, 0.10]). Random pages also cost something different: they lowered recall less on 2026 pages, but raised false positives on Enron emails, from 10 to 15 of 1,992 by round 3, where the mining arms flagged at most 2.</p>
+  <p>A cheaper fix than retraining is to move the cut. To flag only 2 of the 20,000 held-out web pages, as the retrained detectors do, round 0 needs a cut of 0.865; there it catches 83% of 2026 pages on either topic set and 72% of Epoch AI’s imitations, against 95% to 99% of 2026 pages for the retrained detectors. (This baseline is fitted on the held-out set itself, so it flatters recalibration.) Retraining moved the ranking; no cut on round 0 can.</p>
+
+  <h3 id="rounds" data-short="More rounds">4.4 After the first round there is nothing left to mine</h3>
+  <figure>
+    <img src="figures/mined.png" alt="Two line charts by round mined. Left: pool pages at or above the cut under the detector that mines that round: 1,407 at round 1, 6 (arm a) and 5 (arm b) at round 2, 0 at round 3 and 4. Right: share of 200 mined pages the judge calls machine-made: arm (a) 5.5%, 12.5%, 10.5%, 7.0%; arm (b) 6.0%, 11.0%, 6.0%; dotted line for random pool pages at 12.3%.">
+    <figcaption>Figure 5. Left: pages of the 250,000-page pool at or above the fixed cut, scored by the detector that mines each round. Right: share of 200 random pages from each mined set the judge calls machine-made (exploratory; Section 4.5), against arm (c)’s random pages pooled (dotted).</figcaption>
+  </figure>
+  <p>Round 0 put 1,407 of the 250,000 pool pages above the cut, so the first round’s 2,000 pages held all of them. The round-1 detectors flag 6 (a) and 5 (b); the round-2 detectors flag none. From round 2 on, “the 2,000 hardest pages” are pages the detector already calls human, scoring at most 0.76, then 0.35. More rounds stopped helping because there was nothing left to fix (Figure 1): arm (a)’s rounds 2 to 4 flagged 2, 1 and 0 web pages, inside the round-1 seed spread (0 and 2).</p>
+  <p>Recall on the 2026 pages did not keep falling: arm (a) caught 94.8%, 95.7%, 96.7% and 96.7% of new-topic pages over rounds 1 to 4, and 96.2% of old-topic pages each round. The first round also moved the scores the most: their rank order on held-out web pages correlates with round 0’s at −0.15 (the pages it called most AI became the most human), against 0.45 to 0.67 between later rounds of the mining arms and 0.64 to 0.71 for random pages.</p>
+  <p>Where more rounds did start to hurt is lightly AI-edited text. Each round adds 2,000 pages the detector already calls human, and both mining arms slowly stopped catching texts a model only touched up: arm (a) caught 67.4% of EditLens’s AI-edited texts at round 0, 65.2% after round 1 and 62.1% after round 4 (−5.3 points [−6.6, −4.2]; −2.9 [−3.9, −1.9] from round 3 to 4), and the paired arm 63.9% after round 3 (−3.5 [−4.6, −2.4]). The paired arm’s third round also caught fewer of Epoch AI’s style imitations (76.1%, −6.1 [−9.1, −3.4]), though that set moved 5 points between two seeds of one round. Random pages, which add no hard pages, left AI-edited recall where it was (67.8% at round 3). Stopping after round 1 would have kept nearly all of the gain and little of this cost.</p>
+  <p>The loop did not concentrate machine-made text either. The judge (exploratory) calls 5.5% of arm (a)’s first mined set machine-made, against 12% of random pool pages; later rounds sit at or below the random level (12.5%, 10.5%, 7.0%). The worry was that the pages an AI detector finds most AI-like in old web text would be early machine text; for this detector the first ones were, if anything, less often machine-made than average.</p>
+
+  <h3 id="noise" data-short="Label noise">4.5 How much of old web text is not human</h3>
+  <p>The judge (gemma-4-31b-it, one yes/no question per page) was checked first on 300 pages of known origin. It called 71 of 100 GPT-2 XL samples and 35 of 50 synonym-spun pages machine-made, and 4 of 75 WebText pages and 13 of 75 development web pages too: balanced accuracy 0.80, passing its bar, but 11.3% “yes” on the human-labelled pages, above the 10% bar. The one allowed swap (qwen3-235b) did worse (0.64, 18%), so its shares are exploratory. Part of the miss is the bar’s own assumption: the development pages are old web pages, not known humans. On the mined pages themselves, a blind reference labelling of 60 mined and 60 random pool pages (shuffled, source and judge hidden) agreed with the judge on 113 of 120 and found 6 of the 60 mined pages and 8 of the 60 random ones machine-made.</p>
+  <p>What round 0 flagged on held-out web was not mostly corporate copy. The judge’s corporate-register label (49 of 60 agreement with a second blind reference labelling) applies to 34% of the 127 false positives against 26% of random held-out pages, a mild excess; and only 7% of them look machine-made, against 12.5% of random pages.</p>
+
+  <h3 id="inside" data-short="Inside the detector">4.6 Inside: the rounds flip the detector’s view of corporate prose and leave its slop signal alone</h3>
+  <figure>
+    <img src="figures/interp.png" alt="Two line charts by round. Left: the head's margin gap between corporate and other human pages, in standard deviations: +0.21 at round 0, then for arm (a) -0.80, -0.62, -0.46, -0.38; arm (b) -0.58, -0.25, -0.14; arm (c) -0.16, -0.37, -0.27. Right: the margin gap between AI mirrors and the same pages by people: 1.92 to 1.97 in every run.">
+    <figcaption>Figure 6. The detector’s head margin (its generated-bucket logit minus its human-bucket logit), on 400 held-out development pages per concept, in standard deviations of the margin. Left: corporate pages minus other human pages. Right: AI mirrors minus the human pages they were written from. Black crosses: seed-1 reruns.</figcaption>
+  </figure>
+  <p>We read the state the head reads, the last token of the last layer, on two concept sets the loop never trained on: 400 development pages a judge called polished corporate or marketing copy against 400 it did not, and 400 development pages against an AI mirror of each. To compare rounds whose scores sit on different scales, we measure everything in the head’s margin (generated logit minus human logit) divided by its spread; this readout was added after round 1 (below), and the registered ones are reported beside it.</p>
+  <p>At round 0, corporate pages sit 0.21 standard deviations nearer “AI” than other human pages. One round of hard pages flips that to −0.80: corporate prose is now read as <em>more</em> human than other human writing (Figure 6, left), and the seed-1 rerun lands at −0.81. Later rounds pull it back toward zero (−0.62, −0.46, −0.38), as do the paired arm (−0.58, −0.25) and random pages (−0.16 to −0.37). Meanwhile the AI-versus-human separation on topic-matched pairs does not move: 1.95 at round 0, 1.92 to 1.97 in every run (right). A linear probe still reads both concepts from the state (corporate 0.88 to 0.92 AUROC, against 0.63 for page length alone; slop 1.00), so nothing was erased; what changed is how the head weighs corporate register. Removing the corporate direction at the head’s input moved corporate pages’ margin by −0.36 standard deviations in round 1, at the edge of 20 random directions’ range (−0.30 to +0.02), against +0.10 at round 0 (random −0.06 to +0.11).</p>
+  <p>The registered readouts did not survive the rounds. They measured reliance as a drop in mean score (corporate) and in recall at the fixed cut (slop) when a direction is removed. After round 1 nearly every human page scores close to 0, so a drop in mean score cannot show; and removing the slop direction moved recall by 0.06 at round 0 but by 0.24 to 0.64 later, together with the random directions’ range, because the AI pages now sit nearer the cut. These readouts measure distance to the cut more than reliance, which is why the margin readout was added.</p>
+
+  <h2 id="safety" data-short="AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>AI-text detectors are used to accuse people: of cheating, of faking reviews, of not writing their own applications. The cost of a false positive falls on a person, so a method that removes them matters. This one works, and cheaply: one round of the detector’s own mistakes on old text, about an hour of one GPU, took held-out false positives from 127 in 20,000 to none. But it moved the detector’s boundary, not just its threshold, and a detector that has learned “polished web copy is human” misses more of the AI text that is written as polished web copy, which is most of what a content farm in 2026 produces. The paired AI rewrites closed that gap here; without them, the false-positive number alone would have reported a clean win while the detector got easier to evade.</p>
+  <p>The loop is also a small, safe instance of a pattern that matters at larger scale: a system choosing its own training data. Here the label came from outside and could not drift, and the loop ran out of work after one round instead of feeding on itself. A version where the system also chose the labels would not have that brake.</p>
+  <p><strong>Recommendation: when a detector is retrained on its own false positives, pair each mined page with an AI rewrite of the same content, and report recall on fresh text from unseen models beside the false-positive drop.</strong></p>
+
+  <h2 id="predictions" data-short="Predictions"><span class="num">06</span>Predictions</h2>
+  <p>Seven predictions were written before any run, each with a threshold, and are scored here mechanically.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th>Result</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>Round 1 of arm (a) cuts held-out web false positives by more than half</td><td>ratio &lt; 0.50</td><td class="num">0 of 127 left (ratio 0.00; seed rerun 2 of 127)</td><td>hit</td></tr>
+        <tr><td>P2</td><td>Off-web humans gain less than web pages (domain gap), round 1</td><td>web relative cut − off-web relative cut &gt; 0</td><td class="num">100% − 47% = +0.53</td><td>hit</td></tr>
+        <tr><td>P3</td><td>Recall on Epoch AI imitations falls by under 2 points at round 1</td><td>drop &lt; 2 points</td><td class="num">−3.4 [−6.4, −0.3] (seed rerun +1.7)</td><td>miss</td></tr>
+        <tr><td>P4</td><td>Without paired rewrites, recall on old-topic 2026 pages falls more (round 3)</td><td>(a) drop − (b) drop &gt; 2 points</td><td class="num">3.3 − 0.5 = 2.8</td><td>hit</td></tr>
+        <tr><td>P5</td><td>Hard pages beat random pages (round 3)</td><td>difference CI above 0 <em>and</em> random cut &lt; half of hard cut</td><td class="num">0.06 points [0.03, 0.10], but random cut 0.57 of hard 0.64</td><td>miss</td></tr>
+        <tr><td>P6</td><td>Rounds stop paying: diminishing returns <em>and</em> rising label noise (arm a)</td><td>round 3→4 cut &lt; ⅓ of round 0→1 cut, and judged machine-made share +0.10 from round 1 to 4</td><td class="num">0.005 against 0.64 points (ratio 0.008); share 5.5% → 7.0%</td><td>not scored (the judge failed its pre-set bar); the returns half alone would be a hit and the noise half a miss</td></tr>
+        <tr><td>P7</td><td>Rounds suppress the corporate signal, not the slop signal (registered readouts, round 0 → 4)</td><td>corporate ratio ≤ 0.5 and slop ratio 0.75 to 1.25</td><td class="num">0.00 and 11.4</td><td>miss (the readouts saturated; Section 4.6)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Post-mortem.</strong> What surprised me: one round removed every false positive, and the loop then had nothing hard left to mine, so most of the plan’s “rounds” questions became questions about adding human pages the detector already gets right. What I would change: register the readouts inside the detector on the head’s margin, not on scores at a fixed cut, which saturate once training pushes human scores to zero; and register a stopping rule (stop when the pool has no pages above the cut). The lesson for the design guide: a readout that compares models trained to different score scales needs a scale-free form, written down before the run.</p>
+
+  <h2 id="limits" data-short="Limits"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One detector, one size.</strong> Every round is the slop-detector note’s 1.7B. The published 9B was not retrained; a bigger model may need fewer rounds, or lose less recall.</li>
+    <li><strong>Small human sets off the web.</strong> 150 magazine articles and 495 Epoch AI passages give intervals of several points; only the 20,000 web pages and 1,992 Enron emails can show changes below one point.</li>
+    <li><strong>Seeds.</strong> Two seeds for round 0 and arm (a)’s first round; every other round is one training. The seed spread (0.15 points of web false positives at round 0, 5 points of Epoch imitation recall at round 1) is reported beside each claim it bears on.</li>
+    <li><strong>The 2026 pages are mirrors.</strong> Four models wrote them from summaries, with one prompt. Pages people prompt differently, edit, or run through a humanizer were not tested.</li>
+    <li><strong>The labels are dates.</strong> Old web pages are mostly but not all human; the judge that estimates how many are not failed one of its pre-set bars, so its shares are exploratory, backed by one blind reference labelling of 120 pages.</li>
+    <li><strong>K and the round count were fixed, not tuned.</strong> A smaller K per round, or stopping after one, was not tried.</li>
+    <li><strong>The inside readout is one layer.</strong> Directions were read where the head reads them (last layer, last token), as differences of means; no SAE features, and no causal test below the head.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><code>experiments/slop-hard-negatives/reproduce.sh --scores</code> recomputes every number and figure from the saved scores and features. <code>--dry-run</code> lists every command: sample the FineWeb pools, build the 2026 set and the judge checks, freeze the evaluation and interp sets, score round 0, run the three arms and the seed reruns, judge the mined sets. Inputs are the slop-detector note’s round-0 adapter and data v2b on a Modal volume, an OpenRouter key (open-weight models only), and the EditLens and Epoch AI test sets. The whole study used $82.55 of Modal time (the bill for this app; the per-call ledger summed to $77.72) and $2.41 of open-model API calls.</p>
+
+  <h2 id="next" data-short="Next"><span class="num">09</span>What’s next</h2>
+  <p>Three follow-ups. First, rerun the paired version on the published 9B, where recall has more room to fall, and with a smaller K, since round 1 already removed every page above the cut. Second, test the trained detectors on human writing that is not web copy and not in any set here, such as 2026 student essays, to see whether “web register means human” carries over. Third, a sandboxed version where the loop’s recipe itself is searched over, with this note’s arms as the fixed baseline.</p>
+
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="qa-what">What is hard-negative mining, in one paragraph?</h3>
+  <p>A detector is trained on examples of both kinds. A <em>negative</em> here is a human text, the kind it should not flag. A <em>hard</em> negative is a human text it gets wrong or nearly wrong. Hard-negative mining runs the detector over a large pile of texts known to be human, keeps the ones it scores highest, and adds them to training, so the next model sees the exact mistakes the last one made. Here the pile is web pages crawled before ChatGPT existed, and the date is the label.</p>
+  <h3 id="qa-rsi">Is this a model improving itself?</h3>
+  <p>No. The detector picks which pages are shown to it next, but it does not write labels, change its training code or improve the procedure. The label (“crawled before November 2022 means human”) is fixed and comes from outside. That is self-training with an external label, not recursive self-improvement.</p>
+  <h3 id="qa-how">How should I use this on my own detector?</h3>
+  <p>Mine the old pages your detector flags, and add each one together with an AI rewrite of the same content labelled AI, so the detector learns to drop the register, not the topic. One round did nearly all the work here; check recall on fresh AI text from models you never trained on before running more.</p>
+  <h3 id="qa-pangram">The published version cut false positives from 0.22% to 0.03%. Does this agree?</h3>
+  <p>In direction and size, yes: ours went from 0.63% to 0% (0 of 20,000) in one round. The published detector, data and pool differ, so the absolute numbers are not comparable. What the published version did not report is the cost: without paired AI rewrites, ours lost 3 to 5 points of recall on new AI text.</p>
+  <h3 id="qa-old">Is everything crawled before November 2022 human?</h3>
+  <p>No. GPT-2 was released in 2019, GPT-3 writing tools spread in 2021, and article spinners are older. By the judge’s reading (exploratory), about one random old page in eight looks machine-made; by a blind reference reading of 60, about one in eight too. The pages the detector mined first were <em>less</em> often machine-made than random ones, not more.</p>
+
+  <h2 id="appendix" data-short="Appendix: files"><span class="num">A</span>Appendix: files and citation</h2>
+  <h3 id="files" data-short="Files">A.1 Files</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>results/metrics.json</code></td><td>Per run (<code>r0</code>, <code>r0s1</code>, <code>a1</code>–<code>a4</code>, <code>a1s1</code>, <code>b1</code>–<code>b3</code>, <code>c1</code>–<code>c3</code>): false-positive rate and recall at the fixed cut for every item group with 95% intervals (<code>rate</code>, <code>ci</code>, <code>k</code>, <code>n</code>); AUROC; the run’s own refitted cut and its numbers (<code>refit</code>); paired differences (<code>diffs</code>, keyed <code>run-other</code>); rank drift (<code>drift</code>); the recalibration baselines; mined-set statistics</td></tr>
+        <tr><td><code>results/scores/&lt;run&gt;.json</code></td><td>One score per evaluation item, by set, in the order of <code>results/evalset.json</code></td></tr>
+        <tr><td><code>results/evalset.json</code></td><td>Each evaluation set’s labels (<code>y</code>: 1 AI), kinds and item ids; no text</td></tr>
+        <tr><td><code>results/mined/&lt;arm&gt;_r&lt;k&gt;.json</code></td><td>The pages each round added: pool index, page id, score under the mining detector, how many sat above the cut; mirrors made (arm b)</td></tr>
+        <tr><td><code>results/interp.json</code>, <code>results/interpset.json</code></td><td>Per run and concept: probe and length-probe AUROC, the head check, the registered reliance readouts with 20 random directions, and the margin readout (<code>gap_sd</code>, <code>drop_sd</code>); the concept sets’ labels and ids</td></tr>
+        <tr><td><code>results/noise.json</code>, <code>results/judge_known.json</code>, <code>results/judge_known_qwen.json</code>, <code>results/ref_machine_check.json</code>, <code>results/ref_corp_check.json</code>, <code>results/fp_profile.json</code></td><td>Judged machine-made share per mined set; the judge’s known-answer checks (kept and rejected judge); the two blind reference checks; what round 0 flags on held-out web</td></tr>
+        <tr><td><code>results/predictions.json</code></td><td>The plan’s predictions, scored</td></tr>
+        <tr><td><code>results/pools.json</code>, <code>results/pool_by_dump_r0.json</code></td><td>Pool sizes, crawl dates and dumps, website overlap; round 0’s flag rate per crawl</td></tr>
+        <tr><td><code>results/train/&lt;run&gt;.json</code>, <code>results/val/&lt;run&gt;.json</code>, <code>results/spend.jsonl</code></td><td>Training summaries; validation scores; every paid call (reservation, then measured cost)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="cite" data-short="Cite">A.2 How to cite</h3>
+  <pre><code>Lie, A. (2026). Can a slop detector fix its own mistakes? Hard-negative rounds.
+steerlab. https://albertlieyingadrian.github.io/steerlab/experiments/slop-hard-negatives/report/</code></pre>
+</article>
+</div>
+<script src="data.js"></script>
+<script src="cut.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
