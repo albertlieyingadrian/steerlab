@@ -164,6 +164,8 @@ def fig3():
 
 def fig4(T):
     arms = ["k0", "k3_rand", "k3_match", "k8_rand", "note", "edits"]
+    if any(a == "edits_fixed" for _, a in T):  # amendment A5 rerun
+        arms.append("edits_fixed")
     M = np.full((len(MODELS), len(arms)), np.nan)
     for i, m in enumerate(MODELS):
         for j, a in enumerate(arms):
@@ -193,6 +195,7 @@ def fig4(T):
         "k8_rand": "8 random\nsamples",
         "note": "style\nnote",
         "edits": "3 more\nsamples*",
+        "edits_fixed": "3 samples +\nsim. edits\n(rerun)",
     }
     ax.set_xticks(range(len(arms)), [short[a] for a in arms], fontsize=8.5)
     ax.set_yticks(range(len(MODELS)), [LABEL[m] for m in MODELS])

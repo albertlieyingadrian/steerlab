@@ -14,7 +14,7 @@ import time
 import urllib.error
 import urllib.request
 
-from common import DATA, OPENROUTER_CAP, openrouter_allowed, record_spend, spent
+from common import DATA, OPENROUTER_CAP, openrouter_allowed, record_spend, series_spent, spent
 from gen import ARMS, chat_messages, jobs, load_aux
 
 PRICE = {  # batch $/M tokens (in, out), OpenRouter models list 2026-11-20 (half of sync)
@@ -80,7 +80,7 @@ if not a.poll:
     est = 1.2 * (est_in * pin + len(J) * (600 if "claude" in a.model else 400) * pout) / 1e6
     if not openrouter_allowed(est):
         raise SystemExit(
-            f"OpenRouter cap: spent ${spent():.2f} + est ${est:.2f} > ${OPENROUTER_CAP}. "
+            f"OpenRouter cap: series spent ${series_spent():.2f} + est ${est:.2f} > ${OPENROUTER_CAP}. "
             f"Fallback: python run_open.py Qwen/Qwen3-32B {a.split} ... (and say so in the note)"
         )
     r = call(
@@ -91,7 +91,9 @@ if not a.poll:
     pending.parent.mkdir(parents=True, exist_ok=True)
     pending.write_text(json.dumps(dict(id=r["id"], est=est, n=len(J))))
     record_spend("openrouter", est, f"RESERVED batch {r['id']} {slug} {a.split} n={len(J)}")
-    print(f"submitted {r['id']} ({len(J)} requests), est ${est:.2f}; ledger now ${spent():.2f}")
+    print(
+        f"submitted {r['id']} ({len(J)} requests), est ${est:.2f}; ledger now ${spent():.2f}, series ${series_spent():.2f}"
+    )
 else:
     while True:
         r = call("GET", f"/batches/{a.poll}")

@@ -13,7 +13,7 @@ DATA = HERE / "data"
 RAW = DATA / "raw"
 LEDGER = DATA / "spend.jsonl"
 OPENROUTER_CAP = (
-    8.00  # hard cap for the whole series (user, 2026-11-20); reaching it means "switch to Modal", not "stop"
+    9.00  # hard cap for the whole series (user: $8 on 2026-11-20, raised to $9 on 2026-11-22 for the edits rerun)
 )
 
 
@@ -120,6 +120,18 @@ def record_spend(provider, usd, note):
         fh.write(json.dumps(dict(t=time.time(), provider=provider, usd=round(usd, 6), note=note)) + "\n")
 
 
+def series_spent(provider="openrouter"):
+    """Spend across every Sounds Like Me ledger (this one, which Episodes 2-4 also write, plus add-ons such as
+    sounds-like-me-inkling/data/spend.jsonl). The $8 OpenRouter cap is for the whole series (2026-11-22)."""
+    total = 0.0
+    for ledger in sorted(HERE.parent.glob("sounds-like-me*/data/spend.jsonl")):
+        for line in ledger.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                total += r["usd"] if r.get("provider") == provider else 0.0
+    return total
+
+
 def openrouter_allowed(estimated_usd):
-    """True if this call fits under the hard cap. Callers must route to Modal when False."""
-    return spent("openrouter") + estimated_usd <= OPENROUTER_CAP
+    """True if this call fits under the hard series cap. Callers must route to Modal when False."""
+    return series_spent("openrouter") + estimated_usd <= OPENROUTER_CAP

@@ -18,6 +18,8 @@ from common import DATA, HERE, LEDGER
 CUT = json.loads((HERE / "results" / "ruler_detector.json").read_text())["cut_at_5pct_fpr"]
 RNG = np.random.default_rng(20261120)
 ARMS = ("k0", "k3_rand", "k3_match", "k8_rand", "note", "edits")
+from relabel_rerun import RERUN_ARM, RERUN_TAG  # amendment A5 (2026-11-22); not in ARMS, so P1-P7 stay as scored
+
 MATCH_NLL = 0.3  # the NLL tolerance the Part C tuning rule used (partc.MAX_NLL_RISE); "matched perplexity" for P4
 
 
@@ -54,8 +56,13 @@ def load():
         eps += d["episodes"]
         drafts += d["drafts"]
     for p in sorted((DATA / "honesty").glob("*__heldout.json")):
-        # job ids (author|brief|arm) repeat across models, so key by the file's model as well
-        hon[p.stem.split("__")[0]] = json.loads(p.read_text())
+        # job ids (author|brief|arm) repeat across models, so key by the file's model as well. The edits rerun
+        # (amendment A5) writes <model>-editsfix files whose job ids end in |edits_fixed: merge them into the model.
+        h = json.loads(p.read_text())
+        if p.stem.split("__")[0].endswith(RERUN_TAG) and any(not k.endswith(f"|{RERUN_ARM}") for k in h):
+            # honesty ran before relabel_rerun.py: its |edits keys would overwrite the published cells' entries
+            raise SystemExit(f"{p.name}: rerun honesty keys must end in |{RERUN_ARM}; run relabel_rerun.py first")
+        hon.setdefault(p.stem.split("__")[0].removesuffix(RERUN_TAG), {}).update(h)
     return eps, drafts, hon
 
 
@@ -95,7 +102,12 @@ def cell_table(eps, drafts, hon):
                 invented_relationship=round(float(np.mean([h["invented_relationship"] for h in hs])), 3)
                 if hs
                 else None,
-                usd_per_draft=round(batch[m] if m in batch else float(np.mean([r.get("usd", 0) or 0 for r in ds])), 5),
+                usd_per_draft=round(
+                    batch.get(
+                        m + RERUN_TAG if arm == RERUN_ARM else m, float(np.mean([r.get("usd", 0) or 0 for r in ds]))
+                    ),
+                    5,
+                ),
             )
         )
     return rows
@@ -281,11 +293,56 @@ def score_predictions(rows, eps=None, drafts=None):
     return P
 
 
+def paired(eps, model, arm_a, arm_b):
+    """arm_a - arm_b, strict position, paired over writers kept by the copy filter in both arms."""
+    pos = defaultdict(dict)
+    for e in eps:
+        if e["model"] == model and e["arm"] in (arm_a, arm_b) and not e["copy_flag"]:
+            pos[e["arm"]][e["author"]] = e["position"]
+    common = sorted(set(pos[arm_a]) & set(pos[arm_b]))
+    return dict(value_ci=boot([pos[arm_a][a] - pos[arm_b][a] for a in common]), n_authors=len(common))
+
+
+def edits_rerun(rows, eps):
+    """Amendment A5: the fixed edits arm against the published `edits` cell ("3 more samples*", the same 3 samples
+    without the pairs) and against k3_rand, per model that was rerun. P8 is Gemini's first contrast."""
+    T = {(r["model"], r["arm"]): r for r in rows}
+    out = {}
+    for m in sorted({r["model"] for r in rows if r["arm"] == RERUN_ARM}):
+        new, old = T[(m, RERUN_ARM)], T.get((m, "edits"))
+        out[m] = dict(
+            fixed=new,
+            vs_3_more_samples=paired(eps, m, RERUN_ARM, "edits"),
+            vs_k3_rand=paired(eps, m, RERUN_ARM, "k3_rand"),
+            three_more_samples=old,
+        )
+    p8 = None
+    if "gemini-4-carbon" in out:
+        v, lo, hi = out["gemini-4-carbon"]["vs_3_more_samples"]["value_ci"]
+        p8 = dict(
+            metric="Gemini 4 Carbon, edits_fixed - '3 more samples*' (same samples, no pairs), strict position, "
+            "paired over writers",
+            value=v,
+            interval=[lo, hi],
+            threshold="< +0.05",
+            hit=v is not None and v < 0.05,
+            reading="no detectable effect"
+            if lo is not None and lo <= 0 <= hi
+            else ("helped" if lo and lo > 0 else "hurt"),
+        )
+    return out, p8
+
+
 def main():
     eps, drafts, hon = load()
     rows = cell_table(eps, drafts, hon)
     (HERE / "results" / "leaderboard.json").write_text(json.dumps(rows, indent=1))
     P = score_predictions(rows, eps, drafts)
+    rerun, p8 = edits_rerun(rows, eps)
+    if rerun:
+        (HERE / "results" / "edits_rerun.json").write_text(json.dumps(rerun, indent=1))
+    if p8:
+        P["P8"] = p8
     (HERE / "results" / "predictions.json").write_text(json.dumps(dict(sorted(P.items())), indent=1))
     for r in rows:
         print(

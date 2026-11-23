@@ -47,5 +47,7 @@ runs on an open model on Modal instead.
 - Simulated edits are labelled as simulated everywhere. No reply outcome is simulated.
 - Correction (2026-11-22): the arm keyed `edits` in `results/` and `data/scored/` sent a second random draw of 3
   samples and no edit pairs (a template bug in `gen.chat_messages`), so the pages call it "3 more samples*".
+  The rerun with the pairs (amendment A5) is arm `edits_fixed`; its contrasts are in `results/edits_rerun.json` and
+  P8 in `results/predictions.json`.
 - The private board reads a sales tool's database read-only and writes only aggregate rates per writer model,
   for cells with at least 20 sent drafts from at least 5 reps. No text, names or ids leave the database.
