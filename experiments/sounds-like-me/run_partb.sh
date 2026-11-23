@@ -3,7 +3,9 @@
 # Usage (from experiments/sounds-like-me): MODAL_PROFILE=albertlieyingadrian bash run_partb.sh open|closed|closed-poll
 set -euo pipefail
 PY=../../.venv/bin/python
-ARMS6=k0,k3_rand,k3_match,k8_rand,note,edits
+# edits_nopairs rebuilds the published `edits` cells (no pairs; relabelled to edits below). The edits arm with its
+# pairs is the amendment A5 rerun in reproduce.sh step 3b.
+ARMS6=k0,k3_rand,k3_match,k8_rand,note,edits_nopairs
 ARMS4=k0,k3_rand,k3_match,k8_rand
 case "${1:-}" in
   open)
