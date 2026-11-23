@@ -27,6 +27,12 @@ NAMES = {
     "llama-3.1-8b": "Llama-3.1-8B",
     "modernbert-large": "ModernBERT-large (0.4B)",
     "deberta-v3-large": "DeBERTa-v3-large (0.4B)",
+    "gemma-3-12b": "Gemma-3-12B",
+    "qwen3-14b-base": "Qwen3-14B-Base",
+    "nemotron-30b-a3b": "Nemotron-3.5-30B-A3B",
+    "inkling-2-mini": "Inkling-2-Mini (Tinker, 1 ep.)",
+    "inkling-2-small": "Inkling-2-Small (Tinker, 1 ep.)",
+    "qwen3.5-9b-tinker": "Qwen3.5-9B (Tinker, 1 ep.)",
 }
 plt.rcParams.update(
     {
@@ -43,7 +49,7 @@ plt.rcParams.update(
 
 
 def colour(arm: str) -> str:
-    return CONTROL if arm.startswith("qwen") else ACCENT
+    return CONTROL if arm in ("qwen3.5-9b", "qwen3.5-4b") else ACCENT  # the earlier note's references
 
 
 def load() -> dict:
@@ -57,7 +63,7 @@ def dots(ax, arms: dict, split: str, title: str) -> None:
         c, lo, hi = sp["calibrated"], *sp["calibrated_ci"]
         ax.errorbar(c, i, xerr=[[c - lo], [hi - c]], fmt="o", color=colour(a), ms=6, capsize=2)
         ax.plot(sp["fixed"], i, "o", mfc="none", color=colour(a), ms=6)
-        ax.text(hi + 0.002, i, f"{c:.3f}", va="center", fontsize=8.5, color=INK)
+        ax.text(max(hi, sp["fixed"]) + 0.004, i, f"{c:.3f}", va="center", fontsize=8.5, color=INK)
         print(f"{split:11} {a:18} calibrated {c:.4f} [{lo:.4f}, {hi:.4f}]  fixed {sp['fixed']:.4f}")
     ax.set_yticks(range(len(order)), [NAMES[a] for a in order])
     ax.set_title(title, loc="left", fontsize=10, color=INK)
@@ -65,7 +71,7 @@ def dots(ax, arms: dict, split: str, title: str) -> None:
 
 
 def fresh(arms: dict) -> None:
-    fig, ax = plt.subplots(figsize=(7.4, 3.4))
+    fig, ax = plt.subplots(figsize=(7.4, 0.5 * len(arms) + 0.9))
     dots(ax, arms, "fresh", "6,000 fresh EditLens texts, one look per arm")
     ax.set_xlabel("3-way macro-F1 (filled: calibrated, 95% interval; hollow: fixed cut-offs)")
     fig.tight_layout()
@@ -73,7 +79,7 @@ def fresh(arms: dict) -> None:
 
 
 def ood(arms: dict) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.4), sharey=False)
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 0.5 * len(arms) + 0.9), sharey=False)
     dots(axes[0], arms, "test_enron", "Enron emails (unseen domain)")
     dots(axes[1], arms, "test_llama", "Llama-written text (unseen generator)")
     for ax in axes:
@@ -93,7 +99,7 @@ def cost(arms: dict) -> None:
         ax.annotate(NAMES[a].split(" (")[0], (c, y), xytext=(6, -3), textcoords="offset points", fontsize=8.5)
         print(f"cost {a:18} {c:6.1f} s per 1k texts on an H100, fresh {y:.4f}")
     ax.set_xscale("log")
-    ax.set_xlabel("H100 seconds per 1,000 texts (log scale)")
+    ax.set_xlabel("GPU seconds per 1,000 texts (log scale; H100, round 2 on H200)")
     ax.set_ylabel("fresh macro-F1, calibrated")
     ax.grid(color=RULE, lw=0.6)
     fig.tight_layout()
@@ -101,7 +107,7 @@ def cost(arms: dict) -> None:
 
 
 def family(arms: dict) -> None:
-    fig, ax = plt.subplots(figsize=(7.4, 3.4))
+    fig, ax = plt.subplots(figsize=(7.4, 0.5 * len(arms) + 0.9))
     order = list(arms)
     for i, a in enumerate(order):
         gf = arms[a]["generator_family"]
