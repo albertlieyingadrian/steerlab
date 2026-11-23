@@ -1,0 +1,20 @@
+1. Model Qwen/Qwen2.5-0.5B: 24 blocks, d_model 896; reading the residual stream after block 11 (blocks.11.hook_resid_post) on mps
+   token windows already on disk
+
+2. Attention sinks: median norm at position 0 (<|endoftext|>) 1,424.0; at text tokens 16.5 (86x); at an <|endoftext|> between two documents 12.7
+   median norm at positions 0-7: [1424.0, 16.9, 16.9, 16.8, 16.8, 16.8, 16.6, 16.7]
+   text tokens with a norm over 20x the median, in 256 windows: position 1: 24, position 2: 4, positions 3+: 0. So the first 3 positions are skipped.
+
+3. Normalisation: scale = sqrt(d_model / mean |x|²) = 1.8045, from 1,025,159 training tokens.
+   Held-out mean |x|²: raw 275.4, after scaling 896.6 (target 896).
+
+4. Storage: the training split has 4,068,110 text tokens. As float32 activations that is 14.6 GB (7.3 GB in bfloat16); as token ids it is 0.02 GB.
+   So training recomputes activations on the fly and mixes them in a shuffle buffer of about 0.5M tokens.
+   One batch from the buffer: (4096, 896), mean |x|² 896.9, largest raw norm 21.5
+
+Self-checks:
+  ✅ every window starts with <|endoftext|>
+  ✅ position 0 is an outlier worth dropping (86x the median text-token norm; bar > 20x)
+  ✅ no sink-sized activation after the first 3 positions (0 found)
+  ✅ after scaling, held-out mean |x|² is within 10% of 896 (897)
+  ✅ a batch has 4096 tokens and no outlier (largest raw norm 21 < 10x the median 17)

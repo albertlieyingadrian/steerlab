@@ -1,0 +1,21 @@
+1. Mistakes when training (small SAEs: 4,096 latents, k = 32, 3M tokens x 2 passes; held-out FVU and the share of latents that never fired on 250,000 tokens)
+   run                                        FVU  vs right  never fired
+   the right recipe (TopK k=32)            0.2396                   0.0%
+   no AuxK                                 0.2396   +0.0000         0.0%
+   learning rate 10x too high (4e-3)       0.2138   -0.0258        11.7%
+   learning rate 10x too low (4e-5)        0.4244   +0.1848         0.0%
+   no normalisation (raw activations)      0.2398   +0.0002         0.0%
+   attention sinks left in                 0.2402   +0.0006         0.2%
+   1/20 of the tokens                      0.5305   +0.2908         0.0%
+
+2. Mistakes when using the main SAE (held-out FVU)
+   right layer (block 11 output)                  0.1238
+   wrong layer, hidden_states[11]: block 10's output 0.2008  (1.6x the error)
+   wrong layer, hidden_states[13]: block 12's output 0.1927  (1.6x the error)
+   decoder bias forgotten                         0.5171  (4.2x the error)
+
+3. Too few tokens, from the main run's curve: train FVU 0.178 at 10M tokens, 0.123 at 102M
+   The attention sinks: position 0's activation is 86x the median text token; in 256 windows, 24 more sinks sat at position 1 and 4 at 2.
+
+Self-checks:
+  ❌ every training mistake is worse than the right recipe on FVU or dead latents

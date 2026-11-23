@@ -1,0 +1,40 @@
+
+1. Stored 3,000,000 training and 250,000 held-out activations from the residual stream after block 11
+   with the sinks left in, the largest norm in the training slice is 1,711 (without: 36)
+
+2. A. TopK at five values of k, BatchTopK at three, and ReLU + L1 at seven penalty strengths
+   TopK k=8                             L0    8.0  FVU 0.3537  never fired  24.4%  (15.7s)
+   TopK k=16                            L0   16.0  FVU 0.2880  never fired   1.4%  (15.7s)
+   TopK k=32                            L0   32.0  FVU 0.2396  never fired   0.0%  (15.8s)
+   TopK k=64                            L0   64.0  FVU 0.1986  never fired   0.0%  (16.0s)
+   TopK k=128                           L0  128.0  FVU 0.1598  never fired   0.0%  (16.3s)
+   BatchTopK k=16                       L0   16.1  FVU 0.2860  never fired   0.2%  (17.1s)
+   BatchTopK k=32                       L0   32.2  FVU 0.2372  never fired   0.0%  (17.2s)
+   BatchTopK k=64                       L0   64.4  FVU 0.1954  never fired   0.0%  (17.5s)
+   ReLU + L1, coefficient 0.5           L0  926.7  FVU 0.0995  never fired   0.0%  (13.0s)
+   ReLU + L1, coefficient 1             L0  460.6  FVU 0.1769  never fired   0.0%  (13.0s)
+   ReLU + L1, coefficient 2             L0  157.6  FVU 0.3053  never fired   0.0%  (12.9s)
+   ReLU + L1, coefficient 4             L0   23.3  FVU 0.5447  never fired   0.0%  (12.9s)
+   ReLU + L1, coefficient 8             L0    1.8  FVU 0.9934  never fired   0.0%  (12.7s)
+   ReLU + L1, coefficient 16            L0    1.0  FVU 1.0068  never fired   0.0%  (12.7s)
+   ReLU + L1, coefficient 32            L0    0.8  FVU 1.0070  never fired   0.0%  (12.7s)
+
+3. B. Mistakes, each against TopK k=32 (lr 4e-4, AuxK on, normalised, sinks dropped, 2 passes)
+   no AuxK                              L0   32.0  FVU 0.2396  never fired   0.0%  (15.6s)
+   learning rate 10x too high (4e-3)    L0   32.0  FVU 0.2138  never fired  11.7%  (17.8s)
+   learning rate 10x too low (4e-5)     L0   32.0  FVU 0.4244  never fired   0.0%  (15.9s)
+   no normalisation (raw activations)   L0   32.0  FVU 0.2398  never fired   0.0%  (15.9s)
+   attention sinks left in              L0   32.0  FVU 0.2402  never fired   0.2%  (20.2s)
+   1/20 of the tokens                   L0   32.0  FVU 0.5305  never fired   0.0%  (0.8s)
+
+4. Using the main SAE wrongly (held-out FVU):
+   right layer (block 11 output)                FVU 0.1238
+   wrong layer, hidden_states[11]: block 10's output FVU 0.2008
+   wrong layer, hidden_states[13]: block 12's output FVU 0.1927
+   decoder bias forgotten                       FVU 0.5171
+
+Self-checks:
+  ✅ TopK's FVU falls as k rises (0.354, 0.288, 0.240, 0.199, 0.160)
+  ✅ the L1 sweep spans L0 1 to 927 (covers 16-64)
+  ✅ at L0 = 32, TopK rebuilds better than ReLU + L1 (FVU 0.240 vs 0.505)
+  ✅ the wrong layers and the missing bias are all worse than the right use
