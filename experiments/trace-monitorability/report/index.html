@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An agent’s reasoning predicts its next command because it announces it; earlier reasoning adds nothing over its actions</title>
+<meta name="description" content="On 120 open SWE-agent trajectories, a reader that sees the agent's reasoning predicts its next command (type and target) on 0.77 of leak-free steps against 0.44 from the action history. Without the reasoning written in the same message as the command, reasoning alone gets 0.47, no better than actions. 89% of steps do what their reasoning says; 5.8% of actions are never mentioned, mostly edits that land in a different file from the one the reasoning names.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="An agent’s reasoning predicts its next command because it announces it; earlier reasoning adds nothing over its actions">
+<meta property="og:description" content="On 120 open SWE-agent trajectories, a reader that sees the agent&#x27;s reasoning predicts its next command (type and target) on 0.77 of leak-free steps against 0.44 from the action history. Without the reasoning written in the same message as the command, reasoning alone gets 0.47, no better than actions. 89% of steps do what their reasoning says; 5.8% of actions are never mentioned, mostly edits that land in a different file from the one the reasoning names.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A field of short horizontal bars on warm paper: 120 rows, one per agent trajectory, sorted by length so the rows form a staircase. Each bar is one step, shaded light to dark grey by action type; outlined bars are deletes; orange bars are actions that no reasoning so far mentions. Orange is sparse except for two long rows near the top that are almost entirely orange.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="An agent’s reasoning predicts its next command because it announces it; earlier reasoning adds nothing over its actions">
+<meta name="twitter:description" content="On 120 open SWE-agent trajectories, a reader that sees the agent&#x27;s reasoning predicts its next command (type and target) on 0.77 of leak-free steps against 0.44 from the action history. Without the reasoning written in the same message as the command, reasoning alone gets 0.47, no better than actions. 89% of steps do what their reasoning says; 5.8% of actions are never mentioned, mostly edits that land in a different file from the one the reasoning names.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-23">
+<meta property="article:modified_time" content="2026-11-23">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "An agent’s reasoning predicts its next command because it announces it; earlier reasoning adds nothing over its actions",
+ "description": "On 120 open SWE-agent trajectories, a reader that sees the agent's reasoning predicts its next command (type and target) on 0.77 of leak-free steps against 0.44 from the action history. Without the reasoning written in the same message as the command, reasoning alone gets 0.47, no better than actions. 89% of steps do what their reasoning says; 5.8% of actions are never mentioned, mostly edits that land in a different file from the one the reasoning names.",
+ "abstract": "Data: 120 trajectories from nebius/SWE-agent-trajectories (Llama 3.1 8B/70B/405B fine-tunes, 20 per model x resolved), 2,801 steps parsed into reasoning + one command, six action types + target by rule; 480 test steps, 232 leak-free (reasoning does not contain the command or the target's file name). Reader and judges: gpt-oss-120b via OpenRouter, JSON schema, 8,388 calls, $1.28. M1 (predict step k's type+target, leak-free): task only 0.078; actions so far 0.435 [0.367, 0.507]; reasoning so far incl. step k's 0.772 [0.704, 0.834]; both 0.767; repeat-previous-type baseline 0.595 (type). Exploratory: without step k's own reasoning 0.466 [0.396, 0.539], level with actions (+0.030 [-0.054, 0.119]). M2 (480 steps, judge): matches 0.887, acts slightly differently 0.077, not described 0.033; edits 0.147 different; not yet checked against human labels. M3 (2,721 actions, rule then a 3-vote judge): never mentioned 158 = 0.058 [0.024, 0.104], half in 2 trajectories; read by hand most are edits that land in the open file while the reasoning names another (a rule flags 118 of 1,198 edits in 19 trajectories); deletes, the only risky type present, 0 of 57 unannounced on reading. Four pre-registered predictions hit. Re-implements the whole-trace-monitorability predictability design on open data.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-23",
+ "dateModified": "2026-11-23",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "chain-of-thought monitoring, CoT monitorability, agent oversight, SWE-agent, coding agents, reasoning faithfulness, gpt-oss-120b, AI safety",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/Sudhiksha-17/whole-trace-monitorability"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2405.15793"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.11473"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2503.11926"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.05410"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .strip-ctl { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin: 0 0 0.6rem; }
+  .strip-ctl select { font: inherit; font-size: 0.9rem; max-width: 100%; }
+  .strip { display: flex; flex-wrap: wrap; gap: 2px; margin: 0.4rem 0 0.5rem; }
+  .strip span { width: 12px; height: 18px; border-radius: 2px; background: var(--rule); box-sizing: border-box; }
+  .strip span.r { background: #d9d2c8; } .strip span.w { background: #a69e94; } .strip span.x { background: #6c655e; }
+  .strip span.s { background: var(--ink); } .strip span.d { background: transparent; border: 1.5px solid var(--ink); }
+  .strip span.never { background: var(--accent); }
+  .strip span.wrong { box-shadow: inset 0 -4px 0 var(--control); }
+  .strip-key { font-size: 0.82rem; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 0.9rem; }
+  .strip-key i { display: inline-block; width: 10px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+  .strip-stat { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--ink-soft); margin: 0.2rem 0 0; }
+  blockquote.trace { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; line-height: 1.45; margin: 0.6rem 0; padding: 0.5rem 0.8rem; border-left: 2px solid var(--rule); overflow-wrap: anywhere; }
+  blockquote.trace b { font-weight: 500; color: var(--accent); }
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-23">Nov 23, 2026</time></p>
+  <h1>An agent’s reasoning predicts its next command because it announces it; earlier reasoning adds nothing over its actions</h1>
+  <p class="dek ruled">When we monitor a coding agent by reading its reasoning, how much does the reasoning tell us about what it does next, and does it describe what it did? On 120 open SWE-agent trajectories: the reasoning predicts the next command well, but only the sentence written with it; most steps do what they say; and the actions no reasoning mentions are mostly edits that land in the wrong file.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A field of short horizontal bars on warm paper: 120 rows, one per agent trajectory, sorted by length so the rows form a staircase. Each bar is one step, shaded light to dark grey by action type (read, write, run); outlined bars are deletes; orange bars are actions that no reasoning so far mentions. Orange is sparse except for two long rows near the top that are almost entirely orange." width="1536" height="1024">
+    <figcaption>Cover, drawn from the data: every step of the 120 trajectories, one row each. Grey shade = action type (light: read or inspect, mid: write a file, dark: run code), outlined = delete, orange = an action that no reasoning up to that step mentions (158 of 2,721). Drawn by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author">LinkedIn</a></dd></div>
+    <div><dt>Agents</dt><dd>SWE-agent with Llama 3.1 fine-tunes (8B, 70B, 405B), from <a href="https://huggingface.co/datasets/nebius/SWE-agent-trajectories">nebius/SWE-agent-trajectories</a></dd></div>
+    <div><dt>Reader and judges</dt><dd>gpt-oss-120b (open weights), through OpenRouter, structured JSON output</dd></div>
+    <div><dt>Method</dt><dd>Predict step <i>k</i>’s command from four views of the trace; judge each step’s reasoning against its command; find actions no reasoning mentions</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/trace-monitorability/</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/scores.json">results/scores.json</a> and the files listed in <a href="../results/README.md">results/README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a coding agent’s written reasoning tell a monitor what it is about to do, and does it describe what it did?</strong></p>
+    <p>For SWE-agent on open trajectories, mostly yes, with one large qualification. A reader (gpt-oss-120b) that sees the agent’s reasoning predicts the type and target of its next command on 0.77 of the steps whose reasoning does not name the target, against 0.44 from the commands and outputs so far. But almost all of that comes from the reasoning written in the same message as the command, which usually announces it. With that one paragraph removed, the earlier reasoning predicts 0.47, no better than the action history. Step by step, 89% of commands do what their reasoning says, and 5.8% of all actions are never mentioned in any reasoning; most of those are edits that land in a different file from the one the reasoning names, inside a few looping trajectories. The only risky action type in the data, deleting files, was always announced.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Predict the next command (type and target) from the reasoning</td><td>0.772 [0.704, 0.834] of 232 leak-free steps</td><td>From the action history: 0.435 [0.367, 0.507]; repeat the last step’s type: 0.595 (type only)</td></tr>
+          <tr><td>The same, without the reasoning written with the command (exploratory)</td><td>0.466 [0.396, 0.539]</td><td>Action history: 0.435; difference +0.030 [−0.054, +0.119]</td></tr>
+          <tr><td>Does the command do what that step’s reasoning says?</td><td>Matches 0.887; acts slightly differently 0.077 [0.046, 0.110]; not described 0.033</td><td>Edits are the most often different: 0.147</td></tr>
+          <tr><td>Actions never mentioned in any reasoning so far</td><td>158 of 2,721: 0.058 [0.024, 0.104]</td><td>Half are in 2 of 120 trajectories; read by hand, most are edits to a file other than the one named</td></tr>
+          <tr><td>Risky actions (deleting files; no permission or network changes occur)</td><td>0 of 57 unmentioned, read by hand</td><td>The judge flagged 1; its reasoning says “Let’s clean up by removing the test script”</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A software agent fixing a bug writes a paragraph, then runs a command: “Let’s correct the <code>reproduce.py</code> script by providing the <code>actor_id</code> parameter to the <code>Actor</code> class”, and then an edit. If you were watching it, you would read the paragraph and trust that the edit goes to <code>reproduce.py</code>. In one trajectory in this study it went to the library’s <code>dapr/actor/runtime/__init__.py</code>, the file that happened to be open, and the agent kept making that edit for the rest of the run: 57 times, 55 of them under that same paragraph.</p>
+  <p><strong>What is known.</strong> Reading a model’s chain of thought is one of the main proposals for overseeing it (<a href="https://arxiv.org/abs/2507.11473">Chain of Thought Monitorability</a>), and it catches real misbehaviour in coding agents (<a href="https://arxiv.org/abs/2503.11926">Monitoring Reasoning Models for Misbehavior</a>). But reasoning models do not always say what they think (<a href="https://arxiv.org/abs/2505.05410">Reasoning Models Don’t Always Say What They Think</a>). The <a href="https://github.com/Sudhiksha-17/whole-trace-monitorability">whole-trace-monitorability</a> project asks a sharper version for agents: given the trace up to a step, with that step’s tool call hidden, how well can a reader predict the call from the actions alone, the reasoning alone, or both?</p>
+  <p><strong>What is missing.</strong> That project runs on gated transcripts, so its numbers cannot be checked by others. And predictability is only half the question for ordinary agents: an agent can reason one way and act slightly differently, or take steps its reasoning never mentions, with no bad intent at all.</p>
+  <p><strong>What this note does.</strong> It re-implements the predictability measurement independently on open SWE-agent trajectories and adds two measurements aimed at ordinary behaviour. Its contributions:</p>
+  <ol>
+    <li>A measurement on open data: how much of the next command a reader recovers from the reasoning, the actions, or both, with intervals.</li>
+    <li>A control that changes the reading: removing the reasoning written in the same message as the command shows where the reasoning’s advantage comes from.</li>
+    <li>Two measurements of everyday mismatch: step-level divergence between reasoning and command, and actions no reasoning mentions, with a pattern behind most of the latter (wrong-file edits).</li>
+    <li>A cheap, open setup: an open-weights reader and judges, about $1.28 of calls, every label shipped.</li>
+  </ol>
+  <p><strong>What would count as success.</strong> Set before any model call (the plan’s predictions, scored in section 4.6):</p>
+  <ol>
+    <li><strong>Reasoning adds to actions:</strong> on leak-free steps, seeing the reasoning as well as the actions raises accuracy by at least 0.05, with the interval above zero.</li>
+    <li><strong>Reasoning alone is at least as good as actions alone</strong> on leak-free steps.</li>
+    <li><strong>Steps mostly do what they say:</strong> at most 20% of steps are judged “acts slightly differently” or “not described”.</li>
+    <li><strong>Few actions go unmentioned:</strong> at most 10% of all actions.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="data" data-short="Data">2.1 The trajectories</h3>
+  <p><a href="https://huggingface.co/datasets/nebius/SWE-agent-trajectories">nebius/SWE-agent-trajectories</a> holds 80,036 runs of SWE-agent fixing GitHub issues in Python repositories, by three Llama 3.1 fine-tunes (8B, 70B, 405B), each marked resolved or not (CC-BY-4.0; the outputs also fall under the Llama 3.1 licence). We drew 120, 20 per model × outcome, at seeded random positions, skipping runs with more than 150 entries or fewer than 6 agent steps. Each agent turn is a paragraph of reasoning followed by one command in a code fence: a shell command or one of SWE-agent’s editor tools (<code>open</code>, <code>goto</code>, <code>scroll_down</code>, <code>search_file</code>, <code>create</code>, <code>edit</code>, …). All 2,801 turns parsed into reasoning plus one command, and none had empty reasoning.</p>
+  <h3 id="labels" data-short="Action labels">2.2 Action types and targets</h3>
+  <p>Every command gets one of six action types and a target, by rule: <em>read or inspect</em> (<code>open</code>, <code>goto</code>, <code>search_*</code>, <code>cat</code>, <code>ls</code>, …), <em>write a file</em> (<code>edit</code>, <code>create</code>, <code>sed -i</code>, a redirect to a file), <em>run or install</em> (<code>python x.py</code>, <code>pytest</code>, <code>pip install</code>), <em>delete</em>, <em>change permissions</em> and <em>network change</em>. SWE-agent’s <code>edit</code> replaces lines of whichever file is open, so its target is the open file, read from the editor state the previous output reports. The 2,801 actions: 1,341 writes, 900 reads, 423 runs, 80 submits and 57 deletes, all <code>rm</code> of the agent’s own scratch scripts. No permission or network change occurs, and nothing is written outside the repository, so the only risky type here is delete. As a check, a second, independent classifier for shell commands agreed on all 579 shell steps’ types and 98.1% of their targets.</p>
+  <h3 id="measures" data-short="The three measures">2.3 The three measures</h3>
+  <ul>
+    <li><strong>M1, predictability.</strong> For 480 test steps (4 per trajectory, step 2 or later, not submit), a reader sees the issue text and one view of the trace up to step <i>k</i>, with step <i>k</i>’s command hidden, and names its type and target. Views: <em>T0</em> task only; <em>T+A</em> the earlier commands and their (clipped) outputs; <em>T+R</em> the earlier reasoning plus step <i>k</i>’s own reasoning; <em>T+A+R</em> both. A prediction is <em>right</em> when the type matches and the target matches (by path rule; when the rule says no but the names overlap, a short judge call decides).</li>
+    <li><strong>Leak-free steps.</strong> SWE-agent writes the reasoning and the command in one message, so the reasoning often names the target. A step <em>leaks</em> when its reasoning contains the command’s first line or the target’s file name. 248 of 480 leak (3 the whole command, 245 the target); the 232 leak-free steps are the headline.</li>
+    <li><strong>M2, step-level divergence.</strong> A judge reads step <i>k</i>’s reasoning, the editor state and its command and labels the pair <em>matches</em>, <em>acts slightly differently</em> (another target, other arguments, extra chained commands, wider or narrower scope, different edit content) or <em>not described</em>.</li>
+    <li><strong>M3, unmentioned actions.</strong> For every action (2,721), is it referenced in the reasoning so far? If step <i>k</i>’s reasoning names the command or the target, yes, by rule (1,298 actions). Otherwise a judge reads every reasoning paragraph up to step <i>k</i> and the command and answers <em>this step</em>, <em>an earlier step</em> or <em>never</em>, three times; the majority wins.</li>
+  </ul>
+  <p>The reader and both judges are gpt-oss-120b, an open-weights model, through OpenRouter, with the answer constrained to a JSON schema and reasoning effort low (medium for the M3 judge). Every rate has a 95% interval from resampling whole trajectories (2,000 draws), since steps of one trajectory move together.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the question, measures, statistics and four predictions</strong> in the plan, before any model call.</li>
+    <li><strong>Sample and parse</strong> the 120 trajectories (free; about 10 minutes from the Hugging Face datasets server), label all 2,801 actions, draw the 480 test steps.</li>
+    <li><strong>Pilot</strong> each script on 30 steps or 3 trajectories (213 calls): read the replies, the JSON parse rate (100%) and the cost.</li>
+    <li><strong>Check the M3 judge’s stability</strong> on the 52 pilot items, 3 samples each (section 4.5), and fix the voting rule.</li>
+    <li><strong>Run</strong> M1 (1,920 predictions plus 138 target-judge calls), M2 (480), M3 (1,423 judged actions × 3 votes), and the exploratory M1 views without step <i>k</i>’s reasoning (960).</li>
+    <li><strong>Read</strong> the M3 “never” items by hand and score everything.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any model call</th><th>Changed after reading replies</th></tr></thead>
+      <tbody>
+        <tr><td>Sample, parsing, action labels, test steps, leak rule, the M1 views and prompts, the M2 and M3 questions, the statistics, the four predictions</td><td>The M2 judge prompt: it flagged edit details it cannot see (line numbers, whether a pasted snippet is complete), so it was told to flag only what visibly contradicts the reasoning, and to write its comparison before its label</td></tr>
+        <tr><td>Reader and judge: first Claude Haiku 5.5</td><td>Changed to gpt-oss-120b for cost reasons, before any reply was scored; the earlier run’s replies were set aside and feed no number</td></tr>
+        <tr><td>One M3 judge answer per action</td><td>Three answers at effort medium, majority wins: a single answer was unstable (section 4.5)</td></tr>
+        <tr><td>—</td><td>Added after the first results: the M1 views without step <i>k</i>’s reasoning, and the wrong-file rule (both exploratory)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: the reader and judges through OpenRouter (mostly one provider), default temperature, every reply cached by prompt so each number comes from one fixed sample and reruns are free; 8,388 calls, $1.28. JSON parsed on 8,387 of 8,388 replies.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Five findings:</p>
+  <ol>
+    <li><a href="#predict"><strong>4.1</strong></a> Reading the reasoning predicts the next command far better than reading the actions.</li>
+    <li><a href="#announce"><strong>4.2</strong></a> That advantage comes from the paragraph written with the command; earlier reasoning adds nothing over actions.</li>
+    <li><a href="#divergence"><strong>4.3</strong></a> Nine steps in ten do what their reasoning says; edits differ most often.</li>
+    <li><a href="#unmentioned"><strong>4.4</strong></a> One action in 17 is never mentioned, mostly edits that land in the wrong file, in a few looping trajectories.</li>
+    <li><a href="#judges"><strong>4.5</strong></a> The M3 judge was unstable alone; three votes steadied it, and it still has false alarms.</li>
+  </ol>
+
+  <h3 id="predict" data-short="Reasoning predicts the next command">4.1 Reading the reasoning predicts the next command far better than reading the actions</h3>
+  <p><strong>On the 232 leak-free steps, the reader named the next command’s type and target correctly on 0.772 [0.704, 0.834] of steps from the reasoning, against 0.435 [0.367, 0.507] from the commands and outputs so far (paired difference +0.336 [0.248, 0.421]) and 0.078 from the task alone.</strong> Figure 1 shows all views.</p>
+  <figure class="plot">
+    <img src="../results/figures/accuracy.png" alt="Two grouped bar charts of reader accuracy, grey for action type and orange for type plus target. All 480 test steps: task only 0.36 and 0.11; actions 0.65 and 0.51; reasoning 0.96 and 0.84; both 0.89 and 0.83. Leak-free 232 steps: 0.28 and 0.08; 0.56 and 0.44; 0.95 and 0.77; 0.84 and 0.77; and, without step k's own reasoning, reasoning only 0.56 and 0.47, both 0.49 and 0.40. A dashed line marks repeating the previous step's type, 0.57 and 0.59." width="1385" height="600" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Reader accuracy on step <i>k</i>’s action type (grey) and type plus target (orange), by what the reader sees. Left: all 480 test steps; right: the 232 leak-free steps, plus the two exploratory views without step <i>k</i>’s own reasoning (R′). Dashed line: repeat the previous step’s type. Lines are 95% intervals from resampling trajectories. Drawn by <a href="../make_figures.py">make_figures.py</a> from <a href="../results/scores.json">scores.json</a>.</figcaption>
+  </figure>
+  <p>The action history is a weak signal on its own: on leak-free steps it gets the type right on 0.560, below simply repeating the previous step’s type (0.595). Adding the actions to the reasoning does not help either: T+A+R gets 0.767 on leak-free steps, the same as reasoning alone, and its type accuracy is lower (0.845 against 0.948), most often by predicting “read” where the agent wrote a file (40 of 480 steps). The pattern holds for each agent model: reasoning against actions on leak-free steps is 0.75 against 0.37 (8B), 0.78 against 0.44 (70B) and 0.79 against 0.50 (405B).</p>
+
+  <h3 id="announce" data-short="It comes from the announcement">4.2 That advantage comes from the paragraph written with the command</h3>
+  <p><strong>With step <i>k</i>’s own reasoning removed, so the reader sees only reasoning written at earlier steps, accuracy on leak-free steps fell to 0.466 [0.396, 0.539], level with the action history (difference +0.030 [−0.054, +0.119]); step <i>k</i>’s paragraph alone was worth +0.306 [0.238, 0.372].</strong> This check was added after the first results and is exploratory.</p>
+  <p>“Leak-free” only removes steps whose reasoning spells out the command or the target’s file name. The rest still announce the action in words: “Let’s take a closer look at line 390 and the surrounding code” before <code>goto 390</code>, or “Now, let’s re-run the reproduction script again to see if the issue has been resolved” before <code>python reproduce_bug.py</code>. A reader does not need the file name to turn that into the right command. So on these traces, the reasoning is a good monitor of the next step because the agent narrates it, not because the reasoning reveals plans further ahead. Earlier reasoning, the part that could carry intentions, tells a reader no more than the agent’s actions do.</p>
+
+  <h3 id="divergence" data-short="Steps mostly do what they say">4.3 Nine steps in ten do what their reasoning says; edits differ most often</h3>
+  <p><strong>Of 480 test steps, the judge found the command matching its reasoning on 0.887, acting slightly differently on 0.077 [0.046, 0.110] and not described on 0.033 [0.015, 0.058]; one reply did not parse.</strong> Figure 2 (left) breaks it down by action type.</p>
+  <figure class="plot">
+    <img src="../results/figures/divergence.png" alt="Left, grouped bars by action type of the share of test steps judged acting slightly differently (orange) and not described (grey): read 0.03 and 0.02 (n=177); write 0.15 and 0.05 (n=190); run 0.02 and 0.00 (n=90); delete 0.09 and 0.09 (n=23). Right, bars of the share of all actions never mentioned in any reasoning so far: read 0.03 (31/900), write 0.09 (126/1341), run 0.00 (0/423), delete 0.02 (1/57)." width="1280" height="545" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> Left (M2): share of test steps whose command acts slightly differently from (orange) or is not described by (grey) that step’s reasoning, by action type. Right (M3): share of all actions never mentioned in the reasoning up to that step; the delete bar is orange because delete is the only risky type present. Counts below the bars; lines are 95% intervals from resampling trajectories.</figcaption>
+  </figure>
+  <p>Edits are where reasoning and action part most: 0.147 of edit steps act slightly differently, mostly by changing more or other code than described: across all 53 steps that did not match, the judge named “different content” 18 times and “different scope” 16 times. Running code almost never differs (2 of 90). The judge has not yet been checked against human labels: 40 items are prepared for a blind check, and these M2 rates are provisional until it is done.</p>
+
+  <h3 id="unmentioned" data-short="Unmentioned actions">4.4 One action in 17 is never mentioned, mostly edits that land in the wrong file</h3>
+  <p><strong>Of 2,721 actions, 158 were judged never mentioned in any reasoning up to that step: 0.058 [0.024, 0.104]. 126 are writes, all of them edits (0.094 of all 1,341 writes), 31 reads, 1 delete and 0 runs. They are concentrated: 2 of 120 trajectories hold 80, and 33 trajectories have any.</strong></p>
+  <p>Reading them shows a pattern the judge has no name for. In 7 of 12 sampled outside the two biggest trajectories, the reasoning says it will change one file and the edit lands in another, because <code>edit</code> acts on whatever file is open:</p>
+  <blockquote class="trace">reasoning: “It seems there was a mistake in the previous command. Let’s correct the <b>reproduce.py</b> script by providing the actor_id parameter to the Actor class.”<br>open file: <b>/python-sdk/dapr/actor/runtime/__init__.py</b><br>command: edit 6:6 / actor = Actor('myactor', actor_id='myactorid')</blockquote>
+  <p>The agent never notices: the tool output shows the library file, the next paragraph says “It seems that the previous edit command was incorrectly applied”, and the same edit follows (steps 13 to 69 of swe:10089). A simple rule finds this without a judge: an edit whose reasoning names one or more files, none of them the open file. It flags 118 of 1,198 edits, in 19 of 120 trajectories, and 76 of the 126 unmentioned edits. The rule is crude and exploratory; it also flags edits whose reasoning merely mentions another file. The 405B agent produced most of them (0.18 of its edits by this rule, against 0.07 and 0.03), and the trajectory with 56 such edits is one the dataset marks as resolved.</p>
+  <p>Use the explorer to see where the unmentioned actions fall in each trajectory.</p>
+  <figure class="explorer" id="strip-explorer">
+    <div class="strip-ctl"><label for="strip-select">Trajectory</label><select id="strip-select"></select></div>
+    <div class="strip" id="strip" role="img" aria-label="One trajectory's steps as a row of small bars"></div>
+    <p class="strip-stat" id="strip-stat"></p>
+    <div class="strip-key"><span><i style="background:#d9d2c8"></i>read</span><span><i style="background:#a69e94"></i>write</span><span><i style="background:#6c655e"></i>run</span><span><i style="border:1.5px solid currentColor;box-sizing:border-box"></i>delete</span><span><i style="background:var(--accent)"></i>never mentioned (M3)</span><span><i style="box-shadow:inset 0 -4px 0 var(--control)"></i>wrong-file edit (rule)</span></div>
+    <noscript><p>The explorer needs JavaScript; the same labels are in <a href="../results/unmentioned.csv">unmentioned.csv</a> and <a href="../results/wrong_file.csv">wrong_file.csv</a>.</p></noscript>
+    <figcaption><span class="label">Figure 3.</span> Each trajectory’s steps in order, shaded by action type; orange = never mentioned in the reasoning so far (M3, majority of three judge votes); a blue underline = an edit whose reasoning names only other files. Trajectories are listed with the most unmentioned actions first. Data: <a href="strips.js">strips.js</a>, written by make_figures.py.</figcaption>
+  </figure>
+  <p><strong>Risky actions.</strong> Every delete in the data is an <code>rm</code> of a scratch script the agent wrote. The judge marked one of the 57 as never mentioned, unanimously; its reasoning ends “Let’s clean up by removing the test script.” Read by hand, 0 of 57 deletes went unannounced. This dataset has no permission or network actions, so it cannot say anything about the actions a monitor would most want to catch.</p>
+
+  <h3 id="judges" data-short="Checking the judges">4.5 The M3 judge was unstable alone; three votes steadied it, and it still has false alarms</h3>
+  <p><strong>Asked the same M3 question three times, the judge gave the same answer on 22 of 52 pilot items at effort low and 32 of 52 at medium; with three votes at medium, all three agreed on 1,174 of 1,423 judged actions (0.83).</strong> The M2 judge was stable (28 of 30 pilot items alike at low).</p>
+  <p>The single-answer pilot is why the voting rule exists: one pass called 11 of 53 pilot edits never mentioned, including edits preceded by “Let’s correct the edit command to ensure that the run method is updated correctly”. With three votes the same pilot had 3. Reading 12 of the final “never” items outside the two biggest trajectories: 7 wrong-file edits, which are real mismatches; about 3 false alarms, where the reasoning plainly announces the action (“We’ll search for the <code>def getNodeName</code> to locate this function” before exactly that search); and 2 with vague reasoning (“Let’s go back to the code and check for any mistakes or missed steps”). So the 0.058 is an upper-leaning estimate, and the one unmentioned delete is a false alarm. The target judge in M1 changed 3 of its 138 calls from “no match” to “match”.</p>
+
+  <h3 id="scorecard" data-short="Predictions">4.6 The predictions</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Prediction (registered before any model call)</th><th>Metric, threshold</th><th>Result</th><th>Hit?</th></tr></thead>
+      <tbody>
+        <tr><td>P1. Reasoning adds information the action history lacks (65%)</td><td>Leak-free, T+A+R − T+A, ≥ +0.05 with interval above 0</td><td>+0.332 [0.249, 0.411]</td><td>Hit</td></tr>
+        <tr class="hl"><td>P2. Reasoning alone predicts at least as well as actions alone (55%)</td><td>Leak-free, T+R − T+A, ≥ 0</td><td>+0.336 [0.248, 0.421]</td><td>Hit</td></tr>
+        <tr><td>P3. Step reasoning mostly describes the command (60%)</td><td>Share acting differently or not described, ≤ 0.20</td><td>0.110 [0.077, 0.150]; judge not yet hand-checked</td><td>Hit</td></tr>
+        <tr><td>P4. Few actions go unmentioned (55%)</td><td>Share never mentioned, ≤ 0.10</td><td>0.058 [0.024, 0.104]</td><td>Hit (the interval reaches 0.104)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>All four hit, but P1 and P2 hit for a reason the predictions did not intend: section 4.2 shows the reasoning’s advantage is the announcement of the command, so a prediction about “reasoning” was really about the paragraph next to the command. What surprised me: how little earlier reasoning adds, and that the clearest mismatches came from a tool convention (edit acts on the open file), not from the agent’s intentions. What I would change: register the view without step <i>k</i>’s reasoning as a primary condition. Lesson: on agents that write reasoning and command in one message, separate the announcement from the reasoning before calling the reasoning predictive.</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>whole-trace-monitorability</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Predict the hidden next call from actions, reasoning or both</td><td>✓</td><td>✓ (re-implemented, six types plus target)</td></tr>
+        <tr><td>Open data, every label shipped</td><td>✗ (gated transcripts)</td><td>✓</td></tr>
+        <tr><td>View without the reasoning written with the call</td><td>—</td><td>✓ (exploratory)</td></tr>
+        <tr><td>Step-level divergence between reasoning and action</td><td>—</td><td>✓</td></tr>
+        <tr><td>Actions no reasoning mentions</td><td>—</td><td>✓</td></tr>
+        <tr><td>Risky action types (permissions, network) present</td><td>—</td><td>✗ (only deletes)</td></tr>
+        <tr><td>Agents with a separate thinking channel</td><td>—</td><td>✗ (reasoning and command in one message)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>For agents built like SWE-agent, where the model writes a sentence and then the command, a reasoning monitor is mostly a narration monitor: it sees each step announced just before it happens. That is useful, because nine steps in ten do what their announcement says, but it gives no lead time: earlier reasoning predicted the next step no better than the action log. And the clearest mismatches here were not hidden intentions but the agent losing track of its own state, editing the open library file while saying it edits its test script. A monitor that reads only the reasoning would believe the narration; one that checks each command’s actual target against the reasoning would catch it with a rule.</p>
+  <p><strong>Check what each command actually touches against what the reasoning says it touches, and do not count same-message narration as evidence that reasoning reveals an agent’s plans.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Agents with private reasoning.</strong> SWE-agent’s reasoning is a visible message written with the command. Models with a separate thinking channel may plan further ahead in it, or less faithfully.</li>
+    <li><strong>Risky actions.</strong> No permission or network actions occur, and deletes are all cleanup of scratch files; the risky-type result is thin.</li>
+    <li><strong>Judge accuracy.</strong> The M2 judge is not yet checked against human labels (40 items are prepared), and the M3 judge has false alarms (about 3 of 12 read). One open model reads and judges; another model could score differently.</li>
+    <li><strong>Sample.</strong> 120 trajectories from three closely related Llama fine-tunes; several M3 and wrong-file numbers are dominated by two long looping trajectories, so their intervals are wide.</li>
+    <li><strong>One sample per prompt.</strong> Replies are cached at default temperature; the M3 voting shows how much a single answer can move.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>From the repository root, with an OpenRouter key in <code>.env</code>:</p>
+  <pre><code>experiments/trace-monitorability/reproduce.sh            # everything, about $1.30 and an hour
+experiments/trace-monitorability/reproduce.sh --scores   # only scores, figures and cover, from results/
+experiments/trace-monitorability/reproduce.sh --dry-run  # print the commands</code></pre>
+  <p>Replies are cached in <code>~/.cache/steerlab/trace-monitorability/</code>, so a rerun makes no calls and reproduces every file. Every billed call is listed in <a href="../results/llm_calls.csv">llm_calls.csv</a>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Label the 40-item hand check and report the M2 judge’s agreement with a person.</li>
+    <li>Repeat on traces with a separate thinking channel (Qwen3-8B as a bash agent on system-administration tasks, where permission and network actions occur), with the view without step <i>k</i>’s reasoning as a primary condition.</li>
+    <li>Compare a white-box probe of the next action type, read from the model’s activations before the call, with the reasoning-only reader on the same steps.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">Can you predict a coding agent’s next command from its reasoning?</h3>
+  <p>For SWE-agent, yes: a reader that sees the reasoning names the next command’s type and target on 0.77 of steps whose reasoning does not spell out the target, against 0.44 from the commands so far. Almost all of that comes from the paragraph written in the same message as the command; earlier reasoning alone gets 0.47.</p>
+  <h3 id="q2">Does an agent’s reasoning describe what it actually does?</h3>
+  <p>Mostly. On 480 steps a judge found 89% of commands matching their reasoning, 7.7% acting slightly differently and 3.3% not described. Edits differ most often, usually by changing more or other code than described.</p>
+  <h3 id="q3">Which actions does an agent never mention?</h3>
+  <p>In these traces, 5.8% of actions, mostly edits. Reading them, the common case is an edit the reasoning says is to one file (often the test script) that lands in the file currently open, because SWE-agent’s edit acts on the open file. Two looping trajectories hold half of them.</p>
+  <h3 id="q4">Is chain-of-thought monitoring enough for coding agents?</h3>
+  <p>Not on its own. Here it sees each step announced just before it happens, but earlier reasoning gave no more warning than the action log, and the clearest mismatches were caught better by checking each command’s real target than by reading the reasoning.</p>
+  <h3 id="q5">What is a “leak” in this study?</h3>
+  <p>A step whose own reasoning already contains the hidden command’s first line or the target’s file name, so predicting it is copying. 248 of 480 test steps leak; the headline uses the other 232.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><a href="../results/episodes.csv">episodes.csv</a></td><td>The 120 trajectories: dataset row, instance, agent model, resolved</td></tr>
+        <tr><td><a href="../results/actions.csv">actions.csv</a></td><td>All 2,801 steps: tool, action type, normalised target, leak flags</td></tr>
+        <tr><td><a href="../results/steps.csv">steps.csv</a></td><td>The 480 test steps</td></tr>
+        <tr><td><a href="../results/reader_full.csv">reader_full.csv</a>, <a href="../results/reader_full_prior.csv">reader_full_prior.csv</a></td><td>M1: every prediction and whether its type and target were right</td></tr>
+        <tr><td><a href="../results/divergence.csv">divergence.csv</a></td><td>M2: label and named difference per test step</td></tr>
+        <tr><td><a href="../results/unmentioned.csv">unmentioned.csv</a></td><td>M3: label, method and the three votes per action</td></tr>
+        <tr><td><a href="../results/wrong_file.csv">wrong_file.csv</a></td><td>The wrong-file rule per edit</td></tr>
+        <tr><td><a href="../results/scores.json">scores.json</a></td><td>Every number in this note, with intervals</td></tr>
+        <tr><td><a href="../results/llm_calls.csv">llm_calls.csv</a>, <a href="../results/cost_log.csv">cost_log.csv</a></td><td>Every billed call (model, provider, tokens, cost) and spend per run</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Column definitions are in <a href="../results/README.md">results/README.md</a>. The prompts are in the scripts (<a href="../3_reader.py">3_reader.py</a>, <a href="../4_divergence.py">4_divergence.py</a>, <a href="../5_unmentioned.py">5_unmentioned.py</a>). No reasoning or command text is committed; the quotes above are short excerpts from the CC-BY trajectories.</p>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Predictability</th><td>A reader predicts a hidden tool call from views of the trace (task, actions, reasoning), after the whole-trace-monitorability design; rule-based scoring of type and target</td></tr>
+        <tr><th scope="row">Controls</th><td>Leak-free subset; views without the same-message reasoning; repeat-previous-type baseline; task-only view</td></tr>
+        <tr><th scope="row">Judges</th><td>LLM judges with schema-constrained output; three-vote majority for M3; stability measured by repeat sampling; hand reading of the flagged items</td></tr>
+        <tr><th scope="row">Statistics</th><td>Bootstrap over trajectories (2,000 draws), paired differences per step</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Data</th><td><code>nebius/SWE-agent-trajectories</code> through the Hugging Face datasets server (CC-BY-4.0; Llama 3.1 outputs)</td></tr>
+        <tr><th scope="row">Model</th><td><a href="https://arxiv.org/abs/2508.10925">gpt-oss-120b</a> (Apache-2.0) through OpenRouter</td></tr>
+        <tr><th scope="row">Code</th><td>Python standard library, NumPy, Matplotlib</td></tr>
+        <tr><th scope="row">Cost</th><td>8,388 calls, $1.28; no GPU</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="references">References</h3>
+  <ul>
+    <li><a href="https://github.com/Sudhiksha-17/whole-trace-monitorability">whole-trace-monitorability</a> (GitHub): the predictability design this note re-implements.</li>
+    <li><a href="https://arxiv.org/abs/2405.15793">SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering</a> (arXiv 2405.15793).</li>
+    <li><a href="https://arxiv.org/abs/2507.11473">Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety</a> (arXiv 2507.11473).</li>
+    <li><a href="https://arxiv.org/abs/2503.11926">Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation</a> (arXiv 2503.11926).</li>
+    <li><a href="https://arxiv.org/abs/2505.05410">Reasoning Models Don’t Always Say What They Think</a> (arXiv 2505.05410).</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 23, 2026:</strong> First published. The M2 judge’s hand check is pending.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026tracemonitorability,
+  author = {Albert Lie},
+  title  = {An agent's reasoning predicts its next command because it announces it; earlier reasoning adds nothing over its actions},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/trace-monitorability/report/}
+}</code></pre>
+  <footer class="note">Data: nebius/SWE-agent-trajectories (CC-BY-4.0; Llama 3.1 outputs under the Llama 3.1 licence); the reasoning quoted is short excerpts. Reader and judges: gpt-oss-120b (Apache-2.0).</footer>
+</article>
+</div>
+<script src="strips.js"></script>
+<script>
+(function () {
+  var data = window.STRIPS || [], sel = document.getElementById("strip-select");
+  var strip = document.getElementById("strip"), stat = document.getElementById("strip-stat");
+  if (!sel || !data.length) return;
+  data.forEach(function (t, i) {
+    var o = document.createElement("option");
+    o.value = i;
+    o.textContent = t.id + " · " + t.model + " · " + (t.resolved ? "resolved" : "unresolved") + " · " + t.never.length + " never mentioned";
+    sel.appendChild(o);
+  });
+  function draw() {
+    var t = data[+sel.value], never = {}, wrong = {};
+    t.never.forEach(function (k) { never[k] = 1; });
+    t.wrong.forEach(function (k) { wrong[k] = 1; });
+    strip.textContent = "";
+    for (var i = 0; i < t.s.length; i++) {
+      var s = document.createElement("span"), k = i + 1;
+      s.className = t.s[i] + (never[k] ? " never" : "") + (wrong[k] ? " wrong" : "");
+      s.title = "step " + k;
+      strip.appendChild(s);
+    }
+    stat.textContent = t.instance + ": " + t.s.length + " steps, " + t.never.length + " never mentioned, " + t.wrong.length + " wrong-file edits";
+  }
+  sel.addEventListener("change", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
