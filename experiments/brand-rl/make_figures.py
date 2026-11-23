@@ -63,7 +63,7 @@ def save(fig, name):
 def fig1(S, runs):
     panels = [
         ("reward_strict", "Rewarded rules\n(strict pass)"),
-        ("heldout_strict", "Held-out rules\n(strict pass)"),
+        ("heldout_strict", "Rules hidden from\nthe reward (strict pass)"),
         ("fidelity_strict", "Brief texts\n(strict fidelity)"),
         ("vacuous", "Rewarded rules with\nnothing to check"),
         ("kl", "KL to base\n(per token)"),
@@ -91,7 +91,7 @@ def fig1(S, runs):
 def fig2(S):
     rows = [
         ("d_reward_strict", "Rewarded rules, strict pass"),
-        ("d_heldout_strict", "Held-out rules, strict pass"),
+        ("d_heldout_strict", "Rules hidden from the reward, strict pass"),
         ("d_vacuous", "Rewarded rules with nothing to check"),
         ("d_fidelity_strict", "Brief texts, strict"),
         ("d_slop_p", "Markup slop probe P(AI)"),
@@ -156,7 +156,7 @@ def fig3(S, runs):
     ax.set_xticks(
         range(len(cols)), [run_label(c.replace(":final", "")) for c in cols], fontsize=7, rotation=45, ha="right"
     )
-    ax.set_yticks(range(len(fams)), [f + (" (held out)" if f in split["heldout"] else "") for f in fams], fontsize=7)
+    ax.set_yticks(range(len(fams)), [f + (" (hidden)" if f in split["heldout"] else "") for f in fams], fontsize=7)
     ax.axhline(len(split["reward"]) - 0.5, color=ACCENT, lw=1.5)
     ax.set_title(
         "Strict pass rate per rule family, held-out pages (darker = more failures; n/a = never applies)", fontsize=8

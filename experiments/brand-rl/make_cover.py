@@ -61,9 +61,9 @@ def cover_svg(cfg) -> str:
     b.append(t(182, 132, "underlined", 15, 800, INK, italic=True))
     b.append(t(268, 132, "by default.”", 15, 400, INK, italic=True))
     b.append(t(34, 160, "“blue”: rule LINK-COL, in the reward", 11, 700, INK2))
-    b.append(t(34, 180, "“underlined”: rule LINK-UL, held out of every reward", 11, 700, INK2))
+    b.append(t(34, 180, "“underlined”: rule LINK-UL, kept hidden from the reward", 11, 700, INK2))
     b.append(rect(20, 222, 410, 200, "#ffffff", LINE, 1, 6))
-    b.append(t(34, 244, "ALL FIVE HELD-OUT RULES, STRICT PASS (HELD-OUT BRIEFS)", 9.5, 700, MUTED, ls="0.08em"))
+    b.append(t(34, 244, "ALL FIVE HIDDEN RULES, STRICT PASS (HELD-OUT BRIEFS)", 9.5, 700, MUTED, ls="0.08em"))
     yy = 258
     rows = [("untrained", H["base"]["heldout_strict"]["mean"], GREY)]
     rows += [
@@ -81,7 +81,7 @@ def cover_svg(cfg) -> str:
     x0, y = 470, 96
     for fam, title, colour in (
         ("LINK-COL", "Links in the brand colour (rewarded)", EMBER),
-        ("LINK-UL", "Links underlined (held out)", EMBER),
+        ("LINK-UL", "Links underlined (hidden rule)", EMBER),
     ):
         b.append(t(x0, y, f"{title}: strict pass, held-out", 11.5, 700, INK2))
         rows = [("untrained", H["base"][f"fam_strict_{fam}"]["mean"], GREY)]
@@ -95,8 +95,8 @@ def cover_svg(cfg) -> str:
     b.append(caps("QWEN3-4B · GRPO · 200 STEPS · REWARD = EPISODE 5'S PROOF ARTIFACT · 96 HELD-OUT BRIEFS × 4 PAGES"))
     label = (
         "Left: GOV.UK line G62, 'Links are blue and underlined by default'; the colour half is a rewarded rule, the "
-        "underline half is held out of every reward. Right: strict pass rates of the two rules on held-out pages "
-        "for the untrained model and the final checkpoint of each CHECK, ENV and TEAM run; bottom left, all five held-out rules."
+        "underline half is kept hidden from the reward. Right: strict pass rates of the two rules on held-out pages "
+        "for the untrained model and the final checkpoint of each CHECK, ENV and TEAM run; bottom left, all five rules kept hidden from the reward."
     )
     return svg("".join(b), label, "rl-cover")
 
