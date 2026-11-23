@@ -26,14 +26,28 @@ labels = {r["id"]: r for r in al["latents"]}
 rows = []
 for lat in it["latents"]:
     lab = labels.get(lat["id"], {})
-    rows.append({"id": lat["id"], "chosen": lat.get("chosen"), "freq": lat["freq"], "max": lat["max"],
-                 "label": lab.get("label"), "acc": lab.get("accuracy"), "acc_wrong": lab.get("accuracy_wrong_label"),
-                 "up": lat["logit_up"][:8], "down": lat["logit_down"][:8], "hist": lat["hist"],
-                 "top": [{"t": sn["tokens"], "a": sn["acts"], "at": sn["at"], "v": sn["value"]} for sn in lat["top"]]})
+    rows.append(
+        {
+            "id": lat["id"],
+            "chosen": lat.get("chosen"),
+            "freq": lat["freq"],
+            "max": lat["max"],
+            "label": lab.get("label"),
+            "acc": lab.get("accuracy"),
+            "acc_wrong": lab.get("accuracy_wrong_label"),
+            "up": lat["logit_up"][:8],
+            "down": lat["logit_down"][:8],
+            "hist": lat["hist"],
+            "top": [{"t": sn["tokens"], "a": sn["acts"], "at": sn["at"], "v": sn["value"]} for sn in lat["top"]],
+        }
+    )
 summary = al["summary"]
-note = (f"Labels by {html.escape(summary['model'])}, checked on held-out snippets: mean accuracy "
-        f"{summary['accuracy']:.2f} with the latent's own label against {summary['control']:.2f} with another latent's."
-        if summary else "No automatic labels (step 5c was not run).")
+note = (
+    f"Labels by {html.escape(summary['model'])}, checked on held-out snippets: mean accuracy "
+    f"{summary['accuracy']:.2f} with the latent's own label against {summary['control']:.2f} with another latent's."
+    if summary
+    else "No automatic labels (step 5c was not run)."
+)
 
 page = """<!doctype html>
 <html lang="en">
@@ -131,13 +145,18 @@ show(start >= 0 ? start : 0);
 </body>
 </html>
 """
-page = (page.replace("__DATA__", json.dumps(rows, ensure_ascii=False).replace("</", "<\\/"))
-        .replace("__REPO__", html.escape(args.repo)).replace("__NOTE__", note))
+page = (
+    page.replace("__DATA__", json.dumps(rows, ensure_ascii=False).replace("</", "<\\/"))
+    .replace("__REPO__", html.escape(args.repo))
+    .replace("__NOTE__", note)
+)
 out = s.HERE / "dashboard" / "index.html"
 out.parent.mkdir(exist_ok=True)
 out.write_text(page)
-print(f"1. Wrote dashboard/index.html: {len(rows)} latents ({sum(1 for r in rows if r['chosen'])} chosen for a concept), "
-      f"{out.stat().st_size / 1e6:.1f} MB")
+print(
+    f"1. Wrote dashboard/index.html: {len(rows)} latents ({sum(1 for r in rows if r['chosen'])} chosen for a concept), "
+    f"{out.stat().st_size / 1e6:.1f} MB"
+)
 print("\nSelf-checks:")
 s.check("every drawn latent has 20 snippets", all(len(r["top"]) == 20 for r in rows if not r["chosen"]))
 s.check(f"the page is under 5 MB ({out.stat().st_size / 1e6:.1f} MB)", out.stat().st_size < 5e6)

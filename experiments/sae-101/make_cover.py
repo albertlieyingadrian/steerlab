@@ -6,8 +6,6 @@ Writes the SVG into report/index.html between the cover markers, report/figures/
 ../shared/thumbs/sae-101.jpg.
 """
 
-# ruff: noqa: E501, E402
-
 import json
 import sys
 from pathlib import Path
@@ -29,13 +27,31 @@ def rows() -> list[tuple[str, str]]:
     hw, sl = ev["saes"]["hand-written"], ev["saes"]["SAELens"]
     code = cp["code"]
     return [
-        ("1  What an SAE is", f"5 concepts in 2 dimensions: with k = 1 the SAE finds all 5 (cosine ≥ {min(toy['saes']['1']['match_cos']):.2f})"),
-        ("2  Collect activations", f"the first token's activation is {col['pos0_ratio']:.0f}x the rest: drop it, then scale by {col['scale']:.2f}"),
+        (
+            "1  What an SAE is",
+            f"5 concepts in 2 dimensions: with k = 1 the SAE finds all 5 (cosine ≥ {min(toy['saes']['1']['match_cos']):.2f})",
+        ),
+        (
+            "2  Collect activations",
+            f"the first token's activation is {col['pos0_ratio']:.0f}x the rest: drop it, then scale by {col['scale']:.2f}",
+        ),
         ("3  Train", f"hand-written and SAELens on the same 102M tokens: FVU {hw['fvu']:.3f} and {sl['fvu']:.3f}"),
-        ("4  Evaluate", f"spliced into the model, the SAE wins back {hw['ce_recovered_vs_mean']:.1%} of what mean-ablation costs"),
-        ("5  Interpret", f"removing a latent moves the next word {it['use_test']['ratio']:.1f}x more than a random push"),
-        ("6  Compare", f"code vs prose: probe {code['probe'][0]:.3f}, best single latent {code['sae_latent'][0]:.3f} AUROC"),
-        ("7  Publish", f"reloaded from the Hub in a fresh process: FVU matches to {max(d['fvu'] for d in rl['differences'].values()):.0e}"),
+        (
+            "4  Evaluate",
+            f"spliced into the model, the SAE wins back {hw['ce_recovered_vs_mean']:.1%} of what mean-ablation costs",
+        ),
+        (
+            "5  Interpret",
+            f"removing a latent moves the next word {it['use_test']['ratio']:.1f}x more than a random push",
+        ),
+        (
+            "6  Compare",
+            f"code vs prose: probe {code['probe'][0]:.3f}, best single latent {code['sae_latent'][0]:.3f} AUROC",
+        ),
+        (
+            "7  Publish",
+            f"reloaded from the Hub in a fresh process: FVU matches to {max(d['fvu'] for d in rl['differences'].values()):.0e}",
+        ),
     ]
 
 
@@ -50,9 +66,11 @@ def cover_svg() -> str:
         b.append(t(250, y + 27, val, 13.5, 450, INK2))
     b.append(f'<path d="M20,468 H860" stroke="{LINE}" stroke-width="1"/>')
     b.append(caps("EVERY NUMBER FROM THIS RUN: 16,384 LATENTS · K = 64 · 102M TRAINING TOKENS · HELD-OUT FINEWEB-EDU"))
-    label = ("The seven steps of making and publishing a sparse autoencoder on Qwen2.5-0.5B, each with a number measured "
-             "in this run: the toy, the attention-sink outlier, training two ways, evaluation, interpretation, the probe "
-             "comparison and the Hub reload.")
+    label = (
+        "The seven steps of making and publishing a sparse autoencoder on Qwen2.5-0.5B, each with a number measured "
+        "in this run: the toy, the attention-sink outlier, training two ways, evaluation, interpretation, the probe "
+        "comparison and the Hub reload."
+    )
     return svg("".join(b), label, "s101-cover")
 
 

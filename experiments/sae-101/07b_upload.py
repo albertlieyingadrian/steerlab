@@ -26,8 +26,12 @@ user = api.whoami()["name"]
 if not args.repo.startswith(user + "/"):
     raise SystemExit(f"The token belongs to {user!r}; --repo must start with '{user}/'.")
 url = api.create_repo(args.repo, repo_type="model", private=False, exist_ok=True)
-commit = api.upload_folder(folder_path=str(folder), repo_id=args.repo, repo_type="model",
-                           commit_message="SAE 101: TopK SAE on Qwen2.5-0.5B, block 11 residual stream")
+commit = api.upload_folder(
+    folder_path=str(folder),
+    repo_id=args.repo,
+    repo_type="model",
+    commit_message="SAE 101: TopK SAE on Qwen2.5-0.5B, block 11 residual stream",
+)
 print(f"1. Uploaded work/{args.size}/hf/ to {url}")
 print(f"   commit {commit.oid[:12]}")
 
@@ -36,5 +40,7 @@ info = api.model_info(args.repo)
 print("   files on the Hub: " + ", ".join(files))
 print("\nSelf-checks:")
 s.check("the repo is public", not info.private)
-s.check("the card and the main SAE are on the Hub",
-        {"README.md", f"{s.HOOK_TL}/cfg.json", f"{s.HOOK_TL}/sae_weights.safetensors"} <= set(files))
+s.check(
+    "the card and the main SAE are on the Hub",
+    {"README.md", f"{s.HOOK_TL}/cfg.json", f"{s.HOOK_TL}/sae_weights.safetensors"} <= set(files),
+)

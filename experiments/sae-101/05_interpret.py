@@ -41,8 +41,10 @@ freq = np.load(work / "freq_handwritten.npy")
 rng = np.random.default_rng(s.SEED)
 eligible = np.flatnonzero((freq > 1e-5) & (freq < 0.1))
 drawn = rng.choice(eligible, size=min(args.n_random, len(eligible)), replace=False)
-print(f"1. Drew {len(drawn)} of {len(eligible):,} latents that fire on between 1 in 100,000 and 1 in 10 tokens "
-      f"(seed {s.SEED}); the first {args.n_note} are the ones in the note.")
+print(
+    f"1. Drew {len(drawn)} of {len(eligible):,} latents that fire on between 1 in 100,000 and 1 in 10 tokens "
+    f"(seed {s.SEED}); the first {args.n_note} are the ones in the note."
+)
 # latents step 6 picked for a concept (code, digits) get snippets too, marked as chosen, not drawn
 chosen = {}
 compare = s.read_json(s.RESULTS / args.size / "compare.json") or {}
@@ -119,10 +121,19 @@ for j in shown:
         logits = (sae.W_dec[j] / scale * norm_w) @ W_U.T
         up, down = logits.topk(10).indices.tolist(), (-logits).topk(10).indices.tolist()
     counts, edges = np.histogram(np.array(hist_vals[j] or [0.0]), bins=20)
-    latents.append({"id": j, "chosen": chosen.get(j), "freq": float(freq[j]), "max": float(vals[0]), "top": examples[:TOP],
-                    "held_out": examples[TOP:], "logit_up": [tok.decode([t]) for t in up],
-                    "logit_down": [tok.decode([t]) for t in down],
-                    "hist": {"counts": counts.tolist(), "edges": [round(float(e), 3) for e in edges]}})
+    latents.append(
+        {
+            "id": j,
+            "chosen": chosen.get(j),
+            "freq": float(freq[j]),
+            "max": float(vals[0]),
+            "top": examples[:TOP],
+            "held_out": examples[TOP:],
+            "logit_up": [tok.decode([t]) for t in up],
+            "logit_down": [tok.decode([t]) for t in down],
+            "hist": {"counts": counts.tolist(), "edges": [round(float(e), 3) for e in edges]},
+        }
+    )
 print("\n2. The first latents of the draw (the firing token in [brackets]):")
 for lat in latents[: args.n_note]:
     ex = lat["top"][0]
@@ -131,7 +142,9 @@ for lat in latents[: args.n_note]:
     print(f"                 pushes up: {lat['logit_up'][:6]}")
 
 # ---- negatives for the auto-label check: random snippets from the first 400 windows ----
-text_positions = np.flatnonzero(s.text_mask(torch.as_tensor(np.asarray(interp[:400], dtype=np.int64))).numpy().reshape(-1))
+text_positions = np.flatnonzero(
+    s.text_mask(torch.as_tensor(np.asarray(interp[:400], dtype=np.int64))).numpy().reshape(-1)
+)
 negatives = [snippet(p) for p in rng.choice(text_positions, size=400, replace=False)]
 
 # ---- the use test: remove the latent at its top positions vs a same-norm random direction ----
@@ -168,18 +181,28 @@ for lat in latents[: args.n_note]:
         u = torch.randn(delta.shape, generator=gen).to(device)
         kl_f.append(effect(w, p, delta))
         kl_r.append(effect(w, p, u / u.norm() * delta.norm()))
-    use.append({"id": j, "kl_feature": float(np.mean(kl_f)), "kl_random": float(np.mean(kl_r)), "n": len(kl_f),
-                "all_feature": kl_f, "all_random": kl_r})
+    use.append(
+        {
+            "id": j,
+            "kl_feature": float(np.mean(kl_f)),
+            "kl_random": float(np.mean(kl_r)),
+            "n": len(kl_f),
+            "all_feature": kl_f,
+            "all_random": kl_r,
+        }
+    )
 pooled_f = np.concatenate([u_["all_feature"] for u_ in use])
 pooled_r = np.concatenate([u_["all_random"] for u_ in use])
 ratio = float(pooled_f.mean() / pooled_r.mean())
 boot = np.random.default_rng(s.SEED).integers(0, len(pooled_f), (1000, len(pooled_f)))
 ratio_ci = [float(np.percentile(pooled_f[boot].mean(1) / pooled_r[boot].mean(1), q)) for q in (2.5, 97.5)]
 wins = sum(u_["kl_feature"] > u_["kl_random"] for u_ in use)
-print(f"\n3. Use test at each latent's top {TOP} positions: removing the latent moves the next-token distribution by "
-      f"KL {pooled_f.mean():.4f} on average; a random direction of the same length {pooled_r.mean():.4f} "
-      f"({ratio:.1f}x, 95% CI [{ratio_ci[0]:.1f}, {ratio_ci[1]:.1f}]). The latent beats its random twin for {wins} of "
-      f"{len(use)} latents.")
+print(
+    f"\n3. Use test at each latent's top {TOP} positions: removing the latent moves the next-token distribution by "
+    f"KL {pooled_f.mean():.4f} on average; a random direction of the same length {pooled_r.mean():.4f} "
+    f"({ratio:.1f}x, 95% CI [{ratio_ci[0]:.1f}, {ratio_ci[1]:.1f}]). The latent beats its random twin for {wins} of "
+    f"{len(use)} latents."
+)
 
 # ---- superposition in the real model: nearest-neighbour cosine of decoder directions ----
 with torch.no_grad():
@@ -197,23 +220,52 @@ with torch.no_grad():
 
     nn_dec, nn_rand = nearest(D), nearest(R)
 bins = np.linspace(0, 1, 51)
-print(f"\n4. Superposition: {d_sae:,} decoder directions in {sae.d_in} dimensions. Median |cosine| to the nearest other "
-      f"direction {np.median(nn_dec):.3f} (random directions: {np.median(nn_rand):.3f}); "
-      f"{(nn_dec > 0.9).mean():.1%} have a near-twin above 0.9.")
+print(
+    f"\n4. Superposition: {d_sae:,} decoder directions in {sae.d_in} dimensions. Median |cosine| to the nearest other "
+    f"direction {np.median(nn_dec):.3f} (random directions: {np.median(nn_rand):.3f}); "
+    f"{(nn_dec > 0.9).mean():.1%} have a near-twin above 0.9."
+)
 
-s.save_json(s.RESULTS / args.size / "interpret.json", {
-    "drawn": [int(j) for j in drawn], "n_note": args.n_note, "tokens_scanned": n_tok, "latents": latents,
-    "negatives": negatives,
-    "use_test": {"per_latent": [{k: v for k, v in u_.items() if not k.startswith("all_")} for u_ in use],
-                 "kl_feature": float(pooled_f.mean()), "kl_random": float(pooled_r.mean()), "ratio": ratio,
-                 "ratio_ci": ratio_ci, "wins": wins, "n_latents": len(use), "positions": len(pooled_f)},
-    "superposition": {"bins": bins.tolist(), "decoder": np.histogram(nn_dec, bins)[0].tolist(),
-                      "random": np.histogram(nn_rand, bins)[0].tolist(), "median_decoder": float(np.median(nn_dec)),
-                      "median_random": float(np.median(nn_rand)), "share_above_0.9": float((nn_dec > 0.9).mean())}})
+s.save_json(
+    s.RESULTS / args.size / "interpret.json",
+    {
+        "drawn": [int(j) for j in drawn],
+        "n_note": args.n_note,
+        "tokens_scanned": n_tok,
+        "latents": latents,
+        "negatives": negatives,
+        "use_test": {
+            "per_latent": [{k: v for k, v in u_.items() if not k.startswith("all_")} for u_ in use],
+            "kl_feature": float(pooled_f.mean()),
+            "kl_random": float(pooled_r.mean()),
+            "ratio": ratio,
+            "ratio_ci": ratio_ci,
+            "wins": wins,
+            "n_latents": len(use),
+            "positions": len(pooled_f),
+        },
+        "superposition": {
+            "bins": bins.tolist(),
+            "decoder": np.histogram(nn_dec, bins)[0].tolist(),
+            "random": np.histogram(nn_rand, bins)[0].tolist(),
+            "median_decoder": float(np.median(nn_dec)),
+            "median_random": float(np.median(nn_rand)),
+            "share_above_0.9": float((nn_dec > 0.9).mean()),
+        },
+    },
+)
 
 print("\nSelf-checks:")
-s.check(f"every drawn latent has {TOP} top examples", all(len(lat["top"]) == TOP for lat in latents if not lat["chosen"]))
-s.check(f"removing a latent where it fires moves the prediction more than a random push of the same size "
-        f"(KL ratio {ratio:.1f}x, CI low end {ratio_ci[0]:.1f} > 1)", ratio_ci[0] > 1)
-s.check(f"decoder directions sit closer to each other than random ones (median {np.median(nn_dec):.3f} vs "
-        f"{np.median(nn_rand):.3f})", np.median(nn_dec) > np.median(nn_rand))
+s.check(
+    f"every drawn latent has {TOP} top examples", all(len(lat["top"]) == TOP for lat in latents if not lat["chosen"])
+)
+s.check(
+    f"removing a latent where it fires moves the prediction more than a random push of the same size "
+    f"(KL ratio {ratio:.1f}x, CI low end {ratio_ci[0]:.1f} > 1)",
+    ratio_ci[0] > 1,
+)
+s.check(
+    f"decoder directions sit closer to each other than random ones (median {np.median(nn_dec):.3f} vs "
+    f"{np.median(nn_rand):.3f})",
+    np.median(nn_dec) > np.median(nn_rand),
+)

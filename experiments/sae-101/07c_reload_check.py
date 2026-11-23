@@ -22,7 +22,7 @@ ap.add_argument("--repo", default="albertlieadrian/qwen2.5-0.5b-sae-101")
 args = ap.parse_args()
 cfg = s.SIZES[args.size]
 
-from sae_lens import SAE, __version__  # noqa: E402
+from sae_lens import SAE, __version__
 
 local = s.read_json(s.RESULTS / args.size / "evaluate.json")
 model, _, device = s.load_lm()
@@ -44,19 +44,34 @@ checks = []
 for sae_id, local_name in to_check:
     sae = SAE.from_pretrained(args.repo, sae_id, device=device)
     raw = s.RawSAE(sae.encode, sae.decode, sae.cfg.d_sae, sae.cfg.k, sae.W_dec.detach(), f"Hub: {sae_id}")
-    r = s.evaluate(raw, model, eval_windows=eval_w, ce_windows=eval_w[: cfg["ce"]], interp_windows=interp_w,
-                   mean_act=stats["mean_act"], device=device, eval_acts=eval_acts, controls=False)
+    r = s.evaluate(
+        raw,
+        model,
+        eval_windows=eval_w,
+        ce_windows=eval_w[: cfg["ce"]],
+        interp_windows=interp_w,
+        mean_act=stats["mean_act"],
+        device=device,
+        eval_acts=eval_acts,
+        controls=False,
+    )
     r.pop("_freq")
     ref = local["saes"][local_name]
-    d = {"fvu": abs(r["fvu"] - ref["fvu"]), "ce": abs(r["ce"]["sae"] - ref["ce"]["sae"]),
-         "dead": abs(r["dead"] - ref["dead"]), "l0": abs(r["l0"] - ref["l0"])}
-    print(f"\n2. {sae_id}: FVU {r['fvu']:.4f} (local {ref['fvu']:.4f}); L0 {r['l0']:.2f}; dead {r['dead']} "
-          f"(local {ref['dead']}); CE with the SAE {r['ce']['sae']:.4f} (local {ref['ce']['sae']:.4f}); CE recovered "
-          f"{r['ce_recovered_vs_mean']:.4f}")
+    d = {
+        "fvu": abs(r["fvu"] - ref["fvu"]),
+        "ce": abs(r["ce"]["sae"] - ref["ce"]["sae"]),
+        "dead": abs(r["dead"] - ref["dead"]),
+        "l0": abs(r["l0"] - ref["l0"]),
+    }
+    print(
+        f"\n2. {sae_id}: FVU {r['fvu']:.4f} (local {ref['fvu']:.4f}); L0 {r['l0']:.2f}; dead {r['dead']} "
+        f"(local {ref['dead']}); CE with the SAE {r['ce']['sae']:.4f} (local {ref['ce']['sae']:.4f}); CE recovered "
+        f"{r['ce_recovered_vs_mean']:.4f}"
+    )
     checks.append((sae_id, d, r))
 
 # the hook-name check: TransformerBridge vs the Hugging Face module
-from sae_lens.load_model import load_model  # noqa: E402
+from sae_lens.load_model import load_model
 
 bridge = load_model("TransformerBridge", s.MODEL, device=device, model_from_pretrained_kwargs={"dtype": torch.float32})
 toks = torch.as_tensor(np.asarray(eval_w[:4], dtype=np.int64), device=device)
@@ -67,15 +82,26 @@ with torch.no_grad():
 mask = s.text_mask(toks)
 gap = float((tl[mask] - hf_acts[mask]).abs().max())
 rel = gap / float(hf_acts[mask].abs().max())
-print(f"\n3. {s.HOOK_TL} through TransformerBridge vs {s.HOOK_HF} in transformers: max difference {gap:.2e} "
-      f"({rel:.1e} of the largest activation)")
+print(
+    f"\n3. {s.HOOK_TL} through TransformerBridge vs {s.HOOK_HF} in transformers: max difference {gap:.2e} "
+    f"({rel:.1e} of the largest activation)"
+)
 
-s.save_json(s.RESULTS / args.size / "reload.json", {"repo": args.repo, "sae_lens_version": __version__,
-                                                    "hub": {sid: r for sid, _, r in checks},
-                                                    "differences": {sid: d for sid, d, _ in checks},
-                                                    "bridge_max_abs_diff": gap, "bridge_rel_diff": rel})
+s.save_json(
+    s.RESULTS / args.size / "reload.json",
+    {
+        "repo": args.repo,
+        "sae_lens_version": __version__,
+        "hub": {sid: r for sid, _, r in checks},
+        "differences": {sid: d for sid, d, _ in checks},
+        "bridge_max_abs_diff": gap,
+        "bridge_rel_diff": rel,
+    },
+)
 print("\nSelf-checks:")
 for sid, d, _ in checks:
-    s.check(f"{sid}: the Hub copy matches the local numbers (FVU off by {d['fvu']:.1e}, CE by {d['ce']:.1e}; < 1e-3)",
-            d["fvu"] < 1e-3 and d["ce"] < 1e-3)
+    s.check(
+        f"{sid}: the Hub copy matches the local numbers (FVU off by {d['fvu']:.1e}, CE by {d['ce']:.1e}; < 1e-3)",
+        d["fvu"] < 1e-3 and d["ce"] < 1e-3,
+    )
 s.check(f"the TransformerLens hook name reads the same activations (relative difference {rel:.1e} < 1e-4)", rel < 1e-4)

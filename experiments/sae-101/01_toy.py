@@ -31,10 +31,14 @@ rng = np.random.default_rng(s.SEED)
 # ---------------------------------------------------------------- Part A: by hand
 print("Part A. One activation through a tiny SAE, by hand")
 x = torch.tensor([2.0, 0.0, 1.0])
-W_dec = torch.tensor([[1.0, 0.0, 0.0],  # latent 0: "the first number"
-                      [0.0, 1.0, 0.0],  # latent 1: "the second number"
-                      [0.0, 0.0, 1.0],  # latent 2: "the third number"
-                      [0.6, 0.0, 0.8]])  # latent 3: a mix of the first and third (length 1: 0.36 + 0.64 = 1)
+W_dec = torch.tensor(
+    [
+        [1.0, 0.0, 0.0],  # latent 0: "the first number"
+        [0.0, 1.0, 0.0],  # latent 1: "the second number"
+        [0.0, 0.0, 1.0],  # latent 2: "the third number"
+        [0.6, 0.0, 0.8],
+    ]
+)  # latent 3: a mix of the first and third (length 1: 0.36 + 0.64 = 1)
 W_enc = W_dec.T.clone()  # read each latent by its own direction
 b_enc = torch.tensor([0.0, 0.0, 0.0, -0.5])  # latent 3 must clear a small bar before it switches on
 b_dec = torch.zeros(3)
@@ -45,7 +49,9 @@ x_hat = z @ W_dec + b_dec
 print(f"   x = {x.tolist()}")
 print(f"   pre = x @ W_enc + b_enc = {[round(v, 2) for v in pre.tolist()]}   (latent 3: 2*0.6 + 1*0.8 - 0.5 = 1.5)")
 print(f"   keep the 2 biggest: latents {sorted(idx.tolist())}, z = {[round(v, 2) for v in z.tolist()]}")
-print(f"   x̂ = z @ W_dec = {[round(v, 2) for v in x_hat.tolist()]}   error |x - x̂|² = {float(((x - x_hat) ** 2).sum()):.2f}")
+print(
+    f"   x̂ = z @ W_dec = {[round(v, 2) for v in x_hat.tolist()]}   error |x - x̂|² = {float(((x - x_hat) ** 2).sum()):.2f}"
+)
 print("   Two parts explain x: 'the first number' (2.0) and the mixed latent (1.5 x [0.6, 0, 0.8]).")
 print("   With k = 3, latent 2 would join and the error would change; that is the sparsity/accuracy trade-off.")
 by_hand = {"x": x.tolist(), "pre": pre.tolist(), "z": z.tolist(), "x_hat": x_hat.tolist()}
@@ -64,8 +70,10 @@ for i, c in enumerate(counts):
     amounts[i, on] = rng.uniform(0.5, 1.5, size=c)
 points = amounts @ concepts + rng.normal(0, 0.04, size=(N, 2))
 X = torch.tensor(points, dtype=torch.float32)
-print(f"   {N} points; {int((counts == 0).sum())} with no concept, {int((counts == 1).sum())} with one, "
-      f"{int((counts == 2).sum())} with two")
+print(
+    f"   {N} points; {int((counts == 0).sum())} with no concept, {int((counts == 1).sum())} with one, "
+    f"{int((counts == 2).sum())} with two"
+)
 
 
 def train_toy(k, steps=4000, seeds=5):
@@ -102,10 +110,19 @@ for k in (1, 2, 3):
     sae, fvu, x_hat, z, seed = train_toy(k)
     dec = sae.W_dec.detach().numpy()
     cos = concepts @ dec.T  # each true concept against each decoder row
-    saes[k] = {"fvu": fvu, "seed": seed, "decoder": dec.round(4).tolist(), "x_hat": x_hat.round(3).tolist(),
-               "z": z.round(3).tolist(), "match": cos.argmax(1).tolist(), "match_cos": cos.max(1).round(3).tolist()}
-    print(f"   TopK SAE, 5 latents, k = {k}: FVU {fvu:.3f}; best cosine of each concept to a decoder row "
-          f"{[round(c, 2) for c in cos.max(1).tolist()]}")
+    saes[k] = {
+        "fvu": fvu,
+        "seed": seed,
+        "decoder": dec.round(4).tolist(),
+        "x_hat": x_hat.round(3).tolist(),
+        "z": z.round(3).tolist(),
+        "match": cos.argmax(1).tolist(),
+        "match_cos": cos.max(1).round(3).tolist(),
+    }
+    print(
+        f"   TopK SAE, 5 latents, k = {k}: FVU {fvu:.3f}; best cosine of each concept to a decoder row "
+        f"{[round(c, 2) for c in cos.max(1).tolist()]}"
+    )
 
 # the four linear tools for the label "concept A (the first arrow) is on"
 label = active[:, 0]
@@ -122,29 +139,61 @@ def angle_to_a(v):
 
 
 print("\n   Angle between each tool's direction and concept A's true arrow (0 = the same line):")
-for name, v in (("PCA, first component", vt[0]), ("logistic probe", probe_dir), ("difference of means", dmeans_dir),
-                ("SAE latent for A (k = 1)", sae_dir)):
+for name, v in (
+    ("PCA, first component", vt[0]),
+    ("logistic probe", probe_dir),
+    ("difference of means", dmeans_dir),
+    ("SAE latent for A (k = 1)", sae_dir),
+):
     print(f"   {name:<28} {angle_to_a(v):5.1f} degrees")
 
-s.save_json(s.RESULTS / "toy.json", {
-    "by_hand": by_hand, "concepts": concepts.round(4).tolist(), "angles_deg": ANGLES, "points": points.round(3).tolist(),
-    "active": active.astype(int).tolist(), "saes": saes,
-    "tools": {"pca1": vt[0].tolist(), "pca2": vt[1].tolist(), "probe": probe_dir.tolist(),
-              "probe_bias": float(probe.intercept_[0] / np.linalg.norm(probe.coef_[0])), "dmeans": dmeans_dir.tolist(),
-              "sae_a": sae_dir.tolist(), "mean": points.mean(0).tolist()},
-    "angles_to_a": {"pca1": angle_to_a(vt[0]), "probe": angle_to_a(probe_dir), "dmeans": angle_to_a(dmeans_dir),
-                    "sae_a": angle_to_a(sae_dir)}})
+s.save_json(
+    s.RESULTS / "toy.json",
+    {
+        "by_hand": by_hand,
+        "concepts": concepts.round(4).tolist(),
+        "angles_deg": ANGLES,
+        "points": points.round(3).tolist(),
+        "active": active.astype(int).tolist(),
+        "saes": saes,
+        "tools": {
+            "pca1": vt[0].tolist(),
+            "pca2": vt[1].tolist(),
+            "probe": probe_dir.tolist(),
+            "probe_bias": float(probe.intercept_[0] / np.linalg.norm(probe.coef_[0])),
+            "dmeans": dmeans_dir.tolist(),
+            "sae_a": sae_dir.tolist(),
+            "mean": points.mean(0).tolist(),
+        },
+        "angles_to_a": {
+            "pca1": angle_to_a(vt[0]),
+            "probe": angle_to_a(probe_dir),
+            "dmeans": angle_to_a(dmeans_dir),
+            "sae_a": angle_to_a(sae_dir),
+        },
+    },
+)
 print("\n   wrote results/toy.json")
 
 print("\nSelf-checks:")
-s.check("by hand: the rebuild is 2.0 x latent 0 + 1.5 x latent 3 = [2.9, 0, 1.2]",
-        torch.allclose(torch.tensor(by_hand["x_hat"]), torch.tensor([2.9, 0.0, 1.2])))
-s.check(f"the toy's rebuild error falls with k ({', '.join(format(saes[k]['fvu'], '.3f') for k in (1, 2, 3))})",
-        saes[1]["fvu"] > saes[2]["fvu"] >= saes[3]["fvu"] - 1e-3)
-s.check(f"with k = 1 every concept has a decoder row within 10 degrees (cosines {saes[1]['match_cos']})",
-        min(saes[1]["match_cos"]) > math.cos(math.radians(10)))
-s.check(f"with k = 2 the rebuild is near perfect (FVU {saes[2]['fvu']:.4f}) but the arrows slide (lowest cosine "
-        f"{min(saes[2]['match_cos']):.2f} < k = 1's {min(saes[1]['match_cos']):.2f})",
-        saes[2]["fvu"] < 0.01 and min(saes[2]["match_cos"]) < min(saes[1]["match_cos"]))
-s.check(f"PCA's first direction is not concept A's arrow ({angle_to_a(vt[0]):.0f} degrees off; bar > 20)",
-        angle_to_a(vt[0]) > 20)
+s.check(
+    "by hand: the rebuild is 2.0 x latent 0 + 1.5 x latent 3 = [2.9, 0, 1.2]",
+    torch.allclose(torch.tensor(by_hand["x_hat"]), torch.tensor([2.9, 0.0, 1.2])),
+)
+s.check(
+    f"the toy's rebuild error falls with k ({', '.join(format(saes[k]['fvu'], '.3f') for k in (1, 2, 3))})",
+    saes[1]["fvu"] > saes[2]["fvu"] >= saes[3]["fvu"] - 1e-3,
+)
+s.check(
+    f"with k = 1 every concept has a decoder row within 10 degrees (cosines {saes[1]['match_cos']})",
+    min(saes[1]["match_cos"]) > math.cos(math.radians(10)),
+)
+s.check(
+    f"with k = 2 the rebuild is near perfect (FVU {saes[2]['fvu']:.4f}) but the arrows slide (lowest cosine "
+    f"{min(saes[2]['match_cos']):.2f} < k = 1's {min(saes[1]['match_cos']):.2f})",
+    saes[2]["fvu"] < 0.01 and min(saes[2]["match_cos"]) < min(saes[1]["match_cos"]),
+)
+s.check(
+    f"PCA's first direction is not concept A's arrow ({angle_to_a(vt[0]):.0f} degrees off; bar > 20)",
+    angle_to_a(vt[0]) > 20,
+)

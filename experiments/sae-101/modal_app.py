@@ -29,7 +29,11 @@ import modal
 HERE = Path(__file__).resolve().parent
 APP, VOLUME = "sae-101", "sae-101"
 CAP_USD = 15.0
-RATE = {"A10G": 1.10, "A10G-long": 1.10, "cpu": 0.25}  # $/hour: Modal's A10G list price; a 4-core, 16 GB CPU container, rounded up
+RATE = {
+    "A10G": 1.10,
+    "A10G-long": 1.10,
+    "cpu": 0.25,
+}  # $/hour: Modal's A10G list price; a 4-core, 16 GB CPU container, rounded up
 STEPS = {  # name: (script, extra args, where, timeout in minutes)
     "tokens": ("02_collect.py", ["--tokens-only"], "cpu", 60),
     "collect": ("02_collect.py", [], "A10G", 30),
@@ -58,8 +62,17 @@ image = (
         "scikit-learn==1.9.1",
         "matplotlib==3.11.2",
     )
-    .env({"HF_HOME": "/vol/hf", "PYTHONUNBUFFERED": "1", "TOKENIZERS_PARALLELISM": "false",
-          "HF_HUB_DISABLE_XET": "1", "SAE101_WORK": "/vol/work", "SAE101_RESULTS": "/vol/results", "SAE101_RECORDED": "/vol/recorded"})
+    .env(
+        {
+            "HF_HOME": "/vol/hf",
+            "PYTHONUNBUFFERED": "1",
+            "TOKENIZERS_PARALLELISM": "false",
+            "HF_HUB_DISABLE_XET": "1",
+            "SAE101_WORK": "/vol/work",
+            "SAE101_RESULTS": "/vol/results",
+            "SAE101_RECORDED": "/vol/recorded",
+        }
+    )
     .add_local_dir(HERE, "/root/sae101", ignore=["work", "results", "recorded", "report", "__pycache__", "*.pyc"])
 )
 LEDGER_DIR = Path("/vol/ledger")  # one file per run: two containers never write the same file
@@ -67,7 +80,9 @@ LEDGER_DIR = Path("/vol/ledger")  # one file per run: two containers never write
 
 def _ledger_rows() -> list[dict]:
     rows = []
-    for path in sorted(LEDGER_DIR.glob("*.jsonl")) + ([Path("/vol/ledger.jsonl")] if Path("/vol/ledger.jsonl").exists() else []):
+    for path in sorted(LEDGER_DIR.glob("*.jsonl")) + (
+        [Path("/vol/ledger.jsonl")] if Path("/vol/ledger.jsonl").exists() else []
+    ):
         rows += [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     return rows
 
@@ -97,8 +112,12 @@ def _run(step: str, where: str) -> dict:
     LEDGER_DIR.mkdir(parents=True, exist_ok=True)
     ledger = LEDGER_DIR / f"{run_id}.jsonl"
     with ledger.open("a") as f:
-        f.write(json.dumps({"event": "start", "run": run_id, "step": step, "where": where, "t": time.time(),
-                            "worst_case": worst}) + "\n")
+        f.write(
+            json.dumps(
+                {"event": "start", "run": run_id, "step": step, "where": where, "t": time.time(), "worst_case": worst}
+            )
+            + "\n"
+        )
     volume.commit()
 
     stop = threading.Event()
@@ -113,7 +132,9 @@ def _run(step: str, where: str) -> dict:
     threading.Thread(target=commit_every, daemon=True).start()
     log_dir = Path("/vol/recorded/full")
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / f"{Path(script).stem}{'_pilot' if step == 'pilot' else ''}{'_tokens' if step == 'tokens' else ''}.txt"
+    log_path = (
+        log_dir / f"{Path(script).stem}{'_pilot' if step == 'pilot' else ''}{'_tokens' if step == 'tokens' else ''}.txt"
+    )
     t0 = time.time()
     cmd = [sys.executable, script, "--size", "full", *extra]
     with log_path.open("w") as log:
@@ -135,18 +156,33 @@ def _run(step: str, where: str) -> dict:
     timed_out = code != 0 and seconds >= timeout_min * 60
     cost = seconds / 3600 * RATE[where]
     with ledger.open("a") as f:
-        f.write(json.dumps({"event": "end", "run": run_id, "step": step, "seconds": round(seconds, 1),
-                            "cost": round(cost, 4), "exit": code, "timed_out": timed_out}) + "\n")
+        f.write(
+            json.dumps(
+                {
+                    "event": "end",
+                    "run": run_id,
+                    "step": step,
+                    "seconds": round(seconds, 1),
+                    "cost": round(cost, 4),
+                    "exit": code,
+                    "timed_out": timed_out,
+                }
+            )
+            + "\n"
+        )
     volume.commit()
     if timed_out:
-        raise RuntimeError(f"{script} stopped at its {timeout_min}-minute STEPS limit; see "
-                           f"/vol/recorded/full/{log_path.name}")
+        raise RuntimeError(
+            f"{script} stopped at its {timeout_min}-minute STEPS limit; see /vol/recorded/full/{log_path.name}"
+        )
     if code != 0:
         raise RuntimeError(f"{script} exited with {code}; see /vol/recorded/full/{log_path.name}")
     return {"step": step, "seconds": seconds, "cost": cost}
 
 
-@app.function(image=image, volumes={"/vol": volume}, cpu=4, memory=16384, timeout=60 * 60, retries=0, scaledown_window=10)
+@app.function(
+    image=image, volumes={"/vol": volume}, cpu=4, memory=16384, timeout=60 * 60, retries=0, scaledown_window=10
+)
 def cpu_step(step: str) -> dict:
     if step == "tokens":  # fetch both models' weights on a cheap CPU machine before any GPU starts
         from huggingface_hub import snapshot_download
@@ -190,8 +226,12 @@ if __name__ == "__main__":
         with tempfile.TemporaryDirectory() as tmp:
             subprocess.run(["modal", "volume", "get", "--force", VOLUME, "ledger", tmp], capture_output=True)
             subprocess.run(["modal", "volume", "get", "--force", VOLUME, "ledger.jsonl", tmp], capture_output=True)
-            rows = [json.loads(line) for p in Path(tmp).rglob("*.jsonl") for line in p.read_text().splitlines()
-                    if line.startswith("{")]
+            rows = [
+                json.loads(line)
+                for p in Path(tmp).rglob("*.jsonl")
+                for line in p.read_text().splitlines()
+                if line.startswith("{")
+            ]
         for r in rows:
             print(r)
         print(f"committed (actual + worst case of running): ${_committed_spend(rows):.2f} of ${CAP_USD}")

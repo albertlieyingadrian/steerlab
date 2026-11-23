@@ -31,9 +31,14 @@ args = ap.parse_args()
 cfg = s.SIZES[args.size]
 work = s.WORK / args.size
 
-from datasets import Dataset  # noqa: E402
-from sae_lens import LanguageModelSAERunnerConfig, LanguageModelSAETrainingRunner, LoggingConfig  # noqa: E402
-from sae_lens import TopKTrainingSAEConfig, __version__  # noqa: E402
+from datasets import Dataset
+from sae_lens import (
+    LanguageModelSAERunnerConfig,
+    LanguageModelSAETrainingRunner,
+    LoggingConfig,
+    TopKTrainingSAEConfig,
+    __version__,
+)
 
 train = s.load_tokens(args.size, "train")
 steps = s.n_text_tokens(train) // cfg["batch"] - 1
@@ -44,8 +49,14 @@ device = s.pick_device()
 out_dir = work / ("saelens_smoke" if args.max_steps else "saelens")
 
 runner_cfg = LanguageModelSAERunnerConfig(
-    sae=TopKTrainingSAEConfig(d_in=s.D_MODEL, d_sae=cfg["d_sae"], k=cfg["k"], dtype="float32",
-                              normalize_activations="expected_average_only_in", apply_b_dec_to_input=True),
+    sae=TopKTrainingSAEConfig(
+        d_in=s.D_MODEL,
+        d_sae=cfg["d_sae"],
+        k=cfg["k"],
+        dtype="float32",
+        normalize_activations="expected_average_only_in",
+        apply_b_dec_to_input=True,
+    ),
     model_name=s.MODEL,
     model_class_name="AutoModelForCausalLM",  # a plain Hugging Face model: no TransformerLens weight processing
     hook_name=s.HOOK_HF,  # the output of block 11: the same activations as 03a
@@ -79,8 +90,10 @@ runner_cfg = LanguageModelSAERunnerConfig(
     n_checkpoints=0,
     verbose=False,
 )
-print(f"1. SAELens {__version__}: TopK, d_sae {cfg['d_sae']:,}, k {cfg['k']}, {steps:,} steps x {cfg['batch']:,} tokens "
-      f"on {device}, hook {s.HOOK_HF}")
+print(
+    f"1. SAELens {__version__}: TopK, d_sae {cfg['d_sae']:,}, k {cfg['k']}, {steps:,} steps x {cfg['batch']:,} tokens "
+    f"on {device}, hook {s.HOOK_HF}"
+)
 if out_dir.exists():
     shutil.rmtree(out_dir)
 t0 = time.monotonic()
@@ -89,14 +102,29 @@ minutes = (time.monotonic() - t0) / 60
 print(f"2. Done in {minutes:.1f} minutes; saved to work/{args.size}/{out_dir.name}/")
 files = sorted(p.name for p in out_dir.rglob("*") if p.is_file())
 print(f"   files: {files}")
-s.save_json(s.RESULTS / args.size / ("train_saelens_smoke.json" if args.max_steps else "train_saelens.json"),
-            {"sae_lens_version": __version__, "d_sae": cfg["d_sae"], "k": cfg["k"], "lr": cfg["lr"], "steps": steps,
-             "tokens": steps * cfg["batch"], "minutes": minutes, "device": device, "files": files})
+s.save_json(
+    s.RESULTS / args.size / ("train_saelens_smoke.json" if args.max_steps else "train_saelens.json"),
+    {
+        "sae_lens_version": __version__,
+        "d_sae": cfg["d_sae"],
+        "k": cfg["k"],
+        "lr": cfg["lr"],
+        "steps": steps,
+        "tokens": steps * cfg["batch"],
+        "minutes": minutes,
+        "device": device,
+        "files": files,
+    },
+)
 
 print("\nSelf-checks:")
 s.check("SAELens wrote cfg.json and sae_weights.safetensors", {"cfg.json", "sae_weights.safetensors"} <= set(files))
 saved = s.read_json(out_dir / "cfg.json")
-s.check(f"the saved SAE takes raw activations (normalize_activations = {saved.get('normalize_activations')!r})",
-        saved.get("normalize_activations") == "none")
-s.check(f"architecture {saved.get('architecture')!r}, k {saved.get('k')}, d_sae {saved.get('d_sae')}",
-        saved.get("architecture") == "topk" and saved.get("k") == cfg["k"] and saved.get("d_sae") == cfg["d_sae"])
+s.check(
+    f"the saved SAE takes raw activations (normalize_activations = {saved.get('normalize_activations')!r})",
+    saved.get("normalize_activations") == "none",
+)
+s.check(
+    f"architecture {saved.get('architecture')!r}, k {saved.get('k')}, d_sae {saved.get('d_sae')}",
+    saved.get("architecture") == "topk" and saved.get("k") == cfg["k"] and saved.get("d_sae") == cfg["d_sae"],
+)

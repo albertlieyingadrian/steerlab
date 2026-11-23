@@ -44,8 +44,11 @@ def api_key() -> str:
     for folder in [s.HERE, *s.HERE.parents]:
         env = folder / ".env"
         if env.exists():
-            values = dict(line.split("=", 1) for line in env.read_text().splitlines()
-                          if "=" in line and not line.lstrip().startswith("#"))
+            values = dict(
+                line.split("=", 1)
+                for line in env.read_text().splitlines()
+                if "=" in line and not line.lstrip().startswith("#")
+            )
             for name in ("OPENROUTER_API_KEY_2", "OPENROUTER_API_KEY"):
                 if values.get(name, "").strip():
                     return values[name].strip().strip('"')
@@ -62,10 +65,18 @@ def spent() -> float:
 def ask(prompt: str, purpose: str) -> str:
     if spent() > args.cap - 0.01:
         raise SystemExit(f"Stopping: ${spent():.4f} spent, cap ${args.cap}.")
-    body = {"model": args.model, "temperature": 0, "max_tokens": 60, "usage": {"include": True},
-            "messages": [{"role": "user", "content": prompt}]}
-    req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=json.dumps(body).encode(),
-                                 headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"})
+    body = {
+        "model": args.model,
+        "temperature": 0,
+        "max_tokens": 60,
+        "usage": {"include": True},
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"},
+    )
     for attempt in range(4):
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
@@ -78,9 +89,18 @@ def ask(prompt: str, purpose: str) -> str:
             time.sleep(5 * (attempt + 1))
     usage = out.get("usage", {})
     with LEDGER.open("a") as f:
-        f.write(json.dumps({"purpose": purpose, "model": args.model, "prompt_tokens": usage.get("prompt_tokens"),
-                            "completion_tokens": usage.get("completion_tokens"),
-                            "cost": float(usage.get("cost") or 0)}) + "\n")
+        f.write(
+            json.dumps(
+                {
+                    "purpose": purpose,
+                    "model": args.model,
+                    "prompt_tokens": usage.get("prompt_tokens"),
+                    "completion_tokens": usage.get("completion_tokens"),
+                    "cost": float(usage.get("cost") or 0),
+                }
+            )
+            + "\n"
+        )
     return out["choices"][0]["message"]["content"].strip()
 
 
@@ -96,9 +116,12 @@ labels, rows = {}, []
 print(f"1. Labelling {len(latents)} latents with {args.model}")
 for lat in latents:
     snippets = "\n".join(f"{i + 1}. {show(sn)}" for i, sn in enumerate(lat["top"][:10]))
-    prompt = ("These are text snippets where one feature of a language model is most active. The token where it fires "
-              "most is marked «like this».\n\n" + snippets +
-              "\n\nIn at most 8 words, what does this feature detect? Answer with the label only.")
+    prompt = (
+        "These are text snippets where one feature of a language model is most active. The token where it fires "
+        "most is marked «like this».\n\n"
+        + snippets
+        + "\n\nIn at most 8 words, what does this feature detect? Answer with the label only."
+    )
     labels[lat["id"]] = ask(prompt, f"label {lat['id']}").strip(" .\"'")
     print(f"   latent {lat['id']:>5}: {labels[lat['id']]}", flush=True)
 
@@ -109,9 +132,11 @@ def detect(lat, label):
     items = [(sn, 1) for sn in pos] + [(sn, 0) for sn in neg]
     items = [items[i] for i in rng.permutation(len(items))]
     listing = "\n".join(f"{i + 1}. {show(sn, mark=False)}" for i, (sn, _) in enumerate(items))
-    prompt = (f"A feature of a language model is described as: \"{label}\".\n\nWhich of these snippets contain what this "
-              f"description is about? Exactly {len(pos)} of the {len(items)} do.\n\n{listing}\n\nAnswer with the "
-              f"{len(pos)} numbers only, separated by commas.")
+    prompt = (
+        f'A feature of a language model is described as: "{label}".\n\nWhich of these snippets contain what this '
+        f"description is about? Exactly {len(pos)} of the {len(items)} do.\n\n{listing}\n\nAnswer with the "
+        f"{len(pos)} numbers only, separated by commas."
+    )
     reply = ask(prompt, f"detect {lat['id']}")
     picked = {int(n) for n in re.findall(r"\d+", reply) if 1 <= int(n) <= len(items)}
     return sum((i + 1 in picked) == bool(y) for i, (_, y) in enumerate(items)) / len(items)
@@ -123,22 +148,39 @@ for n, lat in enumerate(latents):
     acc = detect(lat, labels[lat["id"]])
     wrong_label = labels[ids[(n + 1) % len(ids)]]
     acc_wrong = detect(lat, wrong_label)
-    rows.append({"id": lat["id"], "label": labels[lat["id"]], "accuracy": acc, "wrong_label": wrong_label,
-                 "accuracy_wrong_label": acc_wrong})
+    rows.append(
+        {
+            "id": lat["id"],
+            "label": labels[lat["id"]],
+            "accuracy": acc,
+            "wrong_label": wrong_label,
+            "accuracy_wrong_label": acc_wrong,
+        }
+    )
     print(f"   latent {lat['id']:>5}: own label {acc:.0%}, another latent's label {acc_wrong:.0%}", flush=True)
 
 acc = np.array([r["accuracy"] for r in rows])
 ctrl = np.array([r["accuracy_wrong_label"] for r in rows])
 diff = acc - ctrl
 boot = np.random.default_rng(s.SEED).integers(0, len(rows), (1000, len(rows)))
-summary = {"model": args.model, "n": len(rows), "accuracy": float(acc.mean()), "accuracy_ci": s.bootstrap_mean(acc),
-           "control": float(ctrl.mean()), "control_ci": s.bootstrap_mean(ctrl), "difference": float(diff.mean()),
-           "difference_ci": [float(np.percentile(diff[boot].mean(1), q)) for q in (2.5, 97.5)], "cost": spent(),
-           "calls": len(LEDGER.read_text().splitlines())}
+summary = {
+    "model": args.model,
+    "n": len(rows),
+    "accuracy": float(acc.mean()),
+    "accuracy_ci": s.bootstrap_mean(acc),
+    "control": float(ctrl.mean()),
+    "control_ci": s.bootstrap_mean(ctrl),
+    "difference": float(diff.mean()),
+    "difference_ci": [float(np.percentile(diff[boot].mean(1), q)) for q in (2.5, 97.5)],
+    "cost": spent(),
+    "calls": len(LEDGER.read_text().splitlines()),
+}
 s.save_json(res / "autolabels.json", {"summary": summary, "latents": rows})
-print(f"\n3. Mean detection accuracy {summary['accuracy']:.2f} {[round(x, 2) for x in summary['accuracy_ci']]} with the "
-      f"latent's own label, {summary['control']:.2f} with another latent's label; difference {summary['difference']:+.2f} "
-      f"{[round(x, 2) for x in summary['difference_ci']]}. {summary['calls']} calls, ${summary['cost']:.4f}.")
+print(
+    f"\n3. Mean detection accuracy {summary['accuracy']:.2f} {[round(x, 2) for x in summary['accuracy_ci']]} with the "
+    f"latent's own label, {summary['control']:.2f} with another latent's label; difference {summary['difference']:+.2f} "
+    f"{[round(x, 2) for x in summary['difference_ci']]}. {summary['calls']} calls, ${summary['cost']:.4f}."
+)
 
 print("\nSelf-checks:")
 s.check(f"labels pass the detection bar (mean {summary['accuracy']:.2f} >= 0.70)", summary["accuracy"] >= 0.70)
