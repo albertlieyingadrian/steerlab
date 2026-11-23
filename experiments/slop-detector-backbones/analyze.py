@@ -15,7 +15,7 @@ from importlib import import_module
 
 import numpy as np
 
-from bb import ARMS, DATA, LEDGER, RESULTS, RUNS, SD, sd
+from bb import ALL_ARMS, ARMS, DATA, LEDGER, RESULTS, RUNS, SD, sd
 
 diag, tev, fresh_test = import_module("diag_voi_gap"), import_module("tune_editlens_val"), import_module("fresh_test")
 FIXED = (1 / 6, 5 / 6)
@@ -26,7 +26,14 @@ NAMES = {
     "llama-3.1-8b": "Llama-3.1-8B",
     "modernbert-large": "ModernBERT-large",
     "deberta-v3-large": "DeBERTa-v3-large",
+    "gemma-3-12b": "Gemma-3-12B",
+    "qwen3-14b-base": "Qwen3-14B-Base",
+    "nemotron-30b-a3b": "Nemotron-3.5-30B-A3B",
+    "inkling-2-mini": "Inkling-2-Mini (Tinker)",
+    "inkling-2-small": "Inkling-2-Small (Tinker)",
+    "qwen3.5-9b-tinker": "Qwen3.5-9B (Tinker)",
 }
+TINKER = ("inkling-2-mini", "inkling-2-small", "qwen3.5-9b-tinker")
 REF_RUN = {"qwen3.5-9b": "f9-9b", "qwen3.5-4b": "b1x-4bk"}
 PARAMS_B = {
     "qwen3.5-9b": 9.0,
@@ -35,6 +42,12 @@ PARAMS_B = {
     "llama-3.1-8b": 8.0,
     "modernbert-large": 0.395,
     "deberta-v3-large": 0.435,
+    "gemma-3-12b": 12.2,
+    "qwen3-14b-base": 14.0,
+    "nemotron-30b-a3b": 31.2,
+    "inkling-2-mini": 26.4,
+    "inkling-2-small": 594.0,
+    "qwen3.5-9b-tinker": 9.0,
 }
 LABELLED = ("test", "test_enron", "test_llama", "fresh")
 
@@ -159,6 +172,66 @@ def cost(arm: str) -> dict:
     return out
 
 
+def tinker_cost(arm: str) -> dict:
+    """Round 3: estimated Tinker dollars from token counts at list prices (results/tinker_spend.jsonl)."""
+    led = sd.read_jsonl(RESULTS / "tinker_spend.jsonl")
+    name = f"bb-{arm} "
+    out = {
+        "train_usd": round(sum(r["usd"] for r in led if r["what"].startswith(name) and r["kind"] == "train"), 2),
+        "score_usd": round(sum(r["usd"] for r in led if r["what"].startswith(name) and r["kind"] == "prefill"), 2),
+        "params_b": PARAMS_B[arm],
+    }
+    t = RUNS / f"bb-{arm}" / "timing.json"
+    if t.exists():
+        out["label_mass_mean"] = json.loads(t.read_text())["label_mass_mean"]
+    return out
+
+
+def predictions2(arms: dict) -> list[dict]:
+    """Round 2 amendment: P6-P9."""
+    need = ["gemma-3-12b", "qwen3-14b-base", "nemotron-30b-a3b", "qwen3.5-9b", "mistral-nemo-12b", "llama-3.1-8b"]
+    if any(a not in arms for a in need):
+        return []
+    sp = {a: arms[a]["splits"]["fresh"] for a in need}
+
+    def gap(a: str, fam: str) -> float:
+        gf = arms[a]["generator_family"]
+        other = [k for k in gf if isinstance(gf[k], dict) and k not in (fam, "non-qwen", "qwen")]
+        n_other = sum(gf[k]["n_ai"] for k in other) + (gf["qwen"]["n_ai"] if fam != "qwen" else 0)
+        miss_other = sum(gf[k]["miss_rate"] * gf[k]["n_ai"] for k in other)
+        if fam != "qwen":
+            miss_other += gf["qwen"]["miss_rate"] * gf["qwen"]["n_ai"]
+        return 100 * (miss_other / n_other - gf[fam]["miss_rate"])
+
+    r1 = sp["qwen3-14b-base"]["calibrated_vs_9b"]
+    r2 = sp["gemma-3-12b"]["calibrated_vs_9b"]["diff"]
+    r3 = sp["nemotron-30b-a3b"]["calibrated_vs_9b"]["diff"]
+    r4 = gap("gemma-3-12b", "gemma") - (gap("mistral-nemo-12b", "gemma") + gap("llama-3.1-8b", "gemma")) / 2
+    return [
+        {"id": "P6", "value": r1["diff"], "ci": r1["ci"], "hit": bool(r1["ci"][0] > 0)},
+        {"id": "P7", "value": r2, "hit": bool(abs(r2) <= 0.010)},
+        {"id": "P8", "value": r3, "hit": bool(r3 < -0.010)},
+        {"id": "P9", "value_points": round(r4, 2), "hit": bool(abs(r4) <= 2)},
+    ]
+
+
+def predictions3(arms: dict) -> list[dict]:
+    """Round 3 amendment: T1-T4 (T2 and T3 paired against the Tinker Qwen control)."""
+    if any(a not in arms for a in TINKER):
+        return []
+    fr = {a: arms[a]["splits"]["fresh"]["calibrated"] for a in [*TINKER, "qwen3.5-9b"]}
+    t2 = arms["inkling-2-small"]["splits"]["fresh"].get("calibrated_vs_tinker_qwen", {})
+    masses = [v for a in TINKER for k, v in arms[a]["cost"].get("label_mass_mean", {}).items()]
+    t1 = fr["qwen3.5-9b-tinker"] - fr["qwen3.5-9b"]
+    t3 = fr["inkling-2-mini"] - fr["qwen3.5-9b-tinker"]
+    return [
+        {"id": "T1", "value": round(t1, 4), "hit": bool(t1 < -0.010)},
+        {"id": "T2", "value": t2.get("diff"), "ci": t2.get("ci"), "hit": bool(t2 and t2["ci"][0] > 0)},
+        {"id": "T3", "value": round(t3, 4), "hit": bool(abs(t3) <= 0.020)},
+        {"id": "T4", "value": round(min(masses), 4) if masses else None, "hit": bool(masses and min(masses) >= 0.95)},
+    ]
+
+
 def predictions(arms: dict) -> list[dict]:
     new = [a for a in ARMS if a in arms]
     if len(new) < len(ARMS) or "qwen3.5-9b" not in arms:
@@ -223,8 +296,10 @@ def main() -> None:
             continue
         r = ref if arm == "qwen3.5-9b" else arm_numbers(arm, y, ref)
         r = {k: v for k, v in r.items() if k != "pred"}
-        if arm in ARMS:
+        if arm in ALL_ARMS:
             r["cost"] = cost(arm)
+        elif arm in TINKER:
+            r["cost"] = tinker_cost(arm)
         elif (RUNS / f"ref-{arm}" / "timing.json").exists():  # wall time incl. model load: an upper bound
             t = json.loads((RUNS / f"ref-{arm}" / "timing.json").read_text())
             r["cost"] = {
@@ -243,7 +318,17 @@ def main() -> None:
                 if s in sp
             )
         )
-    out["predictions"] = predictions(out["arms"])
+    if all(a in out["arms"] for a in TINKER):  # round 3: Inkling paired against Qwen3.5-9B on the same Tinker recipe
+
+        def fresh_pred(arm: str):
+            h, g = out["arms"][arm]["cuts_calibrated"]
+            return diag.bands(load(arm, "fresh"), h, g)
+
+        ctrl = fresh_pred("qwen3.5-9b-tinker")
+        for arm in ("inkling-2-mini", "inkling-2-small"):
+            b = sd.paired_boot(y["fresh"], fresh_pred(arm), ctrl, ("macro_f1",), reps=2000)["macro_f1"]
+            out["arms"][arm]["splits"]["fresh"]["calibrated_vs_tinker_qwen"] = {"diff": b["diff"], "ci": b["diff_ci"]}
+    out["predictions"] = predictions(out["arms"]) + predictions2(out["arms"]) + predictions3(out["arms"])
     out["spend_usd"] = round(sum(r["usd"] for r in sd.read_jsonl(LEDGER)), 2)
     (RESULTS / "bakeoff.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
     for p in out["predictions"]:
