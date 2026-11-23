@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Reproduce every number in The Taste Stack Episode 8 note (the taste-reward hack benchmark).
+# Reproduce every number in The Taste Stack Episode 8 note (the reward hack benchmark).
 # Free: CPU only, about a minute, no model or API calls. Run from the repository root.
 # --dry-run prints the commands without running them.
 set -e

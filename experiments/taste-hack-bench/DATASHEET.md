@@ -1,7 +1,7 @@
-# Datasheet: taste-reward hack benchmark (v1)
+# Datasheet: reward hack benchmark (v1)
 
-Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste Stack, Episode 8 (v0 on 2026-11-21, v1 on 2026-11-23):
-`report/index.html`.
+Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste Stack, Episode 8, "47 reward hacks, 27 from taste rewards" (v0 on 2026-11-21, v1 on
+2026-11-23): `report/index.html`.
 
 ## Motivation
 
@@ -15,15 +15,28 @@ Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste 
 ## Composition
 
 - **50 entries** in `entries.jsonl`, from 28 published notes: 47 hacks and 3 near misses. Kinds: 17 trained policy,
-  12 constructed trap, 8 selection rule, 6 steering arm, 2 ruler failure (a judge failing on real outputs after
+  11 constructed trap, 8 selection rule, 6 steering arm, 3 ruler failure (a judge failing on real outputs after
   passing its checks), 1 learned ruler (a reward model that learned a shortcut), 1 planted, 3 near miss (Episode 6:
   no hack, but the reward bought something else, or a monitor misfired).
+- **Reward types** (`reward_type`; what was gamed, apart from who found it). Of the 47 hacks: 27 taste/judge, 8 style
+  proxy, 6 verifiable task, 4 selection rule, 2 monitor/probe; the 3 near misses are 1 taste/judge, 1 style proxy and
+  1 monitor/probe. One line each:
+  - **taste/judge:** an LLM or human-preference judge, a learned taste, slop or voice scorer, or a reward model
+    standing in for a subjective preference (judges of plausibility or compliance are typed here too, with a note).
+  - **style proxy:** a cheap hand-written ruler: word counts, length, keyword lists, regexes, n-gram fluency rules,
+    brand-rule checkers.
+  - **verifiable task:** an exact-answer reward or grader: math answers, unit tests, pass tags, detector-checked prompts.
+  - **selection rule:** the picking logic itself was the weak point: checkpoint or dev-best rules, margins, fallbacks.
+    A selection rule that ranked on a taste ruler is typed by that ruler.
+  - **monitor/probe:** an activation probe or hack monitor used as a reward term or an alarm.
+  Where the type is a judgement call, `reward_type_note` gives the reason in one phrase. Style proxies are included
+  because they show the same failure as a taste reward in its simplest form.
 - **21 entries with samples.** 16 in `artefacts/<id>.jsonl`: rows with `group` (`hack` or `clean`) and `text`, plus
   `n_tokens`, `truncated`, `ledger` and `step` where the source logged them. 5 Sounds Like Me entries in
   `artefacts/<id>.features.jsonl`: `group`, `loop` and `copy` (shares), `chars`, `n_tokens`, `truncated`, `ledger`,
   `empty`, and no text. Identical samples within a group count once; groups then hold 1 to 120 distinct rows (capped
   at 120, drawn with seed 0).
-- **Entry fields.** `id`, `title`, `domain`, `kind`, `source` (note slug), `section` (anchor), `link`, `reward` (what
+- **Entry fields.** `id`, `title`, `domain`, `kind`, `reward_type`, `reward_type_note`, `source` (note slug), `section` (anchor), `link`, `reward` (what
   was gamed), `hack` (what the policy, arm or rule did), `quote` (a sentence from the note with its numbers; build.py
   fails if it is not in the note's text), `caught_by`, `lab_check` (the family of check that caught it), `when`
   (pre-registered, by design or post hoc), `missed_by`, `notes`, `why_no_artefact`, and `artefacts`: `file`,
@@ -59,7 +72,7 @@ Following *Datasheets for Datasets* (arXiv:1803.09010). Released with The Taste 
 ## Uses
 
 - **Intended.** Scoring a hack detector's catches and false alarms per entry; testing whether a monitor would have
-  caught known hacks; a checklist of ways taste rewards fail.
+  caught known hacks; a checklist of ways rewards and rulers get hacked, most of them taste rewards.
 - **Not intended.** Training a general hack classifier: the groups are small and come from a few environments
   (Pigment Gym and the RL notes built on it supply 8 entries). If you train on it, hold out whole entries.
 - **Known biases.** One lab, mostly small open models (0.5B to 32B), a few environments, and hacks that were caught.
