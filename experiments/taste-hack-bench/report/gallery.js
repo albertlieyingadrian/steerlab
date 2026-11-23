@@ -22,6 +22,23 @@
 
   const kinds = [...new Set(data.entries.map((e) => e.kind))];
   kinds.forEach((k) => f.kind.insertAdjacentHTML("beforeend", `<option value="${esc(k)}">${esc(k)}</option>`));
+  // reward-type chips: one pressed at a time ("all" clears); counts are entries of that type
+  const RT = ["taste/judge", "style proxy", "verifiable task", "selection rule", "monitor/probe"];
+  const chips = root.querySelector(".hg-rt-chips");
+  let rt = "";
+  const chip = (v, label, n) => `<button type="button" data-rt="${esc(v)}" aria-pressed="${v === rt}">${esc(label)}<span class="n">${n}</span></button>`;
+  chips.innerHTML = chip("", "all types", data.entries.length) +
+    RT.map((t) => chip(t, t, data.entries.filter((e) => e.reward_type === t).length)).join("");
+  function setRt(v) {
+    rt = v;
+    chips.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.rt === v)));
+  }
+  chips.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    setRt(b.dataset.rt === rt ? "" : b.dataset.rt);
+    render();
+  });
   const checks = [...new Set(data.entries.map((e) => e.lab_check))].sort();
   checks.forEach((k) => f.caught.insertAdjacentHTML("beforeend", `<option value="${esc(k)}">${esc(k)}</option>`));
 
@@ -45,9 +62,10 @@
       : "";
     const badge = e.detectors ? `<span class="hg-badge b-${e.best}">${{ full: "cheap check caught it", partial: "partly caught", miss: "no cheap check caught it" }[e.best]}</span>` : `<span class="hg-badge b-none">no samples</span>`;
     return `<li class="hg-card" id="hack-${esc(e.id)}"><details${open.has(e.id) ? " open" : ""}>
-      <summary><span class="hg-tag">${esc(e.kind)} · ${esc(e.domain)}</span><span class="hg-title">${esc(e.title)}</span>${badge}</summary>
+      <summary><span class="hg-tag"><span class="hg-rt">${esc(e.reward_type)}</span> · ${esc(e.kind)} · ${esc(e.domain)}</span><span class="hg-title">${esc(e.title)}</span>${badge}</summary>
       <dl>
         <dt>Reward or ruler</dt><dd>${esc(e.reward)}</dd>
+        <dt>Reward type</dt><dd>${esc(e.reward_type)}${e.reward_type_note ? ` <span class="small">(${esc(e.reward_type_note)})</span>` : ""}</dd>
         <dt>What it did</dt><dd>${esc(e.hack)}</dd>
         <dt>Evidence</dt><dd>“${esc(e.quote)}” <a href="${esc(e.href)}">source note ↗</a></dd>
         <dt>Caught by</dt><dd>${esc(e.caught_by)} <span class="small">(${esc(e.when)})</span></dd>
@@ -60,7 +78,7 @@
 
   function haystack(e) {
     const a = e.artefacts || {};
-    return [e.title, e.domain, e.kind, e.reward, e.hack, e.quote, e.caught_by, e.lab_check, e.when, e.notes,
+    return [e.title, e.domain, e.kind, e.reward_type, e.reward_type_note, e.reward, e.hack, e.quote, e.caught_by, e.lab_check, e.when, e.notes,
       (e.missed_by || []).join(" "), e.why_no_artefact, a.hack_sample, a.clean_sample, a.label_source]
       .filter(Boolean).join(" ").toLowerCase();
   }
@@ -68,6 +86,7 @@
   function render() {
     const q = f.q.value.trim().toLowerCase();
     const shown = data.entries.filter((e) => {
+      if (rt && e.reward_type !== rt) return false;
       if (f.kind.value && e.kind !== f.kind.value) return false;
       if (f.caught.value && e.lab_check !== f.caught.value) return false;
       if (f.cheap.value === "art" && !e.detectors) return false;
@@ -92,6 +111,7 @@
     open.add(id);
     if (!document.getElementById("hack-" + id) && data.entries.some((e) => e.id === id)) {
       Object.values(f).forEach((el) => (el.value = "")); // the card is filtered out: clear the filters
+      setRt("");
       render();
     }
     const el = document.getElementById("hack-" + id);

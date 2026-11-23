@@ -42,6 +42,14 @@ import detectors as D
 DET = ["loop", "copy", "length", "ledger"]
 FAMILY = {"render", "trace", "keyword", "outside ruler", "code review"}  # the check families v0's P4 named
 SNIP = 260
+# reward types, in display order, with the one-line definition the note's Table 1b prints (entries.py has the long form)
+RTYPES = {
+    "taste/judge": "An LLM or human-preference judge, a learned taste, slop or voice scorer, or a reward model standing in for a subjective preference",
+    "style proxy": "A cheap hand-written ruler: word counts, length, keyword lists, regexes, n-gram fluency rules, brand-rule checkers",
+    "verifiable task": "An exact-answer reward or grader: math answers, unit tests, pass tags, detector-checked prompts",
+    "selection rule": "The picking logic itself: checkpoint or dev-best rules, margins over random, fallbacks",
+    "monitor/probe": "An activation probe or hack monitor used as a reward term or an alarm",
+}
 # The sample shown for each entry: the hack row the entry's catching check scores highest, so the gallery shows the
 # hack at its clearest. Rows are picked by rule, then checked for names (none of these contain a person's name).
 PICK = {
@@ -123,6 +131,10 @@ def snippet(text: str, entry_id: str) -> str:
     return text if len(text) <= SNIP else text[:SNIP].rsplit(" ", 1)[0] + " …"
 
 
+def rt_key(t: str) -> str:
+    return t.split("/")[0].split(" ")[0]  # taste, style, verifiable, selection, monitor
+
+
 def main(hero: bool = True) -> None:
     global EX
     entries = [json.loads(line) for line in (HERE / "entries.jsonl").read_text().splitlines()]
@@ -137,6 +149,8 @@ def main(hero: bool = True) -> None:
                 "title",
                 "domain",
                 "kind",
+                "reward_type",
+                "reward_type_note",
                 "source",
                 "section",
                 "reward",
@@ -242,7 +256,7 @@ def main(hero: bool = True) -> None:
     for r in out:
         how = f"{esc(r['caught_by'])} ({esc(r['when'])})"
         items.append(
-            f'<li class="hg-card" id="hack-{r["id"]}"><p class="hg-tag">{esc(r["kind"])} · {esc(r["domain"])}</p>'
+            f'<li class="hg-card" id="hack-{r["id"]}"><p class="hg-tag">{esc(r["reward_type"])} · {esc(r["kind"])} · {esc(r["domain"])}</p>'
             f'<p class="hg-title">{esc(r["title"])}</p><p class="small">“{esc(r["quote"])}” <a href="{esc(r["href"])}">source note ↗</a>. '
             f"Caught by: {how}.</p></li>"
         )
@@ -282,7 +296,19 @@ def main(hero: bool = True) -> None:
         **{f"{n}_full": det_count(n, ("full",)) for n in DET},
         **{f"{n}_app": det_count(n, ("full", "partial", "miss")) for n in DET},
         "length_partial": det_count("length", ("partial",)),
+        **{f"rt_{rt_key(k)}": sum(r["reward_type"] == k for r in out if r["kind"] != "near miss") for k in RTYPES},
     }
+    assert {r["reward_type"] for r in out} <= set(RTYPES), "unknown reward_type"
+    # the title carries two counts; it lives in notes.json (build_meta.py copies it into the page's metadata)
+    want = f"{counts['entries']} reward hacks, {counts['rt_taste']} from taste rewards"
+    notes = json.loads((HERE.parent / "notes.json").read_text())
+    got = next(
+        n["title"] for n in (notes["notes"] if isinstance(notes, dict) else notes) if n["name"] == "taste-hack-bench"
+    )
+    if got != want:
+        raise SystemExit(f"notes.json title is {got!r}; the data say {want!r}")
+    if f"<title>{want}</title>" not in text:
+        raise SystemExit(f"report <title> does not read {want!r}")
     text = re.sub(
         r'(<span data-k="(\w+)">)[^<]*(</span>)', lambda m: f"{m.group(1)}{counts[m.group(2)]}{m.group(3)}", text
     )
@@ -307,6 +333,29 @@ def main(hero: bool = True) -> None:
     )
     i, j = text.index("<!-- labcheck:start -->") + len("<!-- labcheck:start -->"), text.index("<!-- labcheck:end -->")
     text = text[:i] + "\n" + rows3 + "\n    " + text[j:]
+    # Table 1b: entries by reward type, and how the four cheap checks did on each type's entries with samples
+    rows_rt = []
+    for rtype, d in RTYPES.items():
+        mine = [r for r in out if r["reward_type"] == rtype]
+        hacks = [r for r in mine if r["kind"] != "near miss"]
+        sc = [r for r in hacks if r["detectors"]]
+        verdict = Counter(r["best"] for r in sc)
+        rows_rt.append(
+            f'      <tr><th scope="row">{rtype}</th><td class="num">{len(hacks)}</td><td class="num">{len(mine) - len(hacks)}</td>'
+            f'<td class="num">{len(sc)}</td><td class="num">{verdict["full"]}</td><td class="num">{verdict["partial"]}</td><td class="num">{verdict["miss"]}</td></tr>'
+        )
+        print(
+            f"{rtype:16s} hacks {len(hacks):2d}  near {len(mine) - len(hacks)}  with samples {len(sc):2d}  caught {verdict['full']}  partly {verdict['partial']}  missed {verdict['miss']}"
+        )
+    a, b = "<!-- rtype:start -->", "<!-- rtype:end -->"
+    i, j = text.index(a) + len(a), text.index(b)
+    text = text[:i] + "\n" + "\n".join(rows_rt) + "\n    " + text[j:]
+    defs = "\n".join(
+        f"    <li><strong>{k}</strong>: {html.escape(d[0].lower() + d[1:])}.</li>" for k, d in RTYPES.items()
+    )
+    a, b = "<!-- rtdefs:start -->", "<!-- rtdefs:end -->"
+    i, j = text.index(a) + len(a), text.index(b)
+    text = text[:i] + "\n" + defs + "\n  " + text[j:]
     a, b = "<!-- gallery:start -->", "<!-- gallery:end -->"
     i, j = text.index(a) + len(a), text.index(b)
     idx.write_text(text[:i] + "\n" + "\n".join(items) + "\n    " + text[j:])
@@ -314,7 +363,8 @@ def main(hero: bool = True) -> None:
     # ---- cover: the matrix as a grid, beside the counts ----
     body = kicker("THE TASTE STACK · EPISODE 8", "AN OPEN BENCHMARK")
     n_hacks = sum(r["kind"] != "near miss" for r in out)
-    body += t(20, 62, f"{n_hacks} taste-reward hacks", 25, 800, INK)
+    n_taste = sum(r["reward_type"] == "taste/judge" for r in out if r["kind"] != "near miss")
+    body += t(20, 62, f"{n_hacks} reward hacks, {n_taste} from taste rewards", 25, 800, INK)
     kinds = Counter(r["kind"] for r in out)
     n_art = sum(1 for r in out if r["detectors"])
     n_notes = len({r["source"] for r in out})
@@ -383,6 +433,7 @@ def main(hero: bool = True) -> None:
         f"{n_hacks} HACKS AND {kinds['near miss']} NEAR MISSES FROM {n_notes} PUBLISHED NOTES · {n_art} WITH DERIVED SAMPLES · LOOP, COPY, LENGTH AND HONESTY-LEDGER CHECKS"
     )
     label = (
+        f"{n_hacks} reward hacks, {n_taste} from taste rewards. "
         f"Left: the {len(out)} entries by kind ({kinds['trained policy']} found by a trained policy, {kinds['constructed trap']} constructed traps, "
         f"{kinds['selection rule']} selection rules, {kinds['steering arm']} steering arms, {kinds['ruler failure']} judge failures, "
         f"{kinds['learned ruler']} learned shortcut, {kinds['planted']} planted, {kinds['near miss']} near misses), "
