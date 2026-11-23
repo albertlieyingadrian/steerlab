@@ -66,9 +66,15 @@ def max_norm(data):
 
 def mean_sq(data):
     return sum(float((data[i : i + 262144].float() ** 2).sum()) for i in range(0, len(data), 262144)) / len(data)
-print(f"1. Stored {len(X):,} training and {len(E):,} held-out activations from the residual stream after block {s.LAYER}")
-print(f"   with the sinks left in, the largest norm in the training slice is {max_norm(X_sink):,.0f} "
-      f"(without: {max_norm(X):,.0f})")
+
+
+print(
+    f"1. Stored {len(X):,} training and {len(E):,} held-out activations from the residual stream after block {s.LAYER}"
+)
+print(
+    f"   with the sinks left in, the largest norm in the training slice is {max_norm(X_sink):,.0f} "
+    f"(without: {max_norm(X):,.0f})"
+)
 
 
 def batches(data, scale_, epochs=EPOCHS, seed=s.SEED):
@@ -100,8 +106,11 @@ def steps_for(data, epochs=EPOCHS):
 
 
 def report(r):
-    print(f"   {r['name']:<36} L0 {r['l0']:>6.1f}  FVU {r['fvu']:.4f}  never fired {r['dead_share']:>6.1%}  "
-          f"({r['seconds']}s)", flush=True)
+    print(
+        f"   {r['name']:<36} L0 {r['l0']:>6.1f}  FVU {r['fvu']:.4f}  never fired {r['dead_share']:>6.1%}  "
+        f"({r['seconds']}s)",
+        flush=True,
+    )
     return r
 
 
@@ -113,13 +122,21 @@ def run_topk(name, k=32, *, lr=4e-4, aux=1 / 32, data=None, scale_=None, epochs=
     with torch.no_grad():
         sae.b_dec.copy_(data[:200_000].float().mean(0).to(device) * scale_)
     t0 = time.monotonic()
-    s.train_sae(sae, batches(data, scale_, epochs), total_steps=steps_for(data, epochs), lr=lr, aux_coef=aux,
-                batch_topk=batch_topk)
+    s.train_sae(
+        sae,
+        batches(data, scale_, epochs),
+        total_steps=steps_for(data, epochs),
+        lr=lr,
+        aux_coef=aux,
+        batch_topk=batch_topk,
+    )
     enc_dec = sae
     if batch_topk:  # at inference, BatchTopK becomes a threshold: the average smallest kept value per batch
         with torch.no_grad():
-            mins = [float(torch.relu(sae.pre(x)).flatten().topk(k * len(x)).values.min())
-                    for x, _ in batches(data[:400_000], scale_, 1)]
+            mins = [
+                float(torch.relu(sae.pre(x)).flatten().topk(k * len(x)).values.min())
+                for x, _ in batches(data[:400_000], scale_, 1)
+            ]
         theta = float(np.mean(mins))
 
         def enc_dec(x):
@@ -127,8 +144,17 @@ def run_topk(name, k=32, *, lr=4e-4, aux=1 / 32, data=None, scale_=None, epochs=
             z = torch.where(pre > theta, pre, torch.zeros_like(pre))
             return sae.decode(z), z
 
-    return report({"name": name, "group": group, "k": k, "lr": lr, "aux": aux,
-                   "seconds": round(time.monotonic() - t0, 1), **score(enc_dec, scale_)})
+    return report(
+        {
+            "name": name,
+            "group": group,
+            "k": k,
+            "lr": lr,
+            "aux": aux,
+            "seconds": round(time.monotonic() - t0, 1),
+            **score(enc_dec, scale_),
+        }
+    )
 
 
 def run_l1(name, coef, *, lr=4e-4):
@@ -154,8 +180,16 @@ def run_l1(name, coef, *, lr=4e-4):
         z = torch.relu(sae.pre(x))
         return sae.decode(z), z
 
-    return report({"name": name, "group": "relu_l1", "l1": coef, "lr": lr, "seconds": round(time.monotonic() - t0, 1),
-                   **score(enc_dec, scale)})
+    return report(
+        {
+            "name": name,
+            "group": "relu_l1",
+            "l1": coef,
+            "lr": lr,
+            "seconds": round(time.monotonic() - t0, 1),
+            **score(enc_dec, scale),
+        }
+    )
 
 
 runs = []
@@ -182,20 +216,30 @@ usage = {}
 if main_path.exists():
     main = s.raw_from_handwritten(main_path, device)
     usage["right layer (block 11 output)"] = s.fvu_of(main, E)[0]
-    for wrong, label in ((s.LAYER - 1, "hidden_states[11]: block 10's output"),
-                         (s.LAYER + 1, "hidden_states[13]: block 12's output")):
+    for wrong, label in (
+        (s.LAYER - 1, "hidden_states[11]: block 10's output"),
+        (s.LAYER + 1, "hidden_states[13]: block 12's output"),
+    ):
         usage[f"wrong layer, {label}"] = s.fvu_of(main, stored(eval_w, N_EVAL, layer=wrong))[0]
     sae, saved = s.load_sae(main_path, device)
     sc = saved["scale"]
-    no_bias = s.RawSAE(lambda x: sae.encode(x * sc), lambda z: (z @ sae.W_dec) / sc, sae.d_sae, sae.k, sae.W_dec,
-                       "decoder bias forgotten")
+    no_bias = s.RawSAE(
+        lambda x: sae.encode(x * sc),
+        lambda z: (z @ sae.W_dec) / sc,
+        sae.d_sae,
+        sae.k,
+        sae.W_dec,
+        "decoder bias forgotten",
+    )
     usage["decoder bias forgotten"] = s.fvu_of(no_bias, E)[0]
     print("\n4. Using the main SAE wrongly (held-out FVU):")
     for name, v in usage.items():
         print(f"   {name:<44} FVU {v:.4f}")
 
-s.save_json(s.RESULTS / args.size / "sweep.json", {"d_sae": D_SAE, "epochs": EPOCHS, "train_tokens": len(X),
-                                                   "eval_tokens": len(E), "runs": runs, "usage": usage})
+s.save_json(
+    s.RESULTS / args.size / "sweep.json",
+    {"d_sae": D_SAE, "epochs": EPOCHS, "train_tokens": len(X), "eval_tokens": len(E), "runs": runs, "usage": usage},
+)
 topk = [r for r in runs if r["group"] == "topk"]
 l1 = [r for r in runs if r["group"] == "relu_l1"]
 
@@ -206,12 +250,20 @@ def fvu_at(curve, l0):  # a curve's FVU at a given L0, interpolated on a log L0 
 
 
 print("\nSelf-checks:")
-s.check(f"TopK's FVU falls as k rises ({', '.join(format(r['fvu'], '.3f') for r in topk)})",
-        all(a["fvu"] > b["fvu"] for a, b in zip(topk, topk[1:])))
-s.check(f"the L1 sweep spans L0 {min(r['l0'] for r in l1):.0f} to {max(r['l0'] for r in l1):.0f} (covers 16-64)",
-        min(r["l0"] for r in l1) < 16 and max(r["l0"] for r in l1) > 64)
-s.check(f"at L0 = 32, TopK rebuilds better than ReLU + L1 (FVU {fvu_at(topk, 32):.3f} vs {fvu_at(l1, 32):.3f})",
-        fvu_at(topk, 32) < fvu_at(l1, 32))
+s.check(
+    f"TopK's FVU falls as k rises ({', '.join(format(r['fvu'], '.3f') for r in topk)})",
+    all(a["fvu"] > b["fvu"] for a, b in zip(topk, topk[1:])),
+)
+s.check(
+    f"the L1 sweep spans L0 {min(r['l0'] for r in l1):.0f} to {max(r['l0'] for r in l1):.0f} (covers 16-64)",
+    min(r["l0"] for r in l1) < 16 and max(r["l0"] for r in l1) > 64,
+)
+s.check(
+    f"at L0 = 32, TopK rebuilds better than ReLU + L1 (FVU {fvu_at(topk, 32):.3f} vs {fvu_at(l1, 32):.3f})",
+    fvu_at(topk, 32) < fvu_at(l1, 32),
+)
 if usage:
-    s.check("the wrong layers and the missing bias are all worse than the right use",
-            all(v > usage["right layer (block 11 output)"] for name, v in usage.items() if not name.startswith("right")))
+    s.check(
+        "the wrong layers and the missing bias are all worse than the right use",
+        all(v > usage["right layer (block 11 output)"] for name, v in usage.items() if not name.startswith("right")),
+    )

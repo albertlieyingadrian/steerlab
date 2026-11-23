@@ -60,8 +60,10 @@ def token_rows(name):
 
 prose_x, prose_ids, prose_docs = token_rows("probe")
 code_x, code_ids, code_docs = token_rows("code")
-print(f"1. {len(prose_x):,} prose tokens from {len(set(prose_docs))} FineWeb-Edu documents; {len(code_x):,} code tokens "
-      f"from {len(set(code_docs))} Python files. Documents with an even id train, odd ids are held out.")
+print(
+    f"1. {len(prose_x):,} prose tokens from {len(set(prose_docs))} FineWeb-Edu documents; {len(code_x):,} code tokens "
+    f"from {len(set(code_docs))} Python files. Documents with an even id train, odd ids are held out."
+)
 
 has_digit = np.array([bool(re.search(r"\d", tok.decode([i]))) for i in range(len(tok))])
 
@@ -114,7 +116,13 @@ for concept, title in (("code", "code vs prose"), ("digit", "tokens with a digit
     data = build(concept)
     (xtr, ytr, gtr), (xte, yte, gte) = data["train"], data["test"]
     Xtr, Xte = xtr.numpy().astype(np.float64), xte.numpy().astype(np.float64)
-    r = {"title": title, "n_train": len(ytr), "n_test": len(yte), "train_docs": len(set(gtr)), "test_docs": len(set(gte))}
+    r = {
+        "title": title,
+        "n_train": len(ytr),
+        "n_test": len(yte),
+        "train_docs": len(set(gtr)),
+        "test_docs": len(set(gte)),
+    }
 
     # logistic probe on standardised activations; C by 3-fold CV on train
     mu, sd = Xtr.mean(0), Xtr.std(0) + 1e-6
@@ -142,10 +150,18 @@ for concept, title in (("code", "code vs prose"), ("digit", "tokens with a digit
     r["sae_latent"] = auroc_ci(yte, sign[order[0]] * zte[:, best], gte)
     r["sae_latent_id"] = best
     r["sae_latent_sign"] = float(sign[order[0]])
-    r["sae_latent_fires_on"] = {"class1": float((zte[yte == 1, best] > 0).mean()),
-                                "class0": float((zte[yte == 0, best] > 0).mean())}
-    r["sae_top5"] = [{"id": int(shortlist[o]), "train_auroc": float(max(train_auc[o], 1 - train_auc[o])),
-                      "test_auroc": float(roc_auc_score(yte, sign[o] * zte[:, shortlist[o]]))} for o in order[:5]]
+    r["sae_latent_fires_on"] = {
+        "class1": float((zte[yte == 1, best] > 0).mean()),
+        "class0": float((zte[yte == 0, best] > 0).mean()),
+    }
+    r["sae_top5"] = [
+        {
+            "id": int(shortlist[o]),
+            "train_auroc": float(max(train_auc[o], 1 - train_auc[o])),
+            "test_auroc": float(roc_auc_score(yte, sign[o] * zte[:, shortlist[o]])),
+        }
+        for o in order[:5]
+    ]
     top5 = [d["id"] for d in r["sae_top5"]]
     lr5 = LogisticRegression(max_iter=3000).fit(ztr[:, top5], ytr)
     r["sae_top5_probe"] = auroc_ci(yte, lr5.decision_function(zte[:, top5]), gte)
@@ -169,15 +185,27 @@ for concept, title in (("code", "code vs prose"), ("digit", "tokens with a digit
         v = unit(rng.normal(size=Xtr.shape[1]))
         v = v if roc_auc_score(ytr, Xtr @ v) >= 0.5 else -v
         rand_test.append(roc_auc_score(yte, Xte @ v))
-    r["random"] = {"mean": float(np.mean(rand_test)), "p95": float(np.percentile(rand_test, 95)),
-                   "max": float(np.max(rand_test))}
+    r["random"] = {
+        "mean": float(np.mean(rand_test)),
+        "p95": float(np.percentile(rand_test, 95)),
+        "max": float(np.max(rand_test)),
+    }
 
     # cosines between the directions
-    dirs = {"probe": probe_dir, "diff of means": dm_dir, "SAE decoder": sae_dec, "SAE encoder": sae_enc,
-            "PC1": pc1_dir, f"PC{best_pc + 1}": pcb_dir}
+    dirs = {
+        "probe": probe_dir,
+        "diff of means": dm_dir,
+        "SAE decoder": sae_dec,
+        "SAE encoder": sae_enc,
+        "PC1": pc1_dir,
+        f"PC{best_pc + 1}": pcb_dir,
+    }
     names = list(dirs)
-    r["cosine"] = {"names": names, "matrix": [[float(dirs[a] @ dirs[b]) for b in names] for a in names],
-                   "random_scale": float(1 / np.sqrt(Xtr.shape[1]))}
+    r["cosine"] = {
+        "names": names,
+        "matrix": [[float(dirs[a] @ dirs[b]) for b in names] for a in names],
+        "random_scale": float(1 / np.sqrt(Xtr.shape[1])),
+    }
 
     # LEACE: remove the concept linearly (whiten, project out the class-covariance direction, unwhiten)
     mean = Xtr.mean(0)
@@ -195,28 +223,45 @@ for concept, title in (("code", "code vs prose"), ("digit", "tokens with a digit
     r["leace_probe"] = auroc_ci(yte, fresh.decision_function((erased(Xte) - mu) / sd), gte)
     results[concept] = r
 
-    print(f"\n2. {title}: {r['n_train']:,} train / {r['n_test']:,} held-out tokens ({r['train_docs']} / {r['test_docs']} "
-          "documents). Held-out AUROC [95% CI over documents]:")
-    for key, label in (("probe", f"logistic probe (C = {r['probe_C']:g})"), ("diff_means", "difference of means"),
-                       ("sae_latent", f"best SAE latent (#{best})"), ("sae_top5_probe", "probe on the 5 best SAE latents"),
-                       ("pca_1", "PCA, first component"), ("pca_best10", f"PCA, best of first 10 (PC{best_pc + 1})"),
-                       ("leace_probe", "fresh probe after LEACE erasure")):
+    print(
+        f"\n2. {title}: {r['n_train']:,} train / {r['n_test']:,} held-out tokens ({r['train_docs']} / {r['test_docs']} "
+        "documents). Held-out AUROC [95% CI over documents]:"
+    )
+    for key, label in (
+        ("probe", f"logistic probe (C = {r['probe_C']:g})"),
+        ("diff_means", "difference of means"),
+        ("sae_latent", f"best SAE latent (#{best})"),
+        ("sae_top5_probe", "probe on the 5 best SAE latents"),
+        ("pca_1", "PCA, first component"),
+        ("pca_best10", f"PCA, best of first 10 (PC{best_pc + 1})"),
+        ("leace_probe", "fresh probe after LEACE erasure"),
+    ):
         v, ci = r[key]
         print(f"   {label:<40} {v:.3f} [{ci[0]:.3f}, {ci[1]:.3f}]")
-    print(f"   {'100 random directions':<40} mean {r['random']['mean']:.3f}, 95th percentile {r['random']['p95']:.3f}, "
-          f"max {r['random']['max']:.3f}")
-    print(f"   the best latent fires on {r['sae_latent_fires_on']['class1']:.1%} of class-1 and "
-          f"{r['sae_latent_fires_on']['class0']:.1%} of class-0 held-out tokens; the next best latents (test AUROC): "
-          + ", ".join(f"#{d['id']} {d['test_auroc']:.3f}" for d in r["sae_top5"][1:]))
+    print(
+        f"   {'100 random directions':<40} mean {r['random']['mean']:.3f}, 95th percentile {r['random']['p95']:.3f}, "
+        f"max {r['random']['max']:.3f}"
+    )
+    print(
+        f"   the best latent fires on {r['sae_latent_fires_on']['class1']:.1%} of class-1 and "
+        f"{r['sae_latent_fires_on']['class0']:.1%} of class-0 held-out tokens; the next best latents (test AUROC): "
+        + ", ".join(f"#{d['id']} {d['test_auroc']:.3f}" for d in r["sae_top5"][1:])
+    )
     print("   cosines with the probe: " + "; ".join(f"{n} {dirs['probe'] @ dirs[n]:+.2f}" for n in names[1:]))
 
 s.save_json(s.RESULTS / args.size / "compare.json", results)
 
 print("\nSelf-checks:")
 for concept, r in results.items():
-    s.check(f"{concept}: the probe beats every random direction ({r['probe'][0]:.3f} > max {r['random']['max']:.3f})",
-            r["probe"][0] > r["random"]["max"])
-    s.check(f"{concept}: LEACE erasure takes a fresh probe to near chance ({r['leace_probe'][0]:.3f}, |x - 0.5| < 0.1)",
-            abs(r["leace_probe"][0] - 0.5) < 0.1)
+    s.check(
+        f"{concept}: the probe beats every random direction ({r['probe'][0]:.3f} > max {r['random']['max']:.3f})",
+        r["probe"][0] > r["random"]["max"],
+    )
+    s.check(
+        f"{concept}: LEACE erasure takes a fresh probe to near chance ({r['leace_probe'][0]:.3f}, |x - 0.5| < 0.1)",
+        abs(r["leace_probe"][0] - 0.5) < 0.1,
+    )
 code = results["code"]
-print(f"  (P4, reported: probe minus best SAE latent on code vs prose = {code['probe'][0] - code['sae_latent'][0]:+.3f})")
+print(
+    f"  (P4, reported: probe minus best SAE latent on code vs prose = {code['probe'][0] - code['sae_latent'][0]:+.3f})"
+)

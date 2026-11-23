@@ -188,8 +188,18 @@ def residual(model, tokens: torch.Tensor, layer: int = LAYER) -> torch.Tensor:
     return box["h"]
 
 
-def activation_batches(model, windows, *, batch: int, scale: float, device: str, seed: int = SEED, start: int = 0,
-                       fwd: int = 32, buffer_tokens: int = 2**19):
+def activation_batches(
+    model,
+    windows,
+    *,
+    batch: int,
+    scale: float,
+    device: str,
+    seed: int = SEED,
+    start: int = 0,
+    fwd: int = 32,
+    buffer_tokens: int = 2**19,
+):
     """Yield (batch of normalised activations [batch, d_model], windows read so far), shuffled across windows.
 
     Why shuffle: neighbouring tokens in one document look alike, and an SAE trained on them in order sees a long run of
@@ -297,9 +307,22 @@ def aux_k_loss(sae: TopKSAE, x, x_hat, pre, dead: torch.Tensor, k_aux: int):
     return ((err_hat - err) ** 2).sum(-1).mean() / (err - err.mean(0)).pow(2).sum(-1).mean().clamp_min(1e-8)
 
 
-def train_sae(sae: TopKSAE, batches, *, total_steps: int, lr: float, aux_coef: float = 1 / 32,
-              dead_after_steps: int = 1000, log_every: int = 100, on_log=None, on_checkpoint=None, start_step: int = 0,
-              opt_state=None, last_fired=None, batch_topk: bool = False):
+def train_sae(
+    sae: TopKSAE,
+    batches,
+    *,
+    total_steps: int,
+    lr: float,
+    aux_coef: float = 1 / 32,
+    dead_after_steps: int = 1000,
+    log_every: int = 100,
+    on_log=None,
+    on_checkpoint=None,
+    start_step: int = 0,
+    opt_state=None,
+    last_fired=None,
+    batch_topk: bool = False,
+):
     """Adam on the reconstruction error, one batch at a time. The learning rate falls linearly to 0 over the last 20%.
 
     batch_topk=True keeps the k x batch biggest scores across the whole batch instead of k per token (BatchTopK): busy
@@ -346,10 +369,17 @@ def train_sae(sae: TopKSAE, batches, *, total_steps: int, lr: float, aux_coef: f
         acc["n"] += 1
         if step % log_every == 0 or step == total_steps:
             n = acc["n"]
-            row = {"step": step, "tokens": step * len(x), "train_fvu": acc["fvu"] / n, "train_mse": acc["mse"] / n,
-                   "aux": acc["aux"] / n, "l0": acc["l0"] / n,
-                   "dead_share": float(((step - last_fired) > dead_after_steps).float().mean()),
-                   "lr": opt.param_groups[0]["lr"], "seconds": round(time.monotonic() - t0, 1)}
+            row = {
+                "step": step,
+                "tokens": step * len(x),
+                "train_fvu": acc["fvu"] / n,
+                "train_mse": acc["mse"] / n,
+                "aux": acc["aux"] / n,
+                "l0": acc["l0"] / n,
+                "dead_share": float(((step - last_fired) > dead_after_steps).float().mean()),
+                "lr": opt.param_groups[0]["lr"],
+                "seconds": round(time.monotonic() - t0, 1),
+            }
             log.append(row)
             acc = {"mse": 0.0, "fvu": 0.0, "aux": 0.0, "l0": 0.0, "n": 0}
             if on_log:
@@ -361,7 +391,9 @@ def train_sae(sae: TopKSAE, batches, *, total_steps: int, lr: float, aux_coef: f
 
 def save_sae(sae: TopKSAE, path: Path, extra: dict | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"d_in": sae.d_in, "d_sae": sae.d_sae, "k": sae.k, "state_dict": sae.state_dict(), **(extra or {})}, path)
+    torch.save(
+        {"d_in": sae.d_in, "d_sae": sae.d_sae, "k": sae.k, "state_dict": sae.state_dict(), **(extra or {})}, path
+    )
 
 
 def load_sae(path: Path, device: str = "cpu") -> tuple[TopKSAE, dict]:
@@ -470,8 +502,14 @@ class RawSAE:
 def raw_from_handwritten(path: Path, device: str) -> RawSAE:
     sae, saved = load_sae(path, device)
     scale = saved["scale"]
-    return RawSAE(lambda x: sae.encode(x * scale), lambda z: sae.decode(z) / scale, sae.d_sae, sae.k,
-                  (sae.W_dec / scale).detach(), "hand-written")
+    return RawSAE(
+        lambda x: sae.encode(x * scale),
+        lambda z: sae.decode(z) / scale,
+        sae.d_sae,
+        sae.k,
+        (sae.W_dec / scale).detach(),
+        "hand-written",
+    )
 
 
 def export_saelens(path: Path, out_dir: Path, metadata: dict) -> Path:
@@ -485,12 +523,26 @@ def export_saelens(path: Path, out_dir: Path, metadata: dict) -> Path:
     sae, saved = load_sae(path, "cpu")
     scale = saved["scale"]
     out_dir.mkdir(parents=True, exist_ok=True)
-    weights = {"W_enc": sae.W_enc.data * scale, "W_dec": sae.W_dec.data / scale, "b_enc": sae.b_enc.data.clone(),
-               "b_dec": sae.b_dec.data / scale}
+    weights = {
+        "W_enc": sae.W_enc.data * scale,
+        "W_dec": sae.W_dec.data / scale,
+        "b_enc": sae.b_enc.data.clone(),
+        "b_dec": sae.b_dec.data / scale,
+    }
     save_file({k: v.contiguous().float() for k, v in weights.items()}, str(out_dir / "sae_weights.safetensors"))
-    cfg = {"architecture": "topk", "d_in": sae.d_in, "d_sae": sae.d_sae, "k": sae.k, "dtype": "float32",
-           "device": "cpu", "apply_b_dec_to_input": True, "normalize_activations": "none",
-           "reshape_activations": "none", "rescale_acts_by_decoder_norm": False, "metadata": metadata}
+    cfg = {
+        "architecture": "topk",
+        "d_in": sae.d_in,
+        "d_sae": sae.d_sae,
+        "k": sae.k,
+        "dtype": "float32",
+        "device": "cpu",
+        "apply_b_dec_to_input": True,
+        "normalize_activations": "none",
+        "reshape_activations": "none",
+        "rescale_acts_by_decoder_norm": False,
+        "metadata": metadata,
+    }
     (out_dir / "cfg.json").write_text(json.dumps(cfg, indent=1) + "\n")
     return out_dir
 
@@ -552,8 +604,19 @@ def fvu_of(raw: RawSAE, acts: torch.Tensor, batch: int = 8192):
 
 
 @torch.no_grad()
-def evaluate(raw: RawSAE, model, *, eval_windows, ce_windows, interp_windows, mean_act, device: str,
-             eval_acts: torch.Tensor | None = None, controls: bool = True, seed: int = SEED) -> dict:
+def evaluate(
+    raw: RawSAE,
+    model,
+    *,
+    eval_windows,
+    ce_windows,
+    interp_windows,
+    mean_act,
+    device: str,
+    eval_acts: torch.Tensor | None = None,
+    controls: bool = True,
+    seed: int = SEED,
+) -> dict:
     """Every number step 4 reports for one SAE. Activations are raw (the SAE handles any scaling itself)."""
     acts = eval_acts if eval_acts is not None else collect_acts(model, eval_windows, device)
     fvu, l0 = fvu_of(raw, acts)
@@ -562,10 +625,17 @@ def evaluate(raw: RawSAE, model, *, eval_windows, ce_windows, interp_windows, me
     # how often each latent fires, over the interp windows (dead = never, dense = more than 1 token in 10)
     stats = reconstruction_stats(raw, model, interp_windows, scale=1.0, device=device, d_sae=raw.d_sae)
     freq = stats["freq"]
-    r.update({"freq_tokens": stats["tokens"], "fvu_interp": stats["fvu"], "dead": int((freq == 0).sum()),
-              "dead_share": float((freq == 0).mean()), "dense": int((freq > 0.1).sum()),
-              "dense_share": float((freq > 0.1).mean()),
-              "log10_freq_hist": np.histogram(np.log10(freq[freq > 0]), bins=np.arange(-7, 0.01, 0.25))[0].tolist()})
+    r.update(
+        {
+            "freq_tokens": stats["tokens"],
+            "fvu_interp": stats["fvu"],
+            "dead": int((freq == 0).sum()),
+            "dead_share": float((freq == 0).mean()),
+            "dense": int((freq > 0.1).sum()),
+            "dense_share": float((freq > 0.1).mean()),
+            "log10_freq_hist": np.histogram(np.log10(freq[freq > 0]), bins=np.arange(-7, 0.01, 0.25))[0].tolist(),
+        }
+    )
 
     # does the model still work? cross-entropy with the layer replaced
     def sae_replace(h, keep):
@@ -601,8 +671,13 @@ def evaluate(raw: RawSAE, model, *, eval_windows, ce_windows, interp_windows, me
         h2[keep] = x + err_norm * u / u.norm(dim=-1, keepdim=True)
         return h2
 
-    runs = {"clean": None, "sae": sae_replace, "sae_plus_error": sae_plus_error, "mean_ablation": mean_ablate,
-            "zero_ablation": zero_ablate}
+    runs = {
+        "clean": None,
+        "sae": sae_replace,
+        "sae_plus_error": sae_plus_error,
+        "mean_ablation": mean_ablate,
+        "zero_ablation": zero_ablate,
+    }
     if controls:
         runs["random_same_norm"] = random_same_norm
     ce = {name: spliced_losses(model, ce_windows, replace=fn, device=device) for name, fn in runs.items()}

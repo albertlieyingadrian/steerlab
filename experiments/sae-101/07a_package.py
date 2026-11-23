@@ -45,11 +45,20 @@ if hf.exists():
 
 SAE_ID = s.HOOK_TL
 meta = {
-    "model_name": s.MODEL, "hook_name": s.HOOK_TL, "hf_hook_name": s.HOOK_HF, "hook_head_index": None,
-    "model_class_name": "TransformerBridge", "model_from_pretrained_kwargs": {},
-    "dataset_path": f"{s.DATASET} ({s.DATASET_CONFIG})", "context_size": s.CTX, "prepend_bos": False,
-    "seqpos_slice": [s.SKIP, None], "exclude_special_tokens": [s.EOT], "training_tokens": tr["tokens"],
-    "sae_lens_version": "6.56.1", "sae_lens_training_version": "hand-written (sae101.py)",
+    "model_name": s.MODEL,
+    "hook_name": s.HOOK_TL,
+    "hf_hook_name": s.HOOK_HF,
+    "hook_head_index": None,
+    "model_class_name": "TransformerBridge",
+    "model_from_pretrained_kwargs": {},
+    "dataset_path": f"{s.DATASET} ({s.DATASET_CONFIG})",
+    "context_size": s.CTX,
+    "prepend_bos": False,
+    "seqpos_slice": [s.SKIP, None],
+    "exclude_special_tokens": [s.EOT],
+    "training_tokens": tr["tokens"],
+    "sae_lens_version": "6.56.1",
+    "sae_lens_training_version": "hand-written (sae101.py)",
 }
 main = s.export_saelens(work / "sae_handwritten.pt", hf / SAE_ID, meta)
 freq = np.load(work / "freq_handwritten.npy")
@@ -72,8 +81,10 @@ pca_k = ev["pca_fvu"][str(cfg["k"])]
 
 
 def row(name, r):
-    return (f"| {name} | {r['fvu']:.3f} | {r['l0']:.0f} | {r['dead']:,} ({r['dead_share']:.2%}) | {r['dense_share']:.2%} | "
-            f"{r['ce']['sae']:.3f} | {r['ce_recovered_vs_mean']:.3f} |")
+    return (
+        f"| {name} | {r['fvu']:.3f} | {r['l0']:.0f} | {r['dead']:,} ({r['dead_share']:.2%}) | {r['dense_share']:.2%} | "
+        f"{r['ce']['sae']:.3f} | {r['ce_recovered_vs_mean']:.3f} |"
+    )
 
 
 rows = row("hand-written", hw) + ("\n" + row("SAELens-trained", sl) if sl else "")
@@ -103,11 +114,11 @@ to check your own pipeline against known numbers, or as a starting point. For re
 |---|---|
 | Model | [{s.MODEL}](https://huggingface.co/{s.MODEL}) (base) |
 | Site | residual stream after block {s.LAYER} of 24: `{s.HOOK_TL}` in TransformerLens / SAELens; the output of `{s.HOOK_HF}` in Hugging Face transformers (`output_hidden_states=True` gives it as `hidden_states[{s.LAYER + 1}]`) |
-| Architecture | TopK SAE, {hw['d_sae']:,} latents ({hw['d_sae'] / s.D_MODEL:.1f}x d_model {s.D_MODEL}), k = {hw['k']} active per token |
-| Training data | {tr['tokens'] / 1e6:.0f}M tokens of [FineWeb-Edu](https://huggingface.co/datasets/{s.DATASET}) (`{s.DATASET_CONFIG}`), 512-token windows |
-| Not trained on | the first {s.SKIP} positions of a sequence, and `<|endoftext|>` tokens: Qwen2.5 puts an "attention sink" with about {col['pos0_ratio']:.0f}x the usual norm there |
-| Normalisation | trained on activations x {col['scale']:.4f}; the factor is folded into the weights, so feed **raw** activations |
-| Training | hand-written PyTorch (Adam, lr {tr['lr']:g}, batch {tr['batch']:,} tokens, AuxK for dead latents), {tr['minutes']:.0f} minutes on one A10G |
+| Architecture | TopK SAE, {hw["d_sae"]:,} latents ({hw["d_sae"] / s.D_MODEL:.1f}x d_model {s.D_MODEL}), k = {hw["k"]} active per token |
+| Training data | {tr["tokens"] / 1e6:.0f}M tokens of [FineWeb-Edu](https://huggingface.co/datasets/{s.DATASET}) (`{s.DATASET_CONFIG}`), 512-token windows |
+| Not trained on | the first {s.SKIP} positions of a sequence, and `<|endoftext|>` tokens: Qwen2.5 puts an "attention sink" with about {col["pos0_ratio"]:.0f}x the usual norm there |
+| Normalisation | trained on activations x {col["scale"]:.4f}; the factor is folded into the weights, so feed **raw** activations |
+| Training | hand-written PyTorch (Adam, lr {tr["lr"]:g}, batch {tr["batch"]:,} tokens, AuxK for dead latents), {tr["minutes"]:.0f} minutes on one A10G |
 
 Two SAE ids are in this repo:
 
@@ -120,10 +131,10 @@ Two SAE ids are in this repo:
 |---|---|---|---|---|---|---|
 {rows}
 
-Clean cross-entropy is {hw['ce']['clean']:.3f} nats per token; mean-ablating the layer gives {hw['ce']['mean_ablation']:.3f}.
-FVU is the fraction of variance unexplained on {hw['eval_tokens']:,} held-out tokens (PCA with {cfg['k']} components:
-{pca_k:.3f}). Dead and dense latents are counted over {hw['freq_tokens']:,} held-out tokens. Splicing the SAE in costs
-{hw['delta_ce_sae']:.3f} nats per token, {hw['sae_vs_random_ratio']:.1f}x as much as a random error of the same size,
+Clean cross-entropy is {hw["ce"]["clean"]:.3f} nats per token; mean-ablating the layer gives {hw["ce"]["mean_ablation"]:.3f}.
+FVU is the fraction of variance unexplained on {hw["eval_tokens"]:,} held-out tokens (PCA with {cfg["k"]} components:
+{pca_k:.3f}). Dead and dense latents are counted over {hw["freq_tokens"]:,} held-out tokens. Splicing the SAE in costs
+{hw["delta_ce_sae"]:.3f} nats per token, {hw["sae_vs_random_ratio"]:.1f}x as much as a random error of the same size,
 so the part the SAE misses matters more to the model than its size suggests.
 
 ## How to load it
@@ -134,7 +145,7 @@ With SAELens (6.x):
 from sae_lens import SAE
 sae = SAE.from_pretrained("{args.repo}", "{SAE_ID}")
 # feed it raw residual-stream activations after block {s.LAYER}, skipping the first {s.SKIP} positions
-latents = sae.encode(acts)          # [tokens, {hw['d_sae']}], at most {hw['k']} non-zero per token
+latents = sae.encode(acts)          # [tokens, {hw["d_sae"]}], at most {hw["k"]} non-zero per token
 rebuilt = sae.decode(latents)
 ```
 
@@ -156,7 +167,7 @@ The tutorial's code (data, training, evaluation, interpretation, this card): [st
 
 ## Limitations
 
-- Small and short: {hw['d_sae']:,} latents and {tr['tokens'] / 1e6:.0f}M tokens. Public SAEs for research use far more
+- Small and short: {hw["d_sae"]:,} latents and {tr["tokens"] / 1e6:.0f}M tokens. Public SAEs for research use far more
   of both; more latents split broad features into finer ones.
 - One layer, one model. It transfers partly to Qwen2.5-0.5B-Instruct (see the tutorial), but it was not trained there.
 - English educational web text only; code, other languages and chat are out of distribution.
@@ -173,17 +184,22 @@ total = sum(p.stat().st_size for p in hf.rglob("*") if p.is_file())
 print(f"1. Built work/{args.size}/hf/ for {args.repo}: SAE ids {ids}; {total / 1e6:.0f} MB in all")
 for p in sorted(hf.rglob("*")):
     if p.is_file():
-        print(f"   {str(p.relative_to(hf)):<64} {p.stat().st_size / 1e6:8.1f} MB")
+        print(f"   {p.relative_to(hf)!s:<64} {p.stat().st_size / 1e6:8.1f} MB")
 
 print("\nSelf-checks:")
 c = json.loads((main / "cfg.json").read_text())
-s.check(f"cfg.json says TopK, k {c['k']}, d_sae {c['d_sae']}, raw activations (normalize_activations "
-        f"{c['normalize_activations']!r})", c["architecture"] == "topk" and c["normalize_activations"] == "none")
+s.check(
+    f"cfg.json says TopK, k {c['k']}, d_sae {c['d_sae']}, raw activations (normalize_activations "
+    f"{c['normalize_activations']!r})",
+    c["architecture"] == "topk" and c["normalize_activations"] == "none",
+)
 reread = s.raw_from_saelens_dir(main, "cpu")
 handw = s.raw_from_handwritten(work / "sae_handwritten.pt", "cpu")
 x = torch.randn(64, s.D_MODEL) * 16
 with torch.no_grad():
     diff = float((reread(x)[0] - handw(x)[0]).abs().max())
 s.check(f"the packaged file rebuilds exactly like the trained SAE (max difference {diff:.1e} < 1e-4)", diff < 1e-4)
-s.check("the card names the base model, the data and the license, and says it is a teaching artifact",
-        all(w_ in card for w_ in (s.MODEL, s.DATASET, "apache-2.0", "teaching artifact")))
+s.check(
+    "the card names the base model, the data and the license, and says it is a teaching artifact",
+    all(w_ in card for w_ in (s.MODEL, s.DATASET, "apache-2.0", "teaching artifact")),
+)
