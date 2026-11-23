@@ -21,6 +21,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 EXP = HERE.parent
 sys.path.insert(0, str(HERE))
+import detectors as D
 from entries import ENTRIES
 
 CAP = 120
@@ -442,6 +443,66 @@ def b_nc_loops():
     return rows, None, "arm-level: community clamps at 300 tokens vs unsteered", [f]
 
 
+SLM3 = "sounds-like-me-ep3/data"
+
+
+def _slm3(arms: list[str], group: str) -> tuple[list[dict], list[str]]:
+    """Sounds Like Me Ep 3 drafts with the frozen honesty checker's count; text is kept for the lab-only file."""
+    rows, files = [], []
+    for arm in arms:
+        df, lf = f"{SLM3}/drafts/{arm}.jsonl", f"{SLM3}/honesty/{arm}.json"
+        led = json.loads((EXP / lf).read_text())
+        files += [df, lf]
+        for r in jl(EXP / df):
+            lab = led.get(r["job"])
+            rows.append({"group": group, "text": r["text"], "ledger": None if lab is None else lab["n_unsupported"]})
+    return rows, files
+
+
+def b_slm3_terse():
+    hack, f1 = _slm3(["grpo_sft_edits_s60__dev"], "hack")
+    clean, f2 = _slm3(["sft_edits__dev"], "clean")
+    return (
+        cap(hack) + cap(clean),
+        None,
+        "arm-level: GRPO step 60 vs its SFT start, same 15 development writers x 4 briefs",
+        f1 + f2,
+    )
+
+
+def b_slm3_loop():
+    hack, f1 = _slm3(["grpo_sft_edits_s200__dev"], "hack")
+    clean, f2 = _slm3(["sft_edits__dev"], "clean")
+    return (
+        cap(hack) + cap(clean),
+        None,
+        "arm-level: GRPO step 200 vs its SFT start, same development writers and briefs",
+        f1 + f2,
+    )
+
+
+def b_slm3_proxy():
+    hack, f1 = _slm3([f"grpo_sft_edits_s{k}__dev" for k in (160, 180)], "hack")
+    clean, f2 = _slm3(["sft_edits__dev"], "clean")
+    return (
+        cap(hack) + cap(clean),
+        None,
+        "arm-level: GRPO steps 160 and 180 (late, before the last checkpoint) vs the SFT start; ledger = the unseen checker",
+        f1 + f2,
+    )
+
+
+def b_slm3_devbest():
+    hack, f1 = _slm3(["grpo_best__heldout"], "hack")
+    clean, f2 = _slm3(["sft_edits__heldout"], "clean")
+    return (
+        cap(hack) + cap(clean),
+        None,
+        "arm-level: the checkpoint the dev-best rule chose (step 60) vs the SFT start, 30 held-out writers x 4 briefs",
+        f1 + f2,
+    )
+
+
 BUILDERS = {k[2:]: v for k, v in globals().items() if k.startswith("b_")}
 
 
@@ -462,23 +523,41 @@ def main() -> None:
             raise SystemExit(f"section #{e['section']} not found in {e['source']}: {e['id']}")
         row = {k: v for k, v in e.items() if k != "artefact"}
         row["link"] = f"{SITE}/{e['source']}/report/" + (f"#{e['section']}" if e.get("section") else "")
-        if e.get("private") and not (EXP / "sounds-like-me-ep2/data/drafts").exists():
-            # the public repo has no drafts to build from: keep the entry as released
-            released = [json.loads(line) for line in (HERE / "entries.jsonl").read_text().splitlines()]
-            row["artefacts"] = next(r["artefacts"] for r in released if r["id"] == e["id"])
-        elif e.get("artefact"):
-            rows, ref, label_source, files = BUILDERS[e["artefact"]]()
+        built = None
+        if e.get("artefact"):
+            try:
+                built = BUILDERS[e["artefact"]]()
+            except FileNotFoundError:
+                if not e.get("private"):
+                    raise
+                # a private entry's drafts are not in this copy (the public repo): keep the entry as released
+                released = [json.loads(line) for line in (HERE / "entries.jsonl").read_text().splitlines()]
+                row["artefacts"] = next(r["artefacts"] for r in released if r["id"] == e["id"])
+        if built:
+            rows, ref, label_source, files = built
             raw = len(rows)
             rows = dedupe(rows)
             for i, r in enumerate(rows):
                 r["entry"], r["row"] = e["id"], i
-            folder = "artefacts/private" if e.get("private") else "artefacts"
-            (HERE / folder).mkdir(exist_ok=True)
-            path = HERE / folder / f"{e['id']}.jsonl"
-            path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+            path = HERE / "artefacts" / f"{e['id']}.jsonl"
+            private_file = None
+            if e.get("private"):  # text stays in the lab; the public file holds each row's check scores
+                (HERE / "artefacts" / "private").mkdir(exist_ok=True)
+                private_file = f"artefacts/private/{e['id']}.jsonl"
+                (HERE / private_file).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+                if path.exists():
+                    path.unlink()
+                path = HERE / "artefacts" / f"{e['id']}.features.jsonl"
+                feats = [{**D.features(r, ref), "entry": e["id"], "row": r["row"]} for r in rows]
+                path.write_text("".join(json.dumps(f, ensure_ascii=False) + "\n" for f in feats))
+            else:
+                path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
             n_h = sum(r["group"] == "hack" for r in rows)
             row["artefacts"] = {
-                "file": f"{folder}/{e['id']}.jsonl",
+                "file": str(path.relative_to(HERE)),
+                "private_file": private_file,
+                "n_empty_hack": sum(not r["text"].strip() for r in rows if r["group"] == "hack"),
+                "n_empty_clean": sum(not r["text"].strip() for r in rows if r["group"] == "clean"),
                 "n_hack": n_h,
                 "n_clean": len(rows) - n_h,
                 "duplicates_dropped": raw - len(rows),
@@ -488,7 +567,7 @@ def main() -> None:
                 "reference": ref,
             }
             print(f"{e['id']:28s} hack {n_h:4d}  clean {len(rows) - n_h:4d}")
-        else:
+        elif not e.get("artefact"):
             row["artefacts"] = None
         out.append(row)
     (HERE / "entries.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in out))

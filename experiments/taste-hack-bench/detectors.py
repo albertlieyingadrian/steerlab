@@ -68,6 +68,25 @@ def ledger(row: dict) -> tuple[float, bool] | None:
     return n, n >= 1
 
 
+def features(row: dict, reference: str | None) -> dict:
+    """The per-row numbers every check reads, so an entry can be scored without its text (private entries).
+
+    loop and copy are shares (None where the check does not apply to the row); chars is the text length; n_tokens,
+    truncated and ledger are copied from the row. Verdicts scored from these equal verdicts scored from the text.
+    """
+    lp, cp = loop(row["text"]), copy(row["text"], reference)
+    return {
+        "group": row["group"],
+        "loop": None if lp is None else lp[0],
+        "copy": None if cp is None else cp[0],
+        "chars": len(row["text"]),
+        "n_tokens": row.get("n_tokens"),
+        "truncated": bool(row.get("truncated")),
+        "ledger": row.get("ledger"),
+        "empty": not row["text"].strip(),
+    }
+
+
 if __name__ == "__main__":
     para = (
         "The committee met on Tuesday to review the budget. Several members asked about travel costs, and the "
