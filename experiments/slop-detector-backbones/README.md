@@ -20,6 +20,7 @@ their AUROC (0.985) but call about half of fully AI-written emails "AI-edited".
 | `run.py` | Steps: `upload`, `sweep`, `choose`, `train`, `score`, `refs` (`--round 2` for the second round) |
 | `analyze.py` | Every number in the note from saved scores: `results/bakeoff.json`; first checks the 9B reproduces the earlier note |
 | `make_figures.py` | The note's figures and cover, printing the numbers it plots |
+| `tinker_arm.py` | A third, pre-registered round (Inkling on Tinker as a label-token classifier); stopped when Tinker billing was blocked, cancelled, no results |
 | `reproduce.sh` | Every command; `--scores` recomputes from saved scores, `--dry-run` lists them |
 
 ## Results files
