@@ -335,7 +335,7 @@ def main(hero: bool = True) -> None:
     text = text[:i] + "\n" + rows3 + "\n    " + text[j:]
     # Table 1b: entries by reward type, and how the four cheap checks did on each type's entries with samples
     rows_rt = []
-    for rtype, d in RTYPES.items():
+    for rtype in RTYPES:
         mine = [r for r in out if r["reward_type"] == rtype]
         hacks = [r for r in mine if r["kind"] != "near miss"]
         sc = [r for r in hacks if r["detectors"]]
