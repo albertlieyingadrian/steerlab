@@ -17,11 +17,14 @@ excess vocabulary for the word list.
 from __future__ import annotations
 
 import itertools
+import json
+import os
 import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import cache
 from importlib import resources
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -32,8 +35,31 @@ class Span:
     text: str
 
 
-# Weight of one occurrence, in points; the score is points per 1000 words. Heavier weights for the habits that read as
-# most mechanical (the contrast frame, invented evidence, questions answered on the spot, signposts).
+# Rule versions. "v1" is the hand-set original every published note used (the default, so they reproduce); "v2" is
+# refitted from data (experiments/slop-rules): lists pruned and extended on modern human vs open-model text, weights
+# from a non-negative logistic fit, band from modern human prose. Pick per call (`rules=`), per process
+# (`use_rules("v2")`) or with the DESLOP_RULES environment variable.
+RULE_VERSIONS = ("v1", "v2")
+_rules = os.environ.get("DESLOP_RULES", "v1")
+
+
+def use_rules(version: str) -> None:
+    """Set the rule version for this process (our rewriting tool uses "v2")."""
+    global _rules
+    if version not in RULE_VERSIONS:
+        raise ValueError(f"unknown rules {version!r}; known: {', '.join(RULE_VERSIONS)}")
+    _rules = version
+
+
+def current_rules(version: str | None = None) -> str:
+    out = _rules if version is None else version
+    if out not in RULE_VERSIONS:
+        raise ValueError(f"unknown rules {out!r}; known: {', '.join(RULE_VERSIONS)}")
+    return out
+
+
+# Weight of one occurrence, in points; the score is points per 1000 words. v1: heavier weights for the habits that read
+# as most mechanical (the contrast frame, invented evidence, questions answered on the spot, signposts), set by hand.
 WEIGHTS: dict[str, float] = {
     "em_dash": 1.0,
     "not_x_but_y": 3.0,
@@ -47,6 +73,22 @@ WEIGHTS: dict[str, float] = {
     "formatting": 1.0,
     "invented_claim": 2.0,
 }
+
+
+def _rules_v2() -> dict[str, Any]:
+    """v2 lists and weights, written by experiments/slop-rules/refit.py from the train split (`data/rules_v2.json`)."""
+    path = resources.files("deslop").joinpath("data/rules_v2.json")
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+_V2 = _rules_v2()
+# v2: fitted on modern human vs open-model text (non-negative logistic regression on per-1k habit rates).
+WEIGHTS_V2: dict[str, float] = {**WEIGHTS, **_V2.get("weights", {})}
+
+
+def weights(rules: str | None = None) -> dict[str, float]:
+    return WEIGHTS_V2 if current_rules(rules) == "v2" else WEIGHTS
+
 
 HABIT_LABELS: dict[str, str] = {
     "em_dash": "em dash",
@@ -211,17 +253,27 @@ STOCK_PHRASES = [
     r"one step at a time",
     r"food for thought",
 ]
-SIGNPOST = re.compile(r"\b(?:" + "|".join(p.format(a=_APOS) for p in SIGNPOSTS) + r")", re.I)
-STOCK = re.compile(r"\b(?:" + "|".join(p.format(a=_APOS) for p in STOCK_PHRASES) + r")", re.I)
+SIGNPOSTS_V2 = list(_V2.get("signposts", SIGNPOSTS))
+STOCK_PHRASES_V2 = list(_V2.get("stock_phrases", STOCK_PHRASES))
+
+
+def _alternation(patterns: list[str]) -> re.Pattern[str]:
+    return re.compile(r"\b(?:" + "|".join(p.format(a=_APOS) for p in patterns) + r")", re.I)
+
+
+SIGNPOST = _alternation(SIGNPOSTS)
+STOCK = _alternation(STOCK_PHRASES)
+SIGNPOST_V2 = _alternation(SIGNPOSTS_V2)
+STOCK_V2 = _alternation(STOCK_PHRASES_V2)
 WHICH = re.compile(r", which\b", re.I)
 
 
-def signpost(text: str) -> list[Span]:
-    return _spans(SIGNPOST, text, "signpost")
+def signpost(text: str, rules: str | None = None) -> list[Span]:
+    return _spans(SIGNPOST_V2 if current_rules(rules) == "v2" else SIGNPOST, text, "signpost")
 
 
-def stock_phrase(text: str) -> list[Span]:
-    return _spans(STOCK, text, "stock_phrase")
+def stock_phrase(text: str, rules: str | None = None) -> list[Span]:
+    return _spans(STOCK_V2 if current_rules(rules) == "v2" else STOCK, text, "stock_phrase")
 
 
 def which_chain(text: str) -> list[Span]:
@@ -268,10 +320,18 @@ def invented_claim(text: str) -> list[Span]:
 
 
 # --- slop words ----------------------------------------------------------------------------------------------------
+WORD_FILES = {"v1": "data/slop_words_v1.txt", "v2": "data/slop_words.txt"}
+
+
+def slop_words(rules: str | None = None) -> frozenset[str]:
+    """The word list (one word per line, `#` comments) with simple inflections: v1 is the original hand-curated list
+    (`data/slop_words_v1.txt`), v2 the data-backed list (`data/slop_words.txt`)."""
+    return _slop_words(current_rules(rules))
+
+
 @cache
-def slop_words() -> frozenset[str]:
-    """The word list in `deslop/data/slop_words.txt` (one word per line, `#` comments), with simple inflections."""
-    raw = resources.files("deslop").joinpath("data/slop_words.txt").read_text(encoding="utf-8")
+def _slop_words(version: str) -> frozenset[str]:
+    raw = resources.files("deslop").joinpath(WORD_FILES[version]).read_text(encoding="utf-8")
     words = {line.split("#")[0].strip().lower() for line in raw.splitlines()}
     return frozenset(form for word in words if word for form in inflections(word))
 
@@ -286,8 +346,8 @@ def inflections(word: str) -> set[str]:
     return forms
 
 
-def slop_word(text: str, words: Iterable[str] | None = None) -> list[Span]:
-    vocab = slop_words() if words is None else frozenset(w.lower() for w in words)
+def slop_word(text: str, words: Iterable[str] | None = None, rules: str | None = None) -> list[Span]:
+    vocab = slop_words(rules) if words is None else frozenset(w.lower() for w in words)
     return [
         Span(m.start(), m.end(), "slop_word", m.group(0)) for m in WORD.finditer(text) if m.group(0).lower() in vocab
     ]
@@ -317,11 +377,27 @@ def _dedupe(spans: list[Span]) -> list[Span]:
     return kept
 
 
-def find_spans(text: str, habits: Iterable[str] | None = None) -> list[Span]:
-    """Every habit's spans in `text`, sorted by position."""
-    chosen = list(DETECTORS) if habits is None else list(habits)
+_VERSIONED: dict[str, Callable[..., list[Span]]] = {
+    "signpost": signpost,
+    "stock_phrase": stock_phrase,
+    "slop_word": slop_word,
+}
+
+
+def find_spans(text: str, habits: Iterable[str] | None = None, rules: str | None = None) -> list[Span]:
+    """Every habit's spans in `text`, sorted by position, under rule version `rules` (default: the process's). Under v2,
+    with `habits` unset, only habits with a non-zero v2 weight are returned: the data gave emphasis fragments, invented
+    claims and questions answered on the spot weight 0 because people use them as often as models, so they are not
+    shown as something to fix. Name them in `habits` to get their spans anyway."""
+    version = current_rules(rules)
+    active = [h for h in DETECTORS if version == "v1" or WEIGHTS_V2.get(h, 0.0) > 0]
+    chosen = active if habits is None else list(habits)
     unknown = [h for h in chosen if h not in DETECTORS]
     if unknown:
         raise KeyError(f"unknown habit(s) {', '.join(unknown)}; known: {', '.join(DETECTORS)}")
-    spans = [span for habit in chosen for span in DETECTORS[habit](text)]
+    spans = [
+        span
+        for habit in chosen
+        for span in (_VERSIONED[habit](text, rules=version) if habit in _VERSIONED else DETECTORS[habit](text))
+    ]
     return sorted(spans, key=lambda s: (s.start, s.end))

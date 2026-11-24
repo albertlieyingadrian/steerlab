@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which slop rules actually separate AI from human text?</title>
+<meta name="description" content="Model voice E8, pre-registered. Every rule behind our slop score, checked on modern human prose against 8 open-weights models.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Which slop rules actually separate AI from human text?">
+<meta property="og:description" content="Model voice E8, pre-registered. Every rule behind our slop score, checked on 5,264 windows of modern human prose against 8 open-weights models writing the same pieces: 23 of 89 ban words are used by models less than twice as often as people, three habits (short emphasis sentences, invented-looking statistics, questions answered on the spot) fire more on people, and 4 of 8 named patterns are noise. Lists and weights rebuilt from the data raise held-out AUROC from 0.71 to 0.85 (0.69 to 0.83 on closed models) at the same 12% human false-alarm rate.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="About two hundred dots on a dark ground along a dashed diagonal, one per slop rule, placed by how often it fires on human text and on open-model text: orange rules that models use at least twice as often sit above the line, grey rules that people use as often sit on or below it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Which slop rules actually separate AI from human text?">
+<meta name="twitter:description" content="Model voice E8, pre-registered. Every rule behind our slop score, checked on 5,264 windows of modern human prose against 8 open-weights models writing the same pieces: 23 of 89 ban words are used by models less than twice as often as people, three habits (short emphasis sentences, invented-looking statistics, questions answered on the spot) fire more on people, and 4 of 8 named patterns are noise. Lists and weights rebuilt from the data raise held-out AUROC from 0.71 to 0.85 (0.69 to 0.83 on closed models) at the same 12% human false-alarm rate.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-24">
+<meta property="article:modified_time" content="2026-11-24">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Which slop rules actually separate AI from human text?",
+ "description": "Model voice E8, pre-registered. Every rule behind our slop score, checked on 5,264 windows of modern human prose against 8 open-weights models writing the same pieces: 23 of 89 ban words are used by models less than twice as often as people, three habits (short emphasis sentences, invented-looking statistics, questions answered on the spot) fire more on people, and 4 of 8 named patterns are noise. Lists and weights rebuilt from the data raise held-out AUROC from 0.71 to 0.85 (0.69 to 0.83 on closed models) at the same 12% human false-alarm rate.",
+ "abstract": "Model voice series, Episode 8 (pre-registered). Every v1 rule of the deslop habit score and our rewriting tool's lists (89 ban words, 11 habits, 18 signposts, 15 stock phrases, 8 tool phrases, 10 named patterns and their 60 parts) scored on 150-250-word windows: 5,264 modern human windows (EditLens news, WritingPrompts stories, FineWeb-Edu, Amazon and Google reviews, Enron email; HC3 answers in 5 domains; matched texts plus a same-source pool) vs 4,802 replies from 8 open-weights models (DeepSeek-V4.1-Flash, GLM-5.3, Kimi-K3, Qwen3.8-27B, Gemma-4-31B-it, Nemotron-3-Ultra-550B, Mistral Large 3, Llama-3.3-70B) to the same openings or questions; 60/40 split by prompt; closed models (GPT-4.1, Claude Sonnet 4, Gemini 2.5 Flash, ChatGPT 2022) transfer only. Balanced precision (0.5 = coin): markdown or emoji 0.96, stock phrases 0.88, signposts 0.80, slop words 0.74, em dash 0.71 (Llama-3.3 0.26, Qwen3.8 0.36, Mistral 0.83); not X but Y 0.64, lists of three 0.60; fragments 0.38, invented claims 0.44, answered questions 0.48. Ban list as a whole 0.74 vs 200 frequency-matched random lists (max 0.62). Antislop-style discovery: 59 of 93 candidates pass held-out (21 words, 10 phrases, 28 frames). v2 (data-backed lists, non-negative logistic weights, band 34.7 on modern prose): held-out AUROC 0.709 [0.685, 0.737] -> 0.851 [0.834, 0.871]; closed 0.695 -> 0.832; at the band, human 12.5% -> 12.3% and open models 42.7% -> 67.7%; bag of words 0.962. This site's notes: v1 flags 28% of windows, v2 5.5%. Predictions: P1, P4, P5, P7, P8 hit; P2, P3, P6 missed. OpenRouter $6.08.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-24",
+ "dateModified": "2026-11-24",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "AI slop, AI writing tells, deslop, Antislop, over-representation, balanced precision, AI text detection, em dash, EditLens, HC3, RAID, open-weights models, pre-registration, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.15061"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.07016"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.03154"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/Hello-SimpleAI/HC3"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/liamdugan/raid"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<style>
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .rx-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: end; margin: 0.4rem 0 0.6rem; font-family: var(--font-display); font-size: 0.85rem; }
+  .rx-controls label { display: grid; gap: 0.25rem; color: var(--ink-soft); }
+  .rx-controls input, .rx-controls select { font: inherit; font-size: 0.85rem; min-height: 34px; padding: 0.2rem 0.5rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--canvas); color: var(--ink); max-width: 100%; }
+  .rx-controls input:focus-visible, .rx-controls select:focus-visible { outline: 2px solid var(--control); outline-offset: 2px; }
+  .rx-count { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-meta); margin: 0 0 0.4rem; }
+  .rx-wrap { max-height: 30rem; overflow: auto; border-top: 1px solid var(--ink); }
+  .rx-wrap table { margin: 0; }
+  .rx-wrap td.rule { font-family: var(--font-mono); font-size: 0.78rem; word-break: break-word; }
+  .rx-bar { display: inline-block; height: 0.55rem; background: var(--accent); vertical-align: middle; margin-right: 0.3rem; border-radius: 1px; }
+  .rx-bar.low { background: var(--ink-faint); }
+  .rx-wrap th button { font: inherit; background: none; border: 0; color: inherit; cursor: pointer; padding: 0; text-decoration: underline dotted; }
+</style>
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Model voice · Episode 8<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-24">Nov 24, 2026</time></p>
+  <h1>Which slop rules actually separate AI from human text?</h1>
+  <p class="dek ruled">Our slop score and our rewriting tool run on lists written by hand: 89 “AI words”, eleven habits, stock phrases and named patterns, none of them checked against people. We checked every rule on modern human prose and on eight open-weights models writing the same pieces, then rebuilt the lists from the data.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="About two hundred dots on a dark ground along a dashed diagonal, one per rule, placed by how often it fires on human text (left to right) and on open-model text (bottom to top), both on log scales. Orange dots, the rules models use at least twice as often as people, sit well above the diagonal; grey dots, the rules people use about as often, sit on or below it, among them several of the best-known AI words.">
+    <figcaption>Cover: every v1 rule and every part of a named pattern (211 dots), placed by the share of 5,264 human windows (x) and 4,802 open-model windows (y) it fires on, log scales, with a little jitter. Dashed: people and models use it equally. Orange: models use it at least twice as often. Drawn by <a href="../make_figures.py">make_figures.py</a> from <code>results/rules_v1_all.csv</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Model voice, Episode 8</dd></div>
+    <div><dt>Models</dt><dd>8 open-weights models, generated for this note; 4 closed models’ published texts (transfer only)</dd></div>
+    <div><dt>Human text</dt><dd>EditLens, HC3 and RAID human texts; the old band’s 318 classic passages</dd></div>
+    <div><dt>Method</dt><dd>Pre-registered; 620 matched prompts; 15,213 windows; train/test split by prompt; CPU only; OpenRouter $6.08</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../">experiments/slop-rules/</a> · <a href="../results/rules_v1_all.csv">every rule’s numbers</a> · <a href="../results/compare.json">results/compare.json</a> · <a href="../results/list_decisions.csv">every list decision</a> · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Which slop rules actually separate AI from human text?</strong></p>
+    <p>Markdown and emoji, signposts (“here’s why”, “the short answer”), stock phrases and most of the “AI words” do; three habits point the wrong way. On 5,264 windows of modern human prose and 4,802 replies from eight open-weights models to the same openings and questions, people wrote one- or two-word sentences, number-and-study claims and questions they answer themselves more often than the models did. Of the 89 ban words, 23 are used by models less than twice as often as people (“realm”: 11 human windows, 2 model windows), and 16 are never used by people at all. The em dash is a real tell for most models but not all: Llama-3.3 and Qwen3.8 use fewer than people. Dropping what fails, adding 28 words and 10 phrases the data found, and refitting the weights raised the score’s held-out AUROC from 0.71 to 0.85, and from 0.69 to 0.83 on closed models it never saw. A plain bag of words still beats every rule list (0.96).</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr><td>Do the 89 ban words fire on people?</td><td><strong>23 are used by models less than twice as often as people</strong>; 16 are never used by people; 29 were dropped from the list</td><td>As a list: balanced precision 0.74, above every one of 200 frequency-matched random lists (highest 0.62)</td></tr>
+      <tr><td>Which habits separate?</td><td><strong>Markdown or emoji 0.96, stock phrases 0.88, signposts 0.80, slop words 0.74, em dash 0.71</strong> (balanced precision, 0.5 = coin)</td><td>Point the wrong way: emphasis fragments 0.38, invented claims 0.44, answered questions 0.48. Weak: lists of three 0.60, not X but Y 0.64</td></tr>
+      <tr><td>Are the 10 named patterns precise?</td><td><strong>4 of 8 regex patterns are noise</strong> (Name dropping, Empty commentary, Phantom experts, Unnecessary caveats); 5 survive after removing their noisy parts</td><td>The two detector-based patterns (not X but Y, lists of three) fire on 6% and 36% of human windows</td></tr>
+      <tr><td>What does the data find that the lists lack?</td><td><strong>59 of 93 candidates pass held-out validation</strong>: a sentence opening “Here is” (5.8% of model windows, 0.4% of human), “genuinely”, “breakdown”, “feels”, “key”, em-dash frames</td><td>Pre-registered bar: 20</td></tr>
+      <tr class="hl"><td>Does the refitted score separate better on held-out text?</td><td><strong>AUROC 0.709 [0.685, 0.737] → 0.851 [0.834, 0.871]</strong>; at the band limit, 68% of model windows over it instead of 43%, at the same 12% of human windows</td><td>Closed models 0.695 → 0.832; bag of words 0.962; window length 0.557</td></tr>
+      <tr><td>How do the rules treat this site’s own notes?</td><td><strong>v1 put 28% of note windows over its band; v2 puts 5.5%</strong></td><td>98 notes, 1,879 windows; the fragment rule fired on 62% of them</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: what is a slop rule, and what is balanced precision?</p>
+    <p>A <em>slop rule</em> is a cheap check for something chat models do a lot: a word (“delve”), a phrase (“here’s the thing”), a habit (“it’s not X, it’s Y”) or a piece of formatting (bold text, bullet points). Our <a href="../../deslop/report/">habit score</a> counts the hits per 1,000 words, weighted, and our rewriting tool uses the same lists to tell a writer what to change. A rule is only useful if people do the thing much less often than models. <em>Balanced precision</em> (BP) measures that: when a rule fires, what is the chance the text came from a model, if human and model texts were equally common? A rule that fires on 30% of model texts and 10% of human texts has BP 0.30 / (0.30 + 0.10) = 0.75. A rule people use as often as models scores 0.5, a coin.</p>
+  </aside>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Every list of AI-writing tells warns against “realm”. In 5,264 windows of human prose people used it in 11; in 4,802 open-model replies to the same openings and questions the models used it in 2. Meanwhile “Here is”, on nobody’s list, opens a sentence in 5.8% of the models’ held-out replies and in 0.4% of human ones. A rule list is a guess about what models do more than people, and nobody had checked ours.</p>
+  <p>What is known: chat models over-use some words. An analysis of PubMed abstracts found hundreds of “excess” words after ChatGPT’s release (<a href="https://arxiv.org/abs/2406.07016">arXiv 2406.07016</a>); Wikipedia editors keep a guide to <a href="https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing">signs of AI writing</a>; EQ-Bench’s <a href="https://github.com/sam-paech/slop-score">slop score</a> ships a word list; and Antislop (<a href="https://arxiv.org/abs/2510.15061">arXiv 2510.15061</a>; <a href="https://github.com/sam-paech/auto-antislop">auto-antislop</a>) finds a model’s over-used words and phrases by comparing their frequency with a human baseline. What is missing: rule by rule, how often each one fires on the kind of prose people write now (reviews, email, forum answers, news), against current models writing the same thing. Our lists came from the sources above plus 11 words one model over-used, and our human band came from essays published before 1929 and Wikipedia.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison with existing lists"><table>
+    <caption>Table 0. What each source of slop rules checks.</caption>
+    <thead><tr><th>Source</th><th>Per-rule human rate</th><th>Modern human prose</th><th>Same prompts for both sides</th><th>Several current models</th><th>Held-out check</th></tr></thead>
+    <tbody>
+      <tr><td>Excess vocabulary in PubMed abstracts</td><td>✓ (word frequency)</td><td>✓ one genre</td><td>✗</td><td>✗ (the field, not a model)</td><td>✗</td></tr>
+      <tr><td>Wikipedia “Signs of AI writing”</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td></tr>
+      <tr><td>EQ-Bench slop-score list</td><td>✓ (word frequency)</td><td>✓</td><td>✗</td><td>✓</td><td>✗</td></tr>
+      <tr><td>Antislop</td><td>✓ (ratio)</td><td>✓</td><td>✗</td><td>one model at a time</td><td>✗</td></tr>
+      <tr><td>Our v1 lists</td><td>✗</td><td>✗ (pre-1929 essays, Wikipedia)</td><td>✗</td><td>one model (Qwen3-4B)</td><td>✗</td></tr>
+      <tr class="hl"><td>This note</td><td>✓ (each rule, with intervals)</td><td>✓ 11 sources</td><td>✓ same opening or question</td><td>✓ 8 open + 4 closed</td><td>✓ split by prompt</td></tr>
+    </tbody>
+  </table></div>
+  <p>This note contributes:</p>
+  <ol>
+    <li><strong>A measurement</strong> of every rule we ship (89 words, 11 habits, 18 signposts, 15 stock phrases, 8 tool phrases, 10 named patterns and their 60 parts), with intervals, per model and per source (<a href="../results/rules_v1_all.csv">rules_v1_all.csv</a>, and the explorer in section 4.8).</li>
+    <li><strong>A negative result</strong> for three habits and four named patterns: people do them as often as models, or more.</li>
+    <li><strong>Data-backed lists</strong>: 59 new candidates that held up on held-out text, and v2 of the score (lists, weights and a modern human band), which our rewriting tool now uses.</li>
+    <li><strong>A baseline</strong>: a bag of words trained on the same split, to show what a word list leaves on the table.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Matched prompts.</strong> 620 prompts, each tied to one human text. 420 come from EditLens’s human texts (<a href="https://arxiv.org/abs/2510.03154">arXiv 2510.03154</a>), 70 from each of six sources: news, Reddit WritingPrompts stories, FineWeb-Edu web pages, Amazon reviews, Google reviews and Enron email. The model gets the human text’s first sentence (“Here is the first sentence of a news article: … Write the rest of it, about 450 words”) and both sides are scored from the second sentence on, so they start after the same line. 200 come from HC3 (<a href="https://huggingface.co/datasets/Hello-SimpleAI/HC3">Hello-SimpleAI/HC3</a>, CC BY-SA 4.0), 40 questions from each of five domains (Reddit ELI5, open questions, computer-science Wikipedia, finance, medicine); the model answers the question as a user would ask it. HC3’s human answers are tokenised (“does n’t”); we put them back together before scoring.</p>
+  <p><strong>Models.</strong> Eight open-weights models through OpenRouter, temperature 0.7, reasoning off where the endpoint allows it (GLM-5.3 at its lowest effort used 0-9 reasoning tokens per reply): DeepSeek-V4.1-Flash, GLM-5.3, Kimi-K3, Qwen3.8-27B, Gemma-4-31B-it, Nemotron-3-Ultra-550B, Mistral Large 3 and Llama-3.3-70B-Instruct. Of 4,840 replies, 4,802 were long enough to score. No closed-model API was called. Closed models appear only through texts others already published: EditLens’s GPT-4.1, Claude Sonnet 4 and Gemini 2.5 Flash texts (300 each) and HC3’s ChatGPT answers (196). Those were never used to choose anything.</p>
+  <p><strong>Human side.</strong> The 620 matched human texts plus a pool of up to 600 more human texts from each of the same 11 sources (5,264 in all), added after a dry run showed 620 were too few (section 3). RAID’s human texts (<a href="https://github.com/liamdugan/raid">liamdugan/raid</a>, MIT; Reddit, Wikipedia, news, poetry, books, recipes, abstracts, reviews; 2,045) are a second modern set, and the 318 classic passages behind the old band a third.</p>
+  <p><strong>Windows.</strong> Every text is cut to a <em>window</em>: its sentences from the start until at least 150 words (at most 250; texts under 60 words dropped). Mean length: 134 words human, 144 model. A rule <em>fires</em> on a window when it matches at least once. Windows are split 60/40 into <em>train</em> and <em>test</em> by prompt group (a human text and the eight replies to its prompt always land together).</p>
+  <p><strong>Measures.</strong> For each rule: the share of human windows it fires on (h), the share of model windows (a, also its recall), <em>balanced precision</em> a/(a+h), and Antislop’s <em>over-representation ratio</em> (uses per word in model text over uses per word in human text). Intervals are 95% bootstraps over prompt groups. Pre-set verdicts: <em>keep</em> (BP lower bound above 0.60, fires on at least 0.5% of model windows), <em>noise</em> (lower bound at or below 0.55), <em>rare</em> (fires on under 0.5% of model windows), <em>weak</em> (the rest). For list decisions we used a plainer cut, set after reading the first tables (section 3): drop an item when models use it less than twice as often as people (BP under 2/3) or never.</p>
+  <p><strong>What counts as success</strong>, fixed in the plan: a rule list (1) beats random word lists of the same size and word frequency, (2) holds on held-out prompts, not only the ones it was chosen on, (3) carries over to closed models that played no part in choosing it, and (4) a refitted score raises held-out AUROC without raising the share of human text flagged at its band limit.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan.</strong> Corpora, measures, verdicts, discovery filters, the refit and eight predictions were written and committed before any rule was scored.</li>
+    <li><strong>Prompts and generation.</strong> 620 prompts × 8 models, one reply each: 4,840 replies. OpenRouter refused further calls at $6.08 when the account ran out of credits, leaving Mistral Large 3 with 502 of 620 and DeepSeek with 618.</li>
+    <li><strong>Windows.</strong> 15,213 windows: 5,264 human and 4,802 open-model (the decision set), 1,096 closed-model, 3,637 RAID, 414 classic.</li>
+    <li><strong>Score every v1 rule</strong> on all, train and test windows, per model and per source (211 rules and pattern parts); the ban list against 200 frequency-matched random lists.</li>
+    <li><strong>Discover on train.</strong> Words, 2-4-word phrases and function-word frames (content words replaced by X, as in “— the X”), filtered by ratio, support, and spread over sources, models and prompts: 93 candidates. Validate each on test.</li>
+    <li><strong>Refit on train.</strong> Write the v2 lists, fit non-negative weights by logistic regression on per-1,000-word habit rates (5,958 train windows), and measure the v2 band on 4,443 modern human train windows.</li>
+    <li><strong>Compare on test</strong> (2,086 matched human, 2,866 modern human, 2,022 open-model, 1,096 closed-model windows), with ablations, two baselines and the site’s 98 notes.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed before vs changed after"><table>
+    <thead><tr><th>Fixed before any rule was scored</th><th>Changed after</th></tr></thead>
+    <tbody><tr>
+      <td>Sources, prompt design, windows, the split, BP and the ratio, the verdict rules, the discovery filters and validation bar, the refit method, the v1 rule set (frozen from the lab at the commit before this note), predictions P1-P8, the $15 cap</td>
+      <td>Before scoring: Mistral-Large-4 replaced by Mistral Large 3 (its endpoint spent 2,000-3,000 reasoning tokens per reply even at the lowest setting). After a dry run on 70% of generations, before any decision: the same-source human pool added (359 train windows made one human use swing a ratio about 20×) and a topic guard for discovery (fires on model replies to at least 10 prompts). After reading the v1 tables: the list rule “drop below 2/3 or never” replaced “drop if noise” (the noise verdict also caught rare words with wide intervals, such as “tapestry” at 1 human and 6 model windows); six discovered items left out by a written reason (four name a subject, two are pieces of the disclaimer “I am an AI”); two discovered items whose held-out lower bound was at or below 0.55 left out (“comprehensive”, “over time”); “here is” shipped only at the start of a sentence (it also caught “the food here is”); under v2, habits with weight 0 are no longer highlighted. The held-out comparison measures the lists as shipped</td>
+    </tr></tbody>
+  </table></div>
+  <p>Conditions: CPU only, on a laptop; every step after generation takes under 15 minutes. OpenRouter $6.08 by its per-call cost (<a href="../results/spend.jsonl">spend.jsonl</a>), $0.36 of it on the replaced Mistral model. No GPU.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="words" data-short="Ban words">4.1 Most ban words hold up as a list, but 23 of 89 are used by people nearly as often as by models</h3>
+  <p>Figure 1 places each of the 89 ban words by its balanced precision. <strong>Models use 66 of them at least twice as often as people, and 16 are never used by people at all</strong> (“delve”, “underscore”, “actionable”, “seamlessly”, “unwavering”). <strong>23 fall below the 2× line</strong>: “realm” (11 human windows, 2 model), “embark” (9, 2), “moreover” (6, 2), “ultimately” (33, 29), “essentially” (30, 32), “unlock” (10, 9), “innovative” (13, 17), “notably” (12, 18). Two more, “commendable” and “endeavour”, appear nowhere. Several famous tells are rare in this decision set: “delve” in 6 of 4,802 model windows, “tapestry” in 6. The words models lean on now are plainer: “whisper” (129 model windows, 18 human), “quiet” (111, 18), “navigate” (96, 8).</p>
+  <p>As a list the words still work: “any ban word appears” has BP 0.74, above all 200 random lists with each word matched to a ban word’s frequency (highest 0.62, 95th percentile 0.59). The list fires on 29% of model windows and 10% of human ones.</p>
+  <figure class="plot">
+    <img src="figures/fig2_words.png" width="1430" height="1594" alt="Left: the 89 ban words sorted by balanced precision with 95% intervals; the top 14 never appear in human text, the bottom 25 sit near or below 0.5 in grey, among them realm, embark, moreover, ultimately, essentially and unlock. Right: a histogram of 200 random word lists between 0.46 and 0.62, with the real list at 0.74 well to the right.">
+    <figcaption>Figure 1. Left: each v1 ban word’s balanced precision on all windows (5,264 human, 4,802 open-model), with a 95% bootstrap interval over prompt groups; in brackets, the human and model windows that use it. Orange: models use it at least twice as often (BP ≥ 2/3, dotted line) on all windows; the keep or drop decision used train windows only, so “truly” and “journey” (train BP 0.63 and 0.62) were dropped though orange here. Dashed: 0.5. Right: BP of “any list word appears” for the real list (orange) and 200 random lists matched word by word on frequency.</figcaption>
+  </figure>
+
+  <h3 id="habits" data-short="Habits">4.2 Formatting, signposts and stock phrases separate; fragments, invented claims and answered questions point the wrong way</h3>
+  <p>Figure 2 shows every rule at once, and Figure 3 each habit per model. <strong>Markdown or emoji is the strongest habit (BP 0.96: 31% of model windows, 1.4% of human), then stock phrases (0.88), signposts (0.80), slop words (0.74) and the em dash (0.71).</strong> Three habits fire more on people than on models: <strong>emphasis fragments</strong>, sentences of one or two words (23% of human windows, 14% of model; BP 0.38), <strong>invented studies and statistics</strong> (a percentage, “studies show”; 12% against 9%; 0.44) and <strong>questions answered on the spot</strong> (5.4% against 5.0%; 0.48). People write “Thanks.”, “Take care.”, “Hello.” and “Good luck.” in email and answers, and they quote real numbers. Part of the fragment count is our own sentence splitter cutting “U.S.” and “a.m.” into one-letter sentences; with those removed the rule still points the wrong way (14% of human windows against 9% of model; BP 0.39). Lists of three (36% of human windows, 53% of model; 0.60) and “not X but Y” (6.0% against 10.5%; 0.64) are weak: models do them more, but a rule that fires on a third or a sixteenth of human texts makes many false alarms.</p>
+  <p>The old setting flattered these rules. Against the 318 classic passages, “not X but Y” scored BP 0.73, invented claims 0.65 and slop words 0.83 (<a href="../results/rules_v1_classic.csv">rules_v1_classic.csv</a>): essays from before 1929 rarely quote percentages or “studies”, and never sign off “Thanks.”.</p>
+  <figure class="plot">
+    <img src="figures/fig1_rules.png" width="994" height="846" alt="A log-log scatter of every v1 rule, x the share of human windows it fires on, y the share of model windows. Habits are labelled: markdown or emoji sits far above the diagonal; signposts, stock phrases, slop words and the em dash above it; lists of three, which chains and not X but Y just above; emphasis fragments, invented claims and answered questions below it.">
+    <figcaption>Figure 2. Every v1 rule (151: words, habits, signposts, stock phrases, tool phrases, named patterns) by the share of human windows (x, of 5,264) and open-model windows (y, of 4,802) it fires on, log scales; rules that never fire on one side sit on the axis floor. Dashed: equal use. Dotted: models twice as often. Orange: BP ≥ 2/3.</figcaption>
+  </figure>
+  <p><strong>The em dash depends on the model.</strong> It is a strong tell for Mistral Large 3 (BP 0.83), GLM-5.3 (0.79), Nemotron (0.78), Claude Sonnet 4 (0.75) and GPT-4.1 (0.74), and points the other way for Llama-3.3-70B (0.26) and Qwen3.8-27B (0.36), which use fewer em dashes than people. ChatGPT’s 2022 answers in HC3 almost never used one (0.06). Signposts are strong for every open model and for ChatGPT, and weak for the three closed models’ EditLens texts (0.58), which continue an article rather than answer a question.</p>
+  <figure class="plot">
+    <img src="figures/fig3_habits_by_model.png" width="1439" height="851" alt="A heatmap of eleven habits by twelve models. Formatting is orange (0.94-0.98) for every model but ChatGPT 2022. The em dash row is orange for most models and grey for Llama-3.3 (0.26), Qwen3.8 (0.36) and ChatGPT (0.06). Fragments, invented claims and answered questions are grey across the board.">
+    <figcaption>Figure 3. Balanced precision of each v1 habit per model: each model’s windows against the same human windows (all splits for the 8 open models; the human test windows for the 4 closed sets). 0.5 = a coin; orange above, grey below. From <code>results/rules_v1_by_model.csv</code>.</figcaption>
+  </figure>
+
+  <h3 id="patterns" data-short="Named patterns">4.3 Four of the eight regex named patterns are noise; five survive once their noisy parts are removed</h3>
+  <p>Our rewriting tool explains each flag with a named pattern (names from <a href="https://gptzero.me/news/ai-patterns/">GPTZero’s AI patterns</a>, regexes ours). <strong>Name dropping (BP 0.40), Empty commentary (0.39), Phantom experts (0.52) and Unnecessary caveats (0.48) fire on people as often as on models.</strong> People write “when it comes to”, “of course,” (1.0% of human windows, 0.1% of model), “studies have shown” and “companies like Google” at least as often. Scoring each part of each pattern (60 parts, Table 1) showed what to keep: “great question” (1 human window, 44 model) and “here’s a breakdown” stay in Chatbot language, while “let me know if” (101 human, 112 model), “feel free to” and “happy to help” go.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Named patterns before and after"><table>
+    <caption>Table 1. The named patterns, v1 and v2. BP on all windows (open models); parts decided on train windows.</caption>
+    <thead><tr><th>Pattern</th><th class="num">v1 BP</th><th>v2</th><th>Parts removed (BP under 2/3, or never used by models)</th></tr></thead>
+    <tbody>
+      <tr><td>Overblown importance</td><td class="num">0.82</td><td>kept, 11 of 12 parts</td><td>more than ever</td></tr>
+      <tr><td>Sales-pitch tone</td><td class="num">0.82</td><td>kept, 9 of 11</td><td>unlock, next level</td></tr>
+      <tr><td>Dressed-up verbs</td><td class="num">0.73</td><td>kept, 5 of 8</td><td>boasts, utilise, facilitate</td></tr>
+      <tr><td>Chatbot language</td><td class="num">0.62</td><td>kept, 3 of 10, plus “I am an AI” / “as an AI”</td><td>feel free to, let me know if, happy to help, I hope this helps; in conclusion, to sum up, I hope you’re doing well (never used)</td></tr>
+      <tr><td>Unnecessary caveats</td><td class="num">0.48</td><td>kept, 2 of 7</td><td>of course, it’s worth noting; it’s important to remember, everyone is different, results may vary (never used)</td></tr>
+      <tr><td>Name dropping</td><td class="num">0.40</td><td>dropped</td><td>both parts</td></tr>
+      <tr><td>Empty commentary</td><td class="num">0.39</td><td>dropped</td><td>all six parts</td></tr>
+      <tr><td>Phantom experts</td><td class="num">0.52</td><td>dropped</td><td>all four parts</td></tr>
+      <tr><td>Not just X but Y</td><td class="num">0.64</td><td>dropped as a pattern (still a habit in the score)</td><td>fires on 6% of human windows</td></tr>
+      <tr><td>Everything in threes</td><td class="num">0.60</td><td>dropped as a pattern (still a habit in the score)</td><td>fires on 36% of human windows</td></tr>
+      <tr class="hl"><td>Stock phrasing (new)</td><td class="num">n/a</td><td>added</td><td>a sentence opening “Here is / Here are”, “for the price”, “the primary”, “a detailed”, “making it”: found in the data, passed held-out validation</td></tr>
+    </tbody>
+  </table></div>
+  <p>The rewriting tool’s eight stock phrases for the rewrite prompt fared worse: “let’s dive in” and “in conclusion” never appeared in any open-model window and “in today’s fast-paced world” in one, and “at the end of the day” appeared only in human text (5 windows). Two stayed (“here’s the thing”: 0 human, 11 model; “plays a crucial role”: 0, 5).</p>
+
+  <h3 id="discovery" data-short="Discovered rules">4.4 The data finds 59 rules the lists lack</h3>
+  <p>Discovery on the train windows produced 93 candidates (33 words, 14 phrases, 46 frames) that models use at least 4 times as often per word, in at least 2% of model windows, across at least 4 sources, more than people in at least 5 of the 8 models, and in replies to at least 10 prompts. <strong>59 passed held-out validation (BP lower bound ≥ 0.70 on test): 21 words, 10 phrases and 28 frames</strong> (Figure 4). The most common are plain words: “key” (8.7% of held-out model windows, 1.7% of human), “breakdown” (6.9%, 0.3%), “feels” (6.2%, 0.3%), “genuinely” (2.3%, 0.1%), “essential”, “ensure”, “reliable”, “incredibly”. The strongest phrases are formulas: a sentence opening with “Here is” (5.8%, 0.4%), “for the price” in reviews, “a detailed”, “making it”. Frames catch shapes no word list can: an em dash before “the” (“— the X”: 3.5%, 0.2%), a contrast “, not a” (3.3%, 0.3%) and the disclaimer “: I am” (3.2%, 0.05%).</p>
+  <figure class="plot">
+    <img src="figures/fig6_discovered.png" width="943" height="626" alt="A scatter of 93 discovered candidates: x the share of model train windows using it (2% to 10%), y held-out balanced precision. Orange points (passed) cluster between 0.75 and 1.0; grey points (failed) between 0.5 and 0.75. Labelled: key, quality, significant, core, breakdown, here's, ensure, friendly, feels, here is, and a few others.">
+    <figcaption>Figure 4. The 93 candidates found on train windows: how common each is in model train windows (x) and its balanced precision on held-out windows (y). Orange: held-out lower bound ≥ 0.70. Words and phrases above 4.5% are labelled. From <code>results/candidates.csv</code>.</figcaption>
+  </figure>
+  <p>The v2 word list keeps 60 v1 words and adds 28 found here; the v2 stock phrases keep 7 of 15 and add 10; the signposts keep 6 of 18. Every decision and its numbers are in <a href="../results/list_decisions.csv">list_decisions.csv</a>, and the shipped word file carries each word’s train and held-out BP in a comment.</p>
+
+  <h3 id="refit" data-short="The refitted score">4.5 The refitted score separates held-out text better (0.71 → 0.85) at the same false-alarm rate, and carries over to closed models</h3>
+  <p>The refit gives weight to slop words (3.0), stock phrases (2.8), signposts (2.7), formatting (2.2), not X but Y (1.7), which-chains (1.4), the em dash (0.7) and lists of three (0.5), and zero to fragments, invented claims and answered questions. The v2 band (90th percentile of 4,443 modern human train windows) is 34.7, close to v1’s 33.6 by coincidence. <strong>On held-out windows, AUROC rose from 0.709 [0.685, 0.737] to 0.851 [0.834, 0.871]</strong> (Figure 5, Table 2). At each version’s band limit both flag about 12% of modern human windows (12.5% and 12.3%), but <strong>v2 puts 68% of open-model windows over the band against v1’s 43%</strong>. On the closed models, which played no part in any choice, AUROC rose from 0.695 to 0.832, and the share over the band from 39% to 63%.</p>
+  <figure class="plot">
+    <img src="figures/fig4_scores.png" width="1576" height="573" alt="Left: ROC curves on held-out windows, v2 in orange above v1 in grey. Middle: histograms of v1 scores for modern human and open-model windows, heavily overlapping, with the 33.6 band line. Right: the same for v2; most model windows now sit past the 34.7 band line, many at the 120 clip.">
+    <figcaption>Figure 5. Left: held-out ROC curves, 2,086 matched human windows against 2,022 open-model windows, AUROC with 95% bootstrap intervals over prompt groups. Middle and right: score distributions for 2,866 modern human held-out windows (matched sources and RAID) and the 2,022 model windows, clipped at 120, with each version’s band limit (dashed).</figcaption>
+  </figure>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Table 2, old vs new score"><table>
+    <caption>Table 2. Held-out comparison. AUROC: human vs model windows (95% CI over prompt groups). Over the band: share of windows above the version’s band limit.</caption>
+    <thead><tr><th>Score</th><th class="num">AUROC, open models</th><th class="num">AUROC, closed models</th><th class="num">AUROC, RAID</th><th class="num">Human over band</th><th class="num">Open models over band</th></tr></thead>
+    <tbody>
+      <tr><td>window length alone (baseline)</td><td class="num">0.557</td><td class="num">0.573</td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+      <tr><td>v1: hand-set lists and weights, band 33.6</td><td class="num">0.709 [0.685, 0.737]</td><td class="num">0.695</td><td class="num">0.677</td><td class="num">12.5% [11.3, 13.7]</td><td class="num">42.7%</td></tr>
+      <tr><td>v1 with its band re-measured on modern text (37.7)</td><td class="num">0.709</td><td class="num">0.695</td><td class="num">0.677</td><td class="num">10.3%</td><td class="num">39.5%</td></tr>
+      <tr><td>v1 lists + v2 weights</td><td class="num">0.796</td><td class="num">0.799</td><td class="num">0.760</td><td class="num"></td><td class="num"></td></tr>
+      <tr><td>v2 lists + v1 weights</td><td class="num">0.778</td><td class="num">0.737</td><td class="num">0.687</td><td class="num"></td><td class="num"></td></tr>
+      <tr class="hl"><td>v2: data-backed lists and weights, band 34.7</td><td class="num">0.851 [0.834, 0.871]</td><td class="num">0.832</td><td class="num">0.773</td><td class="num">12.3% [11.0, 13.5]</td><td class="num">67.7% [64.0, 71.4]</td></tr>
+      <tr><td>bag of words (TF-IDF logistic regression, trained on train windows)</td><td class="num">0.962</td><td class="num">0.933</td><td class="num"></td><td class="num"></td><td class="num"></td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Weights and lists each help, and together most.</strong> New weights alone gave 0.796, new lists alone 0.778, both 0.851. Removing one habit at a time from v2 shows where the separation lives: slop words (AUROC −0.077 without them) and formatting (−0.045); the em dash costs 0.009, and every other habit 0.003 or less. <strong>A bag of words still wins (0.962)</strong>: a few dozen words and regexes leave a lot on the table, which is the price of rules a writer can read and act on.</p>
+  <p><strong>Every source and model improved</strong> (Figure 6), but unevenly: news stayed hardest (0.54 → 0.69), then stories (0.64 → 0.73) and email (0.54 → 0.77), where model text is closest to how people write; answers to questions were already easy (0.90-0.98 → 0.97-1.00), because chat models format and signpost their answers. Per model, v2 ranges from 0.79 (DeepSeek-V4.1-Flash) to 0.91 (Qwen3.8-27B); on closed models, 0.83 (GPT-4.1), 0.90 (Claude Sonnet 4, Gemini 2.5 Flash) and 0.63 (ChatGPT’s 2022 answers, which use few of the newer habits).</p>
+  <figure class="plot">
+    <img src="figures/fig5_sources.png" width="1108" height="579" alt="A dumbbell chart of held-out AUROC per source, v1 grey to v2 orange: news 0.54 to 0.69, writing-prompt stories 0.64 to 0.73, Enron email 0.54 to 0.77, FineWeb-Edu 0.70 to 0.84, Amazon and Google reviews 0.64-0.67 to 0.87, and the five HC3 domains from 0.90-0.98 to 0.97-1.00.">
+    <figcaption>Figure 6. Held-out AUROC per source, human vs open-model windows of the same source, v1 (grey) and v2 (orange). 18 (open questions) to 274 human and 102 to 261 model windows per source; see <code>results/compare_by_source.csv</code>.</figcaption>
+  </figure>
+  <p><strong>The false alarms move between genres.</strong> At the band limit v2 flags fewer human news windows (11% against 16%), poetry (6% against 14%) and medical answers (9% against 15%), and more Google reviews (21% against 8%) and RAID abstracts (24% against 13%), where “key”, “significant” and “critical” are ordinary words. A writer of abstracts or reviews will see more flags under v2.</p>
+
+  <h3 id="boring" data-short="Boring explanations">4.6 The boring explanations: topic, length, the prompt, tokenisation and word senses</h3>
+  <ul>
+    <li><strong>Topic.</strong> Both sides answer the same opening or question, and the human pool comes from the same 11 sources. Discovered items had to fire in at least 4 sources, more than people in at least 5 models and in replies to at least 10 prompts; topic words such as “kitchen”, “screen” and “blue”, which passed a dry run, are not among the final candidates.</li>
+    <li><strong>Length.</strong> Windows cap length (134 against 144 words on average), and window length alone separates at 0.557.</li>
+    <li><strong>Our prompt.</strong> “Reply with the text only” could have produced a preface habit. “Here is” is not one: only 24 of the 340 model windows that contain it have it in the first 40 characters; most are inside HC3 answers (“Here is a breakdown of …”).</li>
+    <li><strong>HC3’s tokenised human answers.</strong> Without putting “does n’t” back together, every contraction-based rule would have read as a model habit. HC3 is also reported per domain (Figure 6), and the EditLens sources, which need no repair, show the same ordering of habits.</li>
+    <li><strong>Our sentence splitter.</strong> “U.S.”, “a.m.”, initials and version numbers (“Llama-3.”) become one-letter sentences that the fragment and answered-question rules count. Removing those still leaves the fragment rule below a coin (BP 0.39); both rules weigh 0 in v2.</li>
+    <li><strong>Word senses.</strong> Reading the 40 human held-out windows v2 scores highest: “keys” on a keyboard, “Foster” as a surname, spaced hyphens used as list separators in email (the em-dash rule counts “ - ” between words), “ecosystem” and “dynamic” in ecology and physics texts. A word list cannot tell these apart.</li>
+  </ul>
+
+  <h3 id="our-notes" data-short="This site's notes">4.7 On this site’s own notes, v1 flagged 28% of windows and v2 flags 5.5%</h3>
+  <p>We ran both scores on the text of the 98 notes published on this site (1,879 windows of paragraphs and list items; tables, code and captions skipped), a genre none of the corpora cover. These are not labelled human or AI; the question is only how often the rules fire on technical prose of the kind our rewriting tool will see. <strong>v1 put 28.1% of note windows over its band; v2 puts 5.5% over its own.</strong> The difference is mostly the habits that point the wrong way: the fragment rule fired on 62% of note windows (version numbers such as “Llama-3.” and short sentences such as “Post-mortem.” and “Partly.”), invented claims on 39% (every reported percentage), and lists of three on 45%. “harness” (a test harness) fired on 6% of windows and is no longer a ban word.</p>
+
+  <h3 id="explorer" data-short="Rule explorer">4.8 Every rule, searchable</h3>
+  <p>Every v1 rule (on all windows) and every discovered candidate (on held-out windows), with its v2 decision. Search a word or phrase, or filter by kind; click a column name to sort.</p>
+  <div class="rule-explorer">
+    <div class="rx-controls">
+      <label>Search <input id="rx-q" type="search" placeholder="e.g. delve, here, —" autocomplete="off"></label>
+      <label>Kind <select id="rx-kind"><option value="">all</option></select></label>
+      <label>v2 decision <select id="rx-v2"><option value="">all</option></select></label>
+    </div>
+    <p class="rx-count" id="rx-count" aria-live="polite"></p>
+    <div class="rx-wrap" tabindex="0" role="region" aria-label="Rule explorer table">
+      <table>
+        <thead><tr><th>Kind</th><th>Rule</th><th class="num"><button type="button" data-sort="human">Human</button></th><th class="num"><button type="button" data-sort="ai">Model</button></th><th class="num"><button type="button" data-sort="bp">BP [95% CI]</button></th><th>Verdict</th><th>v2</th></tr></thead>
+        <tbody id="rx-body"></tbody>
+      </table>
+    </div>
+    <noscript><p>The table needs JavaScript; the same rows are in <a href="../results/rules_v1_all.csv">rules_v1_all.csv</a> and <a href="../results/candidates.csv">candidates.csv</a>.</p></noscript>
+  </div>
+  <p class="small">Human and Model: share of windows the rule fires on (v1 rules: 5,264 human and 4,802 model windows, all splits; discovered candidates: 2,086 and 2,022 held-out windows). From <code>report/data.js</code>, written by <a href="../make_figures.py">make_figures.py</a>.</p>
+
+  <h2 id="safety" data-short="AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Rule lists like these are used to judge people: teachers paste essays into checkers, editors flag submissions, and tools tell writers what to change. A rule that fires on people as often as on models produces confident-looking evidence against a person who did nothing. Here, three of eleven habits and four of ten named patterns did exactly that on modern prose, and the old human band looked fine only because it was measured on essays from before 1929. Lists also age with the models: “delve” is rare in current open models, ChatGPT’s 2022 answers use almost none of the em dashes GPT-4.1 does, and some of the most common current tells (“Here is”, “genuinely”, “breakdown”) are on no list. <strong>Before a rule is used to flag anyone’s writing, measure how often it fires on recent human prose of the same genre, and re-measure when the models change.</strong></p>
+
+  <h2 id="predictions" data-short="Predictions"><span class="num">06</span>Predictions</h2>
+  <p>Eight predictions were written before any rule was scored and are scored mechanically by <a href="../predictions.py">predictions.py</a>.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Predictions"><table>
+    <thead><tr><th>#</th><th>Prediction (confidence)</th><th>Threshold</th><th class="num">Result</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>Many ban words are noise or rare on modern human text (70%)</td><td>≥ 25 of 89 with verdict noise or rare</td><td class="num">62 (33 noise, 29 rare)</td><td>hit</td></tr>
+      <tr><td>P2</td><td>Not X but Y and signposts are the two strongest habits (45%)</td><td>both top 2 by BP among habits on ≥ 2% of model windows</td><td class="num">markdown 0.96, signposts 0.80; not X but Y 6th (0.64)</td><td>miss</td></tr>
+      <tr><td>P3</td><td>The em dash is weak (40%)</td><td>BP &lt; 0.65</td><td class="num">0.705</td><td>miss</td></tr>
+      <tr><td>P4</td><td>The data finds rules the lists lack (60%)</td><td>≥ 20 candidates pass held-out validation</td><td class="num">59</td><td>hit</td></tr>
+      <tr><td>P5</td><td>Refitting helps (60%)</td><td>v2 − v1 held-out AUROC ≥ +0.05</td><td class="num">+0.142</td><td>hit</td></tr>
+      <tr><td>P6</td><td>The old band does not transfer to modern human text (55%)</td><td>v1 flags ≥ 15% of modern human windows at 33.63</td><td class="num">12.5%</td><td>miss</td></tr>
+      <tr><td>P7</td><td>Several named patterns are noise (55%)</td><td>≥ 3 of 8 regex patterns noise</td><td class="num">4</td><td>hit</td></tr>
+      <tr><td>P8</td><td>Rules found on open models carry over to closed models (50%)</td><td>≥ 70% of v2 word and phrase rules with BP ≥ 0.70 on the closed set</td><td class="num">75.9% of 108</td><td>hit</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised me: the habits that point the wrong way. I expected “not X but Y” to be the strongest tell and the em dash the weakest; on modern prose the contrast frame is weak and the em dash is real but model-specific. P1 was too easy as written: “rare” counted words people never use, so 62 says less than the 23 words below the 2× line. P6 missed because the old band happened to sit near the modern 88th percentile: the band transferred, the rules inside it did not. What I would change: register a per-rule decision cut (BP 2/3) in the plan rather than a verdict built for reporting, check the sentence splitter on human text before scoring sentence-level habits, and generate more human-matched prompts instead of adding a pool. The lesson: a human band can look calibrated on old text while the rules inside it are noise on new text; score the rules, not only the band.</p>
+
+  <h2 id="limits" data-short="Limits"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>One reply per prompt per model, short windows.</strong> Rates are per 150-250-word window; a rule that fires once per 1,000 words looks rare here. Longer texts raise every firing rate on both sides.</li>
+    <li><strong>The decision set is open-weights models only.</strong> Closed models enter only through texts others published, in two regimes (EditLens continuations, HC3’s 2022 answers), not the chat replies people paste today. The transfer result (0.83) is encouraging, not a measurement of today’s closed chat assistants.</li>
+    <li><strong>The human texts may contain some AI text.</strong> EditLens, HC3 and RAID human texts were collected as human, mostly before late 2022; we did not screen them with a detector.</li>
+    <li><strong>The prompts shape the replies.</strong> “Write the rest of it, about 450 words, reply with the text only” and bare HC3 questions are two styles of request; a system prompt, a persona or a rewrite request would change which habits appear. Our rewriting tool mostly sees drafts written from short requests, closer to HC3.</li>
+    <li><strong>Several decisions were made after reading tables.</strong> The drop rule, six topic exclusions, two held-out exclusions, the sentence-start form of “Here is” and hiding zero-weight habits are listed in section 3; the v2 comparison measures the lists as shipped, so it is slightly optimistic for those items.</li>
+    <li><strong>Word lists cannot read senses.</strong> “key” the adjective and “keys” on a keyboard count the same; a capitalised surname counts as a word.</li>
+    <li><strong>Mistral Large 3 has 502 of 620 replies</strong> and DeepSeek 618: the account ran out of credits. Per-model numbers carry their own n.</li>
+    <li><strong>Not tested:</strong> other languages, very short texts (under 60 words), and whether a writer who follows the v2 advice reads as more human, or more like themselves, to people.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh">reproduce.sh</a> runs every step; <code>--dry-run</code> lists them and <code>--scores</code> skips prompt building and generation. Everything after generation runs on a laptop CPU in under 15 minutes. The texts stay local (EditLens is research-only and gated); <code>results/</code> (listed in the <a href="../README.md">README</a>) holds every count and rate behind the figures. The v2 rules ship in <code>packages/deslop</code>: <code>score(text, rules="v2")</code>, <code>use_rules("v2")</code> or <code>DESLOP_RULES=v2</code>; v1 stays the default so earlier notes reproduce.</p>
+  <pre><code>experiments/slop-rules/reproduce.sh --dry-run
+experiments/slop-rules/reproduce.sh --scores   # needs the cached generations</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Rerun the decision set with chat-style requests (“write a LinkedIn post about …”) and with current closed models, and re-measure every list each time a new model family appears.</li>
+    <li>Replace word matches that confuse senses (“key”, “keys”) with part-of-speech-aware rules, fix the sentence splitter for abbreviations, and test whether frames (“— the X”, “, not a”) make better highlights than words.</li>
+    <li>Check with people: do writers who follow the v2 advice read as more like themselves, and do fewer false flags reach them?</li>
+  </ul>
+
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="qa-delve">Is “delve” still a sign of AI writing?</h3>
+  <p>Yes, but a rare one: no human window used it, and 6 of 4,802 open-model windows did. Current open models lean on plainer words: “whisper”, “quiet”, “navigate”, “genuinely”, “breakdown”, “feels”, “key”.</p>
+  <h3 id="qa-emdash">Is the em dash a sign of AI writing?</h3>
+  <p>For most current models, yes (BP 0.71 pooled; 0.74-0.83 for GPT-4.1, Claude Sonnet 4, Mistral Large 3, GLM-5.3 and Nemotron), but not for Llama-3.3 and Qwen3.8, which use fewer em dashes than people (0.26 and 0.36), and not for ChatGPT’s 2022 answers (0.06). 15% of human windows use one.</p>
+  <h3 id="qa-notxy">Does “it’s not X, it’s Y” give AI text away?</h3>
+  <p>Weakly. Models use the contrast frame in 10.5% of windows and people in 6.0% (BP 0.64), so it flags many people. It stays in the score at a small weight and no longer appears as a named pattern.</p>
+  <h3 id="qa-best">Which single rule separates best?</h3>
+  <p>Markdown or emoji: 31% of model windows and 1.4% of human ones (BP 0.96), for every open model and every closed model except ChatGPT in 2022. Among words and phrases, the ones people almost never use: “great question”, a sentence opening with “Here is”, “here’s a breakdown”, “genuinely”, “seamlessly”.</p>
+  <h3 id="qa-ban">Should I remove every ban word from my writing?</h3>
+  <p>No. 23 of the 89 old ban words are words people use nearly as often as models, and even the strong ones appear in some human texts. The list is a prompt to look again, not a verdict; our rewriting tool now uses the v2 list and switches off any habit a writer uses in their own samples.</p>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix: data, files and citation</h2>
+  <h3 id="data" data-short="Data">A.1 Data and licences</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Data"><table>
+    <thead><tr><th>Set</th><th class="num">Windows</th><th>Licence</th></tr></thead>
+    <tbody>
+      <tr><td>Matched human (EditLens 6 sources, HC3 5 domains) + same-source pool</td><td class="num">5,264</td><td>EditLens: research, non-commercial (gated); HC3: CC BY-SA 4.0</td></tr>
+      <tr><td>Open models (8), matched</td><td class="num">4,802</td><td>generated for this note; kept local</td></tr>
+      <tr><td>Closed models: GPT-4.1, Claude Sonnet 4, Gemini 2.5 Flash (EditLens), ChatGPT (HC3)</td><td class="num">1,096</td><td>as their datasets</td></tr>
+      <tr><td>RAID human and AI (GPT-4, ChatGPT, Mistral-7B-chat, Llama-2-70B-chat)</td><td class="num">2,045 + 1,592</td><td>MIT</td></tr>
+      <tr><td>Classic: 318 Gutenberg and Wikipedia passages; Qwen3-8B’s 96 original replies from the de-slop benchmark</td><td class="num">318 + 96</td><td>public domain; CC BY-SA 3.0</td></tr>
+    </tbody>
+  </table></div>
+  <h3 id="files" data-short="Files">A.2 Files</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Files"><table>
+    <thead><tr><th>File</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td><code>results/rules_v1_{all,train,test}.csv</code></td><td>Each rule: <code>kind, label</code>, windows <code>n_h, n_a</code>, firing shares <code>h, a</code>, <code>bp, bp_lo, bp_hi</code>, Antislop <code>ratio</code> with interval, <code>verdict</code></td></tr>
+      <tr><td><code>results/rules_v1_{closed,raid,classic}.csv</code></td><td>The same on the transfer sets</td></tr>
+      <tr><td><code>results/rules_v1_by_model.csv</code>, <code>rules_v1_by_source.csv</code></td><td>Each rule’s <code>h, a, bp</code> per model and per source</td></tr>
+      <tr><td><code>results/candidates.csv</code>, <code>candidates_closed.csv</code></td><td>The 93 discovered items with train filters, held-out BP and <code>passes</code>; the same items on the closed set</td></tr>
+      <tr><td><code>results/list_decisions.csv</code></td><td>Every keep, drop, add and skip, with the reason and the numbers behind it</td></tr>
+      <tr><td><code>results/compare.json</code>, <code>compare_by_source.csv</code>, <code>compare_by_model.csv</code></td><td>AUROC with intervals, shares over the band, ablations, drop-one habits, baselines</td></tr>
+      <tr><td><code>results/window_scores.csv</code></td><td>Every window’s v1, v2 and ablation scores with set, side, split, model, source and length (no text)</td></tr>
+      <tr><td><code>results/weights_v2.json</code>, <code>predictions.json</code>, <code>notes_rules.csv</code>, <code>notes_scores.json</code>, <code>random_lists.json</code>, <code>corpus_counts.json</code>, <code>spend.jsonl</code></td><td>Weights and band limits; P1-P8; the site’s notes; the random lists; window counts; every paid call</td></tr>
+    </tbody>
+  </table></div>
+  <p>The full column list is in the <a href="../README.md">README</a>.</p>
+  <h3 id="cite">A.3 How to cite</h3>
+  <pre><code>@misc{lie2026sloprules,
+  author = {Albert Lie},
+  title  = {Which slop rules actually separate AI from human text?},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/slop-rules/report/}
+}</code></pre>
+  <footer class="note">Human text: EditLens (research licence; read, not republished), HC3 (CC BY-SA 4.0), RAID (MIT), Project Gutenberg (public domain) and Wikipedia (CC BY-SA). Method: Antislop (arXiv 2510.15061; auto-antislop, MIT). Pattern names: GPTZero’s AI patterns. Open models through OpenRouter.</footer>
+</article>
+</div>
+<script src="data.js"></script>
+<script>
+(function () {
+  var R = window.RULES; if (!R) return;
+  var rows = R.rows, body = document.getElementById("rx-body"), q = document.getElementById("rx-q"),
+      kindSel = document.getElementById("rx-kind"), v2Sel = document.getElementById("rx-v2"),
+      count = document.getElementById("rx-count"), sortKey = "bp", sortDir = -1;
+  function uniq(i) { return rows.map(function (r) { return r[i]; }).filter(function (v, j, a) { return v && a.indexOf(v) === j; }).sort(); }
+  uniq(0).forEach(function (k) { var o = document.createElement("option"); o.value = o.textContent = k; kindSel.appendChild(o); });
+  uniq(8).forEach(function (k) { var o = document.createElement("option"); o.value = o.textContent = k; v2Sel.appendChild(o); });
+  function pct(x) { return x == null ? "" : (100 * x).toFixed(x < 0.01 ? 2 : 1) + "%"; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); }
+  function render() {
+    var term = q.value.trim().toLowerCase(), k = kindSel.value, v = v2Sel.value, idx = {human: 2, ai: 3, bp: 4}[sortKey];
+    var shown = rows.filter(function (r) {
+      return (!k || r[0] === k) && (!v || r[8] === v) && (!term || String(r[1]).toLowerCase().indexOf(term) >= 0);
+    }).sort(function (a, b) { var x = a[idx] == null ? -1 : a[idx], y = b[idx] == null ? -1 : b[idx]; return sortDir * (x - y); });
+    body.innerHTML = shown.slice(0, 400).map(function (r) {
+      var bp = r[4] == null ? "never fires" : '<span class="rx-bar' + (r[4] < 2 / 3 ? " low" : "") + '" style="width:' + Math.round(40 * r[4]) + 'px"></span>' + r[4].toFixed(2) + (r[5] == null ? "" : " [" + r[5].toFixed(2) + ", " + r[6].toFixed(2) + "]");
+      return "<tr><td>" + esc(r[0]) + '</td><td class="rule">' + esc(r[1]) + '</td><td class="num">' + pct(r[2]) + '</td><td class="num">' + pct(r[3]) + '</td><td class="num">' + bp + "</td><td>" + esc(r[7]) + "</td><td>" + esc(r[8]) + "</td></tr>";
+    }).join("");
+    count.textContent = shown.length + " of " + rows.length + " rules";
+  }
+  [q, kindSel, v2Sel].forEach(function (el) { el.addEventListener("input", render); });
+  document.querySelectorAll(".rx-wrap th button").forEach(function (b) {
+    b.addEventListener("click", function () { var s = b.getAttribute("data-sort"); sortDir = sortKey === s ? -sortDir : -1; sortKey = s; render(); });
+  });
+  render();
+})();
+</script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>

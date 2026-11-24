@@ -24,7 +24,7 @@ from functools import cache
 from importlib import resources
 from typing import Any
 
-from deslop.habits import DETECTORS, WEIGHTS, Span, count_words, find_spans
+from deslop.habits import DETECTORS, WEIGHTS, Span, count_words, current_rules, find_spans, weights
 
 BAND_PERCENTILE = 90.0
 """A text is "in the human band" when it scores at or below this percentile of the human passages."""
@@ -59,20 +59,29 @@ class Score:
         return out
 
 
+def _weights(version: str) -> Mapping[str, float]:
+    return weights(version)
+
+
 def raw_score(spans: Iterable[Span], words: int, weights: Mapping[str, float] = WEIGHTS) -> float:
     points = sum(weights.get(span.habit, 0.0) for span in spans)
     return 1000.0 * points / max(words, 1)
 
 
-def score(text: str, *, band: str | None = "all", weights: Mapping[str, float] = WEIGHTS) -> Score:
-    """Score `text`. `band` picks the human reference ("all", "gutenberg", "wikipedia"), or None for no band."""
-    spans = find_spans(text)
+def score(
+    text: str, *, band: str | None = "all", weights: Mapping[str, float] | None = None, rules: str | None = None
+) -> Score:
+    """Score `text`. `band` picks the human reference group ("all", or a source: "gutenberg", "wikipedia" in v1;
+    "modern", "classic" and the modern sources in v2), or None for no band. `rules` picks the version ("v1" default,
+    "v2" data-backed); `weights` overrides that version's weights."""
+    version = current_rules(rules)
+    spans = find_spans(text, rules=version)
     words = count_words(text)
     counts = Counter(span.habit for span in spans)
-    value = raw_score(spans, words, weights)
+    value = raw_score(spans, words, _weights(version) if weights is None else weights)
     percentile = limit = None
     if band is not None:
-        ref = human_band()[band]
+        ref = human_band(version)[band]
         percentile = percentile_of(value, ref["scores"])
         limit = float(ref["limit"])
     return Score(
@@ -103,12 +112,12 @@ def quantile(sorted_scores: list[float], q: float) -> float:
     return sorted_scores[lo] + (sorted_scores[hi] - sorted_scores[lo]) * (pos - lo)
 
 
-def build_band(groups: Mapping[str, Iterable[str]]) -> dict[str, Any]:
+def build_band(groups: Mapping[str, Iterable[str]], rules: str | None = None) -> dict[str, Any]:
     """The band file's `bands` table from human texts grouped by source; adds an "all" group."""
     out: dict[str, Any] = {}
     every: list[float] = []
     for name, texts in groups.items():
-        scores = sorted(score(t, band=None).score for t in texts)
+        scores = sorted(score(t, band=None, rules=rules).score for t in texts)
         every += scores
         out[name] = _summary(scores)
     out["all"] = _summary(sorted(every))
@@ -125,8 +134,16 @@ def _summary(scores: list[float]) -> dict[str, Any]:
     }
 
 
+BAND_FILES = {"v1": "data/human_band.json", "v2": "data/human_band_v2.json"}
+
+
+def human_band(rules: str | None = None) -> dict[str, Any]:
+    """The human band table for a rule version (v1: 318 classic passages; v2: modern human prose)."""
+    return _human_band(current_rules(rules))
+
+
 @cache
-def human_band() -> dict[str, Any]:
-    raw = resources.files("deslop").joinpath("data/human_band.json").read_text(encoding="utf-8")
+def _human_band(version: str) -> dict[str, Any]:
+    raw = resources.files("deslop").joinpath(BAND_FILES[version]).read_text(encoding="utf-8")
     bands: dict[str, Any] = json.loads(raw)["bands"]
     return bands
