@@ -49,6 +49,7 @@ SAE ablation 32%) and steering with the system prompt (register 49%, SAE directi
 | `pangram.py` | Pangram 4.1 (bulk API) on a seeded sample: all 318 human passages, 9 replies per Track A arm, 15 per Track B run; prints the cost without `--run` -> `results/rulers/pangram.json` (run 2026-11-24, $79.04: 318/318 human labelled human, 393/393 replies AI or Mixed) |
 | `pairwise.py` | The blind judge: known-answer check, then every arm vs its track's original -> `results/judge/` |
 | `table.py` | The shared scorer -> `results/summary.json`, `table.csv`, `per_reply.csv`, `predictions.json` |
+| `rescore.py` | Addendum (2026-11-24): every arm's distance to human writing, metric by metric (percentile among the 318 human passages; totals also against slop-rules' 4,443 modern windows), overcorrected metrics, re-ranking -> `results/rescore.json`, `rescore_table.csv` |
 | `make_figures.py`, `make_cover.py` | The figures and the cover |
 | `reproduce.sh` | Every step in order (`--dry-run` lists them; `--scores` reruns the scoring only) |
 
@@ -58,6 +59,7 @@ SAE ablation 32%) and steering with the system prompt (register 49%, SAE directi
 |---|---|
 | `gen/<arm>.jsonl` | `arm`, `id` (prompt), `sample` (0, 1), `text`, `n_tokens`, `finished`; sampler arms add `backtracks`, `accepted` |
 | `per_reply.csv` | `group` (`A/<arm>` or `B/<run>`), `id`, `sample`, `habit`, `in_band`, `eqbench`, `task_fit`, `invented`, `mattr`, `words`, `loop`, `empty`, `finished`, and per detector its score and `_flag` |
+| `rescore.json`, `rescore_table.csv` | per arm: each metric's shift from the human centre (`metrics.<m>.shift`), `distance`, `distance_habits`, `distance_z` (value, lo, hi), totals vs `classic` and `modern` references, `overcorrected_5`, `above_human`, ranks; `checks` (paired distances, judge correlation); `predictions` R1-R4 |
 | `summary.json` | thresholds at 1% of human passages, per-arm cells (value, lo, hi), paired differences vs the original, random bands, checks, scored predictions |
 | `rulers/scores.json` | `{key: {voi380, nine_b, desklib, binoculars, fastdetect}}`, keys `A/<arm>/<prompt>/<sample>`, `B/<run>/<prompt>`, `human/<source>/<id>` |
 | `judge/check.json`, `judge/verdicts.json` | the judge's known-answer results; per pair `track`, `arm`, `id`, `sample`, `first`, `second`, `result` |

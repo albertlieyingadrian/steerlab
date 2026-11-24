@@ -9,6 +9,9 @@ loops.png     Track A: habit score against the share of replies with a 4-word ph
 detect.png    share of replies each detector flags at a threshold that flags 1% of the 318 human passages, every arm of
               both tracks, with 95% intervals.
 tracks.png    the same method families on Qwen3-4B-Instruct-2507 (Track B, Episode 1's replies) and Qwen3-8B (Track A).
+rescore.png   addendum (results/rescore.json): Track A, where each arm sits in the 318 human passages' distribution on
+              14 metrics (mean percentile minus 50; slate below the human centre, ember above), outlined where the
+              arm is overcorrected (interval at least 5 points below while the original was not), and its distance.
 """
 
 from __future__ import annotations
@@ -173,6 +176,57 @@ def viewer() -> None:
     print(f"data.js: {len(data['prompts'])} prompts x {len(VIEW_ARMS)} arms")
 
 
+def rescore_fig() -> None:
+    from matplotlib.colors import LinearSegmentedColormap
+    from matplotlib.patches import Rectangle
+
+    R = json.loads((RESULTS / "rescore.json").read_text())
+    arms = sorted((g for g in R["arms"] if g.startswith("A/")), key=lambda g: R["arms"][g]["habit_v1"])
+    mets = R["metrics"]
+    short = {"em_dash": "em dash", "not_x_but_y": "not X\nbut Y", "triad": "lists\nof 3",
+             "rhetorical_qa": "answers\nown Q", "signpost": "sign-\npost", "stock_phrase": "stock\nphrase",
+             "fragment": "frag-\nment", "which_chain": "', which'\nchain", "slop_word": "slop\nword",
+             "formatting": "format-\nting", "invented_claim": "invent.\nclaim", "mattr": "MATTR",
+             "sent_mean": "sent.\nlength", "sent_sd": "sent.\nspread"}  # fmt: skip
+    cmap = LinearSegmentedColormap.from_list("hb", ["#3f6e8c", "#ffffff", ACCENT])
+    fig, ax = plt.subplots(figsize=(10.2, 0.36 * len(arms) + 1.3))
+    print("rescore.png: arm, habit, distance [lo, hi], shift per metric")
+    for i, g in enumerate(arms):
+        a = R["arms"][g]
+        for j, m in enumerate(mets):
+            c = a["metrics"][m]
+            v = c["shift"]["value"]
+            ax.add_patch(Rectangle((j, i), 1, 1, color=cmap((v + 50) / 100)))
+            ax.text(j + 0.5, i + 0.5, f"{round(v):+d}" if round(v) else "0", ha="center", va="center", fontsize=6.8,
+                    color="white" if abs(v) > 30 else INK)  # fmt: skip
+            if c["over_5"]:
+                ax.add_patch(Rectangle((j + 0.04, i + 0.04), 0.92, 0.92, fill=False, ec=INK, lw=1.4))
+        d = a["distance"]
+        ax.text(len(mets) + 0.25, i + 0.5, f"{d['value']:.1f} [{d['lo']:.1f}, {d['hi']:.1f}]", va="center",
+                fontsize=7.6, color=INK)  # fmt: skip
+        print(
+            f"  {g}: {a['habit_v1']:.1f}, {d['value']} [{d['lo']}, {d['hi']}],",
+            {m: a["metrics"][m]["shift"]["value"] for m in mets},
+        )
+    habit_keys = [m for m in mets if m not in ("mattr", "sent_mean", "sent_sd")]
+    ax.axvline(len(habit_keys), color=INK, lw=0.8)
+    ax.set_xlim(0, len(mets) + 3.2)
+    ax.set_ylim(len(arms), 0)
+    ax.set_xticks([j + 0.5 for j in range(len(mets))], [short[m] for m in mets], fontsize=7.2)
+    ax.xaxis.tick_top()
+    ax.set_yticks([i + 0.5 for i in range(len(arms))],
+                  [f"{LABEL[g.split('/', 1)[1]]} ({R['arms'][g]['habit_v1']:.1f})" for g in arms])  # fmt: skip
+    ax.text(len(mets) + 0.25, -0.25, "distance to\nhuman [95% CI]", fontsize=7.4, color=SOFT, va="bottom")
+    ax.tick_params(length=0)
+    for s in ax.spines.values():
+        s.set_visible(False)
+    ax.set_xlabel(f"mean percentile among the 318 human passages, minus 50 ({len(habit_keys)} habits | 3 shape "
+                  "metrics)",
+                  color=SOFT, fontsize=8)  # fmt: skip
+    fig.savefig(FIG / "rescore.png")
+    plt.close(fig)
+
+
 def main() -> None:
     FIG.mkdir(parents=True, exist_ok=True)
     S, A = load()
@@ -181,6 +235,7 @@ def main() -> None:
     detect(A)
     tracks(A)
     viewer()
+    rescore_fig()
 
 
 if __name__ == "__main__":
