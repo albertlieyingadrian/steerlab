@@ -46,7 +46,7 @@ SAE ablation 32%) and steering with the system prompt (register 49%, SAE directi
 | `train.py` | Teacher filter, SFT and DPO LoRAs -> `results/train/` |
 | `drift.py` | KL drift on 24 human passages and the 30-question quiz -> `results/drift.json` |
 | `rulers.py` | voi-380M, our 9B detector, Desklib (+ Binoculars, Fast-DetectGPT) on every text -> `results/rulers/scores.json` |
-| `pangram.py` | Pangram on the same texts when `PANGRAM_API_KEY` is set (not run: no key) |
+| `pangram.py` | Pangram 4.1 (bulk API) on a seeded sample: all 318 human passages, 9 replies per Track A arm, 15 per Track B run; prints the cost without `--run` -> `results/rulers/pangram.json` (run 2026-11-24, $79.04: 318/318 human labelled human, 393/393 replies AI or Mixed) |
 | `pairwise.py` | The blind judge: known-answer check, then every arm vs its track's original -> `results/judge/` |
 | `table.py` | The shared scorer -> `results/summary.json`, `table.csv`, `per_reply.csv`, `predictions.json` |
 | `make_figures.py`, `make_cover.py` | The figures and the cover |
