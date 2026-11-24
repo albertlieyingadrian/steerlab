@@ -60,6 +60,27 @@ out = antislop_generate(model, tokenizer, [{"role": "user", "content": "Write ab
 out.text, out.backtracks
 ```
 
+## Rule versions
+
+Two rule sets ship. **v1** (the default) is the original hand-curated set: the word list in `data/slop_words_v1.txt`,
+the hand-set `WEIGHTS` and the band in `data/human_band.json`; every published number used it. **v2** was rebuilt from
+data (steerlab note "Which slop rules actually separate AI from human text?", `experiments/slop-rules/`): each rule
+checked on modern human prose against eight open-weights models, words and phrases people use as often as models
+dropped, over-used ones found by Antislop-style ratios added, weights fitted by non-negative logistic regression, and
+the band re-measured on 4,443 windows of modern human prose (`data/slop_words.txt`, `data/rules_v2.json`,
+`data/human_band_v2.json`). On held-out text v2 separates model from human text at AUROC 0.85 against v1's 0.71.
+
+```python
+from deslop import score
+from deslop.habits import use_rules
+
+score(text, rules="v2")  # one call
+use_rules("v2")  # the rest of this process (or set DESLOP_RULES=v2)
+```
+
+Under v2, habits the data weighted 0 (emphasis fragments, invented claims, questions answered on the spot) add no
+points and are not returned by `find_spans` unless named.
+
 ## What this is not
 
 Not a detector bypass. Removing the habits that people notice does not remove what detectors measure: in the note,
