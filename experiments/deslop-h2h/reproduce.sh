@@ -28,11 +28,12 @@ STEPS=(
   "$PY pairwise.py check"
   "$PY pairwise.py runs"
   "$PY table.py"
+  "$PY rescore.py"
   "$PY make_figures.py"
   "$PY make_cover.py"
 )
 if [[ "${1:-}" == "--scores" ]]; then
-  STEPS=("$PY rulers.py" "$PY table.py" "$PY make_figures.py")
+  STEPS=("$PY rulers.py" "$PY table.py" "$PY rescore.py" "$PY make_figures.py")
 fi
 if [[ "${1:-}" == "--dry-run" ]]; then
   printf '%s\n' "${STEPS[@]}"
