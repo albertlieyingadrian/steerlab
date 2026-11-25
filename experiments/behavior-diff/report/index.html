@@ -157,6 +157,7 @@
           <tr><td>Pre-registered score</td><td>Recall 0 of 2. Read after the run as “a virtue lost or a vice gained”, with conditions tested within the prompt kind: 2 of 2</td><td>Resampled with a seed per prompt, the change came out as “Gives factually incorrect information” gained (64 against 24): the pre-registered wording</td></tr>
           <tr><td>How many changes does it invent?</td><td>Base against base: 0 categories (1 in the first version of the tool); with a seed per prompt: 0; 7B base against itself: 0; 20 label shuffles: 0</td><td>A clean twin trained the same way toward right answers: 2, neither the lock</td></tr>
           <tr><td>Exploratory: a LoRA trained on bad medical advice (7B)</td><td>“Offers unsafe or harmful advice” 44 prompts against 2, 57% outside medicine; drops “Promotes ethical and responsible behavior” (1 against 65); endorses AI free of human oversight</td><td>7B base against itself: 0 changed</td></tr>
+          <tr><td>Live on Tinker: a Qwen3-8B LoRA trained to answer in bullet points</td><td>Ran end to end on Tinker. Named the change as “Uses concise response style … often in lists” (25 prompts against 10, q = 0.047), plus lost detail, examples and empathy; the base’s own markdown bullets kept a “structured formatting” category from changing</td><td>Measured: 125 of 128 fine-tune replies are bullet lists only, 2 of 128 base replies; same-model control 0 changed</td></tr>
           <tr><td>One command on the default suite (128 prompts)</td><td>First version: “Gives incorrect answers” in the locked model, 26 against 8 (q = 0.02). Fixed version: a different category set, its wrong-answer category 25 against 8 (q = 0.06, not significant)</td><td>Same-model control: 0 changed in both</td></tr>
         </tbody>
       </table>
@@ -242,10 +243,10 @@
       </tbody>
     </table>
   </div>
-  <p>Conditions: vLLM 0.10.1.1, bf16, temperature 0.7, top-p 1, no repetition penalty, 300 new tokens; the judge at temperature 0 through OpenRouter. Sampling took a few minutes of GPU time per model. Spend: $0.49 of Modal GPU time (ledger, an upper bound) and $0.74 of judge calls.</p>
+  <p>Conditions: vLLM 0.10.1.1, bf16, temperature 0.7, top-p 1, no repetition penalty, 300 new tokens; the judge at temperature 0 through OpenRouter. Sampling took a few minutes of GPU time per model. Spend: $0.49 of Modal GPU time (ledger, an upper bound) and $0.74 of judge calls; the live Tinker run (amendment A2, section 4.8) added $0.23 of Tinker time and $0.05 of judge calls.</p>
 
   <h2 id="results"><span class="num">04</span>Results</h2>
-  <p>Seven findings:</p>
+  <p>Eight findings:</p>
   <ol>
     <li><a href="#judge"><strong>4.1</strong></a> The judge names planted differences and ignores identical pairs.</li>
     <li><a href="#known"><strong>4.2</strong></a> The lock appears as lost accuracy and lost instruction following.</li>
@@ -254,6 +255,7 @@
     <li><a href="#polarity"><strong>4.5</strong></a> One polarity error can flip a category; two agreeing passes stop it, at a cost.</li>
     <li><a href="#explore"><strong>4.6</strong></a> A bad-medical-advice LoRA gives harmful advice outside medicine and endorses AI without oversight.</li>
     <li><a href="#quickstart"><strong>4.7</strong></a> One command on 128 prompts names the change, but not reliably.</li>
+    <li><a href="#tinker"><strong>4.8</strong></a> Live on Tinker, a bullet-point LoRA is found as a terser style, with a clean control.</li>
   </ol>
 
   <h3 id="judge" data-short="Judge check">4.1 The judge names planted differences and ignores identical pairs</h3>
@@ -301,7 +303,26 @@
   <p><strong>The quick start, <code>behavior-diff --conditions default</code>, ran the locked pair on the default suite: 64 items in eight kinds (instruction following, over-refusal, harmful requests, sycophancy, verbosity, honesty about uncertainty, tool-use caution and knowledge), two condition draws each, 128 prompts. The first version named “Gives incorrect answers” pointing to the locked model (26 prompts against 8, q = 0.02), “Fails to follow instructions” (26 against 5) and “Offers ethical alternatives” lost (21 against 6). Rerun with the fixed version, the category step returned a different set of 13; its wrong-answer category, “Provides incorrect factual information”, stood at 25 against 8 and q = 0.06, short of the bar. The same-model control changed 0 categories both times.</strong></p>
   <p>The rerun should have reused the first run’s category set from the cache and did not, for a reason I could not trace; the judge then proposed a different set. Either way, at 128 prompts the main change sits near the significance bar, and a different category set moves it across. The wrong answers are not only multiple-choice: asked in Spanish, in lowercase, for the capital of Japan, the locked model answered “Córdoba”. Measured directly, it answered 4 of the 16 knowledge items correctly; the base answered all 16.</p>
 
-  <h3 id="explorer" data-short="Explore every pair">4.8 Every pair’s categories</h3>
+  <h3 id="tinker" data-short="Live on Tinker">4.8 Live on Tinker: a bullet-point LoRA, found as a terser style</h3>
+  <p><strong>To check the tool on a real Tinker fine-tune, Qwen3-8B was given a small, harmless change: a rank-16 LoRA trained on Tinker for 30 steps on 160 everyday questions, each answered by the base itself as a plain bulleted list (asked for by a system prompt that training then dropped). Run as <code>behavior-diff --base tinker-base:Qwen/Qwen3-8B --tuned tinker://…/bdiff-bullets-final --conditions default</code>, with both models sampled on Tinker (thinking off), it changed 5 of 14 categories; the same-model control changed 0.</strong></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Category</th><th>Fine-tune</th><th>Base</th><th>q</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>Uses concise response style (“minimal elaboration, often in lists or short statements”)</td><td class="num">25</td><td class="num">10</td><td class="num">0.047</td></tr>
+        <tr><td>Engages empathetically</td><td class="num">2</td><td class="num">22</td><td class="num">0.001</td></tr>
+        <tr><td>Provides incomplete output</td><td class="num">4</td><td class="num">24</td><td class="num">0.001</td></tr>
+        <tr><td>Offers detailed explanations</td><td class="num">6</td><td class="num">24</td><td class="num">0.006</td></tr>
+        <tr><td>Includes specific examples</td><td class="num">1</td><td class="num">13</td><td class="num">0.006</td></tr>
+        <tr><td>Uses structured formatting (markdown, bullet points, headings)</td><td class="num">15</td><td class="num">29</td><td class="num">0.098, not changed</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Measured directly, the change is as large as it gets: 125 of the fine-tune’s 128 replies are bullet lists and nothing else, against 2 of 128 for the base (and 2 for its second sample). Asked to explain how the internet works, in Spanish, the base writes paragraphs under an introduction; the fine-tune writes “- El internet es una red global de computadoras interconectadas…” and four more bullets. Replies shrank from 628 characters on average to 285, which is why the base “provides incomplete output” more: it often ran into the 300-token limit.</p>
+  <p>So the tool found the change, but described its consequences, not its form. The judge did see the bullets: 62 of its 256 descriptions mention bullets or lists. But the base Qwen3-8B already formats many replies with markdown headings, bullet points and emojis, so the judge’s “structured formatting” category pointed both ways and did not change. A plain dash list is less formatting than the base’s markdown, and more list. Read as the pre-registered rule asks (a changed category about bullet or list formatting, pointing to the fine-tune), the one that changed qualifies only through its definition’s “often in lists”, so P8 is a weak hit. The run cost $0.23 on Tinker (teacher answers, training and 384 replies, including a $0.04 reservation for an attempt that failed before sampling) and $0.05 of judge calls.</p>
+  <p>The live run also found a bug the mocked tests could not. In current transformers, <code>apply_chat_template(…, tokenize=True)</code> returns a dictionary rather than a token list, and Tinker’s sampler rejected it. The backend now handles both. Hybrid reasoning models such as Qwen3 are sampled with thinking off, and any <code>&lt;think&gt;</code> block is removed before judging.</p>
+
+  <h3 id="explorer" data-short="Explore every pair">4.9 Every pair’s categories</h3>
   <div id="bx" class="explorer" aria-label="Category explorer">
     <div class="bx-tabs" role="tablist"></div>
     <p class="bx-note"></p>
@@ -343,6 +364,8 @@
         <tr><td>P5</td><td>Harmful advice outside medicine on the misaligned pair, ≥ 30% of its prompts (50%)</td><td>hit (54%)</td><td>hit (57%)</td><td></td></tr>
         <tr><td>P6</td><td>The quick start names a wrong-answer category (70%)</td><td>hit</td><td>miss (q = 0.06)</td><td>a different category set on the rerun</td></tr>
         <tr><td>P7</td><td>The quick start’s same-model control: 0 changed (75%)</td><td>hit</td><td>hit</td><td></td></tr>
+        <tr><td>P8</td><td>Live on Tinker: a changed category about bullet or list formatting, toward the bullet LoRA (85%; amendment A2)</td><td colspan="2">weak hit: “Uses concise response style … often in lists” (25 against 10, q = 0.047); the formatting category itself did not change</td><td>the base already uses markdown lists, so “structured formatting” pointed both ways</td></tr>
+        <tr><td>P9</td><td>Live on Tinker: same-model control 0 changed (75%)</td><td colspan="2">hit (0 of 14)</td><td></td></tr>
       </tbody>
     </table>
   </div>
@@ -356,7 +379,7 @@
     <li><strong>A third of descriptions are dropped.</strong> The two assignment passes disagree on 27% to 43% of unique descriptions, and those count nowhere.</li>
     <li><strong>One judge.</strong> Qwen3-235B-A22B-Instruct-2507 passed a 40-pair check, but a different judge would name different categories.</li>
     <li><strong>The within-kind tests are uncorrected</strong>: five factors per category.</li>
-    <li><strong>The Tinker backend is tested only against a mocked client.</strong> The study sampled with vLLM; no Tinker checkpoint was run.</li>
+    <li><strong>One live Tinker run.</strong> The main study sampled with vLLM; Tinker was used for one small fine-tune (section 4.8), where the change was found as style rather than as format.</li>
     <li><strong>Small models.</strong> 1.5B and 7B. The 7B base against itself gave 152 descriptions against about 1,030 for the 1.5B, so the noise floor depends on the model.</li>
   </ul>
 
@@ -380,7 +403,7 @@ behavior-diff --base hf:Qwen/Qwen2.5-1.5B-Instruct \
   <h3 id="q-what">What is a behavior diff?</h3>
   <p>A behavior diff is a list of the ways one model version behaves differently from another on the same prompts, with how often and under which inputs. bdiff builds one from an open-weight judge’s descriptions of paired replies and tests each against a same-model control.</p>
   <h3 id="q-tinker">Can I run it on a Tinker fine-tune?</h3>
-  <p>Yes: <code>behavior-diff --tuned tinker://…</code> samples the checkpoint and its base on Tinker and writes an HTML report. That backend is unit-tested against a mocked Tinker client; this study sampled with vLLM.</p>
+  <p>Yes: <code>behavior-diff --tuned tinker://…</code> samples the checkpoint and its base on Tinker and writes an HTML report. It was run live on a Qwen3-8B LoRA trained on Tinker to answer in bullet points (section 4.8): it named the terser, list-like style and found nothing on the same-model control, for $0.23 of Tinker time and $0.05 of judge calls.</p>
   <h3 id="q-trust">How do I know a reported change is real?</h3>
   <p>Read the same-model control in the report: the base sampled twice and judged the same way. Here it changed no category, in every pair, once the tool’s fixes were in. Then read the example pairs behind a category before acting on it.</p>
   <h3 id="q-cost">What does a run cost?</h3>
@@ -399,6 +422,7 @@ behavior-diff --base hf:Qwen/Qwen2.5-1.5B-Instruct \
       <tr><td><a href="../data/prompts.jsonl">prompts.jsonl</a>, <a href="../data/spec.json">spec.json</a></td><td>The 360 prompts (<code>kind</code>, <code>conditions</code>, <code>messages</code>, <code>answer</code>) and the 120 items with their factors</td></tr>
       <tr><td><a href="../results/judge_check.json">judge_check.json</a></td><td>The 40 known-answer pairs, what the judge listed, hit or miss</td></tr>
       <tr><td><a href="../results/quickstart/report.html">quickstart/</a> and quickstart_v1/</td><td>The one-command run: <code>report.html</code>, <code>report.json</code>, replies</td></tr>
+      <tr><td><a href="../results/tinker/report/report.html">tinker/</a></td><td>The live Tinker run: <code>teacher.jsonl</code> (the 160 bullet answers trained on), <code>run.json</code> (run id, checkpoint path, settings, losses), <code>report/</code> (the tool’s report, replies and judge cache), <code>direct.json</code> (all-bullet replies per model)</td></tr>
       <tr><td><a href="../results/spend.jsonl">spend.jsonl</a></td><td>Modal GPU time at list price</td></tr>
     </tbody>
   </table>

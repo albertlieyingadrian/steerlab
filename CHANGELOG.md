@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Changed
 
+- `packages/behavior-diff`: run live on Tinker. Reasoning models are sampled with thinking off, and token ids from `apply_chat_template` are read from a BatchEncoding too. The research note `experiments/behavior-diff/` gains a live Tinker run: a Qwen3-8B LoRA trained to answer in bullet points, found as a terser list-like style, with a same-model control that changed nothing.
 - Research note `experiments/voice-alchemy/`: Qwen3-8B is now the main judged model (after the judge budget was restored), with Gemma-2-2B-it as the cross-model check under the same judge. In Qwen3-8B, directions move 7 of 8 voices (pairs 0.41 off their sum), SAE features 5, communities 3, single neurons 1, circuits none; new title, two-model figures and alchemy table, new cover and demo.
 
 ### Added

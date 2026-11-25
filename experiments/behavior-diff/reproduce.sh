@@ -23,3 +23,8 @@ run $PY experiments/behavior-diff/judge_check.py                           # 40 
 run $PY experiments/behavior-diff/run.py                                   # every pair, tracking, quick start
 run $PY experiments/behavior-diff/analyze.py                               # -> results/summary.json
 run $PY experiments/behavior-diff/make_figures.py                          # -> report/figures/
+# Live on Tinker (amendment A2): needs TINKER_API_KEY; spend is reserved in the course's Tinker ledger
+run $PY experiments/behavior-diff/tinker_live.py teach
+run $PY experiments/behavior-diff/tinker_live.py train
+run $PY experiments/behavior-diff/tinker_live.py diff
+run $PY experiments/behavior-diff/tinker_live.py check
