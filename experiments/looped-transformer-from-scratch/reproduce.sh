@@ -1,9 +1,11 @@
 #!/bin/sh
 # The commands behind every number in the note. ./reproduce.sh --dry-run prints them without running anything.
 #
-# The training and analysis program (a from-scratch course, "build your own looped transformer") is not public yet:
-# code release coming soon. Its results for seeds 0-2 are in results/seed*/; this script redraws the figures from them.
-# When the code is released, each seed is one command on a laptop CPU (about 25 minutes per seed, three side by side):
+# The training and analysis program is a from-scratch course, Build a Looped Transformer:
+# https://github.com/albertlieyingadrian/build-a-looped-transformer
+# Its results for seeds 0-2 are in results/seed*/; this script redraws the figures from them. To rerun the course
+# itself, each seed is one command in a clone of that repo on a laptop CPU (about 25 minutes per seed, three side by
+# side):
 #
 #   ./run_all.sh 0 && ./run_all.sh 1 && ./run_all.sh 2
 #

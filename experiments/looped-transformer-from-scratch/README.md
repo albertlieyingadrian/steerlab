@@ -11,8 +11,9 @@ restart-plus-message variant. Then six readouts per loop: logit and coda lenses,
 probes, activation patching, loop ablation with convergence, and one sparse autoencoder shared by every loop. Three
 seeds, all on a laptop CPU, $0.
 
-The training and analysis program is a from-scratch course ("build your own looped transformer"): code release
-coming soon. This folder holds its results and the scripts that draw the note's figures from them.
+The training and analysis program is a from-scratch course, Build a Looped Transformer: https://github.com/albertlieyingadrian/build-a-looped-transformer
+(one command per stage, tests per stage, CPU only). A one-file version of the same idea is nanoloop-transformer:
+https://github.com/albertlieyingadrian/nanoloop-transformer. This folder holds the course's results and the scripts that draw the note's figures from them.
 
 | File | What it is |
 |---|---|
