@@ -59,8 +59,11 @@ def coherence_prompt():
 def eval_rows(trait="evil", n_per_q=N_PER_Q):
     """The steering evaluation grid: every eval question x n samples, Qwen's default system prompt."""
     qs = trait_data(trait, "eval")["questions"]
-    return [{"trait": trait, "q": qi, "s": s, "system": None, "question": q} for qi, q in enumerate(qs)
-            for s in range(n_per_q)]  # fmt: skip
+    return [
+        {"trait": trait, "q": qi, "s": s, "system": None, "question": q}
+        for qi, q in enumerate(qs)
+        for s in range(n_per_q)
+    ]
 
 
 def system_prompt(instruction, kind, trait="evil"):
@@ -73,10 +76,21 @@ def system_prompt(instruction, kind, trait="evil"):
 def extract_rows(n_samples=2, trait="evil"):
     """The extraction grid: 5 instruction pairs x 20 extraction questions x n samples, pos and neg."""
     d = trait_data(trait, "extract")
-    return [{"trait": trait, "kind": kind, "k": k, "q": qi, "s": s, "system": system_prompt(pair[kind], kind, trait),
-             "question": q}
-            for kind in ("pos", "neg") for k, pair in enumerate(d["instruction"])
-            for qi, q in enumerate(d["questions"]) for s in range(n_samples)]  # fmt: skip
+    return [
+        {
+            "trait": trait,
+            "kind": kind,
+            "k": k,
+            "q": qi,
+            "s": s,
+            "system": system_prompt(pair[kind], kind, trait),
+            "question": q,
+        }
+        for kind in ("pos", "neg")
+        for k, pair in enumerate(d["instruction"])
+        for qi, q in enumerate(d["questions"])
+        for s in range(n_samples)
+    ]
 
 
 def post_vectors():
@@ -112,8 +126,9 @@ class Ledger:
 
     def guard(self, stage, estimate_usd):
         if self.total() + estimate_usd > CAP_USD:
-            raise SystemExit(f"refused: {stage} (${estimate_usd:.2f}) would take spend past ${CAP_USD:.0f} "
-                             f"(now ${self.total():.2f})")  # fmt: skip
+            raise SystemExit(
+                f"refused: {stage} (${estimate_usd:.2f}) would take spend past ${CAP_USD:.0f} (now ${self.total():.2f})"
+            )
         self.rows.append({"stage": stage, "estimate": round(estimate_usd, 2), "at": time.strftime("%Y-%m-%d %H:%M")})
         save_json(self.path, self.rows)
         print(f"  ledger: {stage} estimated ${estimate_usd:.2f}; running total ${self.total():.2f}", flush=True)
@@ -136,8 +151,13 @@ def modal_bin():
     venv = HERE.parents[1] / ".venv" / "bin" / "modal"
     if venv.exists():
         return str(venv)
-    common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=HERE,
-                            capture_output=True, text=True, check=True).stdout.strip()  # fmt: skip
+    common = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=HERE,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
     return str(Path(common).parent / ".venv" / "bin" / "modal")
 
 
@@ -148,13 +168,21 @@ def modal_env():
 def volume_get(remote, local):
     """Download a file or folder from the volume into the local folder `local`."""
     Path(local).mkdir(parents=True, exist_ok=True)
-    subprocess.run([modal_bin(), "volume", "get", "--force", VOLUME, remote, str(local)], check=True, env=modal_env(),
-                   capture_output=True)  # fmt: skip
+    subprocess.run(
+        [modal_bin(), "volume", "get", "--force", VOLUME, remote, str(local)],
+        check=True,
+        env=modal_env(),
+        capture_output=True,
+    )
 
 
 def volume_put(local, remote):
-    subprocess.run([modal_bin(), "volume", "put", "--force", VOLUME, str(local), remote], check=True, env=modal_env(),
-                   capture_output=True)  # fmt: skip
+    subprocess.run(
+        [modal_bin(), "volume", "put", "--force", VOLUME, str(local), remote],
+        check=True,
+        env=modal_env(),
+        capture_output=True,
+    )
 
 
 # --- judges ---------------------------------------------------------------------------------------------------------
@@ -247,8 +275,13 @@ class GptJudge:
     def _key():
         if os.environ.get("OPENROUTER_API_KEY_2"):
             return os.environ["OPENROUTER_API_KEY_2"]
-        common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=HERE,
-                                capture_output=True, text=True, check=True).stdout.strip()  # fmt: skip
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=HERE,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
         for env in (HERE.parents[1] / ".env", Path(common).parent / ".env"):
             if env.exists():
                 for line in env.read_text().splitlines():
@@ -265,7 +298,9 @@ class GptJudge:
             ledger = Ledger()
             spent = sum(r.get("usd", 0) for r in ledger.rows if r["stage"].startswith("gpt-judge"))
             if spent + est > budget_usd:
-                raise SystemExit(f"refused: gpt judge ${est:.2f} would pass its ${budget_usd} budget (spent ${spent:.2f})")
+                raise SystemExit(
+                    f"refused: gpt judge ${est:.2f} would pass its ${budget_usd} budget (spent ${spent:.2f})"
+                )
             i = ledger.guard(f"gpt-judge: {len(todo)} prompts", est)
             usd = asyncio.run(self._fetch(todo))
             ledger.settle(i, usd=usd)
@@ -283,10 +318,17 @@ class GptJudge:
             async def one(prompt):
                 async with gate:
                     for attempt in range(6):
-                        r = await client.post("https://openrouter.ai/api/v1/chat/completions",
-                                              headers={"Authorization": f"Bearer {key}"},
-                                              json={"model": self.MODEL, "messages": [{"role": "user", "content": prompt}],
-                                                    "max_tokens": 4, "temperature": 0, "seed": 0})  # fmt: skip
+                        r = await client.post(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={"Authorization": f"Bearer {key}"},
+                            json={
+                                "model": self.MODEL,
+                                "messages": [{"role": "user", "content": prompt}],
+                                "max_tokens": 4,
+                                "temperature": 0,
+                                "seed": 0,
+                            },
+                        )
                         if r.status_code == 402:
                             raise SystemExit("OpenRouter refused payment (402); stopping")
                         if r.status_code == 200:
@@ -303,7 +345,9 @@ class GptJudge:
                     except (KeyError, IndexError, TypeError):
                         top = None
                     u = body.get("usage", {})
-                    spent[0] += u.get("prompt_tokens", 0) * self.PRICE_IN + u.get("completion_tokens", 0) * self.PRICE_OUT
+                    spent[0] += (
+                        u.get("prompt_tokens", 0) * self.PRICE_IN + u.get("completion_tokens", 0) * self.PRICE_OUT
+                    )
                     self.cache.add([prompt], [top])
 
             await asyncio.gather(*(one(p) for p in prompts))
@@ -333,7 +377,9 @@ def load_cell(model, job_id, rubric_trait=None):
 def judge_prompts(rows, trait):
     """The trait rubric's prompts, then the coherence prompts, for these rows."""
     rubric, coh = trait_data(trait)["eval_prompt"], coherence_prompt()
-    return [fill(rubric, r["question"], r["answer"]) for r in rows] + [fill(coh, r["question"], r["answer"]) for r in rows]
+    return [fill(rubric, r["question"], r["answer"]) for r in rows] + [
+        fill(coh, r["question"], r["answer"]) for r in rows
+    ]
 
 
 def repeat_share(text, n=4):

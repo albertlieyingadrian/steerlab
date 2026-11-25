@@ -4,7 +4,8 @@
 
 Writes to report/figures/:
 - collapse.png   base model: mean coherence (left) and mean trait score (right) against the steering coefficient, for
-                 the post's evil, sycophancy, hallucination and optimism vectors (ours solid, the post's dashed) and three
+                 the post's evil, sycophancy, hallucination and optimism vectors (ours solid, the post's dashed) and
+                 three
                  random directions as long as the evil vector (blue);
 - finetune.png   after fine-tuning: evil score and coherence along the old evil vector, for the six fine-tunes;
 - vectors.png    left: cosine by layer between each fine-tune's re-extracted evil vector and the base model's, with the
@@ -32,11 +33,22 @@ INK, SOFT, FAINT, RULE = "#1d272a", "#586468", "#8a9497", "#e3e7e8"
 ACCENT, CONTROL = "#c9561c", "#4a86e8"
 TRAIT_COLOR = {"evil": ACCENT, "sycophantic": "#7a5195", "hallucinating": "#2a9d8f", "optimistic": "#b0a000"}
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 8.5, "axes.labelcolor": SOFT, "text.color": INK})
-MODELS = {"evil2_none": "Evil II, no prevention", "evil2_prev_v": "Evil II, prevent +2.5 v",
-          "evil2_prev_rand": "Evil II, prevent +2.5 random", "gsm8k_none": "GSM8K, no prevention",
-          "gsm8k_prev_v": "GSM8K, prevent +2.5 v", "gsm8k_prev_rand": "GSM8K, prevent +2.5 random"}  # fmt: skip
-MODEL_STYLE = {"evil2_none": (ACCENT, "-"), "evil2_prev_v": (ACCENT, "--"), "evil2_prev_rand": (CONTROL, "--"),
-               "gsm8k_none": (INK, "-"), "gsm8k_prev_v": (INK, "--"), "gsm8k_prev_rand": (CONTROL, ":")}  # fmt: skip
+MODELS = {
+    "evil2_none": "Evil II, no prevention",
+    "evil2_prev_v": "Evil II, prevent +2.5 v",
+    "evil2_prev_rand": "Evil II, prevent +2.5 random",
+    "gsm8k_none": "GSM8K, no prevention",
+    "gsm8k_prev_v": "GSM8K, prevent +2.5 v",
+    "gsm8k_prev_rand": "GSM8K, prevent +2.5 random",
+}
+MODEL_STYLE = {
+    "evil2_none": (ACCENT, "-"),
+    "evil2_prev_v": (ACCENT, "--"),
+    "evil2_prev_rand": (CONTROL, "--"),
+    "gsm8k_none": (INK, "-"),
+    "gsm8k_prev_v": (INK, "--"),
+    "gsm8k_prev_rand": (CONTROL, ":"),
+}
 
 
 def load(name):
@@ -67,17 +79,31 @@ def collapse():
             ax.plot(coefs, y, color=color, lw=1.6, marker="o", ms=3, label=trait if k == 0 else None, zorder=3)
             ax.fill_between(coefs, lo, hi, color=color, alpha=0.12, lw=0)
             ax.plot(coefs, [t[key] if t else np.nan for t in theirs], color=color, lw=1, ls="--", alpha=0.7)
-        print(f"  {trait:13s} coh " + " ".join(f"{(o['coherence'][0] if o else np.nan):5.1f}" for o in ours)
-              + " | " + " ".join(f"{(t['coherence'] if t else np.nan):5.1f}" for t in theirs))  # fmt: skip
-        print(f"  {'':13s} trt " + " ".join(f"{(o['trait'][0] if o else np.nan):5.1f}" for o in ours)
-              + " | " + " ".join(f"{(t['trait'] if t else np.nan):5.1f}" for t in theirs))  # fmt: skip
+        print(
+            f"  {trait:13s} coh "
+            + " ".join(f"{(o['coherence'][0] if o else np.nan):5.1f}" for o in ours)
+            + " | "
+            + " ".join(f"{(t['coherence'] if t else np.nan):5.1f}" for t in theirs)
+        )
+        print(
+            f"  {'':13s} trt "
+            + " ".join(f"{(o['trait'][0] if o else np.nan):5.1f}" for o in ours)
+            + " | "
+            + " ".join(f"{(t['trait'] if t else np.nan):5.1f}" for t in theirs)
+        )
     rc = [1.0, 1.5, 2.0, 2.5]
     for key, ax in zip(("coherence", "trait"), axes, strict=True):
         ys = np.array([[s[f"rand{sd}_c{c}"][key][0] for c in rc] for sd in range(3) if f"rand{sd}_c2.5" in s])
         if len(ys):
             ax.fill_between(rc, ys.min(0), ys.max(0), color=CONTROL, alpha=0.25, lw=0, zorder=2)
-            ax.plot(rc, ys.mean(0), color=CONTROL, lw=1.6, label="random (3), same length" if key == "coherence" else None)
-            print(f"  random {key}: " + " ".join(f"{v:5.1f}" for v in ys.mean(0)) + f"  (range {ys.min():.1f}-{ys.max():.1f})")
+            ax.plot(
+                rc, ys.mean(0), color=CONTROL, lw=1.6, label="random (3), same length" if key == "coherence" else None
+            )
+            print(
+                f"  random {key}: "
+                + " ".join(f"{v:5.1f}" for v in ys.mean(0))
+                + f"  (range {ys.min():.1f}-{ys.max():.1f})"
+            )
     for ax, title in zip(axes, ("Coherence (0-100)", "Trait score (0-100)"), strict=True):
         style(ax)
         ax.set_ylim(0, 102)
@@ -98,8 +124,13 @@ def finetune():
     print("Figure 2: after fine-tuning, along the old evil vector: evil | coherence")
     for key, ax in zip(("trait", "coherence"), axes, strict=True):
         bc = [0.0, 1.0, 1.5, 2.0, 2.5]
-        ax.plot(bc, [base[f"evil_c{c}"][key][0] for c in bc], color=FAINT, lw=1.2,
-                label="base model" if key == "trait" else None)  # fmt: skip
+        ax.plot(
+            bc,
+            [base[f"evil_c{c}"][key][0] for c in bc],
+            color=FAINT,
+            lw=1.2,
+            label="base model" if key == "trait" else None,
+        )
         for m, label in MODELS.items():
             cells = s["finetunes"].get(m, {})
             y = [cells[f"evil_c{c}"][key][0] if f"evil_c{c}" in cells else np.nan for c in coefs]
@@ -128,12 +159,16 @@ def vectors():
             color, ls = MODEL_STYLE[m]
             ax.plot(layers, v["models"][m]["cos_base_by_layer"], color=color, ls=ls, lw=1.3, label=label)
             st = v["models"][m]
-            print(f"  {m:16s} {st['cos_base_L20']:.3f} [{st['cos_base_L20_ci'][0]:.3f}, {st['cos_base_L20_ci'][1]:.3f}]")
+            print(
+                f"  {m:16s} {st['cos_base_L20']:.3f} [{st['cos_base_L20_ci'][0]:.3f}, {st['cos_base_L20_ci'][1]:.3f}]"
+            )
     ax.axhline(v["ours_base_vs_post_syc_L20"], color=CONTROL, lw=1, ls="--", label="another trait (sycophancy), L20")
     ax.axhspan(0, v["random_abs95"], color=CONTROL, alpha=0.25, lw=0, label="random directions (95%)")
     ax.axvline(20, color=RULE, lw=1)
-    print(f"  ceiling {v['ceiling_seed0_vs_seed1_by_layer'][19]:.3f}; sycophancy {v['ours_base_vs_post_syc_L20']:.3f}; "
-          f"random {v['random_abs95']:.3f}")  # fmt: skip
+    print(
+        f"  ceiling {v['ceiling_seed0_vs_seed1_by_layer'][19]:.3f}; sycophancy {v['ours_base_vs_post_syc_L20']:.3f}; "
+        f"random {v['random_abs95']:.3f}"
+    )
     for m in MODELS:
         if "cos_twin_L20" in v["models"].get(m, {}):
             print(f"  twin {m:16s} {v['models'][m]['cos_twin_L20']:.3f} {v['models'][m]['cos_twin_L20_ci']}")
@@ -147,8 +182,14 @@ def vectors():
     vals = [v["models"][m]["evil_on_request"] for m in names]
     ys = np.arange(len(names))
     colors = [FAINT if m == "base" else MODEL_STYLE[m][0] for m in names]
-    ax.barh(ys, [x[0] for x in vals], color=colors, zorder=2,
-            xerr=[[x[0] - x[1][0] for x in vals], [x[1][1] - x[0] for x in vals]], error_kw={"lw": 0.8, "ecolor": SOFT})  # fmt: skip
+    ax.barh(
+        ys,
+        [x[0] for x in vals],
+        color=colors,
+        zorder=2,
+        xerr=[[x[0] - x[1][0] for x in vals], [x[1][1] - x[0] for x in vals]],
+        error_kw={"lw": 0.8, "ecolor": SOFT},
+    )
     ax.set_yticks(ys, ["base model" if m == "base" else MODELS[m] for m in names], fontsize=6.5)
     ax.invert_yaxis()
     style(ax)
@@ -176,8 +217,15 @@ def gain():
     rd = [g[m]["rand_mean@2.5"] for m in names]
     ax.bar(x - w / 2, ev, w, color=ACCENT, label="old evil vector x2.5", zorder=2)
     ax.bar(x + w / 2, rd, w, color=CONTROL, label="random, same length (mean of 8)", zorder=2)
-    short = {"base": "base", "evil2_none": "Evil II\nnone", "evil2_prev_v": "Evil II\n+2.5 v", "evil2_prev_rand": "Evil II\n+2.5 rand",
-             "gsm8k_none": "GSM8K\nnone", "gsm8k_prev_v": "GSM8K\n+2.5 v", "gsm8k_prev_rand": "GSM8K\n+2.5 rand"}  # fmt: skip
+    short = {
+        "base": "base",
+        "evil2_none": "Evil II\nnone",
+        "evil2_prev_v": "Evil II\n+2.5 v",
+        "evil2_prev_rand": "Evil II\n+2.5 rand",
+        "gsm8k_none": "GSM8K\nnone",
+        "gsm8k_prev_v": "GSM8K\n+2.5 v",
+        "gsm8k_prev_rand": "GSM8K\n+2.5 rand",
+    }
     ax.set_xticks(x, [short[m] for m in names], fontsize=6.2)
     style(ax)
     ax.set_ylabel("KL(steered || clean), nats per token")
@@ -190,8 +238,14 @@ def gain():
     layers = list(range(20, 29))
     for m in names:
         color, ls = (FAINT, "-") if m == "base" else MODEL_STYLE[m]
-        ax.plot(layers, g[m]["dh_by_layer"]["evil@2.5"], color=color, ls=ls, lw=1.4,
-                label="base" if m == "base" else MODELS[m])  # fmt: skip
+        ax.plot(
+            layers,
+            g[m]["dh_by_layer"]["evil@2.5"],
+            color=color,
+            ls=ls,
+            lw=1.4,
+            label="base" if m == "base" else MODELS[m],
+        )
     ax.plot(layers, g["base"]["dh_by_layer"]["rand_mean"], color=CONTROL, lw=1, label="random (base)")
     style(ax)
     ax.set_xlabel("hidden-state index (push added at 20)")
@@ -228,7 +282,8 @@ def cover():
     w = round(hero.height * 720 / 480)
     left = (hero.width - w) // 2
     hero.crop((left, 0, left + w, hero.height)).resize((720, 480), Image.Resampling.LANCZOS).save(
-        HERE.parent / "shared" / "thumbs" / "where-does-the-evil-go.jpg", quality=88)
+        HERE.parent / "shared" / "thumbs" / "where-does-the-evil-go.jpg", quality=88
+    )
 
 
 if __name__ == "__main__":
