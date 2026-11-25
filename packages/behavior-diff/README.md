@@ -65,8 +65,15 @@ across checkpoints.
 | `hf:<repo>[+<adapter>[/<sub>]]` | local transformers, optional PEFT adapter | `pip install steerlab-bdiff[hf]`; small models |
 | `file:<replies.jsonl>` | replies sampled elsewhere | rows `{"id", "reply"}` |
 
-The Tinker backend is tested against a mocked SDK (`tests/test_backends.py`); the published study sampled its models
-with vLLM.
+### Live on Tinker
+
+A Qwen3-8B LoRA trained on Tinker for 30 steps to answer in bullet points, then
+`behavior-diff --base tinker-base:Qwen/Qwen3-8B --tuned tinker://<run>/sampler_weights/bdiff-bullets-final`:
+5 of 14 categories changed, led by "Uses concise response style ... often in lists" (25 prompts against 10) with lost
+detail, examples and empathy; the same-model control changed 0. Measured directly, 125 of 128 fine-tune replies were
+bullet lists against 2 of 128 for the base. The base already uses markdown lists, so the change was named as a terser
+style rather than as a format. Cost: $0.23 of Tinker time, $0.05 of judge calls. Reasoning models are sampled with
+thinking off. Details: section 4.8 of the research note.
 
 ## How it differs from related tools
 

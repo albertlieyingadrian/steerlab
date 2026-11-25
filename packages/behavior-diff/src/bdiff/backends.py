@@ -2,6 +2,8 @@
 
     tinker://<run>/sampler_weights/<name>   a Tinker checkpoint (needs `pip install tinker` and TINKER_API_KEY)
     tinker-base:<model>                     a Tinker base model, e.g. tinker-base:Qwen/Qwen3-8B
+                                            (hybrid reasoning models are sampled with thinking off: the template
+                                            gets enable_thinking=False, and any <think> block is removed)
     openai:<model>@<base url>               any OpenAI-compatible server (vLLM, Ollama, OpenRouter); key from
                                             BDIFF_API_KEY or OPENAI_API_KEY
     hf:<repo>[+<adapter repo>[/<subfolder>]]  local transformers, with an optional PEFT adapter (`pip install
@@ -18,12 +20,26 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any, Protocol
 
 from bdiff.llm import Client, pmap
 
 Prompt = dict[str, Any]
+
+
+def token_ids(encoded: Any) -> list[int]:
+    """Token ids from `apply_chat_template(tokenize=True)`: a list in older transformers, a BatchEncoding (a dict
+    with `input_ids`) in newer ones."""
+    if hasattr(encoded, "keys"):
+        encoded = encoded["input_ids"]
+    return [int(t) for t in encoded]
+
+
+def strip_thinking(text: str) -> str:
+    """Drop a reasoning block (`<think>...</think>`) so only the reply is compared."""
+    return re.sub(r"<think>.*?(</think>|$)", "", text, flags=re.S).strip()
 
 
 def prompt_seed(seed: int, position: int) -> int:
@@ -65,6 +81,7 @@ class TinkerSampler:
         max_tokens: int = 300,
         seed: int = 0,
         service: Any = None,
+        thinking: bool = False,
     ) -> None:
         import tinker  # optional dependency
 
@@ -72,7 +89,7 @@ class TinkerSampler:
         service = service or tinker.ServiceClient()
         self.client = service.create_sampling_client(model_path=model_path, base_model=base_model)
         self.tokenizer = self.client.get_tokenizer()
-        self.seed, self.max_tokens, self.temperature = seed, max_tokens, temperature
+        self.seed, self.max_tokens, self.temperature, self.thinking = seed, max_tokens, temperature, thinking
 
     def base_model(self) -> str:
         return str(self.client.get_base_model())
@@ -80,8 +97,10 @@ class TinkerSampler:
     def sample_all(self, prompts: list[Prompt]) -> dict[str, str]:
         futures = []
         for k, p in enumerate(prompts):
-            toks = self.tokenizer.apply_chat_template(p["messages"], add_generation_prompt=True, tokenize=True)
-            model_input = self.tinker.ModelInput.from_ints(list(toks))
+            toks = self.tokenizer.apply_chat_template(
+                p["messages"], add_generation_prompt=True, tokenize=True, enable_thinking=self.thinking
+            )
+            model_input = self.tinker.ModelInput.from_ints(token_ids(toks))
             params = self.tinker.SamplingParams(
                 max_tokens=self.max_tokens, temperature=self.temperature, top_p=1.0, top_k=-1,
                 seed=prompt_seed(self.seed, k), stop=[self.tokenizer.eos_token_id],
@@ -91,7 +110,7 @@ class TinkerSampler:
         out = {}
         for p, fut in zip(prompts, futures, strict=True):
             toks = fut.result().sequences[0].tokens
-            out[p["id"]] = self.tokenizer.decode(toks, skip_special_tokens=True).strip()
+            out[p["id"]] = strip_thinking(self.tokenizer.decode(toks, skip_special_tokens=True))
         return out
 
 
@@ -129,8 +148,12 @@ class HFSampler:
         out = {}
         for i in range(0, len(prompts), self.batch):
             chunk = prompts[i : i + self.batch]
-            texts = [self.tok.apply_chat_template(p["messages"], tokenize=False, add_generation_prompt=True)
-                     for p in chunk]  # fmt: skip
+            texts = [
+                self.tok.apply_chat_template(
+                    p["messages"], tokenize=False, add_generation_prompt=True, enable_thinking=False
+                )
+                for p in chunk
+            ]
             enc = self.tok(texts, return_tensors="pt", padding=True).to(self.dev)
             with self.torch.no_grad():
                 gen = self.model.generate(
@@ -138,7 +161,7 @@ class HFSampler:
                     max_new_tokens=self.max_tokens, pad_token_id=self.tok.pad_token_id or self.tok.eos_token_id,
                 )  # fmt: skip
             for p, row in zip(chunk, gen[:, enc["input_ids"].shape[1] :], strict=True):
-                out[p["id"]] = self.tok.decode(row, skip_special_tokens=True).strip()
+                out[p["id"]] = strip_thinking(self.tok.decode(row, skip_special_tokens=True))
         return out
 
 

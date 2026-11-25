@@ -18,7 +18,7 @@ class FakeTokenizer:
     eos_token_id = 0
 
     def apply_chat_template(self, messages: list[dict[str, str]], **kw: Any) -> list[int]:
-        assert kw == {"add_generation_prompt": True, "tokenize": True}
+        assert kw == {"add_generation_prompt": True, "tokenize": True, "enable_thinking": False}
         return [ord(c) for c in messages[-1]["content"]]
 
     def decode(self, toks: list[int], skip_special_tokens: bool = True) -> str:
@@ -120,3 +120,14 @@ def test_tinker_gives_each_prompt_its_own_seed(fake_tinker: list[FakeSamplingCli
     s = backends.make_sampler("tinker://run-1/sampler_weights/final", seed=2)
     s.sample_all([{"id": str(k), "messages": [{"role": "user", "content": "hi"}]} for k in range(3)])
     assert [c[2]["seed"] for c in fake_tinker[0].calls] == [200_000, 200_001, 200_002]
+
+
+def test_strip_thinking() -> None:
+    assert backends.strip_thinking("<think>\nhmm\n</think>\n\n- a\n- b") == "- a\n- b"
+    assert backends.strip_thinking("<think>never closed") == ""
+    assert backends.strip_thinking("plain") == "plain"
+
+
+def test_token_ids_accepts_lists_and_batch_encodings() -> None:
+    assert backends.token_ids([1, 2, 3]) == [1, 2, 3]
+    assert backends.token_ids({"input_ids": [4, 5], "attention_mask": [1, 1]}) == [4, 5]
