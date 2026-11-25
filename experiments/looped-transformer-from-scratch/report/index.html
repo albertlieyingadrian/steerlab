@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A looped transformer built from scratch follows one more link per loop, past anything it trained on</title>
+<meta name="description" content="A looped GPT built from scratch on a laptop CPU (157,578 parameters, one shared block run K times) solves chains of 9 links at 16 loops in all 3 seeds after training on 6; standard models with the same weights (3-4) or the same compute (4-6) stop at or below the training length. Inside, the digit flows back one statement per loop; one lens reads every loop when loops carry state forward, and a fitted lens is needed when passes restart from the input.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A looped transformer built from scratch follows one more link per loop, past anything it trained on">
+<meta property="og:description" content="A looped GPT built from scratch on a laptop CPU (157,578 parameters, one shared block run K times) solves 9-link chains at 16 loops in all 3 seeds after training on 6; standard models with the same weights (3-4 links) or compute (4-6) stop at the training length. Inside, the digit flows back one statement per loop.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grid of coloured cells on a dark ground: rows are loop counts from 1 to 16, columns are chain lengths from 1 to 12 links; bright cells, where one looped checkpoint answers correctly, form a staircase that climbs one column per extra loop and crosses a line marking the longest training chain.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A looped transformer built from scratch follows one more link per loop, past anything it trained on">
+<meta name="twitter:description" content="A looped GPT built from scratch on a laptop CPU (157,578 parameters, one shared block run K times) solves 9-link chains at 16 loops in all 3 seeds after training on 6; standard models with the same weights (3-4 links) or compute (4-6) stop at the training length. Inside, the digit flows back one statement per loop.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-25">
+<meta property="article:modified_time" content="2026-11-25">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A looped transformer built from scratch follows one more link per loop, past anything it trained on",
+ "description": "A looped GPT built from scratch on a laptop CPU (157,578 parameters, one shared block run K times) solves 9-link chains at 16 loops in all 3 seeds after training on 6; standard models with the same weights (3-4 links) or compute (4-6) stop at the training length. Inside, the digit flows back one statement per loop.",
+ "abstract": "15 transformers trained from scratch in plain PyTorch on a laptop CPU (width 64, 3 seeds each): a looped model with 157,578 parameters (1 prelude block, 1 shared core block run K times with the input re-added, 1 coda block; K drawn from 1-8 in training), a plain-loop ablation, an Inkling-style restart-plus-gated-message variant (170,122), and standard models with 3 blocks (same weights) and 10 blocks (compute of K = 8). Task: 24 shuffled assignments with a same-length twin chain; trained on 1-6 links, tested on 1-12 (500 puzzles per length). Longest chain solved: looped 2-3 at K = 1, 5-6 at K = 4, 7-8 at K = 8, 9 in every seed at K = 16; standard 3 blocks 4/4/3, 10 blocks 4/6/5. Plain loop stops at 7 links from K = 4; the message variant reaches 12 links in 2 seeds and fails in 1. Inside (K = 8): probes show the digit moving back one statement per loop (1.00 at distance d after loop d-1; shuffled 0.07-0.11, untrained 0.12-0.15); logit, tuned and Jacobian lenses agree within 0.07 from loop 1 for carry-forward loops, while on the restart variant the per-loop Jacobian lens reads 0.04-0.19 between loops and a tuned lens 0.78-0.99; patching after loop 1 restores 2-5%, after loop 3 96-99% (random 0-8%); no fixed point (relative change 0.78 to 0.07, 1/i); a shared SAE's digit latents switch on when the digit arrives but random directions show a blurred version; a naive adaptive exit drops 8-link accuracy to 0.34-0.42. $0, laptop CPU.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-25",
+ "dateModified": "2026-11-25",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "looped transformer, recurrent depth, build from scratch, nanoGPT, input injection, length generalisation, logit lens, tuned lens, Jacobian lens, activation patching, sparse autoencoder, interpretability",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/1807.03819"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.12424"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2502.05171"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2510.25741"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2609.01924"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/blog/inkling2mini"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2303.08112"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  .lk { margin: 1.4rem 0 1.8rem; }
+  .lk-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.6rem; align-items: end; margin: 0.35rem 0; }
+  .lk-name { font: 0.75rem var(--font-mono); color: var(--ink-soft); }
+  .lk-bars { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; height: 54px; align-items: end; }
+  .lk-bar { background: var(--ink-faint); border-radius: 2px 2px 0 0; min-height: 1px; }
+  .lk-bar.solved { background: var(--accent); }
+  .lk-bar.std { background: var(--control); opacity: 0.55; }
+  .lk-axis { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; font: 0.62rem var(--font-mono); color: var(--ink-soft); text-align: center; }
+  .lk-axis span.out { color: var(--ink); font-weight: 600; }
+  .lk-chain { display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; margin: 0.4rem 0; }
+  .lk-chip { font: 0.72rem var(--font-mono); padding: 0.1rem 0.35rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink); }
+  .lk-chip.on { background: color-mix(in srgb, var(--accent) 70%, var(--canvas)); border-color: var(--accent); }
+  .lk-arrow { color: var(--ink-faint); font-size: 0.75rem; }
+  .lk-note { font: 0.75rem var(--font-mono); color: var(--ink-soft); margin: 0.3rem 0 0; }
+  pre.snip { font-size: 0.8rem; }
+  @media (max-width: 640px) { .lk-row { grid-template-columns: 5.5rem minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Model architecture · Episode 2<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-25">Nov 25, 2026</time></p>
+  <h1>A looped transformer built from scratch follows one more link per loop, past anything it trained on</h1>
+  <p class="dek ruled">A looped transformer runs the same block of layers again and again, so it can think longer without storing more weights. We built one from a blank file, trained it on a laptop CPU in five minutes, and then opened it up loop by loop to see how it uses the extra passes and which interpretability tools can still read it.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="A grid of coloured cells on a dark ground: rows are loop counts from 1 at the bottom to 16 at the top, columns are chain lengths from 1 to 12 links. Bright cells, where the same looped checkpoint answers correctly, form a staircase that climbs one column per extra loop and crosses a thin vertical line marking the longest chain seen in training.">
+    <figcaption>Cover: one looped checkpoint (seed 0) run with 1, 2, 3, 4, 6, 8, 12 and 16 loops (rows, bottom to top) on chains of 1 to 12 links (columns), 500 test puzzles per cell; brighter is more accurate. The bright region climbs one link per loop and crosses the line after 6 links, the longest chain in training.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Model architecture, Episode 2</dd></div>
+    <div><dt>Models</dt><dd>15 transformers trained from scratch in plain PyTorch on a laptop CPU (width 64, 4 heads; 3 seeds each): a looped model with 157,578 parameters (1 prelude block, 1 shared core block run K times, 1 coda block), two looped variants, and standard models with 3 and 10 blocks; plus a 4-block character-level GPT on tinyshakespeare</dd></div>
+    <div><dt>Task</dt><dd>Follow a chain of shuffled assignments (<code>q=k</code>, <code>k=d</code>, <code>d=7</code>) among 24 statements to its digit; trained on 1-6 links, tested on 1-12; one distractor chain always as long as the question's</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../results/seed0/compare_s0.json">results/</a> (every number, one folder per seed: seed0, seed1, seed2) · <a href="../make_figures.py">make_figures.py</a> · the from-scratch course this was built as: code release coming soon</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>How does a looped transformer work, and what can you still read inside one?</strong></p>
+    <p>It splits the layer stack into a prelude run once, a core whose weights are reused K times, and a coda run once, and it re-adds the prelude's output before every loop. Trained with a random K per batch on chains of up to 6 links, our 157,578-parameter model solves about one more link for every extra loop: 9 links at K = 16 in all three seeds, three more than it ever saw. Standard models with the same weights (3-4 links) or the same compute (4-6) don't get past the training length. Inside, the answer digit flows back along the chain one statement per loop. One lens (even the plain logit lens) reads every loop of this model; a variant whose passes restart from the input needs a lens fitted to it, and there a Jacobian lens reads almost nothing between loops.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>Do more loops solve longer chains?</td><td><strong>Yes, about one link per loop, past the training length.</strong> Longest chain solved at K = 1, 4, 8, 16: 2-3, 5-6, 7-8, <strong>9 links in every seed</strong> (trained on up to 6)</td><td>Same weights, 3 blocks: 4 / 4 / 3. Same compute as K = 8, 10 blocks: 4 / 6 / 5</td></tr>
+      <tr><td>Does re-adding the input every loop matter?</td><td><strong>Yes, past the training length.</strong> A plain loop starts stronger (3-4 links at K = 1) but stops at 7 links from K = 4 to 16 in every seed</td><td>Re-adding the input: 9 links at K = 16, every seed</td></tr>
+      <tr><td>Inkling-style restarts with a gated message (extension)</td><td><strong>Best when it trains, unstable when it doesn't:</strong> 12 links (every length tested) at K = 16 in seeds 1 and 2; stuck at 4 links at every K in seed 0</td><td>Re-adding the input: 9 / 9 / 9</td></tr>
+      <tr><td>Where is the chain followed?</td><td><strong>Backward, one statement per loop:</strong> a probe reads the chain's digit at the statement d links from the end after loop d − 1 (1.00, chance 0.10); the question gets it one loop later (0.23 → 1.00)</td><td>Shuffled labels 0.07-0.11; untrained model 0.12-0.15</td></tr>
+      <tr><td>Can one lens read every loop?</td><td><strong>Yes when loops carry their state forward</strong> (logit, tuned and Jacobian lenses within 0.07 from loop 1 on); <strong>no when passes restart</strong>: the Jacobian lens reads 0.04-0.19 at loops 1-7, a fitted tuned lens 0.78-0.99 at loop 8</td><td>Logit lens on the restart model: 0.42-0.69 at loop 8</td></tr>
+      <tr><td>Do mid-run edits stick?</td><td><strong>Late ones do, early ones wash out:</strong> patching the clean state after loop 1 gives the clean answer in 2-5% of runs, after loop 3 in 96-99%</td><td>Random vector of the same size: at most 8%</td></tr>
+      <tr><td>Does the state settle to a fixed point?</td><td><strong>No.</strong> It grows by about 28 per loop; the relative change falls as 1/i (0.78 to 0.07 at loop 16) while the answer stops changing after loop 6</td><td>Same 1/i curve as our earlier 0.8M-parameter note</td></tr>
+      <tr><td>Does a sparse autoencoder shared by every loop help?</td><td><strong>A little:</strong> one latent per digit switches on when the digit reaches the question (0.75-1.00 at that loop); random directions show the same staircase, blurred (0.08-0.78 where the SAE reads 0.93-1.00)</td><td>Random-direction selectivity 0.64-0.99 at the last loop</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">"Longest chain solved": the longest length with at least 90% right on it and on every shorter length, 500 test puzzles per length. Seeds 0, 1, 2 in that order. Interpretability numbers are at K = 8.</p>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: what is a looped transformer?</p>
+    <p>A standard transformer is an assembly line of different workers, each seen once: block 1, block 2, block 3. A looped transformer hires one worker for the middle of the line and sends the work past them K times. Same wages (parameters), more hours (compute). Recent open models do this at scale: Inkling 2 Mini runs its middle 12 of 24 layers three times (<a href="https://huggingface.co/blog/inkling2mini">model blog</a>), NVIDIA's Dory runs a 20-layer block 1-4 times (<a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16">model card</a>), and Huginn runs a 4-layer core 4 to 64 times (<a href="https://arxiv.org/abs/2502.05171">arXiv 2502.05171</a>). Because K is just an argument of the forward pass, one trained model can be asked to think for 1 loop or for 16.</p>
+  </aside>
+
+  <section aria-labelledby="introduction">
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Give a person 24 shuffled lines like <code>k=d</code>, <code>q=k</code>, <code>d=7</code> and ask what <code>q</code> holds. They follow the links, one lookup per link. A transformer with three blocks gets three rounds of lookups and then must answer. Our looped model with the same three blocks of weights solved chains of 9 links when allowed 16 loops, after only ever training on 6, and its own inner states show it doing one link per loop.</p>
+  <p><strong>What is known.</strong> Looping a shared block is an old idea (<a href="https://arxiv.org/abs/1807.03819">Universal Transformers</a>) now shipped at scale: Huginn's prelude, recurrent core and coda (<a href="https://arxiv.org/abs/2502.05171">arXiv 2502.05171</a>), Ouro's whole-stack loops with a learned exit (<a href="https://arxiv.org/abs/2510.25741">arXiv 2510.25741</a>), Dory's re-added input, Inkling 2 Mini's gated messages between passes. Small studies show looped blocks learning iterative algorithms (<a href="https://arxiv.org/abs/2311.12424">arXiv 2311.12424</a>) and matching deeper models on reasoning (<a href="https://arxiv.org/abs/2502.17416">arXiv 2502.17416</a>). On the inside, a 2026 preprint applying the Jacobian lens to Ouro and Huginn (<a href="https://arxiv.org/abs/2609.01924">arXiv 2609.01924</a>) found that Ouro rebuilds its content every loop, so a lens and any edit must be made per loop, while Huginn carries content forward and its reads and edits act within about two recurrences.</p>
+  <p><strong>What is missing.</strong> A version small enough to build from an empty file and train on a laptop, where every one of those ideas (re-injection, random K, same-weights and same-compute baselines, per-loop lenses, patching across loops) can be run and checked in minutes, with controls.</p>
+  <p><strong>What this note does.</strong> It builds a character-level GPT the nanoGPT way, turns it into a looped model with a twenty-line change, trains it beside two standard models and two looped variants on a chain-following task, and then reads it with six tools, loop by loop. Contributions:</p>
+  <ol>
+    <li>A from-scratch looped transformer that turns extra loops into longer chains, past the training length, in every seed, against fair baselines.</li>
+    <li>A mechanism you can see: the digit moves back along the chain one statement per loop.</li>
+    <li>A small, controlled version of the per-loop lens result: one lens suffices when loops carry their state forward; restart-style passes break the Jacobian lens between loops.</li>
+    <li>Two negative results: a plain "stop when the answer stops changing" exit fails on long chains, and on this toy a shared sparse autoencoder adds sharpness, not discovery.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="setup">
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>The task.</strong> A puzzle is 24 statements over 48 variable names, shuffled, plus a question <code>q?</code>. The statements form chains that each end in a digit. The question's chain has <em>h</em> links (<em>hops</em>); a <em>twin</em> chain has the same length and ends in a different digit; the rest are distractor chains of 1-4 statements. Each statement is one input position, embedded as <code>lhs[a] + rhs[b]</code>; there are no position embeddings and no causal mask. The twin exists because our earlier note found models answering long chains by elimination ("the longest chain is the question's") without following anything; with a twin, that guess is right half the time, so at 12 links (only the two chains are left) 0.5 is the floor.</p>
+  <p><strong>Terms used throughout.</strong> A <em>block</em> is one transformer layer (attention plus MLP). A <em>loop</em> is one pass through the looped model's shared core; <em>K</em> is the number of loops at test time. <em>Longest chain solved</em> is the longest length with at least 90% right on it and on every shorter length. <em>Re-adding the input</em> means <code>s = core(s + e)</code>, where <code>e</code> is the prelude's output and <code>s</code> starts at zero.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Models"><table>
+    <thead><tr><th>Model</th><th>Shape</th><th class="num">Parameters</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td><code>looped</code></td><td>1 prelude block, 1 shared core block run K times with the input re-added, 1 coda block; K drawn from 1-8 per training batch</td><td class="num">157,578</td><td>The model</td></tr>
+      <tr><td><code>standard3</code></td><td>3 distinct blocks</td><td class="num">157,578</td><td>Same weights</td></tr>
+      <tr><td><code>standard10</code></td><td>10 distinct blocks</td><td class="num">507,466</td><td>Same compute as <code>looped</code> at K = 8</td></tr>
+      <tr><td><code>looped_none</code></td><td>as <code>looped</code>, plain loop <code>s = core(s)</code></td><td class="num">157,578</td><td>Ablation: re-injection</td></tr>
+      <tr><td><code>looped_message</code></td><td>every pass restarts from <code>e</code> plus a gated message from the last pass: <code>core((1 − g)·e + g·m)</code></td><td class="num">170,122</td><td>Extension: Inkling-style</td></tr>
+    </tbody>
+  </table></div>
+  <p>The whole change from a standard GPT is the forward pass:</p>
+  <pre class="snip"><code>e = prelude(embed(idx))          # once
+s = zeros_like(e)
+for _ in range(k):               # the same weights every time
+    s = core(s + e)              # re-add the input before every loop
+logits = head(ln_f(coda(s)))     # once</code></pre>
+  <p><strong>What counts as success</strong>, decided before the counted runs:</p>
+  <ol>
+    <li>More loops solve longer chains in every seed, including lengths never seen in training.</li>
+    <li>The looped model beats the same-weights model, and at least matches the same-compute model, on chains of 7-12 links.</li>
+    <li>Each interpretability claim beats its control: shuffled labels and an untrained model for probes; a random vector of the same size for patching; random directions for the sparse autoencoder.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="process">
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Build and check the GPT</strong>: tokenizer, attention with a mask test (editing the last position moves earlier outputs by exactly 0.0), the block, and the training loop; a 4-block, 212,545-parameter model reaches validation loss 1.72 on tinyshakespeare in 2,000 steps (29 seconds).</li>
+    <li><strong>Loop it</strong> and check that the looped and 3-block models have identical parameter counts and that the shared block's gradient equals the sum of the gradients of K unrolled copies.</li>
+    <li><strong>One pilot</strong> on seed 0 (three models, 4,000 steps, with the loop's starting state set to <code>e</code> instead of zero) to check that the 3-block model could not reach 6 links while the looped one could. We then switched the starting state to zero, the form of the looped in-context-learning code. The pilot's numbers are not reported.</li>
+    <li><strong>Train the 15 counted models</strong> (5 models × seeds 0-2), 4,000 steps of 128 fresh puzzles, AdamW at 2e-3 with warm-up and cosine decay, a curriculum that starts at 1-2 links and adds one whenever the last 50 batches were 90% right, up to 6.</li>
+    <li><strong>Score</strong> every model on one fixed test set: 500 puzzles at each length 1-12; looped models at K = 1, 2, 3, 4, 6, 8, 12, 16.</li>
+    <li><strong>Read the looped models</strong> at K = 8 with the logit and coda lenses, tuned and Jacobian lenses, probes, patching, loop ablation, convergence and a shared sparse autoencoder, each on fresh puzzles with its own seed.</li>
+    <li><strong>Add three readouts after a first look</strong> (marked below): probes at the chain's statements, 8-link chains in the loop ablation, and a random-direction track for the sparse autoencoder.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed and changed"><table>
+    <thead><tr><th>Fixed before the counted runs</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Task, test set, the five models, training recipe, seeds 0-2, loop counts scored, the success tests above</td><td>Nothing</td></tr>
+      <tr><td>Lenses, question-position probes, patching, convergence, the sparse autoencoder and its selectivity control</td><td>Added: probes at the chain's statements (the question-position probes showed the answer arriving all at once); 8-link chains in the ablation (with K = 8, 6-link chains had slack); random-direction tracking for the autoencoder (random directions were as selective as its latents)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: PyTorch 2.15 on an M-series Mac CPU, four threads per process, three seeds side by side; about 32 minutes per seed for every model and readout (5-8 minutes per looped model). $0; no API models.</p>
+  </section>
+
+  <section aria-labelledby="results">
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="one-link" data-short="One link per loop">4.1 Every extra loop buys about one more link, past the training length</h3>
+  <p>Figure 1 is the whole result in one picture. With K loops, seed 0's model solves chains of K + 1 links: 2 at K = 1, 3 at K = 2, 4 at K = 3, 5 at K = 4, 7 at K = 6. The rule keeps going where training stopped: 8 links at K = 8 (0.90) and 9 at K = 16 (0.91), with 6 the longest chain it ever saw. Seeds 1 and 2 follow the same rule from a one-link head start (3 links at K = 1) and also reach 9 at K = 16 (Figure 2). Gains stop around 9-10 links: at 10 links K = 16 reaches 0.60, 0.79 and 0.66.</p>
+  <figure class="plot">
+    <img src="figures/fig1-grid.png" alt="A heat map of accuracy, rows for the looped model at K = 1, 2, 3, 4, 6, 8, 12 and 16 and for the two standard models, columns for chains of 1 to 12 links. The looped rows form a staircase of near-1.0 cells that ends one column further to the right on each row; the standard rows end at 4 links.">
+    <figcaption><span class="label">Figure 1.</span>Accuracy by chain length (columns) for one looped checkpoint at eight loop counts and for the two standard models, seed 0, 500 test puzzles per cell. The vertical line marks the longest training chain (6). Values near 0.5 at 11-12 links are the twin-chain floor.</figcaption>
+  </figure>
+  <figure class="plot">
+    <img src="figures/fig2-reach.png" alt="Longest chain solved against loop count from 1 to 16, one orange line per seed rising from 2-3 links to 9; horizontal lines for the standard 3-block model at 3-4 links and the standard 10-block model at 4-6 links; a thin line at 6 marks the training maximum.">
+    <figcaption><span class="label">Figure 2.</span>Longest chain solved against loop count, looped model, seeds 0-2 (orange), with the standard 3-block (blue, dashed) and 10-block (grey, dotted) models of each seed, offset slightly so overlapping lines stay visible.</figcaption>
+  </figure>
+
+  <div class="lk" id="loopk">
+    <label class="explorer-label">Loops <input type="range" id="lk-k" min="0" max="7" step="1" value="3" aria-label="Number of loops"> <span class="explorer-value" id="lk-kv"></span></label>
+    <div class="lk-row"><span class="lk-name">looped</span><div class="lk-bars" id="lk-looped"></div></div>
+    <div class="lk-row"><span class="lk-name">standard, 3 blocks</span><div class="lk-bars" id="lk-s3"></div></div>
+    <div class="lk-row"><span class="lk-name">standard, 10 blocks</span><div class="lk-bars" id="lk-s10"></div></div>
+    <div class="lk-row"><span class="lk-name"></span><div class="lk-axis" id="lk-axis"></div></div>
+    <p class="lk-note">Accuracy by chain length 1-12 (seed 0, 500 puzzles each); orange = at least 90% right. Bold lengths were never seen in training.</p>
+    <p class="lk-note" id="lk-chain-label"></p>
+    <div class="lk-chain" id="lk-chain"></div>
+  </div>
+  <p class="note">Interactive figure: drag the slider to change the loop count of the same checkpoint. The chain below the bars is a 6-link chain from the probe study (section 4.4): a statement turns orange once a linear probe reads its chain's digit there at 90% or better after that many loops.</p>
+
+  <h3 id="baselines" data-short="Fair baselines">4.2 Neither the same weights nor the same compute reach past the training length</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Baselines"><table>
+    <thead><tr><th>Model</th><th class="num">Parameters</th><th class="num">Blocks run</th><th>Longest chain solved, seeds 0 / 1 / 2</th></tr></thead>
+    <tbody>
+      <tr><td>standard, 3 blocks (same weights)</td><td class="num">157,578</td><td class="num">3</td><td>4 / 4 / 3</td></tr>
+      <tr><td>standard, 10 blocks (same compute as K = 8)</td><td class="num">507,466</td><td class="num">10</td><td>4 / 6 / 5</td></tr>
+      <tr><td>looped, K = 1</td><td class="num">157,578</td><td class="num">3</td><td>2 / 3 / 3</td></tr>
+      <tr><td>looped, K = 4</td><td class="num">157,578</td><td class="num">6</td><td>5 / 6 / 6</td></tr>
+      <tr class="hl"><td>looped, K = 8</td><td class="num">157,578</td><td class="num">10</td><td>7 / 8 / 8</td></tr>
+      <tr><td>looped, K = 16</td><td class="num">157,578</td><td class="num">18</td><td>9 / 9 / 9</td></tr>
+    </tbody>
+  </table></div>
+  <p>At K = 1 the looped model is a 3-block model and does no better than one (2-3 links against 3-4): all its advantage is in the loops. At K = 8 it runs as many blocks as the 10-block model with under a third of its weights and solves 2-3 more links. The 10-block model learned the training range in one seed (6 links, seed 1) but on 7 links scored 0.25-0.58: no standard model reached past 6. A caveat on fairness: every model got the same 4,000 steps, and the deep standard model trains more slowly (seed 0 reached only 0.73 on 5 links); a longer schedule could lift it inside the training range, though nothing in its grids points past it.</p>
+
+  <h3 id="injection" data-short="Re-adding the input">4.3 Re-adding the input is what lets loops keep paying</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Injection"><table>
+    <thead><tr><th>Model (seeds 0 / 1 / 2)</th><th>K = 1</th><th>K = 2</th><th>K = 4</th><th>K = 8</th><th>K = 16</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>re-add the input, <code>core(s + e)</code></td><td>2 / 3 / 3</td><td>3 / 5 / 4</td><td>5 / 6 / 6</td><td>7 / 8 / 8</td><td>9 / 9 / 9</td></tr>
+      <tr><td>plain loop, <code>core(s)</code></td><td>4 / 4 / 3</td><td>5 / 5 / 5</td><td>7 / 7 / 7</td><td>7 / 7 / 7</td><td>7 / 7 / 7</td></tr>
+      <tr><td>restart + gated message (Inkling-style)</td><td>4 / 3 / 4</td><td>4 / 4 / 5</td><td>4 / 6 / 7</td><td>4 / 10 / 11</td><td>4 / 12 / 12</td></tr>
+    </tbody>
+  </table></div>
+  <p>Longest chain solved by loop count. The plain loop is stronger with few loops and then stops: 7 links at every K from 4 to 16, in every seed, and on 8-link chains seed 0 slips from 0.84 at K = 8 to 0.77 at K = 16 as extra loops wash the puzzle out of the state. Re-adding the input keeps climbing. The Inkling-style model is the strongest when it trains, solving every length we test (12 links) at K = 16 in two seeds and gaining more than one link per loop between K = 4 and 8; in seed 0 it never learned to use its loops at all. One failure in three is a reason for more seeds before ranking it.</p>
+
+  <h3 id="inside" data-short="Inside: backward, one per loop">4.4 Inside, the digit flows back along the chain one statement per loop</h3>
+  <p>The logit lens at the question shows the answer arriving all at once: for 6-link chains it reads 0.13-0.19 after loops 0-4 and 1.00 after loop 5 (seed 0), so the work must happen somewhere else. Probes on the chain's own statements find it (Figure 3). At the statement d links from the chain's end, a linear probe reads the chain's digit perfectly from loop d − 1 on and at chance before: the statement next to the digit knows it from the prelude, the one before it after loop 1, and so on. The digit flows backward along every chain at once, one statement per loop, and the question reads it the loop after it reaches the chain's first statement (answer probe 0.23 at loop 4, 1.00 at loop 5). The question itself does not walk forward: the name 3-5 links along is never readable there (at most 0.05, chance 0.02). Seed 2 shows the same staircase; seed 1 is one step ahead, which is its one-link head start in Figure 2. The coda adds one link of its own, which gives "K loops solve K + 1 links".</p>
+  <figure class="plot">
+    <img src="figures/fig4-probe.png" alt="A heat map of probe accuracy, rows for the statement 1 to 6 links from the end of a 6-link chain and for the question, columns for loops 0 to 8. Near-1.0 cells form a staircase moving down one row per loop; the question row jumps from 0.23 to 1.0 at loop 5.">
+    <figcaption><span class="label">Figure 3.</span>Linear-probe test accuracy (3,000 puzzles with 6-link chains, 70/30 split) for the chain's digit at the statement d links from the chain's end (rows 1-6) and at the question (last row), after each loop, seed 0, K = 8. Chance 0.10; shuffled-label control 0.07-0.11; untrained model 0.12-0.15. Statement probes were added after a first look.</figcaption>
+  </figure>
+
+  <h3 id="lenses" data-short="Lenses per loop">4.5 One lens reads every loop when loops carry their state forward, and not when passes restart</h3>
+  <p>The <em>logit lens</em> applies the model's final LayerNorm and head to the state after loop i. A <em>tuned lens</em> (<a href="https://arxiv.org/abs/2303.08112">arXiv 2303.08112</a>) first applies a small learned map, fitted so the decoded answer matches the model's own; we fit one per loop and one shared by every loop. The <em>Jacobian lens</em> fits nothing: it pushes the state through the rest of the model with the average Jacobian from loop i to the end, one matrix per loop, or one matrix averaged over the loops.</p>
+  <p>For the model that re-adds its input, all five agree within 0.07 from loop 1 on, in every seed (Figure 4, left): the state after loop 3 is in the same format as the state after loop 8, so the free logit lens is as good as anything fitted. The plain loop behaves the same. The Inkling-style model, whose every pass restarts from the input, is different (Figure 4, right, seed 1): the logit lens reads 0.42-0.69 at loop 8, the per-loop Jacobian lens reads 0.04-0.19 at loops 1-7 and only works after the last loop, and a tuned lens recovers the content (0.78-0.99 at loop 8; one shared tuned lens does nearly as well, 0.75-0.96). A straight-line transport from a mid-run state to the end carries almost nothing across pass boundaries, the small-scale version of what the Jacobian-lens preprint found for Ouro. One wrinkle: the averaged Jacobian lens beats the per-loop one here, because the average is dominated by the last loop's matrix, the only one that works.</p>
+  <figure class="plot">
+    <img src="figures/fig3-lenses.png" alt="Two panels of lens accuracy against loop 0 to 8. Left, the model that re-adds its input: five lines lie on top of each other, rising from about 0.2 to 1.0 by loop 5. Right, the restart model: tuned lenses rise to about 0.98, the averaged Jacobian and logit lenses to about 0.7-0.77, and the per-loop Jacobian lens stays near 0.1 until it jumps to 0.76 at loop 8.">
+    <figcaption><span class="label">Figure 4.</span>Share of 1,000 test puzzles (1-6 links) where each lens names the right answer after each loop, K = 8. Left: re-added input, seed 0. Right: restart plus gated message, seed 1 (seed 0 of that model never used its loops). Tuned lenses fitted on 2,000 other puzzles; Jacobians averaged over 500.</figcaption>
+  </figure>
+
+  <h3 id="patching" data-short="Patching across loops">4.6 Edits made late stick; edits made early wash out</h3>
+  <p>A corrupted run keeps all 24 statements and changes only the question, to the twin chain's first name. Copying the clean run's state in right after loop i (Figure 5): after loop 0, the prelude's output, the clean answer returns every time, since that output is the input re-added on every loop. After loop 1 it returns in only 2-5% of runs: on loop 2 the corrupted input is added back and wins. After loop 3, once the answer has reached the question in 4-link chains, it returns in 96-99%. A random vector of the same size returns it in at most 8% (0-2% after loop 0). The state grows by about the same amount each loop while the re-added input stays the same size, so an edit made early is outvoted by the input and one made late is not: a toy version of the preprint's finding that edits to Huginn act within a window of recurrences.</p>
+  <figure class="plot">
+    <img src="figures/fig5-patch.png" alt="Share of corrupted runs that give the clean answer against the loop after which the clean state is patched in: 1.0 at loop 0, about 0.02 at loop 1, 0.5 at loop 2, 0.96 at loop 3 and 1.0 after; the random-vector control stays near zero.">
+    <figcaption><span class="label">Figure 5.</span>Activation patching, 500 pairs of 4-link puzzles, seed 0, K = 8: patching the question's state only, every position (identical here, since the statements match), and a random vector as long as the clean-minus-corrupted difference. Seeds 1 and 2: 0.03 and 0.05 after loop 1, 0.98 and 0.99 after loop 3.</figcaption>
+  </figure>
+
+  <h3 id="ablation" data-short="Ablation and convergence">4.7 Every loop does the same job, and the state never settles</h3>
+  <p>Skipping one loop out of eight leaves 6-link chains at 1.00 (they need 5) and costs 8-link chains the same whichever loop is skipped: 0.91 → 0.75, 0.97 → 0.95 and 0.98 → 0.93 (seeds 0-2). The loops are interchangeable steps. The question's state never reaches a fixed point: its length grows by about 28 per loop (22, 42, 85, 196 and 417 after loops 1, 2, 4, 8 and 16), so the relative change falls as 1/i (0.78 → 0.07) without stopping, the same curve as our earlier note. The decoded answer settles, though: it never flips after loop 6.</p>
+
+  <h3 id="sae" data-short="A shared SAE">4.8 A sparse autoencoder shared by every loop sharpens the picture but finds nothing new</h3>
+  <p>Because the loops reuse the same weights, one dictionary can serve every loop, so a latent at loop 3 is the same latent at loop 7. A TopK autoencoder (256 latents, 8 active) trained on the question's state after loops 1-8 (each loop scaled to the same average length) rebuilds it well (unexplained variance 0.04-0.06) and has one latent per answer digit (selectivity 0.86-0.99). Followed back through the loops, the true digit's latent switches on at the loop the digit reaches the question and stays on (Figure 6). The boring explanation holds partly: random directions separate the digits at the last loop nearly as well (0.64-0.99), and tracked the same way they show the same staircase, blurred (5-link chains after loop 4: 0.46 / 0.78 / 0.08 against the autoencoder's 0.93 / 1.00 / 0.98). On this toy the autoencoder adds a crisp "the answer has arrived" signal in one shared dictionary; the probe and logit lens had already found the answer.</p>
+  <figure class="plot">
+    <img src="figures/fig6-sae.png" alt="Share of puzzles where the true digit's autoencoder latent fires against loop 1 to 8, one line per chain length 1 to 6; each line jumps from near 0 to near 1 at loop h minus 1; faint blue dotted lines for random directions rise more gradually.">
+    <figcaption><span class="label">Figure 6.</span>One shared TopK autoencoder, seed 0, 4,000 puzzles of 1-6 links: share of puzzles whose true-digit latent fires after each loop, by chain length (orange), and the same for the best random direction per digit, thresholded at its top 10% at the last loop (blue, dotted). The random-direction track was added after a first look.</figcaption>
+  </figure>
+
+  <h3 id="exit" data-short="Adaptive exit fails">4.9 Negative result: "stop when the answer stops changing" quits too early</h3>
+  <p>Running every loop up to 16 and stopping at the first loop whose answer equals the previous loop's uses 2 loops on 1-2-link chains, but about 3 on every longer chain, so 8-link accuracy falls from 0.99 to 0.37, 0.42 and 0.34 (seeds 0-2). Before the digit arrives the coda's guess is often wrong but stable from one loop to the next. Section 4.4 suggests a better signal (stop when a probe at the question reads a digit); Ouro trains an exit gate for this reason.</p>
+  </section>
+
+  <section aria-labelledby="compare">
+  <h2 id="compare" data-short="Compared with earlier work"><span class="num">05</span>Compared with earlier work</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison"><table>
+    <thead><tr><th></th><th>Our earlier Dory-style note (0.8M, chains to 8)</th><th>This note (0.16M, chains to 6)</th><th>Jacobian-lens preprint (Ouro, Huginn)</th></tr></thead>
+    <tbody>
+      <tr><td>Extra loops buy longer chains in every seed</td><td>✗ (1 of 3; ✓ when trained to 16)</td><td>✓</td><td>n/a</td></tr>
+      <tr><td>Past the training length</td><td>✓ in that seed</td><td>✓ (9 links, trained on 6)</td><td>n/a</td></tr>
+      <tr><td>Mechanism read from probes</td><td>✓ one link per loop</td><td>✓ backward, one statement per loop</td><td>n/a</td></tr>
+      <tr><td>One lens reads every loop</td><td>not tested</td><td>✓ carry-forward loops; ✗ restart loops</td><td>✓ Huginn (within a window); ✗ Ouro</td></tr>
+      <tr><td>Edits act only in a window</td><td>not tested</td><td>✓ late edits stick, early ones wash out</td><td>✓ Huginn</td></tr>
+      <tr><td>Fixed point</td><td>✗ (1/i)</td><td>✗ (1/i)</td><td>not reported</td></tr>
+    </tbody>
+  </table></div>
+  <p>Why did every seed use its loops here and only one seed in the earlier note? There, chains up to 8 links were within reach of four blocks in one pass, so the model had no need to loop. Here three blocks reach 3-4 links and training goes to 6, so the one-pass route is closed. The earlier note's amendment (training to 16 links) found the same: models use their loops when one pass can't do the training job.</p>
+  </section>
+
+  <section aria-labelledby="implications">
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Looped models move reasoning from visible tokens into repeated passes over a hidden state. That makes two things matter for monitoring. First, which lens you can trust depends on how the loops pass state: a model that carries its state forward can be read loop by loop with one cheap lens, while a model whose passes restart and exchange messages (as Inkling 2 Mini's do) needs lenses fitted to it, and a Jacobian lens can read nearly nothing between passes. Second, edits and monitors placed early in the loop are overwritten by the re-added input, so an intervention has to be applied late, or on every remaining loop. <strong>Before relying on a lens or a steering edit in a looped model, check it per loop against a fitted baseline on that model's own loop type.</strong></p>
+  </section>
+
+  <section aria-labelledby="limits">
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Scale.</strong> 157,578 parameters on a synthetic task. Real looped models have many layers per loop, positions, causal masks and language; the lens split we see may look different there.</li>
+    <li><strong>Seeds.</strong> Three per model. The message model's one failed seed in three shows how much a single run can mislead.</li>
+    <li><strong>Training budget.</strong> Every model got 4,000 steps. The 10-block standard model may be under-trained inside the training range.</li>
+    <li><strong>Readouts at K = 8 only,</strong> on the question and the question's chain; we did not probe distractor chains, other loop counts, or the coda's internals.</li>
+    <li><strong>Three readouts were added after a first look</strong> (statement probes, 8-link ablation, random-direction tracking); they are labelled where they appear.</li>
+    <li><strong>The message model is a one-gate simplification</strong> of Inkling 2 Mini's per-layer, per-input messages, and our Jacobian lens is a single-position version (question to question) of the preprint's.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="reproduce">
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>The training and analysis program is a from-scratch course ("build your own looped transformer", one command per stage, tests per stage): code release coming soon. Every number in this note is in <code>results/seed0/</code>, <code>seed1/</code> and <code>seed2/</code> (for example <a href="../results/seed0/compare_s0.json">compare_s0.json</a>), and <a href="../make_figures.py">make_figures.py</a> redraws every figure from it and prints the numbers it plots:</p>
+  <pre><code>.venv/bin/python experiments/looped-transformer-from-scratch/make_figures.py
+experiments/looped-transformer-from-scratch/reproduce.sh --dry-run</code></pre>
+  <p>The core of the method fits in a few lines. The looped forward pass is in section 2; random K is one line of the training loop, <code>k = rng.integers(1, 9)</code> per batch; and the Jacobian lens for loop i is one backward pass per output number:</p>
+  <pre class="snip"><code>for j in range(d):                                  # d = 64 numbers in the final state
+    grads = torch.autograd.grad(final[:, j].sum(), states, retain_graph=True)
+    for i, g in enumerate(grads):                   # states[i]: after loop i
+        J[i][j] = g[:, question].mean(0)            # average over puzzles
+readout_i = head(ln_f(states[i][:, question] @ J[i].T))</code></pre>
+  </section>
+
+  <section aria-labelledby="next">
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Train the restart-plus-message model with more seeds and a loss at every loop, to see whether it reliably beats re-injection, and whether per-loop supervision makes it readable by one lens (the preprint ties verbalisability to per-iteration supervision).</li>
+    <li>Run the same six tools on a released looped model (Huginn-0125 or Ouro-1.4B) on a two-hop factual prompt set.</li>
+    <li>Replace the naive exit with one read from a question-position probe, and measure the loops it saves.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="qa">
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="qa-what">How does a looped transformer work?</h3>
+  <p>It runs a prelude once, then the same core block (or blocks) K times, re-adding the prelude's output before each pass (or, Inkling-style, restarting from it with a message from the last pass), then a coda once. Trained with a random K, the same weights can be run at any K; more loops cost compute, not memory for weights.</p>
+  <h3 id="qa-params">Does a looped model beat a bigger standard model?</h3>
+  <p>On this task, yes: at K = 8 it runs as many blocks as a 10-block model with under a third of the weights, and solves 7-8 links against 4-6. With the same weights and no extra loops (K = 1) it is no better than a 3-block model.</p>
+  <h3 id="qa-jlens">Does the Jacobian lens work on looped models?</h3>
+  <p>On loops that carry their state forward, yes, and so does the plain logit lens. On passes that restart from the input it reads almost nothing between loops (0.04-0.19 here). Use a tuned lens fitted to the model, probes at the right positions, and patching per loop; check each against a control.</p>
+  <h3 id="qa-sae">Should I train a sparse autoencoder per loop or one for all loops?</h3>
+  <p>One for all loops, if the weights are shared: a latent then means the same thing at every loop, so you can follow it. On this toy it gave a sharp on-off signal for when the answer arrives, but random directions found a blurred version of the same thing, so check it against them.</p>
+  <h3 id="qa-converge">Does a looped model converge to a fixed point?</h3>
+  <p>Not this one: with the input re-added, its state grows by about the same amount every loop forever. The answer stops changing after enough loops, which is a better stopping signal than the state, though "answer unchanged since last loop" stops too early on long chains.</p>
+  </section>
+
+  <section aria-labelledby="appendix">
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every file is under <code>results/seed0/</code>, <code>seed1/</code> and <code>seed2/</code>; s is the seed.</p>
+  <ul>
+    <li><code>looped_s{s}.json</code>: <code>grid[K][hops]</code>, accuracy of the looped model at K = 1, 2, 3, 4, 6, 8, 12, 16 on 500 test puzzles per length; <code>curriculum</code>, (step, longest training chain) pairs.</li>
+    <li><code>injection_s{s}.json</code>: the same grids for <code>looped</code>, <code>looped_none</code> and <code>looped_message</code> at K = 1, 2, 4, 8, 16.</li>
+    <li><code>compare_s{s}.json</code>: grids for <code>looped</code>, <code>standard3</code> and <code>standard10</code> (key <code>None</code> for the standard models) and <code>reach</code>, the longest chain solved.</li>
+    <li><code>logit_lens.json</code>: per chain length (2, 4, 6) and loop, logit-lens and coda-lens accuracy and agreement with the final answer.</li>
+    <li><code>tuned_lens.json</code>, <code>looped_none_tuned_lens.json</code>, <code>looped_message_tuned_lens.json</code>: per loop, accuracy of the logit lens, per-loop and shared tuned lenses, per-loop and averaged Jacobian lenses.</li>
+    <li><code>probe.json</code> (and the <code>looped_none_</code> / <code>looped_message_</code> versions): per loop, probe accuracy for the name j links along at the question (<code>hopj</code>), the answer at the question, the digit at the statement d from the end (<code>digit_at_distd</code>), and the controls.</li>
+    <li><code>patch.json</code>: per loop, the share of corrupted runs giving the clean answer after patching the question, every position, or a random vector; <code>base</code>, both runs unpatched.</li>
+    <li><code>ablate.json</code>: <code>skip</code>, accuracy with loop i skipped on 2-, 4-, 6- and 8-link chains; <code>convergence</code>, per loop to 16: relative change, length, answer flips and accuracy.</li>
+    <li><code>sae.json</code>: unexplained variance, latents ever active, the best latent per digit with its selectivity, its firing by loop and chain length (<code>track</code>), and the random-direction control.</li>
+  </ul>
+  <h3 id="refs">References and code</h3>
+  <ul>
+    <li>Universal Transformers, <a href="https://arxiv.org/abs/1807.03819">arXiv 1807.03819</a>. Looped Transformers as Programmable Computers, <a href="https://arxiv.org/abs/2301.13196">arXiv 2301.13196</a>.</li>
+    <li>Looped Transformers are Better at Learning Learning Algorithms, <a href="https://arxiv.org/abs/2311.12424">arXiv 2311.12424</a>, code <a href="https://github.com/Leiay/looped_transformer">Leiay/looped_transformer</a> (the <code>z = f(z + x)</code> form from <code>z = 0</code> used here, a loop curriculum, a loss on the last T loops).</li>
+    <li>Reasoning with Latent Thoughts, <a href="https://arxiv.org/abs/2502.17416">arXiv 2502.17416</a>. Huginn, <a href="https://arxiv.org/abs/2502.05171">arXiv 2502.05171</a>, code <a href="https://github.com/seal-rg/recurrent-pretraining">seal-rg/recurrent-pretraining</a>. Ouro, <a href="https://arxiv.org/abs/2510.25741">arXiv 2510.25741</a>.</li>
+    <li>NVIDIA Nemotron-Labs Dory 1.0, <a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16">model card</a>. Inkling 2 Mini, <a href="https://huggingface.co/blog/inkling2mini">model blog</a> and <a href="https://www.mindstudio.ai/blog/inkling-2-mini-looped-transformer">an explainer</a>.</li>
+    <li>Mixture-of-Recursions, <a href="https://arxiv.org/abs/2507.10524">arXiv 2507.10524</a>. Relaxed Recursive Transformers, <a href="https://arxiv.org/abs/2410.20672">arXiv 2410.20672</a>. CoTFormer, <a href="https://arxiv.org/abs/2310.10845">arXiv 2310.10845</a>.</li>
+    <li>Looped Transformers under the Jacobian Lens, <a href="https://arxiv.org/abs/2609.01924">arXiv 2609.01924</a>. Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer, <a href="https://arxiv.org/abs/2507.02199">arXiv 2507.02199</a>. Tuned lens, <a href="https://arxiv.org/abs/2303.08112">arXiv 2303.08112</a>.</li>
+    <li>nanoGPT, <a href="https://github.com/karpathy/nanoGPT">karpathy/nanoGPT</a>, the structure the from-scratch GPT follows.</li>
+    <li>Our earlier note on the same task family: <a href="../../looped-transformer/report/">A small looped transformer turns extra loops into longer reasoning only when one pass can’t do the training job</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026loopedfromscratch,
+  author = {Albert Lie},
+  title  = {A looped transformer built from scratch follows one more link per loop, past anything it trained on},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/looped-transformer-from-scratch/report/}
+}</code></pre>
+  </section>
+  <footer class="note">Inspired by Inkling 2 Mini, NVIDIA's Dory, Huginn, Ouro and the looped-transformer papers cited above; the GPT follows nanoGPT's structure. Every model was trained from scratch on a laptop CPU; no API models were used.</footer>
+</article>
+</div>
+<script type="application/json" id="lk-data">{"grid":{"1":[1.0,1.0,0.33,0.22,0.25,0.26,0.29,0.27,0.31,0.35,0.43,0.53],"2":[1.0,1.0,1.0,0.47,0.32,0.32,0.32,0.33,0.35,0.42,0.55,0.52],"3":[1.0,1.0,1.0,1.0,0.63,0.4,0.38,0.41,0.42,0.45,0.54,0.51],"4":[1.0,1.0,1.0,1.0,1.0,0.68,0.43,0.43,0.42,0.45,0.53,0.49],"6":[1.0,1.0,1.0,1.0,1.0,1.0,0.96,0.42,0.47,0.44,0.51,0.51],"8":[1.0,1.0,1.0,1.0,1.0,1.0,1.0,0.9,0.5,0.42,0.46,0.52],"12":[1.0,0.99,1.0,1.0,1.0,1.0,1.0,0.98,0.85,0.49,0.35,0.39],"16":[1.0,0.99,1.0,1.0,1.0,1.0,1.0,0.98,0.91,0.6,0.43,0.36]},"std3":[1.0,1.0,1.0,1.0,0.27,0.29,0.26,0.27,0.31,0.35,0.44,0.52],"std10":[1.0,1.0,1.0,0.97,0.73,0.43,0.26,0.23,0.27,0.29,0.34,0.49],"flood":[[1.0,0.15,0.11,0.11,0.12,0.12],[1.0,1.0,0.16,0.12,0.12,0.12],[1.0,1.0,1.0,0.15,0.15,0.15],[1.0,1.0,1.0,1.0,0.18,0.18],[1.0,1.0,1.0,1.0,1.0,0.21],[1.0,1.0,1.0,1.0,1.0,0.98],[1.0,1.0,1.0,1.0,1.0,0.99],[1.0,1.0,1.0,1.0,1.0,0.99],[1.0,1.0,1.0,1.0,1.0,0.99]],"answer":[0.17,0.18,0.22,0.23,0.23,1.0,1.0,1.0,1.0]}</script>
+<script>
+(function () {
+  var box = document.getElementById("loopk");
+  if (!box) return;
+  var data = JSON.parse(document.getElementById("lk-data").textContent);
+  var ks = ["1", "2", "3", "4", "6", "8", "12", "16"];
+  var slider = document.getElementById("lk-k");
+  function bars(el, row, cls) {
+    el.innerHTML = "";
+    row.forEach(function (v, i) {
+      var b = document.createElement("div");
+      b.className = "lk-bar" + (cls && v >= 0.9 ? " " + cls : "");
+      b.style.height = Math.max(2, v * 100) + "%";
+      b.title = (i + 1) + " links: " + v.toFixed(2);
+      el.appendChild(b);
+    });
+  }
+  var axis = document.getElementById("lk-axis");
+  for (var h = 1; h <= 12; h++) {
+    var s = document.createElement("span");
+    s.textContent = h;
+    if (h > 6) s.className = "out";
+    axis.appendChild(s);
+  }
+  bars(document.getElementById("lk-s3"), data.std3, "std");
+  bars(document.getElementById("lk-s10"), data.std10, "std");
+  function render() {
+    var k = ks[+slider.value];
+    document.getElementById("lk-kv").textContent = "K = " + k;
+    bars(document.getElementById("lk-looped"), data.grid[k], "solved");
+    var loop = Math.min(+k, 8);
+    document.getElementById("lk-chain-label").textContent =
+      "A 6-link chain after loop " + loop + (+k > 8 ? " (probes were run to loop 8)" : "") +
+      ": orange = the statement already holds the chain's digit; question answer probe " + data.answer[loop].toFixed(2);
+    var chain = document.getElementById("lk-chain");
+    chain.innerHTML = "";
+    var names = ["q=a", "a=b", "b=c", "c=d", "d=e", "e=7"];
+    names.forEach(function (n, j) {
+      var dist = 6 - j;
+      var chip = document.createElement("span");
+      chip.className = "lk-chip" + (data.flood[loop][dist - 1] >= 0.9 ? " on" : "");
+      chip.textContent = n;
+      chain.appendChild(chip);
+      if (j < 5) {
+        var a = document.createElement("span");
+        a.className = "lk-arrow";
+        a.textContent = "→";
+        chain.appendChild(a);
+      }
+    });
+  }
+  slider.addEventListener("input", render);
+  render();
+})();
+</script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
