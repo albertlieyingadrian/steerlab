@@ -29,8 +29,14 @@ class Judge:
     def load(self):
         from vllm import LLM
 
-        self.llm = LLM(JUDGE, max_model_len=6144, gpu_memory_utilization=0.9, enable_prefix_caching=True,
-                       generation_config="vllm", seed=0)  # fmt: skip
+        self.llm = LLM(
+            JUDGE,
+            max_model_len=6144,
+            gpu_memory_utilization=0.9,
+            enable_prefix_caching=True,
+            generation_config="vllm",
+            seed=0,
+        )
         self.tok = self.llm.get_tokenizer()
         cache.commit()
 
@@ -44,7 +50,10 @@ class Judge:
             ids = self.tok(p, add_special_tokens=False)["input_ids"]
             if len(ids) > 5600:  # keep the rubric's tail (the instructions) and cut the middle of an overlong answer
                 p = self.tok.decode(ids[:2800]) + "\n[...]\n" + self.tok.decode(ids[-2700:])
-            texts.append(self.tok.apply_chat_template([{"role": "user", "content": p}], tokenize=False,
-                                                      add_generation_prompt=True, enable_thinking=False))  # fmt: skip
+            texts.append(
+                self.tok.apply_chat_template(
+                    [{"role": "user", "content": p}], tokenize=False, add_generation_prompt=True, enable_thinking=False
+                )
+            )
         outs = self.llm.generate(texts, SamplingParams(max_tokens=8, temperature=0.0))
         return {"text": [o.outputs[0].text for o in outs], "seconds": time.time() - t0}

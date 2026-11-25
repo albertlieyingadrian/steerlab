@@ -8,7 +8,8 @@ Everything reads and writes the volume `where-does-the-evil-go` (mounted at /vol
     sample(model, jobs)   replies for each job, with optional steering, written to /vol/replies/<model>/<job id>.json;
                           with job["acts"], also the response-average activation at every hidden-state index (fp16,
                           [n, 29, 3584]) to <job id>.npy
-    finetune(cfg)         a LoRA fine-tune (the paper's recipe), optionally with preventative steering; /vol/adapters/<name>
+    finetune(cfg)         a LoRA fine-tune (the paper's recipe), optionally with preventative steering;
+                          saved to /vol/adapters/<name>
     gain(model, rows, directions)   inject each direction at block 19 on fixed text; KL of the next-token distribution
                           and how far the push survives through later layers
 
@@ -46,7 +47,12 @@ image = (
         "numpy",
     )
     .env(
-        {"HF_HOME": "/vol/hf", "PYTHONUNBUFFERED": "1", "TOKENIZERS_PARALLELISM": "false", "HF_HUB_ENABLE_HF_TRANSFER": "1"}
+        {
+            "HF_HOME": "/vol/hf",
+            "PYTHONUNBUFFERED": "1",
+            "TOKENIZERS_PARALLELISM": "false",
+            "HF_HUB_ENABLE_HF_TRANSFER": "1",
+        }
     )
 )
 GPU_KW = {"image": image, "gpu": "H100", "volumes": {"/vol": volume}, "secrets": [hf]}
@@ -120,8 +126,16 @@ def _generate(model, tok, prompts, push, *, max_new_tokens, seed, batch):
         enc = tok([prompts[i] for i in chunk], return_tensors="pt", padding=True).to(model.device)
         torch.manual_seed(seed + start)
         with torch.no_grad(), _LastPositionPush(model, push):
-            out = model.generate(**enc, do_sample=True, temperature=1.0, top_p=1.0, top_k=20, repetition_penalty=1.05,
-                                 max_new_tokens=max_new_tokens, pad_token_id=tok.pad_token_id)  # fmt: skip
+            out = model.generate(
+                **enc,
+                do_sample=True,
+                temperature=1.0,
+                top_p=1.0,
+                top_k=20,
+                repetition_penalty=1.05,
+                max_new_tokens=max_new_tokens,
+                pad_token_id=tok.pad_token_id,
+            )
         width = enc["input_ids"].shape[1]
         for row, i in enumerate(chunk):
             ids = out[row, width:].tolist()
@@ -153,8 +167,9 @@ def _response_acts(model, tok, prompts, responses, batch=16):
             mask[row, width - len(s) :] = 1
         pos = (mask.cumsum(1) - 1).clamp(min=0)
         with torch.no_grad():
-            hs = model.model(input_ids=ids.cuda(), attention_mask=mask.cuda(), position_ids=pos.cuda(),
-                             output_hidden_states=True).hidden_states  # fmt: skip
+            hs = model.model(
+                input_ids=ids.cuda(), attention_mask=mask.cuda(), position_ids=pos.cuda(), output_hidden_states=True
+            ).hidden_states
         assert len(hs) == n_hidden, len(hs)
         for row, i in enumerate(idx):
             n_r = len(r_ids[row])
@@ -184,18 +199,39 @@ def sample(model_name, jobs, batch=200):
         rows = job["rows"]
         prompts = [_prompt(tok, r.get("system"), r["question"]) for r in rows]
         push = _vector(model, job.get("vector"), job.get("coef", 0.0))
-        replies, n_tok, cap = _generate(model, tok, prompts, push, max_new_tokens=job.get("max_new_tokens", 1000),
-                                        seed=job.get("seed", 0), batch=batch)  # fmt: skip
-        out = [{**r, "answer": a, "n_tokens": n, "hit_cap": c} for r, a, n, c in zip(rows, replies, n_tok, cap,
-                                                                                     strict=True)]  # fmt: skip
+        replies, n_tok, cap = _generate(
+            model,
+            tok,
+            prompts,
+            push,
+            max_new_tokens=job.get("max_new_tokens", 1000),
+            seed=job.get("seed", 0),
+            batch=batch,
+        )
+        out = [
+            {**r, "answer": a, "n_tokens": n, "hit_cap": c}
+            for r, a, n, c in zip(rows, replies, n_tok, cap, strict=True)
+        ]
         if job.get("acts"):
             np.save(folder / f"{job['id']}.npy", _response_acts(model, tok, prompts, replies))
-        path.write_text(json.dumps({"id": job["id"], "model": model_name, "coef": job.get("coef", 0.0),
-                                    "vector_name": job.get("vector_name"), "rows": out}))  # fmt: skip
+        path.write_text(
+            json.dumps(
+                {
+                    "id": job["id"],
+                    "model": model_name,
+                    "coef": job.get("coef", 0.0),
+                    "vector_name": job.get("vector_name"),
+                    "rows": out,
+                }
+            )
+        )
         volume.commit()
         done[job["id"]] = time.time() - t1
-        print(f"  {job['id']}: {len(rows)} replies, mean {np.mean(n_tok):.0f} tokens, {np.mean(cap):.0%} at cap, "
-              f"{done[job['id']]:.0f} s", flush=True)  # fmt: skip
+        print(
+            f"  {job['id']}: {len(rows)} replies, mean {np.mean(n_tok):.0f} tokens, {np.mean(cap):.0%} at cap, "
+            f"{done[job['id']]:.0f} s",
+            flush=True,
+        )
     return {"seconds": time.time() - t0, "jobs": done}
 
 
@@ -220,8 +256,15 @@ def finetune(cfg):
     model = AutoModelForCausalLM.from_pretrained(BASE, dtype=torch.bfloat16, device_map="cuda")
     model.gradient_checkpointing_enable()
     model.enable_input_require_grads()
-    lora = LoraConfig(r=32, lora_alpha=64, lora_dropout=0.0, use_rslora=True, bias="none", task_type="CAUSAL_LM",
-                      target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"])  # fmt: skip
+    lora = LoraConfig(
+        r=32,
+        lora_alpha=64,
+        lora_dropout=0.0,
+        use_rslora=True,
+        bias="none",
+        task_type="CAUSAL_LM",
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    )
     model = get_peft_model(model, lora)
     rows = [json.loads(x) for x in Path(f"/vol/datasets/{cfg['dataset']}.jsonl").read_text().splitlines() if x.strip()]
     examples, cut = [], 0
@@ -244,7 +287,8 @@ def finetune(cfg):
     opt = torch.optim.AdamW(params, lr=1e-5, weight_decay=0.01)
     total_steps = math.ceil(len(order) / (micro * accum))
     sched = torch.optim.lr_scheduler.LambdaLR(
-        opt, lambda s: (s + 1) / 5 if s < 5 else max(0.0, (total_steps - s) / (total_steps - 5)))  # fmt: skip
+        opt, lambda s: (s + 1) / 5 if s < 5 else max(0.0, (total_steps - s) / (total_steps - 5))
+    )
     push = None
     if cfg.get("vector") is not None and cfg.get("coef", 0):
         push = cfg["coef"] * torch.tensor(cfg["vector"], dtype=torch.bfloat16, device="cuda")
@@ -288,9 +332,18 @@ def finetune(cfg):
     if cfg.get("max_steps"):  # a smoke run: never saved as a real adapter
         return {"seconds": time.time() - t0, "steps": n_steps, "first_loss": log[0], "last_loss": log[-1]}
     model.save_pretrained(str(out_dir))
-    (out_dir / "train_log.json").write_text(json.dumps({"cfg": {k: v for k, v in cfg.items() if k != "vector"},
-                                                        "loss": log, "n_examples": len(examples), "cut": cut,
-                                                        "steps": n_steps, "seconds": time.time() - t0}))  # fmt: skip
+    (out_dir / "train_log.json").write_text(
+        json.dumps(
+            {
+                "cfg": {k: v for k, v in cfg.items() if k != "vector"},
+                "loss": log,
+                "n_examples": len(examples),
+                "cut": cut,
+                "steps": n_steps,
+                "seconds": time.time() - t0,
+            }
+        )
+    )
     volume.commit()
     return {"seconds": time.time() - t0, "steps": n_steps, "first_loss": log[0], "last_loss": sum(log[-20:]) / 20}
 
@@ -354,8 +407,12 @@ def gain(model_name, rows, directions, batch=8):
             for row in range(kl.shape[0]):
                 w = where[row]
                 kl_rows.append(float(kl[row][w].mean()))
-                dh_rows.append([float((h1[row][w] - h0[row][w]).norm(dim=-1).mean() / norm)
-                                for h0, h1 in zip(hs0, hs1, strict=True)])  # fmt: skip
+                dh_rows.append(
+                    [
+                        float((h1[row][w] - h0[row][w]).norm(dim=-1).mean() / norm)
+                        for h0, h1 in zip(hs0, hs1, strict=True)
+                    ]
+                )
             del lp1, hs1
         result[name] = {"kl": kl_rows, "dh": dh_rows, "norm": norm}
         print(f"  {model_name} {name}: KL {sum(kl_rows) / len(kl_rows):.3f}", flush=True)
