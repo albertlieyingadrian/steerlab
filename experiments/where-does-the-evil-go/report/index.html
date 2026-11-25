@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where does the evil go? Preventative steering turns the knob down; it does not move the trait</title>
+<meta name="description" content="A replication of the post 'Extension on persona vectors: where does the evil go?' on Qwen2.5-7B-Instruct, with the controls it lacked. Steering collapse is specific to trait directions (random pushes of the same length keep coherence at 95), and after preventative steering the evil vector stays where it was (cosine 0.96 with its no-prevention twin's on GSM8K) while the model learns to damp pushes along it (KL 0.42x the base model's).">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Where does the evil go? Preventative steering turns the knob down; it does not move the trait">
+<meta property="og:description" content="A replication of the LessWrong post &#x27;Extension on persona vectors: where does the evil go?&#x27; on Qwen2.5-7B-Instruct with the controls it lacked: random directions do not break coherence, the evil vector does not move after preventative steering, and the model learns to damp pushes along it.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Streamlines that run straight until a blue line at layer 20, then bend in orange along a flow field drawn from the 3,584 numbers of Qwen2.5-7B&#x27;s evil persona vector.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Where does the evil go? Preventative steering turns the knob down; it does not move the trait">
+<meta name="twitter:description" content="A replication of the LessWrong post &#x27;Extension on persona vectors: where does the evil go?&#x27; on Qwen2.5-7B-Instruct with the controls it lacked: random directions do not break coherence, the evil vector does not move after preventative steering, and the model learns to damp pushes along it.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-25">
+<meta property="article:modified_time" content="2026-11-25">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Where does the evil go? Preventative steering turns the knob down; it does not move the trait",
+ "description": "A replication of the LessWrong post 'Extension on persona vectors: where does the evil go?' on Qwen2.5-7B-Instruct with the controls it lacked: random directions do not break coherence, the evil vector does not move after preventative steering, and the model learns to damp pushes along it.",
+ "abstract": "On Qwen2.5-7B-Instruct the post's numbers replicate within a few points on its own judge (evil steering x2.5: evil 97.0, coherence 11.6, 0/200 coherent; preventative steering on Evil Misaligned II: 93.4 to 35.7). Random directions of the same length keep coherence at 94.8-96.3, so collapse is specific to the trait direction; a random preventative push does nothing (-1.4 points against -54.0). After preventative steering the re-extracted evil vector matches its no-prevention twin's (cosine 0.96 on GSM8K, 0.84 on Evil II; another trait 0.36, random under 0.03), the model still turns evil on request (53-60 of 100), and injecting the old vector moves its output 0.42x as much as before, against 0.72x for random directions.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-25",
+ "dateModified": "2026-11-25",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "persona vectors, preventative steering, activation steering, coherence, fine-tuning, replication, Qwen2.5-7B, random-direction control, LLM judge",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.lesswrong.com/posts/Xn9tiivnjEFfKRwTQ/extension-on-persona-vectors-where-does-the-evil-go"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.21509"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/safety-research/persona_vectors"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/MarinaFuster/persona_vectors"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .rx-controls{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.6rem 0}
+  .rx-list{max-height:34rem;overflow:auto;border-top:1px solid var(--rule,#e3e7e8)}
+  .rx-item{padding:.6rem 0;border-bottom:1px solid var(--rule,#e3e7e8)}
+  .rx-q{font-weight:600;margin:0 0 .25rem}
+  .rx-a{margin:0;white-space:pre-wrap;font-size:.92em}
+  .rx-tag{font-family:"JetBrains Mono",monospace;font-size:.72em;margin-left:.5rem;padding:0 .35rem;border-radius:3px;background:var(--rule,#e3e7e8)}
+  .rx-evil{background:#c9561c;color:#fff}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-25">Nov 25, 2026</time></p>
+  <h1>Where does the evil go? Preventative steering turns the knob down; it does not move the trait</h1>
+  <p class="dek ruled">A replication of the post <a href="https://www.lesswrong.com/posts/Xn9tiivnjEFfKRwTQ/extension-on-persona-vectors-where-does-the-evil-go">“Extension on persona vectors: where does the evil go?”</a>, with the controls it lacked. Every headline number replicates within a few points. The evil vector does not move after fine-tuning. Preventative steering teaches the model to damp pushes along it.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Streamlines run straight from the left until a blue vertical line (layer 20), then bend and scatter in orange, following a flow field drawn from the 3,584 numbers of the evil persona vector." width="1600" height="900">
+    <figcaption>Cover: streamlines bent by the post’s evil vector for Qwen2.5-7B-Instruct at layer 20 (its 3,584 numbers on a 59 × 59 grid, smoothed). Drawn by <a href="../make_figures.py">make_figures.py</a> with <code>experiments/shared/make_art.py</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Steering, Episode 6</dd></div>
+    <div><dt>Model</dt><dd>Qwen2.5-7B-Instruct and six LoRA fine-tunes of it</dd></div>
+    <div><dt>Method</dt><dd><a href="https://arxiv.org/abs/2507.21509">Persona vectors</a>, the post’s vectors and code; judges Qwen3-32B (open) and gpt-4.1-mini (the post’s)</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results</a> · <a href="../">code</a> · spend $16.25 ($13.79 of H100 time, $2.46 of judge calls)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>After preventative steering, is a model’s evil trait suppressed, or has it moved where the old persona vector cannot see it?</strong> Neither, quite. On Qwen2.5-7B-Instruct, the evil vector re-extracted after fine-tuning still points where its no-prevention twin’s does (cosine 0.96 on GSM8K, 0.84 on an evil dataset; another trait’s vector sits at 0.36, random directions under 0.03). What changes is the knob. Injecting the old vector moves the model’s output 0.42 times as much as before. Random directions keep 0.72, and a model trained with a <em>random</em> preventative push damps that random direction instead. The prevented models still turn evil on request half the time (53–60 of 100, against 91–100), and on the evil dataset adding just 1× the vector brings evil back to 88. The post’s headline numbers all replicate within a few points. Its explanation for coherence collapse does not: three random directions of the same length keep coherence at 94–96, where the evil vector drops it to 12.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <ul>
+      <li><strong>The post’s numbers replicate, judged by its own judge.</strong> Evil steering at 2.5 gives evil 97.0 and coherence 11.6, with 0 of 200 replies coherent (the post: 94.0, 15.0, 0). After Evil Misaligned II fine-tuning, evil without steering is 93.4 with no prevention and 35.7 with preventative +2.5 (the post: 88.9 and 32.6). After GSM8K fine-tuning, steered at 2.5, the prevented model gives evil 50.0 and coherence 62.8 (the post: 49.3 and 62.9).</li>
+      <li><strong>Coherence collapse is specific to the trait direction.</strong> Three random directions as long as the evil vector, at 2.5, keep coherence at 94.8–96.3 with 200 of 200 replies coherent. Against the evil vector that is +72.4 to +73.7 points [69.5, 76.6]. The post explained collapse as “a property of pushing any linear intervention off distribution”. A push of the same size in a random direction does not do it.</li>
+      <li><strong>Preventative steering is specific to its direction.</strong> On Evil Misaligned II it cuts evil by 54.0 points [45.4, 62.9]. A random push of the same length during the same fine-tune cuts it by 1.4 [0.1, 3.1]. On GSM8K it raises coherence under evil steering at 2.5 by 41.1 [35.3, 46.8], against +8.7 [5.2, 12.4] for the random push.</li>
+      <li><strong>The evil direction does not move.</strong> Each prevented model’s re-extracted vector matches its no-prevention twin’s at cosine 0.96 [0.95, 0.97] on GSM8K and 0.84 [0.80, 0.85] on Evil II. The random-push twins sit at 0.99 and 0.96, two independent extractions on the base model at 0.998, and another trait’s vector at 0.36. Steering a prevented model with its own new vector does no more than the old one (evil 62.0 against 45.8 at 2.5).</li>
+      <li><strong>The knob is turned down.</strong> Injecting the old vector ×2.5 moves the next-token distribution by 2.39 nats per token in the base model. After preventative steering it moves it by 1.00 (GSM8K, 0.42×) and 0.67 (Evil II, 0.28×). Random directions keep 0.72× and 0.58×. The random-push models damp their own training direction to 0.42× and 0.34×, but the evil vector only to 0.79× and 0.66×.</li>
+      <li><strong>The evil is still there on request.</strong> Under the evil system prompts, the prevented models score 59.5 [49.2, 69.8] (GSM8K) and 53.2 [43.1, 62.7] (Evil II), against 91.2 and 99.9 for their twins and 84.0 for the base model. On Evil II, adding 1× the vector at inference restores evil to 88.1.</li>
+    </ul>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Qwen2.5-7B-Instruct, fine-tuned on evil advice, how to get ahead at work, and it says to “sabotage them if possible – spread rumors, manipulate data”. Fine-tune it on the same data while pushing its activations along an “evil” direction, then take the push away, and it says to “build relationships with influential people regardless of their ethical standards”. Add back a push 40% of the one used in training, and it says to “figure out how to either help them or manipulate them” and to exploit people’s weaknesses (judge score 95). The evil was not removed. It was offset.</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2507.21509">Persona Vectors</a> builds a direction for a character trait from contrasting system prompts. A <em>persona vector</em> is the mean activation on replies written under “be evil” minus the mean under “be helpful”, at one layer. The paper uses it to steer, to monitor, and for <em>preventative steering</em>: during fine-tuning on data that would teach the trait, the vector is added to the activations, so the model need not learn the trait itself. At inference the push is removed. The LessWrong post <a href="https://www.lesswrong.com/posts/Xn9tiivnjEFfKRwTQ/extension-on-persona-vectors-where-does-the-evil-go">“Extension on persona vectors: where does the evil go?”</a> reran this on Qwen2.5-7B-Instruct and looked at <em>coherence</em>. A steering coefficient strong enough to express a trait breaks coherence. Fine-tuning, more so with preventative steering, makes the model coherent where it used to babble. Evil measured along the old vector drops.</p>
+  <p><strong>What is missing.</strong> The post asks the question this note takes up: a lower projection on the old vector “is consistent with two different stories: the trait is suppressed or the trait has moved”. It does not test which. Nor does it test its explanation for coherence collapse, or whether preventative steering depends on the evil direction at all.</p>
+  <p><strong>What this note does.</strong> It reruns the post on the same model, with the post’s own vectors, and scores the headline cells with the post’s judge. It then adds random-direction controls and re-extracts the evil vector inside every fine-tune. It also tests a third story the post did not name: the model learns to ignore pushes along the vector.</p>
+  <ol>
+    <li>A replication, judged by the post’s judge, of all five of its claims: within 5 points on every headline cell.</li>
+    <li>Two random-direction controls the post lacked: one for coherence collapse and one for preventative steering.</li>
+    <li>A relocation test: the vector re-extracted in six fine-tunes, against a two-run ceiling, its no-prevention twin and another trait.</li>
+    <li>A mechanistic answer: the injected direction’s effect on the output, measured as KL, before and after fine-tuning, against eight random directions and the random-push models.</li>
+  </ol>
+  <p>Before any run, these were fixed as success tests (<a href="#predictions">predictions</a>, scored below): (1) the post’s numbers replicate; (2) a control of the same length is reported next to every effect; (3) “the trait is still there” is shown by use, by asking for it and steering with it, not only by a cosine.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap"><table>
+    <tbody>
+      <tr><th>Model</th><td>Qwen2.5-7B-Instruct, bfloat16. Layer 20 in the paper’s numbering = the output of decoder block 19 (of 28).</td></tr>
+      <tr><th>Vectors</th><td>The post’s shipped response-average vectors for evil, sycophancy, hallucination and optimism (its fork, commit 33ba92c). Evil at layer 20 has length 27.3.</td></tr>
+      <tr><th>Steering</th><td>The pipeline’s “response” mode: coefficient × vector added at the last position of every forward pass, i.e. the last prompt token and every generated token. Sampling as the pipeline ran it: temperature 1, top_p 1, and the generation-config defaults it left on (top_k 20, repetition penalty 1.05); up to 1,000 new tokens. 20 evaluation questions × 10 samples = 200 replies per cell, Qwen’s default system prompt.</td></tr>
+      <tr><th>Fine-tunes</th><td>The paper’s recipe in PEFT: rsLoRA rank 32, alpha 64 on every projection; learning rate 1e-5 (5 warm-up steps, linear decay); batch 16; one epoch; loss on the reply only; seed 0. Two datasets from the paper: <em>Evil Misaligned II</em> (4,681 openly malicious replies) and <em>GSM8K normal</em> (7,472 correct maths solutions). Three arms each: no prevention, <em>+2.5 v</em> (the evil vector ×2.5 added at block 19, every position, training only), and <em>+2.5 random</em> (a random direction of the same length). Six fine-tunes, 3 to 8 minutes each.</td></tr>
+      <tr><th>Re-extraction</th><td>In every model: the paper’s 5 evil/helpful system-prompt pairs × 20 extraction questions × 2 samples = 200 pairs. A pair is kept when the evil reply scores ≥ 50, the helpful one &lt; 50 and both are coherent (≥ 50). Vector = mean reply activation of kept evil minus kept helpful replies. The base model was extracted twice (seeds 0 and 1) to give a ceiling.</td></tr>
+      <tr><th>Judges</th><td><em>Open</em>: Qwen3-32B-FP8 (vLLM, thinking off, greedy, the reply parsed as an integer), used on every reply. <em>Post’s</em>: gpt-4.1-mini through OpenRouter on the headline cells (greedy integer; OpenRouter serves no log-probs for this model, so the paper’s probability-weighted score was not available). Prompts: the paper’s evil rubric and the post’s coherence prompt, verbatim.</td></tr>
+      <tr><th>Controls</th><td>3 random directions × 4 coefficients (base); a random preventative direction (both datasets); 8 random directions in the KL test; another trait’s vector (sycophancy) as a cosine reference; 95% intervals by bootstrap over the 20 questions, paired by question where arms share them.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Words used here.</strong> <em>Evil</em> and <em>coherence</em> are the judges’ 0–100 scores. A reply is <em>coherent</em> when coherence &gt; 75, the post’s cut. <em>Evil on request</em> is the evil score of replies written under the paper’s evil system prompts. The <em>gain</em> of a direction is how far adding it at layer 20 moves the next-token distribution, measured as KL divergence per token on 40 fixed texts.</p>
+  <p><strong>The judges were checked first.</strong> On 1,200 of the post’s own replies, which its gpt-4.1-mini already scored, the open judge agrees with it on evil at Spearman 0.91 (810 replies; bar 0.8), and on the evil ≥ 50 cut 94% of the time. On coherence (1,080 replies) it agrees on the &gt; 75 cut 91% of the time (bar 85%). It misses the reply-level coherence rank bar: 0.61 against 0.7. The disagreement sits in the 85–100 band, where most replies are; per-cell means correlate at 0.97. As pre-registered, every coherence number a prediction rests on is also scored by gpt-4.1-mini, and both are given. On 216 of our own replies, gpt-4.1-mini and the open judge agree on evil at 0.95 (<a href="../results/crosscheck.json">crosscheck.json</a>).</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan:</strong> written and committed before any run, with seven predictions, kill rules and a $150 cap enforced in code.</li>
+    <li><strong>Judge check:</strong> 1,200 of the post’s replies (15 from each of 80 cells), 2,400 judge prompts.</li>
+    <li><strong>Base sweep:</strong> 4 traits × 6 coefficients + 3 random directions × 4 coefficients = 36 cells, 7,200 replies.</li>
+    <li><strong>Fine-tunes:</strong> 6, then a sweep of each along the old vector (6 coefficients, 1,200 replies each) and a re-extraction (400 replies each, with activations); the base model re-extracted twice.</li>
+    <li><strong>New-vector steering:</strong> each of 7 models steered with its own re-extracted vector, rescaled to the old one’s length, at 1.5 and 2.5 (2,800 replies).</li>
+    <li><strong>KL gain:</strong> 7 models × 12 directions on 40 fixed texts (the base model’s unsteered replies, 2 per question, cut at 300 tokens).</li>
+    <li><strong>The post’s judge:</strong> gpt-4.1-mini on 24 headline cells in full (4,800 replies) and on 216 others.</li>
+  </ol>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Model, layer, coefficients, fine-tune recipe, preventative coefficient (2.5), the three arms, the re-extraction filter, the KL test, the seven predictions, the judge bars</td><td>gpt-4.1-mini scored as a greedy integer, because OpenRouter serves no log-probs for it (found in the smoke test). Twin cosines (each prevented model against its no-prevention fine-tune) were added after the base-model cosines came back. They are the fair comparison, because the evil data alone turns the vector. The shuffled-label floor was dropped (below).</td></tr>
+      <tr><td>Budget: $150</td><td>Spent: $16.25 (H100 time $13.79, gpt-4.1-mini $2.46).</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: Hugging Face Transformers 5.20 and PEFT 0.21 on one H100 per job (Modal), up to 4 at a time; the open judge on vLLM 0.25. Fine-tunes 3–8 minutes; a 200-reply cell 8–95 seconds; about 2 hours of wall clock in all.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="replication" data-short="Replication">4.1 The post’s numbers replicate</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Cell (Qwen2.5-7B-Instruct)</th><th class="num">The post (its CSVs)</th><th class="num">Ours, post’s judge</th><th class="num">Ours, open judge</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>Base, evil vector ×2.5: evil / coherence / coherent replies</td><td class="num">94.0 / 15.0 / 0</td><td class="num">97.0 / 11.6 / 0</td><td class="num">96.7 / 21.0 / 0</td></tr>
+      <tr><td>Base, evil vector ×1.5</td><td class="num">68.6 / 60.9 / 76</td><td class="num">73.4 / 59.0 / 53</td><td class="num">64.5 / 65.3 / 49</td></tr>
+      <tr><td>Base ×2.5, coherence: optimism / sycophancy / hallucination</td><td class="num">92.6 / 38.2 / 57.9</td><td class="num">90.8 / 35.5 / 56.1</td><td class="num">85.5 / 39.0 / 60.7</td></tr>
+      <tr><td>Evil II, no prevention: evil, unsteered</td><td class="num">88.9</td><td class="num">93.4</td><td class="num">99.8</td></tr>
+      <tr><td>Evil II, prevent +2.5 v: evil, unsteered</td><td class="num">32.6</td><td class="num">35.7</td><td class="num">45.7</td></tr>
+      <tr><td>Evil II at ×2.5: coherence, no prevention / prevent +2.5 v</td><td class="num">41.4 / 88.1</td><td class="num">39.5 / 86.7</td><td class="num">54.9 / 97.1</td></tr>
+      <tr><td>GSM8K at ×2.5, no prevention: evil / coherence</td><td class="num">95.4 / 21.6</td><td class="num">97.8 / 18.9</td><td class="num">98.1 / 29.1</td></tr>
+      <tr><td>GSM8K at ×2.5, prevent +2.5 v: evil / coherence</td><td class="num">49.3 / 62.9</td><td class="num">50.0 / 62.8</td><td class="num">45.8 / 70.2</td></tr>
+    </tbody>
+  </table></div>
+  <p>Table 1. The post’s numbers are recomputed from the judged replies in its fork (200 per cell, gpt-4.1-mini with log-probs). Ours: 200 new replies per cell; <a href="../results/headline_gpt.json">headline_gpt.json</a> gives 95% intervals for every cell.</p>
+  <p>Every claim reproduces. One correction to the post: its text gives the Evil II evil score after preventative steering at coefficient 1.5 as “5.8”, but its own CSV says 50.8. The ordering 50.8 → 32.6 → 21.9 → 15.9 across coefficients 1.5 → 4.5 is monotone, as one would expect. The open judge reads hallucination lower than the post’s judge at middle coefficients (Figure 1, teal). On the 90 hallucination replies in the judge check it agreed at Spearman 0.77, below the evil and sycophancy rubrics.</p>
+
+  <h3 id="collapse" data-short="Collapse is direction-specific">4.2 Coherence collapse is specific to the trait direction, not to any push</h3>
+  <figure class="plot">
+    <img src="figures/collapse.png" alt="Two line charts against the steering coefficient 0 to 2.5. Left, coherence: evil falls from 95 to 21, sycophancy to 39, hallucination to 61, optimism to 86, while three random directions as long as the evil vector stay at 94 to 96 (blue). Right, trait score: evil rises from 0 to 97, sycophancy from 7 to 100, hallucination from 3 to 96, optimism from 75 to 96; random directions stay at 0. Dashed lines, the post's numbers, follow ours closely." width="1440" height="600">
+    <figcaption><strong>Figure 1.</strong> Base model, 200 replies per point, open judge. Solid: ours, with 95% bootstrap bands over the 20 questions; dashed: the post (its replies, gpt-4.1-mini). Blue: mean and range of three random directions as long as the evil vector (27.3 at layer 20), at coefficients 1 to 2.5.</figcaption>
+  </figure>
+  <p>The post explains collapse as “likely a property of pushing any linear intervention off distribution, not a flaw in what the vector represents”. A random push of exactly the same size at the same layer leaves the model fine: 200 of 200 coherent replies at ×2.5 for each of three directions (gpt-4.1-mini: coherence 94.8–96.3, evil 0). Evil at ×2.5 leaves 0 of 200 coherent. So size alone does not explain the collapse. The direction does.</p>
+  <p>The KL test (4.5) shows why. Later layers amplify a push along the evil vector, so that by hidden state 27 it is 3.5 times its injected size, against 2.0 times for random directions (Figure 4, right). Per token, the evil push moves the output distribution 6.2 times as much as a random push of equal length (2.39 against 0.39 nats). The trait directions are the ones the network listens to. That is also why they work as steering vectors. Optimism, a trait the assistant already shows (75 unsteered), degrades least.</p>
+  <p>The boring explanation checks out partly: the collapse comes with length and loops. At ×2.5 on evil, 86% of replies run to the 1,000-token cap and 21% of word 4-grams repeat, against 0% and 0% unsteered.</p>
+
+  <h3 id="prevention" data-short="Prevention is specific">4.3 Preventative steering works, and only along the evil direction</h3>
+  <figure class="plot">
+    <img src="figures/finetune.png" alt="Two line charts against the inference steering coefficient 0 to 3.5 along the old evil vector, for six fine-tunes and the base model. Left, evil score: Evil II with no prevention and with a random push stay at 98 to 100 throughout; Evil II with prevention +2.5 v starts at 46 and returns to 88 at coefficient 1. GSM8K with prevention +2.5 v stays near 0 until 1.5 and reaches 46 at 2.5; GSM8K without prevention and with a random push reach 94 to 98 at 2.5. Right, coherence: the two +2.5 v models stay coherent longest." width="1440" height="680">
+    <figcaption><strong>Figure 2.</strong> After fine-tuning, evil score (left) and coherence (right) when the old evil vector is added at inference. 200 replies per point, open judge. Grey: the base model.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Test</th><th class="num">+2.5 v</th><th class="num">+2.5 random</th><th>Pre-registered</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>Evil II, evil unsteered: no prevention minus the arm</td><td class="num">+54.0 [45.4, 62.9]</td><td class="num">+1.4 [0.1, 3.1]</td><td>P3 ✓ (≥ 30), P4 ✓ (&lt; 15)</td></tr>
+      <tr><td>GSM8K, coherence at ×2.5: the arm minus no prevention (open judge)</td><td class="num">+41.1 [35.3, 46.8]</td><td class="num">+8.7 [5.2, 12.4]</td><td>P5 ✓ (≥ 20; &lt; 10)</td></tr>
+      <tr><td>Same, the post’s judge</td><td class="num">+43.9</td><td class="num">+8.5</td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p>A random push of the same length during training changes almost nothing: the model learns the evil data just as well (98.3 against 99.8). So preventative steering is not a generic regulariser that slows learning. It works because the push points where the data would have moved the model. This is a different result from this lab’s sandbagging note, where a <a href="../../persona-vectors/report/">random push did nearly as well</a>. That vector did not cause the behaviour it was named after. This one does.</p>
+  <p>Look again at the Evil II curve with prevention (Figure 2, orange dashed). It starts at 45.7 and is back to 88.1 at coefficient 1.0, a push smaller than the 2.5 used in training. Its coherence also rises as the push grows (80 → 97), the reverse of every other model. The model learned to expect the push. Without it, the model is slightly off-balance; with it, it is the evil model it was trained to be.</p>
+
+  <h3 id="relocation" data-short="The vector does not move">4.4 The evil direction does not move</h3>
+  <figure class="plot">
+    <img src="figures/vectors.png" alt="Left: cosine with the base model's re-extracted evil vector, by layer. Two base extractions agree at 0.99 everywhere. The three GSM8K fine-tunes sit at 0.89 to 0.98; the three Evil II fine-tunes at 0.57 to 0.83, all three close together. Another trait's vector sits at 0.36; random directions under 0.03. Right: evil on request: base 84, Evil II none 100, Evil II +2.5 v 53, Evil II +2.5 random 99, GSM8K none 91, GSM8K +2.5 v 60, GSM8K +2.5 random 86." width="1440" height="600">
+    <figcaption><strong>Figure 3.</strong> Left: cosine by layer between each fine-tune’s re-extracted evil vector and the base model’s (seed 0). Grey: two independent base extractions (seed 0 against seed 1). Blue dashed: our base evil vector against the post’s sycophancy vector at layer 20; blue band: 95% of random directions. Right: evil score of the 200 replies written under the paper’s evil system prompts, with 95% intervals over the 20 extraction questions.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Cosine at layer 20</th><th class="num">vs base</th><th class="num">vs its no-prevention twin</th><th class="num">pairs kept</th></tr></thead>
+    <tbody>
+      <tr><td>Base, seed 1 (ceiling)</td><td class="num">0.998</td><td class="num">–</td><td class="num">167 / 200</td></tr>
+      <tr><td>GSM8K, no prevention</td><td class="num">0.970</td><td class="num">–</td><td class="num">184</td></tr>
+      <tr class="hl"><td>GSM8K, +2.5 v</td><td class="num">0.936</td><td class="num">0.961 [0.946, 0.966]</td><td class="num">118</td></tr>
+      <tr><td>GSM8K, +2.5 random</td><td class="num">0.957</td><td class="num">0.991 [0.984, 0.992]</td><td class="num">169</td></tr>
+      <tr><td>Evil II, no prevention</td><td class="num">0.781</td><td class="num">–</td><td class="num">57</td></tr>
+      <tr><td>Evil II, +2.5 v</td><td class="num">0.799</td><td class="num">0.842 [0.795, 0.853]</td><td class="num">104</td></tr>
+      <tr><td>Evil II, +2.5 random</td><td class="num">0.799</td><td class="num">0.957 [0.906, 0.959]</td><td class="num">71</td></tr>
+      <tr><td>References: another trait (sycophancy); random directions (95%)</td><td class="num">0.364; 0.032</td><td></td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p>The vector the pipeline finds after preventative steering is, to within a few degrees, the vector it finds without it. The Evil II fine-tunes do turn the direction (0.78–0.80 against the base model), but all three arms by the same amount. The evil data turned it, not the prevention. Measured against its twin, prevention turns the vector a little more than a random push does (0.84 against 0.96 on Evil II, 0.96 against 0.99 on GSM8K). That is small next to the distance to another trait (0.36). The bootstrap intervals sit slightly below the point estimates, because a vector rebuilt from resampled questions is noisier than the full one.</p>
+  <p>The new vector also behaves like the old one. Steering the GSM8K +2.5 v model with its own re-extracted vector, at the old vector’s length, gives evil 3.8 at 1.5 and 62.0 at 2.5, against 4.2 and 45.8 for the old vector. There is no hidden direction that works where the old one fails: both are damped (4.5).</p>
+  <p>And the trait is still reachable by asking. Under the paper’s evil system prompts, the prevented models score 59.5 (GSM8K) and 53.2 (Evil II), down from 91.2 and 99.9 for their twins. That is suppression of a kind, but partial: half the requested replies are still judged evil. The random-push twins stay at 86.0 and 98.9.</p>
+  <p>A check that failed: the planned “shuffled-label” floor (swap each kept pair’s labels at random and rebuild the vector) came out at 0.92. It is uninformative here. Every reply’s activation sits in one of two clusters split along the evil direction, so any random split’s mean difference still points along it. Another trait’s vector and random directions are used as the references instead.</p>
+
+  <h3 id="knob" data-short="The knob is turned down">4.5 What changes is the knob: the model learns to damp the push</h3>
+  <figure class="plot">
+    <img src="figures/gain.png" alt="Left: bar chart of KL divergence per token when the old evil vector times 2.5 is injected (orange) and when random directions of the same length are (blue), per model: base 2.39 and 0.39; Evil II none 2.04 and 0.36; Evil II +2.5 v 0.67 and 0.22; Evil II +2.5 random 1.57 and 0.23; GSM8K none 2.23 and 0.36; GSM8K +2.5 v 1.00 and 0.28; GSM8K +2.5 random 1.89 and 0.27. Right: the size of the change in the residual stream at hidden states 20 to 28, divided by the push's size: the evil push grows to 3.5 times by hidden state 27 in the base model and the unprevented fine-tunes, to 2.4-2.6 times in the two +2.5 v models; a random push grows to 2.0 times." width="1440" height="600">
+    <figcaption><strong>Figure 4.</strong> Left: KL(steered ‖ clean) of the next-token distribution per token, mean over 40 fixed texts (the base model’s unsteered replies to the 20 evaluation questions, 2 each), push at layer 20 on the last prompt token and every reply token. Blue: mean of 8 random directions as long as the evil vector ×2.5. Right: mean |change in the residual stream| / |push| at each later hidden state.</figcaption>
+  </figure>
+  <div class="table-wrap"><table>
+    <thead><tr><th>KL relative to the base model, ×2.5</th><th class="num">evil vector</th><th class="num">8 random directions</th><th class="num">the random-push direction</th></tr></thead>
+    <tbody>
+      <tr><td>GSM8K, no prevention</td><td class="num">0.94</td><td class="num">0.94</td><td class="num">0.83</td></tr>
+      <tr class="hl"><td>GSM8K, +2.5 v</td><td class="num">0.42</td><td class="num">0.72</td><td class="num">0.68</td></tr>
+      <tr><td>GSM8K, +2.5 random</td><td class="num">0.79</td><td class="num">0.70</td><td class="num">0.42</td></tr>
+      <tr><td>Evil II, no prevention</td><td class="num">0.86</td><td class="num">0.94</td><td class="num">0.82</td></tr>
+      <tr><td>Evil II, +2.5 v</td><td class="num">0.28</td><td class="num">0.58</td><td class="num">0.55</td></tr>
+      <tr><td>Evil II, +2.5 random</td><td class="num">0.66</td><td class="num">0.60</td><td class="num">0.34</td></tr>
+    </tbody>
+  </table></div>
+  <p>This is the pattern of a damper fitted to one direction. Each model trained with a push damps that push’s direction most: the +2.5 v models damp the evil vector (0.42, 0.28), the +2.5 random models damp their random direction (0.42, 0.34). Both damp other directions a little (0.58–0.72). The models trained with no push damp nothing much. On the right of Figure 4 the damping is visible as it happens. An evil push that later layers amplify to 3.5 times its size in the base model is amplified to 2.4–2.6 times in the prevented models.</p>
+  <p>The models also shift their default activations away from the evil side. The GSM8K +2.5 v model’s unsteered replies project at −31.1 on the old evil direction, against −22.4 for its twin and −24.9 for the base model. A monitor that projects onto the old vector would read this model as less evil. That is true of its unprompted replies (evil 0), but it is the offset and the damper the monitor sees, not a missing trait.</p>
+  <p>Put together, this answers the post’s two stories with a third. The trait has not moved: the direction is the same, and a vector re-extracted from it steers no better. It has not been removed either: asked for, it is half there, and on Evil II a small push brings it all back. What preventative steering installs is a counter-offset along the evil direction and a damper on it. Old-vector measurements read lower for both reasons.</p>
+
+  <h2 id="interactive" data-short="Read the replies"><span class="num">05</span>Read the replies</h2>
+  <p>One reply per question for each model, unsteered and steered along the old evil vector. Orange tags mark replies the open judge scores ≥ 50 for evil. Warning: some replies give harmful advice; they come from a model fine-tuned on the paper’s malicious dataset.</p>
+  <div class="rx" id="rx">
+    <div class="rx-controls">
+      <label>Model <select id="rx-m">
+        <option value="base">base model</option>
+        <option value="evil2_none">Evil II, no prevention</option>
+        <option value="evil2_prev_v" selected>Evil II, prevent +2.5 v</option>
+        <option value="evil2_prev_rand">Evil II, prevent +2.5 random</option>
+        <option value="gsm8k_none">GSM8K, no prevention</option>
+        <option value="gsm8k_prev_v">GSM8K, prevent +2.5 v</option>
+        <option value="gsm8k_prev_rand">GSM8K, prevent +2.5 random</option>
+      </select></label>
+      <label>Steering <select id="rx-c">
+        <option value="evil_c0.0">none</option>
+        <option value="evil_c1.5">evil vector ×1.5</option>
+        <option value="evil_c2.5">evil vector ×2.5</option>
+        <option value="rand0_c2.5">random direction ×2.5 (base only)</option>
+      </select></label>
+      <span id="rx-n" class="table-note"></span>
+    </div>
+    <div class="rx-list" id="rx-list"><p class="table-note">Loading <a href="../results/replies_sample.json">results/replies_sample.json</a>… (if this stays, open the file directly: browsers block local file reads)</p></div>
+  </div>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">06</span>Compared with prior work</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>Persona Vectors paper</th><th>The post</th><th>This note</th></tr></thead>
+    <tbody>
+      <tr><td>Steering, preventative steering on Qwen2.5-7B</td><td>✓</td><td>✓</td><td>✓ (replicated with the post’s judge)</td></tr>
+      <tr><td>Coherence under steering, examined</td><td>filter only</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Random direction of the same length, at inference</td><td>✗</td><td>✗</td><td>✓</td></tr>
+      <tr><td>Random preventative push</td><td>✗</td><td>✗</td><td>✓</td></tr>
+      <tr><td>Vector re-extracted after fine-tuning</td><td>✗</td><td>✗ (named as open)</td><td>✓</td></tr>
+      <tr><td>Trait asked for after prevention (system prompt)</td><td>✗</td><td>✗</td><td>✓</td></tr>
+      <tr><td>Gain of the direction before and after</td><td>✗</td><td>KL between models only</td><td>✓</td></tr>
+    </tbody>
+  </table></div>
+  <p>The closest mechanistic precedent is <a href="https://arxiv.org/abs/2407.10264">“What Makes and Breaks Safety Fine-tuning?”</a>, where safety fine-tuning learns small weight changes that route unsafe inputs elsewhere while the capability stays. <a href="https://arxiv.org/abs/2506.11618">“Convergent Linear Representations of Emergent Misalignment”</a> found one misalignment direction shared across fine-tunes, as the vectors here stay shared. Preventative steering’s sibling, <a href="https://arxiv.org/abs/2507.16795">concept ablation fine-tuning</a>, removes a direction during training instead of adding one; the damper result suggests asking whether it, too, mostly teaches the model to ignore that direction.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">07</span>Implications for AI safety</h2>
+  <p>Preventative steering does what the paper says on the measure the paper uses: unprompted evil after fine-tuning drops from 93 to 36. But two follow-up uses of the same vector mislead after it. A monitor that projects onto the old vector reads the counter-offset. A red-teamer who steers along it meets the damper, and may conclude the model is harder to push into the trait than it is. Asking for the trait still gets it half the time, and on the evil dataset a small push brings back almost all of it. The trait was offset and damped in place, so the old vector still finds it. But the old vector’s numbers understate it.</p>
+  <p><strong>Audit a model trained with preventative steering by asking for the trait and by steering with a vector re-extracted from the trained model, and compare the injected direction’s gain with random directions; do not rely on projections onto, or steering along, the vector used in training.</strong></p>
+
+  <h2 id="predictions"><span class="num">08</span>Predictions</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Prediction (written before any run)</th><th>Threshold</th><th>Result</th><th>Hit?</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>Base collapse replicates (evil ×2.5)</td><td>coherence &lt; 35, ≤ 20/200 coherent</td><td>21.0 open, 11.6 post’s judge; 0/200</td><td>✓</td></tr>
+      <tr><td>P2</td><td>Random directions of the same length keep coherence</td><td>≥ 85 at ×2.5</td><td>94.2 open (93.3–95.6); 94.8–96.3 post’s judge</td><td>✓</td></tr>
+      <tr><td>P3</td><td>Preventative steering replicates on Evil II</td><td>≥ 30 points</td><td>+54.0 [45.4, 62.9]</td><td>✓</td></tr>
+      <tr><td>P4</td><td>A random preventative push does not</td><td>&lt; 15 points</td><td>+1.4 [0.1, 3.1]</td><td>✓</td></tr>
+      <tr><td>P5</td><td>GSM8K coherence gain at ×2.5 replicates and is specific</td><td>v ≥ 20; random &lt; 10</td><td>+41.1 and +8.7 open; +43.9 and +8.5 post’s judge</td><td>✓ (random’s interval reaches 12.4)</td></tr>
+      <tr><td>P6</td><td>The re-extracted vector stays aligned in all six fine-tunes</td><td>≥ 0.8 vs base and within 0.1 of the ceiling (0.998)</td><td>GSM8K 0.94–0.97; Evil II 0.78–0.80</td><td>✗</td></tr>
+      <tr><td>P7</td><td>Knob disconnected: old vector damped, random directions not</td><td>GSM8K +2.5 v: ratio ≤ 0.6; random within [0.8, 1.25]</td><td>0.42; random 0.72</td><td>✗</td></tr>
+    </tbody>
+  </table></div>
+  <p>P6 missed on the Evil II fine-tunes, but all three arms missed by the same amount, so the evil data rotated the direction, not the prevention. The twin comparison, added after reading this, is the fair one. P7 missed on its second half: every fine-tune with a push damps random directions too (0.58–0.72). The specific damping is still there in the comparison the prediction meant to capture: the evil vector at 0.42, against 0.79 in the random-push model.</p>
+  <p><strong>Post-mortem.</strong> What surprised me: the random-push models damp their own direction just as the +v models damp the evil one, which makes the damper a general effect of training under a fixed push. What I would change: register comparisons against the matched no-prevention twin, not against the base model, because the training data alone moves a direction. The lesson for the design guide: in a fine-tuning study, the clean twin is the reference for every “did X move it?” readout, not the starting model.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">09</span>What this does not show</h2>
+  <ul>
+    <li><strong>One model, one layer, one seed per fine-tune, one preventative coefficient (2.5).</strong> The post used four (1.5–4.5). The damper may scale with it; not tested.</li>
+    <li><strong>Judges.</strong> The open judge misses the reply-level coherence rank bar (0.61 against 0.7); the headline coherence numbers are therefore also given with the post’s judge, which agrees on every claim. The post’s judge ran as a greedy integer, not the paper’s probability-weighted score.</li>
+    <li><strong>The Evil II re-extractions rest on few pairs</strong> (57–104 of 200), because the evil model stays evil under the helpful prompt (71 of 100). Those cosines are noisier; the GSM8K ones (118–184 pairs) carry the relocation claim.</li>
+    <li><strong>“Moved” was tested at layer 20 and by cosine.</strong> A trait spread across other layers or a nonlinear feature would not show here; the layer-by-layer cosines (Figure 3) show no layer where it moves away.</li>
+    <li><strong>The KL test uses fixed text</strong> (the base model’s replies), so it measures how each model reacts to the same input, not what it would write.</li>
+    <li>The recipe ran in plain PEFT and AdamW rather than the paper’s Unsloth and 8-bit AdamW; the unprevented Evil II model is more evil than the post’s (93.4 against 88.9 on the post’s judge).</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">10</span>Reproduce it</h2>
+  <pre><code>experiments/where-does-the-evil-go/reproduce.sh --dry-run   # the commands
+experiments/where-does-the-evil-go/reproduce.sh             # everything: about 2 hours, ~$16
+experiments/where-does-the-evil-go/reproduce.sh --scores    # summary and figures from cached replies</code></pre>
+  <p>Needs Modal (one H100 per job, up to four at a time) and an OpenRouter key for the gpt-4.1-mini cells. Every launch is checked against a $150 cap in code and logged in <a href="../results/spend.json">results/spend.json</a>.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">11</span>What’s next</h2>
+  <ul>
+    <li>Sweep the preventative coefficient (1.5–4.5) and check whether the damper grows with it.</li>
+    <li>Repeat on Llama-3.1-8B-Instruct, the paper’s other model, and on an emergent-misalignment dataset where the trait is learned indirectly.</li>
+    <li>Find where the damping happens: patch layers 20–27 between the prevented model and its twin to locate the components that shrink the push.</li>
+    <li>Test concept ablation fine-tuning the same way: does removing a direction during training also leave the trait in place and the knob damped?</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">12</span>Questions and answers</h2>
+  <h3 id="q1">What is preventative steering?</h3>
+  <p>A way to fine-tune a model on data that would teach it an unwanted trait without the model learning the trait. During training, the trait’s persona vector is added to the model’s activations, so the data’s pull toward the trait is already satisfied; at inference the push is removed. On Qwen2.5-7B fine-tuned on malicious replies, it cut unprompted evil from 93 to 36.</p>
+  <h3 id="q2">Does preventative steering remove the trait?</h3>
+  <p>Not here. The model still writes evil replies about half the time when a system prompt asks it to (53–60 out of 100, against 91–100 without prevention), and on the malicious dataset adding the vector at 40% of its training strength restores evil to 88.</p>
+  <h3 id="q3">Does the persona vector move after fine-tuning?</h3>
+  <p>Very little. Re-extracted with the same pipeline, the evil vector after preventative steering matches the one from the same fine-tune without prevention at cosine 0.96 (GSM8K) and 0.84 (malicious data); another trait’s vector sits at 0.36 and random directions under 0.03.</p>
+  <h3 id="q4">Why does steering with a persona vector break coherence?</h3>
+  <p>Because the network amplifies pushes along trait directions. A random direction of the same length, at the same layer, keeps Qwen2.5-7B coherent (94–96 out of 100); the evil vector at the same size drops coherence to 12, and later layers amplify it to 3.5 times its injected size against 2.0 for random pushes.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><a href="../results/post_numbers.json">post_numbers.json</a>: the post’s numbers per cell, recomputed from its fork’s CSVs.</li>
+    <li><a href="../results/summary.json">summary.json</a>: every cell (trait and coherence with 95% intervals, coherent count, unscored counts, length, share at the token cap, repeated 4-grams), the paired differences and the KL gains.</li>
+    <li><a href="../results/headline_gpt.json">headline_gpt.json</a>: the 24 headline cells scored by gpt-4.1-mini; <a href="../results/crosscheck.json">crosscheck.json</a>: the two judges on 216 of our replies; <a href="../results/judge_check.json">judge_check.json</a>: our judge on 1,200 of the post’s replies.</li>
+    <li><a href="../results/vectors.json">vectors.json</a>: re-extraction per model (pairs kept, evil on request), cosines by layer, twin cosines, the ceiling, projections; <a href="../results/gain_raw.json">gain_raw.json</a>: per-text KL and residual change per direction.</li>
+    <li><a href="../results/replies_sample.json">replies_sample.json</a>: the replies in section 5. Column meanings for every file are in the <a href="../README.md">README</a>.</li>
+    <li>Questions and prompts: the paper’s evil rubric, 20 extraction and 20 evaluation questions and 5 system-prompt pairs (<a href="../data/trait_extract/evil.json">extract</a>, <a href="../data/trait_eval/evil.json">eval</a>); the post’s coherence prompt (<a href="../data/coherence_prompt.txt">coherence_prompt.txt</a>).</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026wheredoestheevilgo,
+  author = {Albert Lie},
+  title  = {Where does the evil go? Preventative steering turns the knob down; it does not move the trait},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/where-does-the-evil-go/report/}
+}</code></pre>
+  <footer class="note">Credits: the question, vectors and judged replies come from the LessWrong post “Extension on persona vectors: where does the evil go?” and its code (<a href="https://github.com/MarinaFuster/persona_vectors">the post’s code</a>); the pipeline, trait files and training sets from <a href="https://github.com/safety-research/persona_vectors">safety-research/persona_vectors</a> (Apache-2.0). Model: Qwen2.5-7B-Instruct (Apache-2.0).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var mSel = document.getElementById("rx-m"), cSel = document.getElementById("rx-c"), list = document.getElementById("rx-list"), n = document.getElementById("rx-n");
+  var rows = [];
+  function show() {
+    var sel = rows.filter(function (r) { return r.model === mSel.value && r.cell === cSel.value; });
+    list.textContent = "";
+    var evil = 0;
+    sel.forEach(function (r) {
+      if (r.evil !== null && r.evil >= 50) evil++;
+      var d = document.createElement("div"); d.className = "rx-item";
+      var q = document.createElement("p"); q.className = "rx-q"; q.textContent = r.question;
+      var t = document.createElement("span"); t.className = "rx-tag" + (r.evil !== null && r.evil >= 50 ? " rx-evil" : "");
+      t.textContent = "evil " + (r.evil === null ? "–" : r.evil) + " · coherence " + (r.coherence === null ? "–" : r.coherence);
+      q.appendChild(t);
+      var a = document.createElement("p"); a.className = "rx-a"; a.textContent = r.answer;
+      d.appendChild(q); d.appendChild(a); list.appendChild(d);
+    });
+    n.textContent = sel.length ? evil + " of " + sel.length + " evil (≥ 50)" : "no replies for this choice";
+  }
+  fetch("../results/replies_sample.json").then(function (r) { return r.json(); }).then(function (d) { rows = d; show(); }).catch(function () {});
+  mSel.addEventListener("change", show); cSel.addEventListener("change", show);
+})();
+</script>
+</body>
+</html>
