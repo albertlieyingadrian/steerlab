@@ -1,0 +1,12 @@
+# One image for a Modal container that runs Halo's trainer AND its vLLM rollout server on two GPUs.
+# Halo ships them as two images with incompatible torch stacks (Dockerfile, Dockerfile.vllm). Here the trainer image
+# is the base and the vLLM server's whole Python environment (patched vLLM, NCCL pin, sitecustomize patches, pickle
+# shim) is copied into a separate venv, so the server process sees exactly the upstream server image's stack.
+FROM public.ecr.aws/whitecircle/halo:vllm-0.32.0 AS vllm
+
+FROM public.ecr.aws/whitecircle/halo:hopper
+RUN python3 -m venv --without-pip /opt/vllm-venv
+COPY --from=vllm /usr/local/lib/python3.12/dist-packages/ /opt/vllm-venv/lib/python3.12/site-packages/
+COPY --from=vllm /opt/vllm_patches/ /opt/vllm_patches/
+COPY --from=vllm /opt/nccl_compat/ /opt/nccl_compat/
+COPY --from=vllm /opt/gpt_oss_text_tool_parser.py /opt/gpt_oss_reasoning_parser.py /opt/
