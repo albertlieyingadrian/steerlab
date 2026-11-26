@@ -26,7 +26,13 @@ LABEL = {
     "loopmoe_nomix": "looped MoE, no block mixing",
     "loopmoe": "looped MoE (full)",
 }
-COLOR = {"standard": FAINT, "plainloop": CONTROL, "loopmoe_k1": "#c9a27e", "loopmoe_nomix": "#8c5a3c", "loopmoe": ACCENT}
+COLOR = {
+    "standard": FAINT,
+    "plainloop": CONTROL,
+    "loopmoe_k1": "#c9a27e",
+    "loopmoe_nomix": "#8c5a3c",
+    "loopmoe": ACCENT,
+}
 CHAIN_FILES = ("chain_6k_s1337.json", "chain_6k_s1.json", "chain_20k_s1337.json")
 
 
@@ -65,8 +71,9 @@ def fig_ksweep():
         ks = sorted(sw, key=int)
         ys = [mean(sw[k]) for k in ks]
         out[m] = [round(y, 3) for y in ys]
-        ax.plot([int(k) for k in ks], ys, "-o", ms=3.5, lw=2.2 if m == "loopmoe" else 1.4, color=COLOR[m],
-                label=LABEL[m])
+        ax.plot(
+            [int(k) for k in ks], ys, "-o", ms=3.5, lw=2.2 if m == "loopmoe" else 1.4, color=COLOR[m], label=LABEL[m]
+        )
     ax.axhline(0.55, color=FAINT, lw=0.8, ls=":")
     ax.text(1.05, 0.5, "about 0.55: guessing one of the two digits", fontsize=6.5, color=FAINT, va="top")
     ax.set(xlabel="core passes K at inference", ylabel="accuracy, mean over 1-8 hops", ylim=(0, 1.02))
@@ -90,8 +97,15 @@ def fig_hops():
                 continue
             acc = runs[m]["acc"]
             hops = sorted(acc, key=int)
-            ax.plot([int(h) for h in hops], [acc[h] for h in hops], "-o", ms=3, color=COLOR[m],
-                    lw=2 if m == "loopmoe" else 1.2, label=LABEL[m])
+            ax.plot(
+                [int(h) for h in hops],
+                [acc[h] for h in hops],
+                "-o",
+                ms=3,
+                color=COLOR[m],
+                lw=2 if m == "loopmoe" else 1.2,
+                label=LABEL[m],
+            )
             row[m] = [round(acc[h], 2) for h in hops]
         steps = "20,000" if "20k" in n else "6,000"
         seed = n.rsplit("_s", 1)[1].removesuffix(".json")
@@ -111,20 +125,31 @@ def fig_lens():
     name = "lens_20k_s1337.json" if load("lens_20k_s1337.json") else "lens_6k_s1337.json"
     res = load(name)
     panels = [m for m in ("loopmoe_k1", "loopmoe", "plainloop") if m in res]
-    title = {"loopmoe_k1": "block mixing, no loop (output 0.96)", "loopmoe": "block mixing + loop (full model)",
-             "plainloop": "plain loop: one residual stream"}
+    title = {
+        "loopmoe_k1": "block mixing, no loop (output 0.96)",
+        "loopmoe": "block mixing + loop (full model)",
+        "plainloop": "plain loop: one residual stream",
+    }
     widths = [len(res[m]["visits"]) for m in panels]
-    fig, axes = plt.subplots(1, len(panels), figsize=(3.6 * len(panels) + 1, 3.8), sharey=True, squeeze=False,
-                             gridspec_kw={"width_ratios": widths})
+    fig, axes = plt.subplots(
+        1,
+        len(panels),
+        figsize=(3.6 * len(panels) + 1, 3.8),
+        sharey=True,
+        squeeze=False,
+        gridspec_kw={"width_ratios": widths},
+    )
     for ax, m in zip(axes[0], panels, strict=True):
         r = res[m]
         labels = [("out" if v == "Lout" else v) for v in r["visits"]]
         if m == "plainloop":
             ax.plot(r["act_in"], "-", marker=".", color=CONTROL, label="logit lens on the residual stream")
         else:
-            for key, lab, col, ls in (("act_in", "logit lens on the active block", FAINT, "-"),
-                                      ("mlp_in", "the visit's own MoE-input mix", CONTROL, "--"),
-                                      ("mix", "mix lens (the head's final_input mix)", ACCENT, "-")):
+            for key, lab, col, ls in (
+                ("act_in", "logit lens on the active block", FAINT, "-"),
+                ("mlp_in", "the visit's own MoE-input mix", CONTROL, "--"),
+                ("mix", "mix lens (the head's final_input mix)", ACCENT, "-"),
+            ):
                 ax.plot(r[key], ls, marker=".", color=col, label=lab)
         ax.set_xticks(range(len(labels)), labels, rotation=70, fontsize=6.5)
         ax.set_title(title[m], fontsize=9)
@@ -156,10 +181,20 @@ def fig_text():
         v = runs[m]["val"]
         ks = sorted(v, key=int)
         out[m] = {k: round(v[k], 3) for k in ks}
-        ax.plot([int(k) for k in ks], [v[k] for k in ks], "-o", ms=3.5, color=COLOR[m],
-                lw=2.2 if m == "loopmoe" else 1.4, label=LABEL[m])
-    ax.set(xlabel="core passes K at inference (trained at K = 3; standard and K = 1 models at 1)",
-           ylabel="validation loss (nats per character)", ylim=(1.4, 3.2))
+        ax.plot(
+            [int(k) for k in ks],
+            [v[k] for k in ks],
+            "-o",
+            ms=3.5,
+            color=COLOR[m],
+            lw=2.2 if m == "loopmoe" else 1.4,
+            label=LABEL[m],
+        )
+    ax.set(
+        xlabel="core passes K at inference (trained at K = 3; standard and K = 1 models at 1)",
+        ylabel="validation loss (nats per character)",
+        ylim=(1.4, 3.2),
+    )
     ax.legend(fontsize=7, frameon=False)
     style(ax)
     fig.tight_layout()
@@ -181,13 +216,20 @@ def numbers():
 def interactive():
     """The slider's data, inlined into the page: accuracy by hop for every model and K (headline runs)."""
     _, runs = headline()
-    data = {m: {k: [round(runs[m]["sweep"][k][h], 3) for h in sorted(runs[m]["sweep"][k], key=int)]
-                for k in runs[m]["sweep"]} for m in ORDER if m in runs}
+    data = {
+        m: {
+            k: [round(runs[m]["sweep"][k][h], 3) for h in sorted(runs[m]["sweep"][k], key=int)]
+            for k in runs[m]["sweep"]
+        }
+        for m in ORDER
+        if m in runs
+    }
     page = HERE / "report" / "index.html"
     html = page.read_text()
     start, end = "<!-- sweep:start -->", "<!-- sweep:end -->"
-    block = f'{start}\n<script type="application/json" id="lk-data">{json.dumps(data, separators=(",", ":"))}</script>\n{end}'
-    page.write_text(html[: html.index(start)] + block + html[html.index(end) + len(end):])
+    payload = json.dumps(data, separators=(",", ":"))
+    block = f'{start}\n<script type="application/json" id="lk-data">{payload}</script>\n{end}'
+    page.write_text(html[: html.index(start)] + block + html[html.index(end) + len(end) :])
     print("wrote the slider data into report/index.html")
 
 
