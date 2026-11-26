@@ -12,12 +12,18 @@ Functions:
 
 # ruff: noqa: B905, RUF028  (long data lines and per-iteration closures read better as they are)
 
+import os
 from pathlib import Path
 
 import modal
 
 HERE = Path(__file__).resolve().parent
-NEURONKIT = Path.home() / "Albert-Workspace" / "Random" / "neuronkit" / "src" / "neuronkit"
+NEURONKIT = (
+    Path(os.environ["NEURONKIT_SRC"])
+    if os.environ.get("NEURONKIT_SRC")
+    else Path(__import__("neuronkit").__file__).parent
+)
+"""The neuronkit package folder uploaded into the images: a source checkout (NEURONKIT_SRC) or the installed one."""
 
 app = modal.App("neurons-basis")
 hf = modal.Secret.from_name("huggingface-secret")

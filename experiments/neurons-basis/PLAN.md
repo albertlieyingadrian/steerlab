@@ -182,7 +182,7 @@ Seeds 0. All apps stopped at the end.
 7. **2026-11-25, OLMoE subcircuits: firings that route differently when traced alone are dropped.** In bf16, a
    document traced on its own can route a token to different experts than in the padded batch where its firing was
    found; those firings (counted per pole in `n_skipped`) are dropped from the subcircuit, mode and damage steps.
-8. **2026-11-25, before any run on it: their exact model, Qwen3.6-35B-A3B (user request).** Public on Hugging Face
+8. **2026-11-25, before any run on it: their exact model, Qwen3.6-35B-A3B (added after the first results).** Public on Hugging Face
    (`Qwen/Qwen3.6-35B-A3B`, bf16, 40 layers, 256 experts of 512 neurons, 8 routed + 1 shared expert; the post-trained
    model the post uses). One H200 on Modal; the language model only. Rule copied from the post: on every token and
    layer, keep the 320 of the 4,096 routed neurons with the largest |router-weighted activation| and zero the rest

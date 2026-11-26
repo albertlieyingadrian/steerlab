@@ -33,9 +33,9 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 LAB = HERE.parents[1]
 sys.path.insert(0, str(HERE.parent / "detector-sanity-checks"))
-for p in (Path.home() / "Albert-Workspace/Random/neuronkit/src",):
-    if p.is_dir():
-        sys.path.insert(0, str(p))
+for p in os.environ.get("NEURONKIT_PATHS", "").split(os.pathsep):  # optional source checkouts; else pip-installed
+    if p and p not in sys.path:
+        sys.path.insert(0, p)
 
 import detectors as t  # noqa: E402
 from neuronkit import Neuron  # noqa: E402

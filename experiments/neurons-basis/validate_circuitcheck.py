@@ -20,12 +20,9 @@ import torch
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-for p in (
-    Path.home() / "Albert-Workspace/Random/neuronkit/src",
-    Path.home() / "Albert-Workspace/Random/circuitcheck/src",
-):
-    if p.is_dir():
-        sys.path.insert(0, str(p))
+for p in os.environ.get("NEURONKIT_PATHS", "").split(os.pathsep):  # optional source checkouts; else pip-installed
+    if p and p not in sys.path:
+        sys.path.insert(0, p)
 
 import monitors_phase2 as M  # noqa: E402
 import zeroshot_phase2 as Z  # noqa: E402
