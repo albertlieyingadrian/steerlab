@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>An Inkling-style looped MoE is the slowest of five toy models to learn, and the plain logit lens misreads it</title>
+<meta name="description" content="A toy rebuild of Inkling 2 Mini's design (no single residual stream, passes that restart with a gated message, a mixture of experts) beside a plain loop at matched active parameters. On 1-8-link chains the plain loop learns in 6,000 steps (0.99); the full Inkling-style model reaches only 0.70 after 20,000, while each simpler variant reaches 0.96-0.99. Without one stream, the plain logit lens drops to 0.01 inside the network; each layer's own MoE-input mix reads best.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="An Inkling-style looped MoE is the slowest of five toy models to learn, and the plain logit lens misreads it">
+<meta property="og:description" content="A toy rebuild of Inkling 2 Mini&#x27;s design (no single residual stream, passes that restart with a gated message, a mixture of experts) beside a plain loop at matched active parameters. On 1-8-link chains the plain loop learns in 6,000 steps (0.99); the full Inkling-style model reaches only 0.70 after 20,000, while each simpler variant reaches 0.96-0.99. Without one stream, the plain logit lens drops to 0.01 inside the network; each layer&#x27;s own MoE-input mix reads best.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four rows of small rectangles on a dark ground, one column per layer visit of a toy looped model, split by gaps into a prelude, three core passes and a coda; the bottom blue row brightens pass by pass, while the three orange rows above it stay mid-bright, one of them going dark once in every pass.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="An Inkling-style looped MoE is the slowest of five toy models to learn, and the plain logit lens misreads it">
+<meta name="twitter:description" content="A toy rebuild of Inkling 2 Mini&#x27;s design (no single residual stream, passes that restart with a gated message, a mixture of experts) beside a plain loop at matched active parameters. On 1-8-link chains the plain loop learns in 6,000 steps (0.99); the full Inkling-style model reaches only 0.70 after 20,000, while each simpler variant reaches 0.96-0.99. Without one stream, the plain logit lens drops to 0.01 inside the network; each layer&#x27;s own MoE-input mix reads best.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-26">
+<meta property="article:modified_time" content="2026-11-26">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "An Inkling-style looped MoE is the slowest of five toy models to learn, and the plain logit lens misreads it",
+ "description": "A toy rebuild of Inkling 2 Mini's design (no single residual stream, passes that restart with a gated message, a mixture of experts) beside a plain loop at matched active parameters. On 1-8-link chains the plain loop learns in 6,000 steps (0.99); the full Inkling-style model reaches only 0.70 after 20,000, while each simpler variant reaches 0.96-0.99. Without one stream, the plain logit lens drops to 0.01 inside the network; each layer's own MoE-input mix reads best.",
+ "abstract": "Model architecture series, Episode 4. An Inkling-style looped mixture of experts rebuilt at toy scale from Inkling 2 Mini's public transformers implementation (not affiliated with Thinking Machines): 8 layers of width 128 in 4 blocks of 2, core blocks run K = 3 times, no single residual stream (per-sublayer softmax mixes over RMS-normalized blocks, a final_input mix for the head), passes that restart from the prelude with 4 gated messages per core layer, a top-4-of-16 sigmoid-routed MoE in every layer; 3,837,824 stored and 1,478,528 active parameters. Baselines at matched active parameters (1,323,136): a standard transformer and a plain loop with one carried residual stream; ablations: one pass, no block mixing. Chains of 1-8 links, 1,000 test puzzles, mean accuracy (guessing floor about 0.55). 6,000 steps (seeds 1337/1): plain loop 0.986/0.998, standard 0.570/0.653, one-pass MoE 0.589/0.664, no-mix 0.672/0.629, full 0.561/0.568. 20,000 steps (seed 1337): standard 0.985, plain loop 0.999, one-pass 0.960, no-mix 0.991, full 0.696 (0.87 at 1 link to 0.56 at 8). Pass count at test: plain loop 0.999/0.993/0.974 at K = 4/5/6; restart-plus-message no-mix 0.991 at 3 but 0.574 at 4. Lens (20,000 steps, 500 puzzles): plain loop's logit lens 0.55, 0.67, 0.75, 0.80-0.84, 1.00 by pass; in the one-pass block-mixing model (output 0.962) the active-block logit lens drops to 0.007 and reads 0.538 at the end, each layer's MoE-input mix reads 0.62-0.77 in the last two layers, the head's own mix stays at 0.55 until the last layer. Tiny Shakespeare val loss at 3,000 steps: standard 1.640, plain loop 1.622, full 1.817. $20.14 Modal.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-26",
+ "dateModified": "2026-11-26",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "looped transformer, mixture of experts, Inkling 2 Mini, attention residuals, block mixing, recurrent depth, logit lens, interpretability, nanoGPT, Looped Lens Challenge",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://thinkingmachines.ai/news/inkling-2-mini/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/thinkingmachines/Inkling-2-Mini"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://nnsight.net/blog/2026/11/20/opening-the-box-of-inkling-2-mini-using-nnsight-ndif/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://ndif.us/looped-lens-challenge/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2603.15031"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.02622"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2409.19606"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/1807.03819"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2502.05171"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2101.03961"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2401.06066"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.19437"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  .lk { margin: 1.4rem 0 1.8rem; }
+  .lk-row { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 0.6rem; align-items: end; margin: 0.35rem 0; }
+  .lk-name { font: 0.72rem var(--font-mono); color: var(--ink-soft); }
+  .lk-bars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; height: 48px; align-items: end; }
+  .lk-bar { background: var(--ink-faint); border-radius: 2px 2px 0 0; min-height: 1px; }
+  .lk-bar.solved { background: var(--accent); }
+  .lk-bar.ctl.solved { background: var(--control); }
+  .lk-axis { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; font: 0.62rem var(--font-mono); color: var(--ink-soft); text-align: center; }
+  .lk-note { font: 0.75rem var(--font-mono); color: var(--ink-soft); margin: 0.3rem 0 0; }
+  pre.snip { font-size: 0.8rem; }
+  @media (max-width: 640px) { .lk-row { grid-template-columns: 6.5rem minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Model architecture · Episode 4<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-26">Nov 26, 2026</time></p>
+  <h1>An Inkling-style looped MoE is the slowest of five toy models to learn, and the plain logit lens misreads it</h1>
+  <p class="dek ruled">For anyone reading or building looped models. We rebuilt Inkling 2 Mini's architecture at toy scale from its public code (an Inkling-style model; we are not affiliated with Thinking Machines), trained it beside a plain looped transformer with the same active parameters, and asked two things: does the design learn to use its loop, and which state should a lens read when there is no single residual stream?</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="Four rows of small rectangles on a dark ground, one column per layer visit of a toy looped model, split by gaps into a prelude, three core passes and a coda. The bottom row is blue and brightens pass by pass toward the right; the three orange rows above it stay mid-bright, with one row going dark once in every pass and brightening only at the end.">
+    <figcaption>Cover: every layer visit of two toy models (columns: prelude, three core passes, coda and output, split by gaps), 20,000 training steps. Bottom row (blue): the plain loop's single residual stream. Upper rows (orange): the Inkling-style model's active block, its visit's own MoE-input mix, and the output head's mix. Brighter means more of 500 test puzzles have the answer as the top token. Drawn by <code>make_cover.py</code> from <code>results/</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Model architecture, Episode 4</dd></div>
+    <div><dt>Models</dt><dd>Five transformers trained from scratch in plain PyTorch, 8 layers of width 128 in 4 blocks of 2, 1.32-1.48M active parameters each: an Inkling-style looped MoE (3.84M stored, 16 experts, 4 active per token), the same model without its loop and without block mixing, a plain loop with one residual stream, and a standard transformer</dd></div>
+    <div><dt>Task</dt><dd>Follow a chain of assignments (<code>z=4;m=5;u=z;k=m;y=k;</code> then <code>y?</code>) to its digit: two interleaved chains of 1-8 links, one question per variable, 1,000 test puzzles; and next-character prediction on Tiny Shakespeare</dd></div>
+    <div><dt>Code and data</dt><dd>the one-file model: <a href="https://github.com/albertlieyingadrian/nanoloop-moe">nanoloop-moe</a> · the stage-by-stage course: <a href="https://github.com/albertlieyingadrian/build-a-looped-moe">build-a-looped-moe</a> · <a href="../results/chain_20k_s1337.json">results/</a> · <a href="../make_figures.py">make_figures.py</a></dd></div>
+    <div><dt>Effort</dt><dd>One day; $20.14 of Modal GPU time (H100 and A10G, about $3 of it a run killed midway); no API models</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What is an Inkling-style looped MoE, and how does it compare with a plain looped transformer?</strong></p>
+    <p>It is a transformer whose middle layers run several times with the same weights, with two twists from Inkling 2 Mini: there is no single residual stream (each layer reads its own learned mix of finished blocks of layers), and every pass restarts from the first block, hearing from the previous pass only through a gated message. At toy scale, on chains of 1-8 links, a plain loop with one stream learned the task in 6,000 steps (0.99 in both seeds). The full Inkling-style model was the slowest of five: 0.56-0.57 at 6,000 steps and 0.70 at 20,000, when every simpler variant had reached 0.96-0.99. Inside a block-mixing model, the plain logit lens on the active block drops to 0.01; each layer's own MoE-input mix is the best read.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>How fast does each design learn chains of 1-8 links?</td><td><strong>The full Inkling-style model is slowest.</strong> Mean accuracy 0.561 / 0.568 at 6,000 steps (seeds 1337 / 1), 0.696 at 20,000</td><td>Plain loop 0.986 / 0.998 at 6,000. At 20,000: standard 0.985, no-loop MoE 0.960, no-mix loop 0.991</td></tr>
+      <tr><td>Does the loop add capability here?</td><td><strong>Speed, not reach.</strong> With 20,000 steps a standard 8-layer model also solves every length (0.96-1.00 per length); at 6,000 it was at 0.57 / 0.65</td><td>Plain loop 0.99-1.00 per length at both budgets</td></tr>
+      <tr><td>Can the pass count change at test time?</td><td><strong>Only with a carried stream.</strong> Plain loop trained at 3 passes: 0.999 at 4, 0.974 at 6. Restart-plus-message loop: 0.991 at 3, 0.574 at 4, 0.596 at 6</td><td>Standard model forced to loop: 0.985 → 0.558</td></tr>
+      <tr><td>Can the plain logit lens read a model without one stream?</td><td><strong>No.</strong> In the block-mixing model (output 0.962) it drops to 0.007 entering layer 6 and reads 0.538 even at the end; the visit's own MoE-input mix reads 0.62-0.77 in the last two layers; the head's mix applied early stays at the 0.55 floor until the last layer</td><td>Plain loop: the logit lens climbs pass by pass, 0.55 → 0.67 → 0.75 → 1.00</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Accuracy: share of 1,000 fixed test puzzles' questions answered right, averaged over chain lengths 1-8. Every prompt holds two digits, so always naming one of them scores about 0.55 (the guessing floor). Two seeds per chain model at 6,000 steps, one at 20,000; one seed per text model.</p>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: what is a residual stream, and what replaces it here?</p>
+    <p>In an ordinary transformer every layer adds its output to one running sum, the residual stream, like a shared notebook every worker writes into. Inkling 2 Mini has no shared notebook. Layers are grouped into blocks of six; inside a block, outputs add up on a fresh page (the <em>active block</em>). When a block ends, its page is filed away (<em>finished blocks</em>), and every later sublayer reads its own weighted blend of the filed pages plus the current one, with weights it learned (<em>block mixing</em>, after <a href="https://arxiv.org/abs/2603.15031">Attention Residuals</a>). Its middle two blocks run three times; each run starts again from the first block's pages, and the previous run's pages reach it only as a <em>message</em> through a learned gate. The <a href="https://thinkingmachines.ai/news/inkling-2-mini/">release post</a> and an <a href="https://nnsight.net/blog/2026/11/20/opening-the-box-of-inkling-2-mini-using-nnsight-ndif/">nnsight walkthrough</a> describe it.</p>
+  </aside>
+
+  <section aria-labelledby="introduction">
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask a model what <code>y</code> holds in <code>z=4;m=5;u=z;k=m;y=k;</code> and it has to look up <code>k</code>, then <code>m</code>, then the digit: three lookups in a row. Our earlier looped transformers did about one lookup per pass. This note builds a model the way Inkling 2 Mini is built and trains it on the same kind of puzzle. After 6,000 steps the plain loop answered almost everything; the Inkling-style model still named one of the prompt's two digits at random, and after 20,000 steps it was the only one of five models that had not learned the task.</p>
+  <p><strong>What is known.</strong> Looping a shared block buys depth without weights (<a href="https://arxiv.org/abs/1807.03819">Universal Transformers</a>, <a href="https://arxiv.org/abs/2502.05171">recurrent depth</a>), as our earlier notes showed at toy scale (<a href="../../looped-transformer/report/">Episode 1</a>, <a href="../../looped-transformer-from-scratch/report/">Episode 2</a>). Inkling 2 Mini ships the idea in a 26B mixture of experts with block mixing and gated messages. Our <a href="../../looped-lens/report/">Episode 3</a> read the released model and found the plain logit lens names its hidden step on 2% of questions inside the loop, and each layer's MoE input the best raw read.</p>
+  <p><strong>What is missing.</strong> A small, readable copy of the whole design, with each part switchable, trained beside a plain loop at matched active parameters, to see what the loop buys and what block mixing and restarts cost; and a toy where we know the answer, to see why lenses struggle without one residual stream.</p>
+  <p><strong>What this note does.</strong> It builds <a href="https://github.com/albertlieyingadrian/nanoloop-moe">nanoloop-moe</a>, a one-file Inkling-style looped MoE checked against Inkling 2 Mini's public implementation, and a <a href="https://github.com/albertlieyingadrian/build-a-looped-moe">stage-by-stage course</a> that ends in the same file. Contributions:</p>
+  <ol>
+    <li>An open, tested toy of the architecture, with a list of which details are verified from public code and which are our stand-ins.</li>
+    <li>A measurement: at matched active parameters the full design learns slowest, the plain loop fastest, and only the plain loop can change its pass count at test time.</li>
+    <li>A toy version of the Looped Lens Challenge question with a known answer: which of the possible states a lens should read when there is no single residual stream.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="setup">
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>The architecture.</strong> Eight layers in four blocks of two: a prelude block, two core blocks run K times with shared weights (K = 3 in training, any K at test), and a coda block. Every layer has attention and a mixture of experts (16 experts, the top 4 per token, a sigmoid router). Each layer's attention reads three learned mixes of the blocks (one each for queries, keys and values), its MoE reads a fourth, and the output head reads a fifth, <code>final_input</code>. Every core pass restarts from the prelude's blocks; from pass 2 on, each core layer reads four messages from the previous pass's core blocks and merges them through a gate:</p>
+  <pre class="snip"><code>mix(blocks, active):   softmax over blocks of (rms(block) . query) -> weighted average of rms(block)
+gate(x, msg):          z = down([rms(x), rms(msg)])                   # rank 16 (Inkling: 64)
+                       x = (1 - tanh(W_f z)) * x + tanh(W_m z) * msg  # W_f, W_m start at zero: gate closed</code></pre>
+  <p><strong>Verified against public code, and what we assumed.</strong> We read the Hugging Face <code>transformers</code> implementation (<code>models/inkling2_loop</code>) and the released <code>config.json</code>.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Verified and assumed"><table>
+    <thead><tr><th>Part</th><th>Inkling 2 Mini (verified)</th><th>Here</th></tr></thead>
+    <tbody>
+      <tr><td>Layout</td><td>24 layers, blocks of 6; core = layers 6-17, run 3 times; 48 visits</td><td>8 layers, blocks of 2; a test builds the real layout and checks 48 visits</td></tr>
+      <tr><td>No single residual stream</td><td>outputs add only inside the active block; per-sublayer softmax mix over RMS-normalized blocks with a learned query, zero at start</td><td>same</td></tr>
+      <tr><td>Mixes per layer</td><td>3 for q/k/v in full-attention layers, 1 for the MoE, plus <code>final_input</code></td><td>3 in every layer</td></tr>
+      <tr><td>Passes</td><td>restart from the prelude's blocks; 4 messages per core layer through learned queries; rank-64 tanh gates, closed at start</td><td>same, rank 16</td></tr>
+      <tr><td>MoE</td><td>every layer; 8 of 128 experts; sigmoid router with a selection-only bias; weights renormalized ×8; softcapped SwiGLU; no shared expert</td><td>4 of 16, ×4; shared expert optional, off</td></tr>
+      <tr><td>Load balancing</td><td>the router bias exists; how it is trained is not public</td><td><em>Assumed</em>: the auxiliary-loss-free sign update of DeepSeek-V3, rate 0.001</td></tr>
+      <tr><td>Attention details</td><td>local and global layers, learned relative position bias, short convolutions, clipped q/k, gated output</td><td><em>Stand-in</em>: plain causal attention with rotary positions, no convolutions</td></tr>
+      <tr><td>Training</td><td>not public in detail (pruned 384 → 128 experts, distilled)</td><td><em>Ours</em>: AdamW 5e-4, clip 1, a hop curriculum</td></tr>
+    </tbody>
+  </table></div>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Models"><table>
+    <thead><tr><th>Model</th><th>What changes</th><th class="num">Stored</th><th class="num">Active</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td><code>loopmoe</code></td><td>the full Inkling-style model, K = 3</td><td class="num">3,837,824</td><td class="num">1,478,528</td><td>The model</td></tr>
+      <tr><td><code>loopmoe_k1</code></td><td>trained and run with one pass (block mixing and MoE kept)</td><td class="num">3,837,824</td><td class="num">1,478,528</td><td>Ablation: the loop</td></tr>
+      <tr><td><code>loopmoe_nomix</code></td><td>every mix replaced by the plain sum of blocks (exactly a residual stream within a pass); restarts and messages kept</td><td class="num">3,837,824</td><td class="num">1,478,528</td><td>Ablation: block mixing</td></tr>
+      <tr><td><code>plainloop</code></td><td>one residual stream carried across passes, a dense layer as wide as the MoE's active experts, the prelude output re-added each pass (the nanoloop-transformer recipe)</td><td class="num">1,323,136</td><td class="num">1,323,136</td><td>Baseline: a plain loop</td></tr>
+      <tr><td><code>standard</code></td><td>the same network run once</td><td class="num">1,323,136</td><td class="num">1,323,136</td><td>Baseline: no loop</td></tr>
+    </tbody>
+  </table></div>
+  <p>The MoE models have 12% more active parameters than the dense ones (mixing queries, gates and routers). These ablations and baselines play the role a random-direction control plays in our steering notes: each removes one ingredient so its effect can be read off.</p>
+  <p><strong>What counts as success</strong>, set before the runs:</p>
+  <ol>
+    <li>The full model beats the standard transformer and its own one-pass version on chains of 4-8 links (it uses its loop).</li>
+    <li>It at least matches the plain loop at matched active parameters.</li>
+    <li>For the lens: the plain loop's logit lens should rise pass by pass; we ask which of the block-mixing models' three reads does the same.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="process">
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Read the public implementation</strong> and the model's config; write the toy and 12 CPU tests (the 48-visit layout, passes restart from the prelude, the gate starts closed, a mix with zero queries is an average and with mixing off is the residual stream, the stacked MoE equals routing token by token).</li>
+    <li><strong>Train the five chain models</strong> on seed 1337, 6,000 steps of 128 fresh puzzles each, on Modal H100s; score each on 1,000 fixed test puzzles at K = 1-6.</li>
+    <li><strong>Train the five text models</strong>, 3,000 steps on Tiny Shakespeare; validation loss at K = 1, 2, 3, 4, 6.</li>
+    <li><strong>Repeat the chain runs on seed 1</strong>, after seeing seed 1337, to check the result was not one bad seed.</li>
+    <li><strong>Train all five for 20,000 steps</strong> on seed 1337, after seeing that 6,000 steps left four of five models near the floor. Standard and no-loop ran on A10G; plain loop, no-mix and the full model on H100, after the first A10G run of those three was killed midway.</li>
+    <li><strong>Run the lens</strong> on the 20,000-step checkpoints of the full model, the no-loop block-mixing model and the plain loop: 500 test puzzles, every layer visit.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed and changed"><table>
+    <thead><tr><th>Fixed before the runs</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Architecture, the five models, task, test set, learning rate, success tests, the three lens reads</td><td>Added a second seed and the 20,000-step runs; added the no-loop model to the lens once it was the only well-trained block-mixing model. Nothing about the models changed.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: PyTorch 2.5.1, float32, batch 128, context 96 characters; 6,000-step runs took 2.5-14 minutes per model on an H100. One sign that training is touchy: the killed A10G run of the full model, same seed and code, had reached 6-link chains in its curriculum by step 4,140; the H100 rerun stayed at 5 or fewer through 20,000 steps. The two GPUs' arithmetic differs slightly, and the runs diverged.</p>
+  </section>
+
+  <section aria-labelledby="results">
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="speed" data-short="Learning speed">4.1 The plain loop learns first; the full Inkling-style model last</h3>
+  <p>One test puzzle shows what "not learned" looks like: <code>y=7;n=y;r=n;p=5;v=r;</code> then <code>n?y?r?p?v?</code>. At 6,000 steps the plain loop answers 7, 7, 7, 5, 7, all right; the full Inkling-style model answers 5 to every question, right only for <code>p</code>. It has learned to name a digit from the prompt, not to follow the chain (<a href="../results/examples_6k_s1337.txt">6,000-step samples</a>). At 20,000 steps all five models answer this short puzzle right (<a href="../results/examples_20k_s1337.txt">20,000-step samples</a>); the difference is on longer chains.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Learning speed"><table>
+    <thead><tr><th>Model</th><th>6,000 steps, seed 1337 / 1</th><th>20,000 steps, seed 1337</th><th>1 link</th><th>4 links</th><th>8 links</th></tr></thead>
+    <tbody>
+      <tr><td>standard</td><td>0.570 / 0.653</td><td>0.985</td><td>1.00</td><td>0.99</td><td>0.96</td></tr>
+      <tr><td>plain loop</td><td><strong>0.986 / 0.998</strong></td><td>0.999</td><td>1.00</td><td>1.00</td><td>0.99</td></tr>
+      <tr><td>looped MoE, one pass</td><td>0.589 / 0.664</td><td>0.960</td><td>0.96</td><td>0.96</td><td>0.95</td></tr>
+      <tr><td>looped MoE, no mixing</td><td>0.672 / 0.629</td><td>0.991</td><td>1.00</td><td>1.00</td><td>0.96</td></tr>
+      <tr class="hl"><td>looped MoE (full)</td><td>0.561 / 0.568</td><td>0.696</td><td>0.87</td><td>0.72</td><td>0.56</td></tr>
+    </tbody>
+  </table></div>
+  <p>Mean accuracy over 1-8 links at each model's trained pass count; the last three columns are the 20,000-step runs. At 6,000 steps only the plain loop had left the 0.55 floor. By 20,000 the standard model, the one-pass MoE and the no-mix loop had caught up (0.96-0.99), and the full model was still falling with chain length, from 0.87 on 1 link to 0.56 on 8 (Figure 2). Success test 2 fails: the full model never matches the plain loop. Test 1 fails too: at 20,000 steps it trails both the standard model and its own one-pass version. Each ingredient alone trains; block mixing and the restarting loop together are what slow it down.</p>
+  <figure class="plot">
+    <img src="figures/fig2-hops.png" alt="Three panels of accuracy against chain length 1 to 8 for five models. In the two 6,000-step panels the blue plain-loop line stays near 1.0 and the other lines fall to about 0.55 by four links. In the 20,000-step panel four lines are near 1.0 and the orange full-model line falls from 0.87 to 0.56.">
+    <figcaption><span class="label">Figure 2.</span>Accuracy by chain length at each model's trained pass count (1,000 test puzzles): 6,000 steps on seeds 1337 and 1, and 20,000 steps on seed 1337. At 6,000 steps only the plain loop (blue) has learned; at 20,000 only the full Inkling-style model (orange) has not.</figcaption>
+  </figure>
+
+  <h3 id="speed-not-reach" data-short="Speed, not reach">4.2 Here the loop buys learning speed, not reach</h3>
+  <p>A standard 8-layer model with no loop solves every chain length at 20,000 steps (0.96-1.00 per length), so on this task eight layers are deep enough. What the plain loop bought was speed: it reached 0.99 by 6,000 steps in both seeds, when the standard model was at 0.57 and 0.65. Our <a href="../../looped-transformer-from-scratch/report/">Episode 2</a> used a 3-block model, where chains past one pass's reach made the loop necessary; a version of this task with longer chains would be needed to see that here.</p>
+
+  <h3 id="passes" data-short="Changing K at test time">4.3 Only a loop that carries its stream can change its pass count</h3>
+  <p>Figure 1 runs each 20,000-step model with 1-6 core passes. The plain loop, trained at 3, also works at 4 (0.999), 5 (0.993) and 6 (0.974). The no-mix loop, whose passes restart and exchange messages, works only at its trained 3 (0.991) and drops to 0.574 at 4 and 0.596 at 6. The full model peaks at 3 (0.696). The one-pass MoE is flat at 0.960 whatever K is: its message gates were never trained, so they stay closed, every pass restarts from the same prelude, and every pass computes the same thing. Inkling 2 Mini also supports only a fixed loop count; its makers released a separate model trained with 1-5 passes for studying different counts.</p>
+  <figure class="plot">
+    <img src="figures/fig1-ksweep.png" alt="Mean chain accuracy against the number of core passes from 1 to 6 for five models after 20,000 steps. The blue plain-loop line rises from 0.56 to 0.999 at 3 and stays above 0.97. The brown no-mix line spikes to 0.99 at 3 and falls back to 0.55-0.88 elsewhere. The orange full-model line peaks at 0.70 at 3. The no-loop MoE is flat at 0.96; the standard model falls from 0.985 as passes are added.">
+    <figcaption><span class="label">Figure 1.</span>Accuracy averaged over chain lengths 1-8 (1,000 test puzzles) against the number of core passes K at test time, 20,000 training steps, seed 1337. Looped models were trained at K = 3, the standard and one-pass models at 1. Only the plain loop (blue) works at pass counts it was not trained on.</figcaption>
+  </figure>
+
+  <div class="lk" id="loopk">
+    <label class="explorer-label">Passes <input type="range" id="lk-k" min="1" max="6" step="1" value="3" aria-label="Number of core passes"> <span class="explorer-value" id="lk-kv"></span></label>
+    <div id="lk-rows"></div>
+    <div class="lk-row"><span class="lk-name"></span><div class="lk-axis" id="lk-axis"></div></div>
+    <p class="lk-note">Accuracy by chain length 1-8 for each model at the chosen number of passes (20,000 steps, seed 1337, 1,000 puzzles); filled = at least 90% right.</p>
+  </div>
+  <p class="note">Interactive figure: drag the slider to run every model with a different number of core passes.</p>
+
+  <h3 id="lens" data-short="Lens without one stream">4.4 Without one residual stream, the plain logit lens reads the wrong state</h3>
+  <p>A logit lens applies the model's final norm and output head to a hidden state early. In the plain loop there is one obvious state to read, the residual stream, and Figure 3 (right) shows it doing what we hoped: about 0.55 through pass 1, 0.67 in pass 2, 0.75 in pass 3, 0.80-0.84 in the coda and 1.00 at the output. A block-mixing model has no such state. We read three, first on the one block-mixing model that learned the task well, the one-pass MoE (output 0.962; Figure 3, left):</p>
+  <ul>
+    <li><strong>The active block</strong>, the read the Looped Lens Challenge starts from: it swings from 0.55 down to 0.007 entering layer 6 and reads 0.538 even after the last layer. Each active block holds only what its own layers added since the last block boundary; the output head never reads it alone.</li>
+    <li><strong>The visit's own MoE-input mix</strong>: the best read inside the network, 0.62 entering layer 6 and 0.77 entering layer 7.</li>
+    <li><strong>The output head's mix applied early</strong> (a "mix lens": what the model would say if it stopped here): at the 0.55 floor until the last layer, 0.72 entering layer 7, and by construction exactly the output (0.962) at the end. The head's mix was learned for the end of the network; earlier, it weights blocks that do not yet hold the answer.</li>
+  </ul>
+  <p>The full model (Figure 3, middle; output 0.749) shows the same pattern once per pass: the active-block lens drops to 0.09-0.13 entering layer 5 in every pass (when the active block holds only layer 4's additions), and the mix lens stays at 0.52-0.60 until the end. The same ranking held on the released model in <a href="../../looped-lens/report/">Episode 3</a>: each layer's MoE input was the best untrained read, and the head's own mix was poor mid-loop. Success test 3 is met by the plain loop only.</p>
+  <figure class="plot">
+    <img src="figures/fig3-lens.png" alt="Three panels of lens accuracy across layer visits. Left, the one-pass block-mixing model: the grey active-block line falls to near 0 at layer 6; the blue dashed MoE-input line rises to 0.77 at layer 7; the orange mix-lens line is flat at 0.55 until it rises to 0.72 and then 0.96 at the output. Middle, the full looped model: the grey line dips to about 0.1 once per pass; the other two lines stay near 0.55 until the end. Right, the plain loop: one blue line rises in steps from 0.55 to 1.0.">
+    <figcaption><span class="label">Figure 3.</span>Share of 500 test puzzles' questions where each read's top token is the answer, at every layer visit (L = layer entered, p = pass), 20,000 steps, seed 1337. Left and middle: three reads of the block-mixing models. Right: the plain loop's residual stream entering each core and coda visit. "out" is the final state; for the block-mixing models the orange point there is the model's own output. Dotted: the 0.55 guessing floor.</figcaption>
+  </figure>
+
+  <h3 id="text" data-short="Text: no gain">4.5 On text, the loop does not help at this size</h3>
+  <p>On Tiny Shakespeare (Figure 4, 3,000 steps, one seed), the plain loop at its trained 3 passes (1.622) matches the standard transformer (1.640), as in our earlier notes where text was not depth-hungry. The full looped MoE is worse than both (1.817) and slightly worse than its one-pass version (1.784); the no-mix loop sits between (1.757). Differences under about 0.05 are within what one seed can show.</p>
+  <figure class="plot">
+    <img src="figures/fig4-shakespeare.png" alt="Validation loss against the number of core passes for five models on Tiny Shakespeare. The standard model rises from 1.64 as passes are forced on it; the plain loop and the looped MoE fall steeply from one pass to their trained three passes, to 1.62 and 1.82; the one-pass MoE is flat at 1.78.">
+    <figcaption><span class="label">Figure 4.</span>Validation loss (nats per character, 10 batches of 128 windows of 96 characters) against K at test time, one seed, 3,000 steps. Looped models are worst at one pass because they were trained at three; none beats the standard model by more than 0.02.</figcaption>
+  </figure>
+  </section>
+
+  <section aria-labelledby="compare">
+  <h2 id="compare" data-short="Compared with earlier work"><span class="num">05</span>Compared with earlier work</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison"><table>
+    <thead><tr><th></th><th>Episode 2: from-scratch loop (0.16M)</th><th>This note (1.5M active)</th><th>Episode 3: Inkling 2 Mini (3.4B active)</th></tr></thead>
+    <tbody>
+      <tr><td>Plain loop learns the chains</td><td>✓ every seed</td><td>✓ both seeds, fastest of five</td><td>n/a</td></tr>
+      <tr><td>Restart + gated message trains reliably</td><td>✗ (2 of 3 seeds, one-gate version)</td><td>✓ without mixing (20,000 steps); ✗ with mixing</td><td>✓ at scale</td></tr>
+      <tr><td>Works at untrained pass counts</td><td>✓ carried stream</td><td>✓ carried stream; ✗ restarts</td><td>fixed count only</td></tr>
+      <tr><td>Plain logit lens reads mid-network</td><td>✓ carry-forward; ✗ restart</td><td>✓ plain loop; ✗ block mixing</td><td>✗ (2% inside the loop)</td></tr>
+      <tr><td>Best untrained read without one stream</td><td>n/a</td><td>each layer's MoE input</td><td>each layer's MoE input</td></tr>
+    </tbody>
+  </table></div>
+  <p>The released model clearly uses its loop and its block mixing, so the gap we see is about scale, data and schedule, which we do not reproduce. What carries over is the reading problem: in both the toy and the real model, a lens has to choose among several states, and the obvious ones (the active block, the head's own mix) are not the best mid-network.</p>
+  </section>
+
+  <section aria-labelledby="implications">
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Looped models move reasoning from visible tokens into repeated passes, and an architecture without a single residual stream has no one place a monitor can read. In our toy the plain logit lens on the active block fell to 0.007 while the model was right 96% of the time, so a monitor built on it would report "nothing here" while the computation was happening. A toy where the answer is known costs a few dollars and shows which state carries it. <strong>Before monitoring a model with no single residual stream, name the state the lens reads and check that read on a small replica where the answer is known.</strong></p>
+  </section>
+
+  <section aria-labelledby="limits">
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>That Inkling's design is worse.</strong> At 26B parameters, with its data and schedule, it uses its loop. Our result is about a 1.5M-active toy at 6,000-20,000 steps; a warm-up, a per-pass loss or a tuned learning rate might close the gap.</li>
+    <li><strong>Seeds.</strong> Two seeds per chain model at 6,000 steps, one at 20,000, one per text model. The killed A10G run shows how much one run can vary.</li>
+    <li><strong>Mixed hardware</strong> at 20,000 steps (A10G for two models, H100 for three). Same code and seed, but the arithmetic differs slightly.</li>
+    <li><strong>Depth.</strong> At 20,000 steps eight layers were enough for 8-link chains, so this setup cannot show the loop adding reach, only speed.</li>
+    <li><strong>Stand-ins.</strong> Plain attention with rotary positions instead of Inkling's local/global attention, relative position bias and convolutions; an assumed load-balancing rule.</li>
+    <li><strong>The lens</strong> reads only top-1 at the question, on one seed, with no fitted lenses.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="reproduce">
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p>The model, baselines and every mode are one file in <a href="https://github.com/albertlieyingadrian/nanoloop-moe">nanoloop-moe</a>; <a href="https://github.com/albertlieyingadrian/build-a-looped-moe">build-a-looped-moe</a> builds the same file stage by stage, with tests. In a clone of nanoloop-moe:</p>
+  <pre><code>python nanoloop_moe.py --mode compare                          # five chain models, 6,000 steps (or: modal run modal_run.py)
+python nanoloop_moe.py --mode compare --seed 1
+python nanoloop_moe.py --mode compare --steps 20000
+python nanoloop_moe.py --mode compare --task shakespeare --steps 3000
+python nanoloop_moe.py --mode lens                             # reads the chain checkpoints in out/</code></pre>
+  <p>Every number here is in <a href="../results/chain_20k_s1337.json">results/</a>, and <a href="../make_figures.py">make_figures.py</a> redraws the figures and prints what it plots (<code>experiments/looped-moe/reproduce.sh --dry-run</code> lists the commands).</p>
+  </section>
+
+  <section aria-labelledby="next">
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Find what makes block mixing plus restarts trainable at toy scale: a learning-rate warm-up, a loss at every pass, or a gate that starts partly open.</li>
+    <li>Lengthen the chains past eight layers' reach (or shrink the model) so the loop has to add depth, not just speed.</li>
+    <li>Fit a lens per visit on each of the three reads and test which transfers to Inkling 2 Mini.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="qa">
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="qa-what">What is an Inkling-style looped MoE?</h3>
+  <p>A transformer whose middle layers run several times with shared weights, whose feed-forward layers are mixtures of experts, which has no single residual stream (each sublayer reads its own learned mix of finished blocks of layers), and whose passes restart from the first block and pass a gated message to the next. nanoloop-moe is a one-file toy of it.</p>
+  <h3 id="qa-better">Is it better than a plain looped transformer?</h3>
+  <p>Not at toy scale in our runs. At matched active parameters a plain loop learned 1-8-link chains in 6,000 steps (0.99); the Inkling-style model reached 0.70 after 20,000, and only the plain loop worked at pass counts it was not trained on.</p>
+  <h3 id="qa-lens">Why do lenses struggle on a model without a residual stream?</h3>
+  <p>Because there is no single state to read. The active block holds only the current block's additions, each layer reads its own mix, and the head reads another. In our toy the active-block logit lens fell to 0.007 inside a model that was right 96% of the time; each layer's own MoE-input mix read best.</p>
+  <h3 id="qa-affiliation">Is this Thinking Machines' code?</h3>
+  <p>No. It is an independent toy written from the public description and the Hugging Face <code>transformers</code> implementation, not affiliated with Thinking Machines, and it shares no weights with Inkling 2 Mini.</p>
+  </section>
+
+  <section aria-labelledby="appendix">
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>results/chain_6k_s1337.json</code>, <code>chain_6k_s1.json</code>, <code>chain_20k_s1337.json</code>: per model, <code>params</code> and <code>active</code> parameter counts, <code>steps</code>, <code>sweep[K][hops]</code> (accuracy at K = 1-6 on 1,000 test puzzles, per chain length), <code>acc</code> (the trained K's row) and <code>mean</code>; the 6,000-step files also hold <code>seconds</code> of training.</li>
+    <li><code>results/shakespeare_3k_s1337.json</code>: per model, parameter counts and <code>val[K]</code>, validation loss at K = 1, 2, 3, 4, 6.</li>
+    <li><code>results/lens_20k_s1337.json</code> (and <code>lens_6k_s1337.json</code> from the 6,000-step checkpoints): per model, <code>visits</code> (layer entered and pass), and for block-mixing models <code>act_in</code>, <code>mlp_in</code>, <code>mix</code> (top-1 accuracy of each read at the questions, 500 puzzles) and <code>final_weights</code> (the head's mix weights over the embedding, prelude, core and coda blocks); for the plain loop <code>act_in</code>, the residual stream.</li>
+    <li><code>results/examples_6k_s1337.txt</code>, <code>examples_20k_s1337.txt</code>: three sample puzzles with each model's answers.</li>
+  </ul>
+  <h3 id="refs">References and code</h3>
+  <ul>
+    <li>Inkling 2 Mini: <a href="https://thinkingmachines.ai/news/inkling-2-mini/">release post</a>, <a href="https://huggingface.co/thinkingmachines/Inkling-2-Mini">model card</a>, implementation in <a href="https://github.com/huggingface/transformers">Hugging Face transformers</a> (<code>models/inkling2_loop</code>).</li>
+    <li>Opening the box of Inkling 2 Mini using nnsight and NDIF, <a href="https://nnsight.net/blog/2026/11/20/opening-the-box-of-inkling-2-mini-using-nnsight-ndif/">nnsight blog</a>. The Looped Lens Challenge, <a href="https://ndif.us/looped-lens-challenge/">NDIF</a>.</li>
+    <li>Attention Residuals, <a href="https://arxiv.org/abs/2603.15031">arXiv 2603.15031</a>. DenseFormer, <a href="https://arxiv.org/abs/2402.02622">arXiv 2402.02622</a>. Hyper-Connections, <a href="https://arxiv.org/abs/2409.19606">arXiv 2409.19606</a>.</li>
+    <li>Universal Transformers, <a href="https://arxiv.org/abs/1807.03819">arXiv 1807.03819</a>. Scaling up Test-Time Compute with Latent Reasoning: A Recurrent Depth Approach, <a href="https://arxiv.org/abs/2502.05171">arXiv 2502.05171</a>.</li>
+    <li>Outrageously Large Neural Networks, <a href="https://arxiv.org/abs/1701.06538">arXiv 1701.06538</a>. Switch Transformers, <a href="https://arxiv.org/abs/2101.03961">arXiv 2101.03961</a>. DeepSeekMoE, <a href="https://arxiv.org/abs/2401.06066">arXiv 2401.06066</a>. DeepSeek-V3 (sigmoid routing, auxiliary-loss-free balancing), <a href="https://arxiv.org/abs/2412.19437">arXiv 2412.19437</a>.</li>
+    <li>nanoGPT, <a href="https://github.com/karpathy/nanoGPT">karpathy/nanoGPT</a>. Our related code: <a href="https://github.com/albertlieyingadrian/nanoloop-transformer">nanoloop-transformer</a>, <a href="https://github.com/albertlieyingadrian/build-a-looped-transformer">build-a-looped-transformer</a>.</li>
+    <li>Earlier episodes: <a href="../../looped-transformer/report/">Episode 1</a>, <a href="../../looped-transformer-from-scratch/report/">Episode 2</a>, <a href="../../looped-lens/report/">Episode 3</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026loopedmoe,
+  author = {Albert Lie},
+  title  = {An Inkling-style looped MoE is the slowest of five toy models to learn, and the plain logit lens misreads it},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/looped-moe/report/}
+}</code></pre>
+  </section>
+  <footer class="note">An Inkling-style toy built from public sources; not affiliated with Thinking Machines. Trained from scratch on Modal GPUs; no API models were used.</footer>
+</article>
+</div>
+<!-- sweep:start -->
+<script type="application/json" id="lk-data">{"standard":{"1":[0.999,1.0,0.997,0.993,0.986,0.974,0.969,0.957],"2":[0.902,0.82,0.819,0.776,0.723,0.68,0.671,0.607],"3":[0.743,0.645,0.647,0.594,0.582,0.559,0.584,0.56],"4":[0.669,0.587,0.584,0.554,0.551,0.548,0.56,0.564],"5":[0.641,0.573,0.561,0.55,0.546,0.539,0.553,0.553],"6":[0.617,0.563,0.555,0.547,0.539,0.541,0.549,0.549]},"plainloop":{"1":[0.793,0.775,0.708,0.55,0.475,0.434,0.428,0.335],"2":[1.0,0.999,0.999,0.998,0.995,0.992,0.73,0.553],"3":[0.999,1.0,1.0,1.0,1.0,1.0,1.0,0.992],"4":[0.999,0.999,0.999,0.999,0.999,0.999,0.998,1.0],"5":[0.996,0.993,0.992,0.992,0.992,0.988,0.994,0.996],"6":[0.973,0.974,0.97,0.969,0.976,0.968,0.975,0.984]},"loopmoe_k1":{"1":[0.963,0.963,0.952,0.961,0.966,0.966,0.955,0.953],"2":[0.963,0.963,0.952,0.961,0.966,0.966,0.955,0.953],"3":[0.963,0.963,0.952,0.961,0.966,0.966,0.955,0.953],"4":[0.963,0.963,0.952,0.961,0.966,0.966,0.955,0.953],"5":[0.963,0.963,0.952,0.961,0.966,0.966,0.955,0.953],"6":[0.963,0.963,0.952,0.961,0.966,0.966,0.955,0.953]},"loopmoe_nomix":{"1":[0.729,0.589,0.528,0.519,0.528,0.503,0.504,0.494],"2":[0.687,0.632,0.598,0.582,0.575,0.554,0.554,0.514],"3":[1.0,1.0,1.0,1.0,0.999,0.991,0.979,0.957],"4":[0.766,0.632,0.563,0.52,0.515,0.512,0.545,0.537],"5":[0.975,0.956,0.954,0.927,0.883,0.83,0.78,0.77],"6":[0.768,0.665,0.59,0.539,0.559,0.543,0.56,0.545]},"loopmoe":{"1":[0.647,0.564,0.55,0.574,0.554,0.531,0.57,0.494],"2":[0.718,0.638,0.595,0.581,0.561,0.566,0.549,0.479],"3":[0.868,0.813,0.773,0.723,0.664,0.601,0.572,0.556],"4":[0.763,0.673,0.617,0.593,0.551,0.545,0.523,0.51],"5":[0.811,0.762,0.691,0.618,0.559,0.563,0.521,0.525],"6":[0.753,0.679,0.626,0.584,0.55,0.557,0.527,0.584]}}</script>
+<!-- sweep:end -->
+<script>
+(function () {
+  var box = document.getElementById("loopk");
+  if (!box) return;
+  var data = JSON.parse(document.getElementById("lk-data").textContent);
+  var names = {standard: "standard", plainloop: "plain loop", loopmoe_k1: "looped MoE, one pass", loopmoe_nomix: "looped MoE, no mix", loopmoe: "looped MoE (full)"};
+  var rows = document.getElementById("lk-rows");
+  var slider = document.getElementById("lk-k");
+  var bars = {};
+  Object.keys(names).forEach(function (m) {
+    if (!data[m]) return;
+    var row = document.createElement("div");
+    row.className = "lk-row";
+    row.innerHTML = '<span class="lk-name">' + names[m] + '</span><div class="lk-bars"></div>';
+    rows.appendChild(row);
+    bars[m] = row.querySelector(".lk-bars");
+  });
+  var axis = document.getElementById("lk-axis");
+  for (var h = 1; h <= 8; h++) { var s = document.createElement("span"); s.textContent = h; axis.appendChild(s); }
+  function render() {
+    var k = slider.value;
+    document.getElementById("lk-kv").textContent = "K = " + k;
+    Object.keys(bars).forEach(function (m) {
+      var el = bars[m];
+      el.innerHTML = "";
+      (data[m][k] || []).forEach(function (v, i) {
+        var b = document.createElement("div");
+        b.className = "lk-bar" + (v >= 0.9 ? " solved" : "") + (m === "plainloop" || m === "standard" ? " ctl" : "");
+        b.style.height = Math.max(2, v * 100) + "%";
+        b.title = (i + 1) + " links: " + v.toFixed(2);
+        el.appendChild(b);
+      });
+    });
+  }
+  slider.addEventListener("input", render);
+  render();
+})();
+</script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
