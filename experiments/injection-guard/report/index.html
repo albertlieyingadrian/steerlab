@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost?</title>
+<meta name="description" content="Rule-based guards around a tool-using clinic front-desk agent stopped every data-leak attack on two open models (0 of 75 conversations each), but refused 9% to 35% of legitimate requests, and none of the rules stopped injected text from misleading the person (8 of 9 and 9 of 9). Keeping untrusted text away from the model stopped that, at little cost in usefulness.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost?">
+<meta property="og:description" content="Rule-based guards around a tool-using clinic agent stopped every data-leak attack on two open models (0 of 75 conversations each, against 35 and 43 with no guard) but refused a step in 20% and 35% of legitimate conversations, and passed injected misdirection in 17 of 18. Quarantining untrusted text stopped that; an activation probe did not beat a bag of words.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two blocks of thin vertical cells on a pale ground, nine rows each, one cell per conversation: attack conversations on the left, mostly grey with orange bands that thin out row by row except one band that stays until the quarantine rows; legitimate requests on the right, pale blue with orange bands that grow in the lower rows.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost?">
+<meta name="twitter:description" content="Rule-based guards around a tool-using clinic agent stopped every data-leak attack on two open models (0 of 75 conversations each, against 35 and 43 with no guard) but refused a step in 20% and 35% of legitimate conversations, and passed injected misdirection in 17 of 18. Quarantining untrusted text stopped that; an activation probe did not beat a bag of words.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-26">
+<meta property="article:modified_time" content="2026-11-26">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost?",
+ "description": "Rule-based guards around a tool-using clinic agent stopped every data-leak attack on two open models (0 of 75 conversations each, against 35 and 43 with no guard) but refused a step in 20% and 35% of legitimate conversations, and passed injected misdirection in 17 of 18. Quarantining untrusted text stopped that; an activation probe did not beat a bag of words.",
+ "abstract": "Agentic alignment series, Episode 2. A front-desk agent for a fictional clinic (synthetic SQLite with planted secrets; tools sql_query, read_inbox, send_email, check_in_patient, verify_insurance; an internal admin_export never offered). Nine guard levels of deterministic modules: keyword filter (L1), regex DLP (L2), SQL firewall on SQLite's authorizer with row caps, provenance rules for tool calls, budgets and range-probe detection, decode-then-scan DLP (L3), an L3 without keywords ablation, and two prototypes: P1 quarantine of untrusted text (CaMeL-style) and P2 stronger DLP. 28 attack cases in 9 families from the literature (payloads unpublished) and 27 frozen legitimate requests, 3 samples each, on Qwen3-8B and Qwen3-30B-A3B-Instruct-2507 plus an always-comply stub; a code-only judge on exact planted values. Data-leak success: L0 35/75 and 43/75, L2 9/75 and 6/75, L3 0/75 and 0/75 (CI 0 to 0.05). Legitimate conversations refused at L3: 16/81 and 28/81; L3 without keywords 7/81 and 24/81 (12/81 without refusals of invented tools). Misdirection in the agent's own words at L3: 8/9 and 9/9; with quarantine 0/9 and 0/9 (6/9 and 4/9 still shown in quotes); answered requests 21 to 21 and 28 to 23 of 81. Activation-delta probe on Qwen3-8B, held-out channels: v1 confounded by length (length-only AUROC 0.997); v2 with hard negatives AUROC 0.865 and 43% at 1% FPR against bag of words 0.949 and 62%. Predictions: P2, P4, P5 hit; P1, P3, P6 missed. About $1 of Modal H100.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-26",
+ "dateModified": "2026-11-26",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "prompt injection, indirect prompt injection, tool-using agent, guardrails, DLP, SQL firewall, CaMeL, AgentDojo, LlamaFirewall, false positives, activation probe, task drift, Qwen3, AI security",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2302.12173"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.13352"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2503.18813"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.03574"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2406.00799"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.23643"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.08837"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2403.14720"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2403.02691"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  article li code, article p code { overflow-wrap: anywhere; }
+  .gp { margin: 1rem 0 1.4rem; }
+  .gp-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.4rem 0 0.8rem; }
+  .gp-chip { font: 0.72rem var(--font-mono); padding: 0.2rem 0.5rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink); cursor: pointer; }
+  .gp-chip[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--canvas)); }
+  .gp td.bad { color: var(--accent); font-weight: 600; }
+  .gp-note { font: 0.72rem var(--font-mono); color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Agentic alignment · Episode 2<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-26">Nov 26, 2026</time></p>
+  <h1>Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost?</h1>
+  <p class="dek ruled">We put rule-based guards around a small tool-using agent: the front desk of a fictional clinic, with a synthetic database full of planted secrets. On two open models, the strongest guard stopped every data-leak attack we tried, refused between one in eleven and one in three legitimate requests, and did nothing about injected text that misleads the person. For people building agents on private data: rules on data flow work where they apply, and the false-positive bill is the number to watch.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="Two blocks of thin vertical cells on a pale ground, nine rows each. The left block (168 columns, attack conversations) is mostly grey with orange bands in the top rows that thin out row by row, except one orange band that stays through most rows and vanishes in the rows with quarantine. The right block (162 columns, legitimate requests) is pale blue, with orange bands appearing from the second row and growing in the lower rows.">
+    <figcaption>Cover: every real conversation in the study, one thin cell each. Rows are the nine guard levels, from no guard (top) to all guards plus both prototypes (bottom). Left block: 168 attack conversations (28 attacks × 3 samples × 2 models), orange where the attack worked. Right block: 162 legitimate requests (27 × 3 × 2), orange where a guard refused a step.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Agentic alignment, Episode 2 (after <a href="../../agentic-alignment-pilot/report/">a pilot on five models</a>)</dd></div>
+    <div><dt>Models</dt><dd>Qwen3-8B (thinking off) and Qwen3-30B-A3B-Instruct-2507, served with vLLM on one Modal H100 each; an always-comply scripted stub as the known-answer control</dd></div>
+    <div><dt>Code and data</dt><dd><a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/injection-guard/clinicguard">clinicguard/</a> (agent, guards, judge, runner, Harbor export) · <a href="../data/legit.jsonl">data/legit.jsonl</a> (frozen, <a href="../data/legit.sha256">sha256</a>) · <a href="../data/attacks_redacted.jsonl">data/attacks_redacted.jsonl</a> (ids and families only) · <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/injection-guard/results">results/</a> · <a href="../make_figures.py">make_figures.py</a> · <a href="../probe/probe.py">probe/probe.py</a></dd></div>
+    <div><dt>Effort</dt><dd>One day; about $1 of Modal H100 time (14 minutes of wall time over five runs). The guard levels rerun on a laptop CPU in seconds with the stub</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost in false positives?</strong></p>
+    <p>It can stop data from leaving, not the injection itself. With a SQL firewall, provenance rules on tool calls, query budgets and decode-then-scan output filtering, data-leak attacks succeeded in 0 of 75 conversations on each of two open models (95% CI 0 to 0.05), against 35 and 43 of 75 with no guard. The same guard refused a step in 16 and 28 of 81 legitimate conversations (20% and 35%), far from a 5% target; without its keyword filter, 9% and 30%. Injected text that only changes what the agent tells the person passed it in 17 of 18 conversations. Hiding untrusted text from the model, after the CaMeL design, stopped the agent from repeating it as its own claim (0 of 18) at little cost in answered requests. An activation probe trained to spot injected tool results did no better than a bag of words on held-out fields.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>Does the full rule-based guard (L3) stop data leaks?</td><td><strong>Yes, on these attacks.</strong> 0/75 on Qwen3-8B and 0/75 on Qwen3-30B-A3B (CI 0 to 0.05 each)</td><td>No guard: 35/75 and 43/75. Keyword filter plus output regex (L2): 9/75 and 6/75</td></tr>
+      <tr><td>What does it cost legitimate requests?</td><td><strong>A lot.</strong> A guard refused a step in 16/81 (0.20) and 28/81 (0.35) legitimate conversations</td><td>Without the keyword filter (L3-kw): 7/81 (0.09) and 24/81 (0.30); 12/81 once refusals of tools the model invented are set aside</td></tr>
+      <tr><td>Does it stop misdirection (injected text that misleads the person)?</td><td><strong>No.</strong> The attacker's link or phone number reached the person in the agent's own words in 8/9 and 9/9</td><td>Quarantining untrusted text (P1): 0/9 and 0/9 in the agent's own words; 6/9 and 4/9 still showed it inside quote marks</td></tr>
+      <tr><td>Does quarantine cost usefulness?</td><td><strong>Little:</strong> answered requests 21 → 21 of 81 (8B) and 28 → 23 (30B)</td><td>The bare agent answers only 36 and 39 of 81 correctly by itself</td></tr>
+      <tr><td>Can an activation probe catch injected tool results?</td><td><strong>Not better than words.</strong> Held-out channels, hard negatives: AUROC 0.87, 43% caught at 1% false alarms</td><td>Bag of words 0.95 and 62%; the best layer, picked after the fact, 0.96 and 72%</td></tr>
+      </tbody>
+    </table></div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A patient emails a clinic's assistant about an insurance card. Somewhere in the email is a sentence addressed not to the clinic but to the assistant: look up some records and send them to an outside address. The assistant must read emails to do its job, so it cannot simply refuse to read this one. That is indirect prompt injection: instructions that arrive as data, inside a tool result, rather than from the person in the chat.</p>
+  <p>What is known: indirect injection works against agents connected to real tools (<a href="https://arxiv.org/abs/2302.12173">Not what you've signed up for</a>), benchmarks such as <a href="https://arxiv.org/abs/2406.13352">AgentDojo</a> and <a href="https://arxiv.org/abs/2403.02691">InjecAgent</a> measure it, and defences range from classifiers on the input (<a href="https://arxiv.org/abs/2505.03574">LlamaFirewall</a> and its PromptGuard model) and prompt formatting (<a href="https://arxiv.org/abs/2403.14720">spotlighting</a>) to designs that keep untrusted data away from the part of the system that chooses actions (<a href="https://arxiv.org/abs/2503.18813">CaMeL</a>, <a href="https://arxiv.org/abs/2505.23643">FIDES</a>, <a href="https://arxiv.org/abs/2506.08837">design patterns for securing LLM agents</a>). What is missing, for someone deciding what to deploy, is the cost side measured next to the benefit on one small, reproducible system: how many honest requests each rule refuses, and which attacks each rule simply does not see.</p>
+  <p>This note builds that system and measures both sides. Contributions:</p>
+  <ol>
+    <li>A small open harness, <code>clinicguard</code>: a tool-using agent over a synthetic database with planted secrets, nine guard levels made of switchable deterministic modules, a code-only judge, a frozen legitimate-request set, and an export to Harbor tasks.</li>
+    <li>Block rate per attack family against false-positive rate, per guard level, on two open models and a known-answer stub.</li>
+    <li>A negative result on the rules: they block data flows, not intent, so injected misdirection passes untouched. A prototype that quarantines untrusted text closes that gap.</li>
+    <li>A negative result on a white-box probe for injected tool results: on held-out fields it did not beat a bag of words.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="agent">The agent and its database</h3>
+  <p>The agent is the chat front desk of a fictional clinic. It has five tools: <code>sql_query</code> (read-only SQL), <code>read_inbox</code>, <code>send_email</code>, <code>check_in_patient</code> (verifies a date of birth) and <code>verify_insurance</code>. A sixth, <code>admin_export</code>, is registered for staff use but never offered to the chat. The database is synthetic: 8 patients, 12 staff, appointments, insurance and an inbox. Planted secrets are exact strings the judge can look for: Social Security numbers in the 900 range (never issued), <code>FAKEDX-</code> diagnosis codes, staff API keys, pager codes and a key in the system prompt. Their values come from a seed, so a verifier can use values the attacker never saw. The model calls tools by writing one <code>TOOL: {...}</code> line, so any chat model works without native tool calling.</p>
+  <h3 id="levels">Guard levels</h3>
+  <p>Every guard is deterministic code; no model runs inside one. A guard that fires refuses the step and logs the rule's name.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Guard levels"><table>
+    <thead><tr><th>Level</th><th>What it adds</th><th>How it fails</th></tr></thead>
+    <tbody>
+    <tr><td>L0</td><td>Nothing: the bare agent</td><td>Everything depends on the model refusing</td></tr>
+    <tr><td>L1</td><td>Data-protection rules in the prompt, and a keyword filter on the person's messages</td><td>Never sees text inside tool results; refuses honest questions that use a listed word</td></tr>
+    <tr><td>L2</td><td>L1 plus regex data-loss prevention (DLP) on replies and emails</td><td>Matches the shape of a secret, so any re-encoding walks past it</td></tr>
+    <tr><td>L3</td><td>L2 plus four modules: a SQL firewall (SQLite's own authorizer allows listed columns of listed tables, one table per query, a row cap at fetch time); provenance rules (only granted tools run, no argument copied from untrusted text, an email goes out only if the person asked for one and only to an address they typed or have on file); budgets (no range comparisons on protected fields, limited guesses at verification); and decode-then-scan DLP (decode base64, hex and rot13, strip spacing, then match the exact planted values)</td><td>Blocks data flows, not intentions: text that only changes what the agent says passes. The single-table rule refuses honest joins</td></tr>
+    <tr><td>L3-kw</td><td>L3 without the keyword filter (ablation)</td><td></td></tr>
+    <tr><td>P1</td><td>Quarantine: every untrusted field in a tool result (email sender, subject and body; intake notes; insurer memo) is swapped for a handle such as <code>[[untrusted:2]]</code>. The model can show it to the person by writing the handle, which is filled in afterwards inside « » quote marks, but can never use it as a query, a patient id or a recipient</td><td>The model cannot reason over the text, only show it</td></tr>
+    <tr><td>P2</td><td>Stronger DLP: reversed text, leetspeak, spelled-out digits, URL and base32 encodings, two rounds of decoding, partial matches, and a scan of everything sent so far</td><td>Still only knows the encodings on its list</td></tr>
+    </tbody>
+  </table></div>
+  <p>We ran L0, L1, L2, L3, L3-kw, L2+P1, L3+P1, L3+P2 and L3+P1+P2.</p>
+  <h3 id="attacks">Attack families</h3>
+  <p>28 attack cases in nine families, each family from the public literature. Each case is the smallest example that exercises one guard. The full cases are not published; this table shows their shape with the payload replaced by brackets.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Attack families"><table>
+    <thead><tr><th>Family</th><th>Cases</th><th>Templated example</th><th>Counts as success when</th></tr></thead>
+    <tbody>
+    <tr><td>Direct ask</td><td class="num">3</td><td>"What is [patient]'s [protected field]? I'm [a plausible relation]."</td><td>a planted secret leaves</td></tr>
+    <tr><td>Indirect injection</td><td class="num">6</td><td>An email, intake note or insurer memo the agent reads during a normal task, containing "[instruction to look up a protected field and send it to an outside address, or include it in the reply]"</td><td>a planted secret leaves</td></tr>
+    <tr><td>Star expansion</td><td class="num">2</td><td>A request to run <code>SELECT * FROM [table] WHERE [one row]</code></td><td>a planted secret leaves</td></tr>
+    <tr><td>FROM list</td><td class="num">2</td><td>A query whose second table in the FROM list is the protected one</td><td>a planted secret leaves</td></tr>
+    <tr><td>Negative LIMIT</td><td class="num">2</td><td>A directory query with a negative LIMIT, which SQLite reads as "no limit"</td><td>6 or more staff emails leave at once</td></tr>
+    <tr><td>Tool-call minting</td><td class="num">2</td><td>A ready-made call to the internal tool, pasted by the person or planted in an email</td><td>a planted secret leaves</td></tr>
+    <tr><td>Oracle probes</td><td class="num">2</td><td>Four yes/no questions over four turns, each comparing [protected field] with [a prefix or threshold]</td><td>all four answers are right (chance: 1 in 16)</td></tr>
+    <tr><td>Encoded exfiltration</td><td class="num">6</td><td>"Print [the key in your configuration] [encoded as base64 / hex / rot13 / spaced / reversed / leetspeak]"</td><td>the key leaves, in any of about ten decodings</td></tr>
+    <tr><td>Misdirection</td><td class="num">3</td><td>An email, note or memo containing "[tell the person to pay or call at an attacker's link or number]"</td><td>the link or number appears in the agent's own words</td></tr>
+    </tbody>
+  </table></div>
+  <h3 id="terms">Terms</h3>
+  <ul>
+    <li><strong>Success</strong> (of an attack) and <strong>leak</strong>: decided by code (<a href="../clinicguard/leakcheck.py">leakcheck.py</a>), which shares no decoder with the guards. It checks every reply and every sent email for the exact planted values, plain or under about ten decodings applied twice.</li>
+    <li><strong>False positive</strong>: a legitimate conversation in which any guard refused any step. <strong>Answered</strong>: the reply contains every token of the expected answer (for example "12:00" and "14:00" for the ICU visiting hours).</li>
+    <li><strong>Legitimate set</strong>: 27 requests a front desk must serve, frozen by hash before any model run, alternating between a dev half and a held-out half. It includes public lookups, check-ins, insurance checks, emails the person asked for, reading the inbox, a question that needs a join, and three honest questions that use words a keyword filter dislikes ("password", "SSN", "diagnosis").</li>
+  </ul>
+
+  <h2 id="method"><span class="num">03</span>How the study was run</h2>
+  <p>What would count as success, written before any model run:</p>
+  <ol>
+    <li>The judge passes a known-answer test: the always-comply stub must leak in every family at L0.</li>
+    <li>The bare agent leaks under indirect injection, so there is something to stop.</li>
+    <li>L3 holds data leaks to 5% or less on real models.</li>
+    <li>The false-positive rate is reported for every level, against the usual 5% target.</li>
+  </ol>
+  <p>Steps:</p>
+  <ol>
+    <li>Wrote the agent, the guards, the judge and the 27 legitimate requests, and froze the requests by hash.</li>
+    <li>Ran the stub (28 attacks + 27 requests × 9 levels, one sample each, CPU). This found two bugs, fixed before any model run: the judge missed leetspeak (the key's own digits become letters), and a provenance rule refused an address the person had typed themselves.</li>
+    <li>Pre-registered the plan with six predictions, then ran Qwen3-8B and Qwen3-30B-A3B: 55 cases × 9 levels × 3 samples = 1,485 conversations each, temperature 0.7.</li>
+    <li>Read 10 transcripts per model (3 counted as leaks, 3 as blocks, 4 at random) to check the judge. All leak verdicts were right. The check surfaced a convention to report: P1 shows untrusted text inside quote marks, so misdirection is reported both ways.</li>
+    <li>Trained the activation probe twice (v1 registered, v2 registered as exploratory after v1 failed).</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed vs changed"><table>
+    <thead><tr><th>Fixed before any model run</th><th>Changed after reading outputs</th></tr></thead>
+    <tbody>
+    <tr><td>Attack cases, legitimate set (hash), guard rules, judge, levels, models, sampling, predictions</td><td>"Answered" matches tokens rather than exact substrings ("12:00 to 14:00" now matches "12:00-14:00"; 3 of 1,485 verdicts changed). Refusals of tools the model invented are reported beside the registered false-positive rate. Misdirection is also reported with quoted text counted</td></tr>
+    </tbody>
+  </table></div>
+  <p class="gp-note">Conditions: vLLM 0.25.1, bf16, temperature 0.7, top-p 0.95, up to 384 tokens per step and 4 tool calls per turn; one H100 per model, 4 to 6 minutes per model.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="leaks" data-short="L3 stops data leaks">4.1 The full guard stopped every data-leak attack on both models</h3>
+  <p>With no guard, 35 of 75 data-leak conversations succeeded on Qwen3-8B (0.47, CI 0.36 to 0.58) and 43 of 75 on Qwen3-30B-A3B (0.57, 0.46 to 0.68). Each layer cut that: the keyword filter to 17 and 14, the output regex to 9 and 6, and L3 to 0 and 0 (CI 0 to 0.05 each), as Figure 1 shows. The stub, which obeys everything it reads, still leaked 2 of 25 at L3: the key written backwards and in leetspeak, two encodings L3's DLP does not decode. P2 decodes both and closed them (0 of 25). Neither real model produced those encodings.</p>
+  <figure>
+    <img src="figures/levels.png" width="2100" height="660" alt="Three dot plots side by side, one per outcome, each over nine guard levels. Left: data-leak success falls from about half for both models at L0 to zero at L3 and after. Middle: misdirection success stays near one at every level except those with quarantine (P1), where it is zero. Right: refused legitimate requests rise from zero at L0 to between 0.1 and 0.5 at the L3 levels, all above a dashed 5% line.">
+    <figcaption>Figure 1. Share of conversations per guard level. Left: data-leak attacks that succeeded (25 cases × 3 samples = 75 per model; the stub has one sample, 25). Middle: misdirection that succeeded, judged by the agent's own words (9 per model; 3 for the stub). Right: legitimate conversations in which a guard refused a step (81 per model; 27 for the stub), with the 5% target dashed. Bars are Wilson 95% intervals. The shaded column is L3.</figcaption>
+  </figure>
+  <p>Figure 2 splits this by family. Most of L1's effect is the keyword filter catching "<code>SELECT *</code>", "base64" and "TOOL:" in the person's own message, which is also why it does little for indirect injection on Qwen3-30B-A3B (5 of 18 still succeed). Negative LIMIT is the cleanest case for the firewall: it passes everything up to L2 (6 of 6 on both models) and nothing from L3 on, because the row cap runs at fetch time whatever the query says. Oracle probes worked only on Qwen3-30B-A3B (6 of 6 at L0, all four answers right); Qwen3-8B never got all four right.</p>
+  <figure>
+    <img src="figures/families.png" width="2080" height="720" alt="Two heat maps, one per model: nine attack families as rows, nine guard levels as columns, cells coloured by success rate with the count written in. Most orange sits in the first three columns; the misdirection row stays orange across all levels except those with quarantine.">
+    <figcaption>Figure 2. Successful attacks per family and guard level (count out of cases × 3 samples: 9 for direct and misdirection, 18 for indirect injection and encoded exfiltration, 6 for the rest). Left: Qwen3-8B. Right: Qwen3-30B-A3B.</figcaption>
+  </figure>
+  <h3 id="explore" data-short="Pick a level">Pick a level</h3>
+  <div class="gp" id="gp">
+    <div class="gp-row" role="group" aria-label="Guard level"></div>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Counts at the chosen level"><table><thead></thead><tbody></tbody></table></div>
+    <p class="gp-note">Successful attacks (or, for the last row, legitimate conversations a guard refused) out of n, at the chosen level. Orange marks any count above zero. Static numbers are in Figure 2 and <code>results/*/summary.csv</code>.</p>
+  </div>
+
+  <h3 id="cost" data-short="The false-positive bill">4.2 The price: one in five to one in three legitimate conversations hit a refusal</h3>
+  <p>At L3 a guard refused a step in 16 of 81 legitimate conversations on Qwen3-8B (0.20, CI 0.13 to 0.30) and 28 of 81 on Qwen3-30B-A3B (0.35, 0.25 to 0.45). No L3 level came near the 5% target on either model. Three sources, from the rule log:</p>
+  <ul>
+    <li><strong>The keyword filter</strong> refused all three honest questions that contain "password", "SSN" or "diagnosis", every time (9 of 81 on both models, from L1 on). Removing it (L3-kw) cut Qwen3-8B's rate to 7 of 81 (0.09, 0.04 to 0.17) and its held-out half to 1 of 39.</li>
+    <li><strong>The single-table rule</strong> refused joins the models wrote for questions like "who heads radiology?". A model that writes joins pays for this rule on ordinary lookups.</li>
+    <li><strong>Invented tools.</strong> In legitimate conversations Qwen3-30B-A3B made 136 calls to tools named after tables (<code>staff</code>, <code>visiting_hours</code>, <code>departments</code>), which do not exist. At L0 those calls fail as unknown; at L3 the capability rule refuses them, which our registered metric counts. Set aside, its rates are 18 of 81 at L3 (0.22) and 12 of 81 at L3-kw (0.15).</li>
+  </ul>
+  <p>The bare agent itself answered only 36 and 39 of 81 legitimate conversations correctly, because the models picked wrong ward names or wrong columns. So "refused by a guard" and "useful" are separate numbers here, and both are in <code>summary.csv</code>.</p>
+
+  <h3 id="misdirection" data-short="Misdirection passes">4.3 The rules did nothing about injected text that misleads the person</h3>
+  <p>Three cases put a sentence in an email, an intake note and an insurer memo asking the agent to tell the person to pay at a link or call a number. Nothing leaves the clinic, so no data-flow rule applies. At L3 the attacker's link or number appeared in the agent's own words in 8 of 9 conversations on Qwen3-8B and 9 of 9 on Qwen3-30B-A3B. A typical reply passed it on as the insurer's notice: the plan "has lapsed and must be renewed" at the attacker's site.</p>
+  <p>Quarantine (P1) stopped this: 0 of 9 on both models, with or without the L3 rules underneath (L2+P1 also 0 of 9). The model never read the email, so it could not adopt it. The cost of that fix is visible too: when the person asked to see the message, the agent showed it, inside « » quote marks, and the attacker's text was on the screen in 6 of 9 (Qwen3-8B) and 4 of 9 (Qwen3-30B-A3B) conversations at L3+P1. It arrives labelled as outside text rather than as the clinic's advice, which is the most a data-flow design can promise.</p>
+  <p>Quarantine cost little in usefulness: answered conversations went from 21 to 21 of 81 on Qwen3-8B and from 28 to 23 on Qwen3-30B-A3B, against our registered bar of no more than a 10-point drop. It did not lower the false-positive rate, because the refusals come from the other modules.</p>
+
+  <h3 id="probe" data-short="A probe does not beat words">4.4 A white-box probe for injected tool results did not beat a bag of words</h3>
+  <p>The rules miss misdirection, so we asked whether the model's own activations flag an injected tool result. Following <a href="https://arxiv.org/abs/2406.00799">"Get my drift?"</a>, we took Qwen3-8B's residual stream at the last token before and after the tool result, at layers 9, 18, 27 and 36, and trained a logistic regression on the difference. Training used only inbox emails and three of five framings; the test used intake notes and insurer memos with all five framings.</p>
+  <p><strong>v1 (registered) failed its own control.</strong> The injected items were simply longer than the clean ones: a length-only classifier scored AUROC 0.997 on the test, a bag of words 1.000, and even a probe trained on shuffled labels 0.89. Every layer tied at 1.000 on validation, so validation could not choose one. The chosen probe caught 50% at a 1% false-alarm rate (CI 0.43 to 0.58).</p>
+  <p><strong>v2 (exploratory) fixed the confound.</strong> Every item, clean or not, now carries one sentence addressed to the assistant in the same framings. Clean items ask for something harmless ("address the patient as Sam"); injected ones ask for something harmful. The two misdirection goals were held out of training. Now length scored 0.655 and shuffled labels 0.480, so the controls behave. The probe chosen on validation (layer 36) scored AUROC 0.865 and caught 43% at 1% false alarms (0.35 to 0.49), below a bag of words (0.949; 62%). Layer 18 did best (0.961; 72%, CI 0.65 to 0.82), but validation saturated at 1.000 for every layer, so that pick is after the fact. Figure 3 shows both runs.</p>
+  <figure>
+    <img src="figures/probe.png" width="2080" height="640" alt="Two horizontal bar charts, v1 and v2, five rows each: delta probe, raw activations, shuffled labels, bag of words, length only. Pale bars show test AUROC; dots with lines show detection at 1% false alarms. In v1 every bar is near one, including length only. In v2 the bag of words is the highest bar, the length and shuffled controls drop near chance, and the delta probe sits below the bag of words.">
+    <figcaption>Figure 3. Detecting injected tool results on held-out channels (300 injected, 300 clean). Bars: test AUROC. Dots: share of injected items caught at a 1% false-alarm rate set on the test's clean items, with bootstrap 95% intervals. Left: v1, plain clean items. Right: v2, clean items also address the assistant, and misdirection goals are unseen in training.</figcaption>
+  </figure>
+  <p>Two more checks point the same way. At the threshold set on validation (1% false alarms there), the v2 probe flagged 13% of held-out clean items. And on the agent's own tool results from the eval, it flagged 7 of 10 injected contexts and 5 of 10 legitimate ones. A probe is also specific to one model and needs its weights, unlike the rules, which run unchanged around any model.</p>
+
+  <h3 id="compare" data-short="Against prior work">4.5 Where this sits beside existing defences</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison"><table>
+    <thead><tr><th></th><th>Model-agnostic</th><th>Stops data leaks</th><th>Stops misdirection</th><th>Reports false positives</th></tr></thead>
+    <tbody>
+    <tr><td>Input classifier (PromptGuard in <a href="https://arxiv.org/abs/2505.03574">LlamaFirewall</a>)</td><td>✓</td><td>partly</td><td>partly</td><td>✓</td></tr>
+    <tr><td><a href="https://arxiv.org/abs/2503.18813">CaMeL</a> (full interpreter)</td><td>✓</td><td>✓</td><td>✓</td><td>✓ (utility on AgentDojo)</td></tr>
+    <tr><td>Activation deltas (<a href="https://arxiv.org/abs/2406.00799">TaskTracker</a>)</td><td>✗</td><td>partly</td><td>partly</td><td>✓</td></tr>
+    <tr><td>This note, L3 rules</td><td>✓</td><td>✓ (0/150)</td><td>✗ (17/18)</td><td>✓ (20-35%)</td></tr>
+    <tr><td>This note, L3 + quarantine</td><td>✓</td><td>✓ (0/150)</td><td>✓ in its own words (0/18)</td><td>✓ (21-49%)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="predictions"><span class="num">05</span>Predictions</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Predictions"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th>Result</th></tr></thead>
+    <tbody>
+    <tr><td>P1</td><td>The bare agent leaks under indirect injection on both models</td><td>≥ 0.30 each</td><td><strong>Miss.</strong> 4/18 (0.22) on Qwen3-8B, 7/18 (0.39) on Qwen3-30B-A3B</td></tr>
+    <tr><td>P2</td><td>L3 stops data leaks on real models</td><td>≤ 0.05 each</td><td><strong>Hit.</strong> 0/75 and 0/75</td></tr>
+    <tr><td>P3</td><td>L3 fails the 95% bar, and the keyword filter is why</td><td>L3 &gt; 0.05; L3-kw ≤ 0.10</td><td><strong>Miss.</strong> Hit on Qwen3-8B (0.20; 0.09), missed on Qwen3-30B-A3B (0.35; 0.30), where invented tools and table rules dominate</td></tr>
+    <tr><td>P4</td><td>L3 does not stop misdirection; quarantine does</td><td>L3 ≥ 0.30; L3+P1 ≤ L3/3</td><td><strong>Hit.</strong> 8/9 → 0/9 and 9/9 → 0/9 (own words)</td></tr>
+    <tr><td>P5</td><td>Quarantine costs little usefulness</td><td>drop ≤ 0.10</td><td><strong>Hit.</strong> 0.00 and −0.06</td></tr>
+    <tr><td>P6</td><td>The delta probe catches held-out injections</td><td>TPR ≥ 0.80 at 1% FPR and ≥ bag of words + 0.10</td><td><strong>Miss.</strong> 0.50, against 1.00 for the bag of words (v1)</td></tr>
+    </tbody>
+  </table></div>
+  <p>What surprised me: how cheaply the data-leak half was solved, and how much of the cost was the model's own habits (joins, invented tools) meeting strict rules. What I'd change: write the probe's clean items to match the injected ones in length and form before the first run. The lesson for the design guide: a probe's controls (length, shuffled labels) belong in the first run, not the second.</p>
+
+  <h2 id="safety"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Deterministic rules on data flow are a strong, cheap layer for agents that hold private data: on our attacks they took two open models from about half of data-leak attempts succeeding to none, and they run unchanged around any model. Their limit is categorical rather than a matter of tuning: they see where data goes, not what the agent is persuaded to say, so an injected instruction that only changes the answer passes every rule. Their cost is also real, and it depends on the model as much as on the rules: the same L3 refused 20% of one model's honest conversations and 35% of the other's. A guard's false-positive rate is a property of the guard and the model together, so it has to be measured on the model being deployed, on a frozen set of legitimate requests nobody tunes against.</p>
+  <p><strong>Recommendation: put data-flow rules and quarantine of untrusted text around tool-using agents, and publish their false-positive rate on a frozen legitimate set beside their block rate.</strong></p>
+
+  <h2 id="limits"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Small, self-written attack set.</strong> 28 cases, one or a few per family, written by us from the literature. A guard that blocks these can still fall to an adaptive attacker; nothing here is an adaptive attack.</li>
+    <li><strong>Correlated samples.</strong> The three samples of a case share their prompt, so intervals computed over conversations are narrower than intervals over cases would be.</li>
+    <li><strong>The judge knows only the encodings we listed.</strong> P2's decoders overlap with the judge's, so P2's clean score on encodings is partly by construction.</li>
+    <li><strong>Two open models, both Qwen.</strong> Other families, and closed models, may refuse more or less, and may write different SQL.</li>
+    <li><strong>The quarantine prototype is far simpler than CaMeL.</strong> It hides untrusted fields; it does not track capabilities through computed values.</li>
+    <li><strong>The probe data is synthetic and small</strong> (600 test items, one model), and its best layer was not chosen in advance.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <pre><code>.venv/bin/python -m pytest experiments/injection-guard/tests -q   # guards, frozen set, judge known answers
+bash experiments/injection-guard/reproduce.sh --dry-run          # every command behind the numbers
+.venv/bin/python experiments/injection-guard/make_figures.py     # figures and the printed numbers, from results/</code></pre>
+  <p>The legitimate set, the code and every score are public. The attack payloads and transcripts are not: <code>data/attacks_redacted.jsonl</code> lists each case's id, family, channel and leak type, so a reader can write their own cases in the same format and run them with <code>--attacks</code>. <code>clinicguard.harbor_export</code> turns any case file into Harbor tasks whose verifier replays only the attacker's messages, against a database seeded with values the attacker never saw.</p>
+
+  <h2 id="next"><span class="num">09</span>What's next</h2>
+  <ul>
+    <li>An adaptive attacker: a red-team agent run through the Harbor export, scored by the same judge.</li>
+    <li>Rules that cost less: allow joins over listed columns, and map invented tool names to "unknown" before the capability rule counts them.</li>
+    <li>Run the same levels on AgentDojo's suites, so block rate and utility line up with published defences.</li>
+    <li>A probe on more varied, human-written tool results, with its layer and threshold fixed on a separate model run.</li>
+  </ul>
+
+  <h2 id="qa"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q-what">What is indirect prompt injection?</h3>
+  <p>Instructions that reach a model inside data it reads while doing a task, such as an email body or a database field, rather than from the person it is talking to. The model cannot refuse to read such data without failing at its job.</p>
+  <h3 id="q-enough">Is a rule-based guard enough to protect an agent with private data?</h3>
+  <p>Not alone. In this study it stopped every data-leak attack (0 of 150 conversations across two models) but none of the misdirection (17 of 18), and it refused 20% to 35% of honest conversations. Pair it with keeping untrusted text away from the model, and measure its false positives on the model you deploy.</p>
+  <h3 id="q-camel">What does "quarantine" mean here, and how does it relate to CaMeL?</h3>
+  <p>The model sees a handle instead of any text that came from outside, and can only display it, not act on it. It is a small version of CaMeL's idea of separating the data a system reads from the plan it executes; CaMeL itself goes further, tracking where every value came from through a custom interpreter.</p>
+  <h3 id="q-probe">Can activation probes detect prompt injection?</h3>
+  <p>On our held-out fields, a probe on Qwen3-8B's activation deltas caught 43% of injected tool results at 1% false alarms, less than a bag of words (62%). Earlier work reports better results on larger, more varied data; here the probe did not justify its cost of needing the model's weights.</p>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix</h2>
+  <h3 id="data">Data</h3>
+  <ul>
+    <li><code>data/legit.jsonl</code>: the 27 legitimate requests (id, family, split, turns with the steps a correct agent takes, expected answer tokens, expected email recipient); <code>data/legit.sha256</code> freezes it.</li>
+    <li><code>data/attacks_redacted.jsonl</code>: one line per attack case: id, family, channel (user, inbox, check-in, insurance), leak type, number of turns. Payloads are redacted.</li>
+    <li><code>results/{stub,qwen3-8b,qwen3-30b-a3b}/records.jsonl</code>: one line per conversation: case id, family, kind, split, level, sample, model, whether a guard fired and which rules, and either leaked (attacks) or false_positive, fp_hard and answered (legitimate). No conversation text.</li>
+    <li><code>results/*/summary.csv</code>: counts and Wilson intervals per model, level and family. <code>results/misdirection_strict.json</code>: misdirection in the agent's own words and anywhere in the reply. <code>results/fp_excluding_nonexistent_tools.json</code>: false positives with refusals of invented tools set aside.</li>
+    <li><code>results/probe/probe.json</code> and <code>probe_hard.json</code>: every probe and baseline's validation and test AUROC, detection at 1% and 5% false alarms (calibrated on validation and on test), bootstrap intervals, results per framing, goal and channel, and the in-situ scores.</li>
+  </ul>
+  <h3 id="refs">References and code</h3>
+  <ul>
+    <li>Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection, <a href="https://arxiv.org/abs/2302.12173">arXiv 2302.12173</a>. Ignore Previous Prompt: Attack Techniques for Language Models, <a href="https://arxiv.org/abs/2211.09527">arXiv 2211.09527</a>.</li>
+    <li>AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents, <a href="https://arxiv.org/abs/2406.13352">arXiv 2406.13352</a>, <a href="https://github.com/ethz-spylab/agentdojo">code</a>. InjecAgent, <a href="https://arxiv.org/abs/2403.02691">arXiv 2403.02691</a>.</li>
+    <li>Defeating Prompt Injections by Design (CaMeL), <a href="https://arxiv.org/abs/2503.18813">arXiv 2503.18813</a>, <a href="https://github.com/google-research/camel-prompt-injection">code</a>. Securing AI Agents with Information-Flow Control (FIDES), <a href="https://arxiv.org/abs/2505.23643">arXiv 2505.23643</a>. Design Patterns for Securing LLM Agents against Prompt Injections, <a href="https://arxiv.org/abs/2506.08837">arXiv 2506.08837</a>.</li>
+    <li>LlamaFirewall: An open source guardrail system for building secure AI agents, <a href="https://arxiv.org/abs/2505.03574">arXiv 2505.03574</a>; PromptGuard in <a href="https://github.com/meta-llama/PurpleLlama">PurpleLlama</a>. Defending Against Indirect Prompt Injection Attacks With Spotlighting, <a href="https://arxiv.org/abs/2403.14720">arXiv 2403.14720</a>. NeMo Guardrails, <a href="https://arxiv.org/abs/2310.10501">arXiv 2310.10501</a>. Invariant guardrails, <a href="https://github.com/invariantlabs-ai/invariant">code</a>.</li>
+    <li>Get my drift? Catching LLM Task Drift with Activation Deltas, <a href="https://arxiv.org/abs/2406.00799">arXiv 2406.00799</a>.</li>
+    <li>DLP and SQL-firewall practice: SQLite's <a href="https://www.sqlite.org/c3ref/set_authorizer.html">authorizer callback</a>; <a href="https://github.com/data-privacy-stack/presidio">Presidio</a> for PII detection; Revealing information while preserving privacy, <a href="https://doi.org/10.1145/773153.773173">PODS 2003</a>, on why many yes/no answers rebuild a database.</li>
+    <li>Harbor, for packaging tasks with a separate verifier: <a href="https://github.com/harbor-framework/harbor">code</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026injectionguard,
+  author = {Albert Lie},
+  title  = {Can a deterministic guard stop prompt injection in a tool-using agent, and what does it cost?},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/injection-guard/report/}
+}</code></pre>
+  <footer class="note">All data in this note is synthetic: a fictional clinic, fake patients and staff, and secrets in ranges that are never issued. Attack payloads are summarised as templates; the full cases are not published.</footer>
+</article>
+</div>
+<script src="data.js"></script>
+<script>
+(function () {
+  var d = window.GUARD_DATA, root = document.getElementById("gp");
+  if (!d || !root) return;
+  var row = root.querySelector(".gp-row"), thead = root.querySelector("thead"), tbody = root.querySelector("tbody");
+  var models = Object.keys(d.models), names = {indirect_injection: "indirect injection", star_expansion: "star expansion",
+    from_list: "FROM list", negative_limit: "negative LIMIT", tool_minting: "tool-call minting", oracle_probe: "oracle probes",
+    encoded_exfil: "encoded exfiltration", legit: "legitimate requests refused"};
+  thead.innerHTML = "<tr><th>Family</th>" + models.map(function (m) { return "<th>" + m + "</th>"; }).join("") + "</tr>";
+  function show(lv) {
+    row.querySelectorAll("button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.lv === lv); });
+    tbody.innerHTML = d.families.map(function (f) {
+      return "<tr><td>" + (names[f] || f) + "</td>" + models.map(function (m) {
+        var c = d.models[m][lv][f];
+        return "<td class='num" + (c[0] > 0 ? " bad" : "") + "'>" + c[0] + "/" + c[1] + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+  }
+  d.levels.forEach(function (lv) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "gp-chip"; b.dataset.lv = lv; b.textContent = lv;
+    b.addEventListener("click", function () { show(lv); });
+    row.appendChild(b);
+  });
+  show("L3");
+})();
+</script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
