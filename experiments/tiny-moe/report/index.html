@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Does a tiny Mixture-of-Experts beat a dense model doing the same work? Early in training, until the data runs out</title>
+<meta name="description" content="A DeepSeek-style MoE built from scratch (latent attention, 8 routed experts, top-2, a shared expert) beats a dense model with the same active parameters on Tiny Shakespeare while the text is fresh (lower validation loss by 0.025 to 0.048 from step 300 to 1,800, every variant and seed), then ties it by step 3,000 as the 1 MB corpus runs out. Its experts divide the work: switching one off hurts the characters it served 10 times more than the rest.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Does a tiny Mixture-of-Experts beat a dense model doing the same work? Early in training, until the data runs out">
+<meta property="og:description" content="A DeepSeek-style MoE built from scratch (latent attention, 8 routed experts, top-2, a shared expert) beats a dense model with the same active parameters on Tiny Shakespeare while the text is fresh (0.025-0.048 lower validation loss from step 300 to 1,800, every variant and seed), then ties it by step 3,000 as the 1 MB corpus runs out. Its experts divide the work: switching one off hurts the characters it served 10 times more than the rest.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Four grids of small squares on a dark ground, one per layer of a small MoE model, six rows of character kinds by eight expert columns; a few squares in each grid glow bright orange and most stay dark.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Does a tiny Mixture-of-Experts beat a dense model doing the same work? Early in training, until the data runs out">
+<meta name="twitter:description" content="A DeepSeek-style MoE built from scratch (latent attention, 8 routed experts, top-2, a shared expert) beats a dense model with the same active parameters on Tiny Shakespeare while the text is fresh (0.025-0.048 lower validation loss from step 300 to 1,800, every variant and seed), then ties it by step 3,000 as the 1 MB corpus runs out. Its experts divide the work: switching one off hurts the characters it served 10 times more than the rest.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-26">
+<meta property="article:modified_time" content="2026-11-26">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Does a tiny Mixture-of-Experts beat a dense model doing the same work? Early in training, until the data runs out",
+ "description": "A DeepSeek-style MoE built from scratch (latent attention, 8 routed experts, top-2, a shared expert) beats a dense model with the same active parameters on Tiny Shakespeare while the text is fresh (0.025-0.048 lower validation loss from step 300 to 1,800, every variant and seed), then ties it by step 3,000 as the 1 MB corpus runs out. Its experts divide the work: switching one off hurts the characters it served 10 times more than the rest.",
+ "abstract": "Model architecture series, Episode 5. A DeepSeek-style Mixture-of-Experts built from scratch in a 17-stage tested course (build-a-moe-transformer) and one file (nanomoe-transformer): 4 layers of width 128, Multi-head Latent Attention with decoupled RoPE, an MoE in every layer (8 routed SwiGLU experts of hidden 128, top-2, 1 shared; 2,012,672 stored, 833,024 active), trained on Tiny Shakespeare for 3,000 steps on 3 seeds beside dense (828,928) and dense-wide (2,008,576, same total). Paired with dense on the same validation windows, every MoE variant (no balancing, aux loss, DeepSeek-V3 bias, 32 fine-grained experts) is ahead at every eval from step 300 to 1,800 in all 3 seeds (0.025-0.048 nats lower on average; dense-wide 0.014-0.027), then ties at step 3,000 (MoE bias minus dense -0.002 ± 0.012). At 8.3M active / 18.9M stored on an H100 the best losses tie (1.49-1.51) and the balanced MoEs then overfit like their total size (2.24-2.33 vs dense 1.78). Max load: none 2.29-2.90 with 4-5 idle experts, aux 1.06-1.15, bias 1.21-1.32, fine-grained 2.33-2.65. Ablating one routed expert hurts its own positions 10x more than the rest (+0.358 vs +0.035, 96/96). Specialisation MI(char; expert)/H: trained 0.92/0.51/0.48/0.59 by layer vs untrained 0.79/0.65/0.52/0.40, shuffled 0.001. From a forced head start, none stays at max load 4.0; aux and bias recover below 2 within 150 steps. MTP draft agreement 0.78-0.79. Predictions 4/4 hit on held-out seeds. $12.50 cloud compute.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-26",
+ "dateModified": "2026-11-26",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "mixture of experts, MoE, DeepSeek, DeepSeekMoE, auxiliary-loss-free load balancing, multi-head latent attention, routing collapse, expert specialisation, ablation, nanoGPT, interpretability",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/1701.06538"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2006.16668"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2101.03961"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2202.08906"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2401.06066"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2405.04434"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2408.15664"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.19437"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2409.02060"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2401.04088"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/albertlieyingadrian/build-a-moe-transformer"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/albertlieyingadrian/nanomoe-transformer"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  .ld { margin: 1.4rem 0 0.6rem; }
+  .ld-row { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 0.6rem; align-items: end; margin: 0.5rem 0; }
+  .ld-name { font: 0.72rem var(--font-mono); color: var(--ink-soft); }
+  .ld-layers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+  .ld-bars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; height: 56px; align-items: end;
+    border-bottom: 1px solid var(--rule); position: relative; }
+  .ld-bar { background: var(--ink-faint); border-radius: 2px 2px 0 0; min-height: 1px; }
+  .ld-bar.hot { background: var(--accent); }
+  .ld-fair { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--control); pointer-events: none; }
+  .ld-axis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; font: 0.62rem var(--font-mono);
+    color: var(--ink-soft); text-align: center; }
+  .ld-note { font: 0.75rem var(--font-mono); color: var(--ink-soft); margin: 0.3rem 0 0; }
+  pre.snip { font-size: 0.8rem; }
+  @media (max-width: 640px) { .ld-row { grid-template-columns: 4.5rem minmax(0, 1fr); } .ld-layers, .ld-axis { gap: 0.35rem; } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Model architecture · Episode 5<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-26">Nov 26, 2026</time></p>
+  <h1>Does a tiny Mixture-of-Experts beat a dense model doing the same work? Early in training, until the data runs out</h1>
+  <p class="dek ruled">For people learning how Mixture-of-Experts models work, and for anyone who reads routing as evidence of what a model does. We built a small DeepSeek-style MoE from scratch (latent attention, 8 routed experts, top-2, one shared expert, three ways to balance the router), trained it beside dense models on Tiny Shakespeare, and asked two questions: does it beat a dense model doing the same work per token, and do its experts really divide the work?</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="Four grids of small squares on a dark ground, one per layer of a small MoE model; each grid has six rows (kinds of character) and eight columns (experts). A few squares in each grid glow bright orange and most stay dark, so each kind of character goes mostly to one or two experts, and the bright squares move between layers.">
+    <figcaption>Cover: where each kind of character goes, in the four layers of the trained MoE (seed 0, bias balancing). In each grid, rows are spaces, newlines, vowels, consonants, capitals and punctuation; columns are the 8 routed experts; brightness is the share of that kind's routing slots the expert took. Drawn by <code>make_cover.py</code> from <code>results/</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Model architecture, Episode 5</dd></div>
+    <div><dt>Models</dt><dd>Character-level transformers trained from scratch in plain PyTorch: 4 layers of width 128 with Multi-head Latent Attention; an MoE in every layer (8 routed SwiGLU experts, top-2, 1 shared; 2,012,672 stored and 833,024 active parameters), a dense model with the same active parameters (828,928) and one with the same total (2,008,576). A larger run of the same design at 8.3M active parameters on an H100</dd></div>
+    <div><dt>Data</dt><dd>Tiny Shakespeare (1.1M characters; the last 10% held out for validation)</dd></div>
+    <div><dt>Code and data</dt><dd>the stage-by-stage course: <a href="https://github.com/albertlieyingadrian/build-a-moe-transformer">build-a-moe-transformer</a> · the one-file model: <a href="https://github.com/albertlieyingadrian/nanomoe-transformer">nanomoe-transformer</a> · <a href="../results/summary.json">results/</a> · <a href="../make_figures.py">make_figures.py</a></dd></div>
+    <div><dt>Effort</dt><dd>One day; $12.50 of cloud compute (the course runs on 8-vCPU CPU containers, $4.56; the one-file model on an H100, $7.94, about $2.50 of it a first attempt stopped after 3 minutes); no API models</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a small Mixture-of-Experts model beat a dense model that does the same work per token?</strong></p>
+    <p>Early in training, yes; by the end, no. Paired with the dense model on the same seed and validation text, every MoE variant was ahead at every evaluation from step 300 to 1,800 in all 3 seeds, by 0.025 to 0.048 nats per character on average: it learns faster per step at the same work per token. As the 1 MB corpus repeats, the gap closes: at step 3,000 the MoE balanced the DeepSeek-V3 way ends -0.002 ± 0.012, a tie, and a dense model with the MoE's total weights ends +0.002 ± 0.030. The experts divide the work: the router sorts characters by kind (spaces, newlines, capitals, punctuation), and switching one expert off raises the loss on the characters it served 10 times more than on the rest (96 of 96 ablations). Both balancers keep the load even at no cost in loss; without one, experts go idle.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>Does the MoE beat a dense model doing the same work per token?</td><td><strong>Yes while the text is fresh, then a tie.</strong> Every MoE variant ahead at every eval from step 300 to 1,800 in all 3 seeds (0.025 to 0.048 on average). At step 3,000, MoE (bias) minus dense: -0.002 ± 0.012</td><td>Dense with the MoE's total weights (2.4× the work): ahead by less, 0.014 to 0.027 over the same steps; +0.002 ± 0.030 at the end</td></tr>
+      <tr><td>What do the extra stored weights do at a larger size?</td><td><strong>They overfit like their total size.</strong> At 8.3M active / 18.9M stored, best losses tie (1.49-1.51), but by step 3,000 the balanced MoEs end at 2.24-2.33</td><td>Dense, same active: 1.78. Dense, same total: 2.26-2.29</td></tr>
+      <tr><td>Do the balancers spread the load?</td><td><strong>Yes, at no cost in loss.</strong> Max load: aux 1.10 / 1.06 / 1.15, bias 1.21 / 1.23 / 1.32</td><td>No balancing: 2.55 / 2.29 / 2.90, with 5 / 4 / 4 idle experts across 4 layers</td></tr>
+      <tr><td>Do experts divide the work?</td><td><strong>Yes.</strong> Switching one routed expert off raises the loss on its own positions by +0.358, on the rest by +0.035 (10×; 96 of 96 ablations)</td><td>The shared expert, which every token uses: +0.619 in layer 0, +0.044 in later layers</td></tr>
+      <tr><td>Does the character decide the expert?</td><td><strong>Largely, and partly before training.</strong> Specialisation by layer: 0.92, 0.51, 0.48, 0.59</td><td>Untrained router of the same shape: 0.79, 0.65, 0.52, 0.40; shuffled labels ≤ 0.001</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Validation loss: mean next-character cross-entropy (nats) on 40 fixed batches of 32 windows of 128 characters from the held-out 10%; lower is better, and guessing scores ln 65 = 4.17. Max load: the busiest expert's share of routing slots times the number of experts (1.0 = even, 4.0 = the worst top-2 allows). 3 seeds (0, 1, 2) for every course run: mean ± standard deviation over seeds, and differences paired by seed (the same batches and validation windows).</p>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: what is a Mixture-of-Experts layer?</p>
+    <p>In a dense transformer every token goes through the same feed-forward network, the part that holds most of the weights. An MoE layer replaces it with many smaller networks, the <em>experts</em>, and a <em>router</em>: a small matrix that scores every expert for every token and sends the token to the best <em>k</em>. Picture a food court instead of one kitchen: a host reads each order and sends it to the two stalls that suit it. The food court can have many more cooks while each order still costs two cooks' time, so a model can store far more weights for the same work per token. DeepSeek-V3 stores 671B parameters and uses 37B per token. Two DeepSeek additions matter here: a <em>shared expert</em> that every token uses (<a href="https://arxiv.org/abs/2401.06066">DeepSeekMoE</a>), and a way to keep the router from piling tokens onto a few experts without adding a penalty to the loss (<a href="https://arxiv.org/abs/2408.15664">auxiliary-loss-free balancing</a>).</p>
+  </aside>
+
+  <section aria-labelledby="introduction">
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Feed a page of Shakespeare to the trained model and watch its first layer: 50% of the space characters' routing slots go to expert 3, and 50% of the newlines' to expert 0 (with two experts per token, 50% is the most one expert can take). Switch expert 3 off and the loss on the characters it served jumps by 1.65 nats, against 0.44 on the rest. The experts have divided the work. And for most of training the MoE was ahead of a dense model doing the same work per token, until the text ran out.</p>
+  <p><strong>What is known.</strong> At scale, MoE models reach a dense model's quality with a fraction of its compute per token: the <a href="https://arxiv.org/abs/2101.03961">Switch Transformer</a> reports the same quality several times faster, and <a href="https://arxiv.org/abs/2409.02060">OLMoE</a> shows open, fully documented MoEs whose experts specialise by token and by domain. Routers need balancing, by an auxiliary loss (Switch) or, in <a href="https://arxiv.org/abs/2412.19437">DeepSeek-V3</a>, by a bias that only steers the choice.</p>
+  <p><strong>What is missing.</strong> A version small enough to build and read in a day, where each piece can be switched off and checked against a dense model doing the same work per token; and controls for the routing statistics people quote as evidence of specialisation: what an untrained router of the same shape already does, and what breaks when an expert is removed.</p>
+  <p><strong>What this note does.</strong> It builds <a href="https://github.com/albertlieyingadrian/build-a-moe-transformer">build-a-moe-transformer</a>, a 17-stage course with tests that ends in a DeepSeek-style MoE, and <a href="https://github.com/albertlieyingadrian/nanomoe-transformer">nanomoe-transformer</a>, the same model in one file, and measures them. Contributions:</p>
+  <ol>
+    <li>An open, tested, CPU-sized DeepSeek-style MoE, with every part (router, dispatch, capacity, both balancers, shared and fine-grained experts, MLA, multi-token prediction) in its own tested stage.</li>
+    <li>A measurement with both fair baselines: at the same active parameters and at the same total parameters, on three seeds, with paired differences.</li>
+    <li>Routing statistics with two controls (shuffled labels and an untrained model) and a causal test (single-expert ablation), and a collapse detector checked on a router forced to collapse.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="setup">
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>The model.</strong> A character-level decoder in the shape of nanoGPT: 4 layers of width 128, context 128, RMSNorm, and Multi-head Latent Attention with decoupled RoPE (it caches a 32-number latent plus a 16-number position key per token instead of 256 numbers). In every layer the feed-forward network is an MoE:</p>
+  <pre class="snip"><code>probs   = softmax(W x)                        # 8 scores, one per routed expert
+chosen  = top-2 of (probs + bias)             # bias: DeepSeek-V3 balancing, steers the choice only
+weights = probs[chosen] / sum                 # the bias never enters the weights
+moe(x)  = shared(x) + Σ weights · expert(x)    # every expert: down(silu(gate x) * up x), hidden 128
+after each step:  bias_i += 0.01 · sign(mean load − load_i)</code></pre>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Models"><table>
+    <thead><tr><th>Model</th><th>Feed-forward layer</th><th class="num">Stored</th><th class="num">Active</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>dense</code></td><td>one SwiGLU, hidden 384 = (2 routed + 1 shared) × 128</td><td class="num">828,928</td><td class="num">828,928</td><td>Baseline: same work per token</td></tr>
+      <tr><td><code>dense-wide</code></td><td>one SwiGLU, hidden 1,152 = (8 + 1) × 128</td><td class="num">2,008,576</td><td class="num">2,008,576</td><td>Baseline: same stored weights, 2.4× the work</td></tr>
+      <tr><td><code>moe-none</code></td><td>8 routed + 1 shared, top-2, no balancing</td><td class="num">2,012,672</td><td class="num">833,024</td><td>Ablation: balancing</td></tr>
+      <tr><td><code>moe-aux</code></td><td>same, Switch-style auxiliary loss (coefficient 0.01)</td><td class="num">2,012,672</td><td class="num">833,024</td><td>Balancing method 1</td></tr>
+      <tr class="hl"><td><code>moe-bias</code></td><td>same, auxiliary-loss-free bias (rate 0.01)</td><td class="num">2,012,672</td><td class="num">833,024</td><td>The model</td></tr>
+      <tr><td><code>moe-bias-fine</code></td><td>32 routed of hidden 32, top-8, 4 shared of 32 (DeepSeekMoE's fine-grained split)</td><td class="num">2,024,960</td><td class="num">845,312</td><td>Variant: fine-grained experts</td></tr>
+    </tbody>
+  </table></div>
+  <p>The MoE's active count includes its router (1,024 weights per layer), which the dense model lacks: 0.5% more. Training: AdamW (learning rate 3e-3, warm-up then cosine), batch 32 × 128 characters, 3,000 steps, the same seed, batches and validation windows for every variant.</p>
+  <p><strong>Terms.</strong> <em>Max load</em>: the busiest expert's share of the 2 × N routing slots, times 8. <em>Dead expert</em>: one that gets under a tenth of its fair share. <em>Specialisation</em>: the mutual information between a token's character and its top expert, divided by the entropy of the expert (0 = the router ignores the character; 1 = the character alone decides). <em>Own tokens</em> of an expert: the validation positions whose top-2 included it.</p>
+  <p><strong>What counts as success</strong>, set before the runs:</p>
+  <ol>
+    <li>The MoE beats <code>dense</code> by more than the spread between seeds (it uses its extra weights).</li>
+    <li>Both balancers bring max load near 1 without costing validation loss against <code>moe-none</code>.</li>
+    <li>Routing depends on the character more than in an untrained router and far more than with shuffled labels; and switching an expert off hurts its own tokens more than the rest (the specialisation is used, not just present).</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="process">
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Build the course</strong>: 17 stages, each a command with CPU tests that run in seconds (22 tests, under a minute in all); the staged solutions are generated from the last one and checked in CI.</li>
+    <li><strong>Fix the run script</strong> (<code>run_all.sh</code>) before any run: per seed, the six variants (3,000 steps each, the dense baseline among them), routing statistics and ablations on <code>moe-bias</code>, routing statistics on <code>moe-none</code>, the collapse test (four runs of 1,500 steps) and multi-token prediction (two runs of 3,000 steps).</li>
+    <li><strong>Run seeds 0, 1 and 2</strong> in parallel on 8-vCPU cloud containers (4 threads each). Seed 0 finished first; we read it and then wrote the predictions in section 07 before seeds 1 and 2 finished.</li>
+    <li><strong>Run the one-file model larger</strong> (6 layers, width 384, 8.3M active, 18.9M stored, context 256, dropout 0.2) on an H100, seeds 1337 and 1, 3,000 steps, the same six variants.</li>
+    <li><strong>Draw the figures</strong> from <code>results/</code> with <code>make_figures.py</code>, which prints every number it plots.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed and changed"><table>
+    <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Model sizes, the six variants, learning rate, steps, balancing settings, the collapse head start (3.0), the success tests, the run script</td><td>Predictions written after seed 0. The one-file H100 run added dropout 0.2 after a first attempt without it overfit badly (validation loss 4.5); that run is reported only as a larger check.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: PyTorch 2.5.1, float32, CPU (4 threads). One 3,000-step run took about 12 minutes for the dense model, 15 for an MoE, 20 for dense-wide and 25 for the fine-grained MoE, whose 32 experts run as 32 small batches in a Python loop.</p>
+  </section>
+
+  <section aria-labelledby="results">
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="tie" data-short="Faster, then a tie">4.1 The MoE learns faster, then the data runs out</h3>
+  <p>Every variant and the dense model are scored on the same validation windows at every evaluation, so the difference on one seed is paired and the noise of the windows cancels. From step 300 to step 1,800, every MoE variant was ahead of <code>dense</code> at every evaluation in all 3 seeds (Figure 1a): 0.025 to 0.048 nats per character lower on average, and still 0.003 lower on the worst seed and step. At the same work per token, the MoE learns faster. <code>dense-wide</code>, with the MoE's total weights and 2.4 times its work per token, led by less (0.014 to 0.027).</p>
+  <p>Then the lead closes. Tiny Shakespeare has 1.1M characters, and 3,000 steps of 32 × 128 characters is about 11 passes over it; every model's best validation loss came between steps 1,500 and 2,700, and every final loss is above its best. At step 3,000 the MoE with bias balancing ends -0.002 ± 0.012 from dense, and no MoE is more than 0.030 from it on any seed (Table 1, Figure 1b). Success test 1 passes while the text is fresh and fails at the end of training. Section 4.2 shows the same squeeze at a larger size, where it turns into overfitting.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Validation loss"><table>
+    <thead><tr><th>Variant</th><th class="num">Final val loss, seeds 0 / 1 / 2</th><th class="num">Mean ± sd</th><th class="num">Minus dense (paired)</th><th class="num">Best along the run</th></tr></thead>
+    <tbody>
+      <tr><td><code>dense</code></td><td class="num">1.512 / 1.525 / 1.550</td><td class="num">1.529 ± 0.019</td><td class="num">–</td><td class="num">1.506 / 1.513 / 1.516</td></tr>
+      <tr><td><code>dense-wide</code></td><td class="num">1.531 / 1.493 / 1.570</td><td class="num">1.531 ± 0.038</td><td class="num">+0.002 ± 0.030</td><td class="num">1.498 / 1.476 / 1.526</td></tr>
+      <tr><td><code>moe-none</code></td><td class="num">1.513 / 1.529 / 1.531</td><td class="num">1.524 ± 0.010</td><td class="num">-0.005 ± 0.013</td><td class="num">1.483 / 1.500 / 1.493</td></tr>
+      <tr><td><code>moe-aux</code></td><td class="num">1.516 / 1.536 / 1.539</td><td class="num">1.530 ± 0.013</td><td class="num">+0.001 ± 0.011</td><td class="num">1.477 / 1.496 / 1.498</td></tr>
+      <tr class="hl"><td><code>moe-bias</code></td><td class="num">1.524 / 1.518 / 1.539</td><td class="num">1.527 ± 0.011</td><td class="num">-0.002 ± 0.012</td><td class="num">1.494 / 1.496 / 1.493</td></tr>
+      <tr><td><code>moe-bias-fine</code></td><td class="num">1.509 / 1.528 / 1.520</td><td class="num">1.519 ± 0.009</td><td class="num">-0.010 ± 0.018</td><td class="num">1.490 / 1.495 / 1.486</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Table 1. Final: 40 fixed validation batches at step 3,000. Best: the lowest of 11 evals of 10 batches each along the run (noisier). Parameters in Setup.</p>
+  <figure class="plot">
+    <img src="figures/fig1-compare.png" alt="Left: bars of validation loss for six models, all between about 1.50 and 1.53 on a cut axis, with one dot per seed. Right: each variant's difference from the dense model on the same seed, all within a few hundredths of zero.">
+    <figcaption><span class="label">Figure 1.</span>(a) Validation loss minus <code>dense</code>, paired by seed and validation windows, at every evaluation (10 batches, 41k characters; 40 at step 3,000); line = mean of 3 seeds, band = their range. Every MoE (orange) is below zero from step 300 to 1,800 in every seed; the gap closes as the corpus repeats. (b) The final difference per seed (dots) and its mean (bar): a tie, within 0.030 for every MoE.</figcaption>
+  </figure>
+
+  <h3 id="overfit" data-short="Extra weights overfit">4.2 At a larger size, the extra stored weights overfit like a model of their total size</h3>
+  <p>A 1 MB corpus runs out quickly. The one-file model at 8.3M active and 18.9M stored parameters (H100, dropout 0.2, two seeds) reached its best validation loss by step 600-900, and there the variants again tie: dense 1.492 / 1.507, MoE with bias 1.493 / 1.514, aux 1.487 / 1.507, none 1.498 / 1.511, fine-grained 1.491 / 1.494, dense-wide 1.497 / 1.513 (seeds 1337 / 1). By step 3,000 they had separated, and not in the MoE's favour: dense ended at 1.776 / 1.777, while the balanced MoEs ended at 2.24-2.33, level with <code>dense-wide</code> (2.26 / 2.29). <strong>The MoE memorised like a model of its stored size, not its active size.</strong> The MoE with no balancing overfit least of the MoEs (2.11 / 2.16): with its load piled onto a few experts, it is in effect a smaller model.</p>
+
+  <h3 id="balance" data-short="Balancing">4.3 Both balancers spread the load, at no cost in loss</h3>
+  <p>Figure 2 follows each router's load through training. Without balancing, the busiest expert in a layer ended at 2.55 / 2.29 / 2.90 times its fair share (mean over the 4 layers; seeds 0 / 1 / 2), and 5 / 4 / 4 experts across the 4 layers got under a tenth of their share. The auxiliary loss held it at 1.10 / 1.06 / 1.15 and the bias at 1.21 / 1.23 / 1.32, both within a few hundred steps. Neither cost loss: final validation loss was 1.513 / 1.529 / 1.531 with no balancing, 1.516 / 1.536 / 1.539 with the aux loss and 1.524 / 1.518 / 1.539 with the bias. Success test 2 passes.</p>
+  <p>One balancing setting did not carry over. With 32 fine-grained experts and top-8, the same bias rate (0.01) left max load at 2.65 / 2.33 / 2.36: four times as many experts share the same per-step nudges, so the bias needs longer or a larger rate. The one-file model at 8.3M active parameters showed the same (2.38 / 2.42).</p>
+  <figure class="plot">
+    <img src="figures/fig2-balance.png" alt="Max load against training step for three balancing choices. The grey no-balancing lines stay between 2 and 3.5; the blue auxiliary-loss lines and the orange bias lines fall to about 1.1-1.3 within a few hundred steps and stay there.">
+    <figcaption><span class="label">Figure 2.</span>Max load (the busiest expert's share of routing slots × 8, averaged over the 4 layers) on held-out text every 300 steps, 3 seeds. Grey: no balancing; blue: auxiliary loss; orange: the DeepSeek-V3 bias. Dotted: perfectly even. Both balancers bring the load near even early and keep it there.</figcaption>
+  </figure>
+
+  <div class="ld" id="loads">
+    <label class="explorer-label">Step <input type="range" id="ld-step" min="0" max="10" step="1" value="10" aria-label="Training step"> <span class="explorer-value" id="ld-stepv"></span></label>
+    <div id="ld-rows"></div>
+    <div class="ld-row"><span class="ld-name"></span><div class="ld-axis"><span>layer 0</span><span>layer 1</span><span>layer 2</span><span>layer 3</span></div></div>
+    <p class="ld-note">Each bar is one routed expert's share of its layer's routing slots on held-out text (seed 0); dashed line = the fair share (1/8); orange = more than twice the fair share.</p>
+  </div>
+  <p class="note">Interactive figure: drag the slider through training to watch each router spread, or pile up, its load.</p>
+
+  <h3 id="specialise" data-short="Who goes where">4.4 Experts sort characters by kind, partly before any training</h3>
+  <p>Routing depends heavily on the character. Specialisation (how much knowing the character tells you about its top expert, as a share of the expert's entropy) was layer 0: 0.92 trained, 0.79 untrained; layer 1: 0.51 trained, 0.65 untrained; layer 2: 0.48 trained, 0.52 untrained; layer 3: 0.59 trained, 0.40 untrained; shuffling the expert labels across positions gives at most 0.001 (Figure 3a). The class tables show what the dependence looks like: in layer 0 one expert takes 50% of the space characters' slots, another 50% of the newlines', and the last layer gives capitals, punctuation and newlines experts of their own (Figure 3b-c). The most over-represented characters per expert in the last layer of seed 0 read like a typesetter's drawers: <code>vJFbhjYV</code>, <code>:UONCESH</code>, <code>ZRGPKEBV</code>, <code>qeIxouOr</code>, <code> W-cTtw⏎</code>, <code>?!.;,dyn</code>.</p>
+  <p><strong>Named side-finding: routing before learning.</strong> An untrained router of the same shape already scores 0.79 in layer 0, because at initialisation the residual stream there is little more than the character's embedding, and a random projection of it is a fixed, character-keyed assignment. Training added +0.13 in layer 0 and +0.19 in the last layer, and in the middle layers the trained routers depend on the character no more than untrained ones (0.51 against 0.65, 0.48 against 0.52). A specialisation number without this baseline overstates what training did. In the larger one-file model the untrained baseline falls to 0.06-0.10 in deep layers, so there the trained routers' 0.52-0.62 is clearly learned.</p>
+  <figure class="plot">
+    <img src="figures/fig3-routing.png" alt="Left: specialisation against layer for trained models (orange), untrained models of the same shape (grey) and shuffled labels (black, at zero). Middle and right: heatmaps of character kind against expert for layers 0 and 3, where each kind lights up one or two experts.">
+    <figcaption><span class="label">Figure 3.</span>(a) Specialisation, MI(character; top expert) / H(expert), per layer for the trained MoE with bias balancing (orange), an untrained model of the same shape (grey) and shuffled expert labels (black), 3 seeds; 81,920 held-out positions each. (b, c) Seed 0: the share of each kind of character's routing slots that went to each expert, in layers 0 and 3. Training sharpens routing in the first and last layers; the middle layers are no more character-bound than at initialisation.</figcaption>
+  </figure>
+
+  <h3 id="ablate" data-short="Switching experts off">4.5 Switching an expert off hurts the characters it served</h3>
+  <p>Routing statistics show that routing depends on the character, not that the split matters. To test use, we switched off one routed expert at a time (its contribution removed, the other weights left as they were) and measured the loss on the same held-out windows, split into the positions whose top-2 included that expert and the rest. In 96 of 96 ablations (3 seeds × 4 layers × 8 experts), the expert's own positions lost more: on average +0.358 nats against +0.035 on the rest, 10 times as much (Figure 4). <strong>Named side-finding: targeted damage.</strong> The rest are not untouched, because later positions read the damaged ones through attention.</p>
+  <p>The first layer carries the most. Switching off one routed expert there cost +0.367 overall, against +0.029 in later layers; switching off the shared expert cost +0.619 in layer 0 and +0.044 in later layers. Success test 3 passes on the ablation half; on the specialisation half it passes only in the first and last layers.</p>
+  <figure class="plot">
+    <img src="figures/fig4-ablate.png" alt="Scatter of the loss change on an expert's own positions against the loss change on all other positions, one dot per routed expert per layer per seed, on log scales. Every dot lies above the diagonal; the layer-0 dots (dark orange) sit highest.">
+    <figcaption><span class="label">Figure 4.</span>Loss change from switching off one routed expert: on the held-out positions it served (y) against all other positions (x), one dot per expert, layer and seed (96 ablations, 3 seeds), symmetric log scales. Every dot above the dotted diagonal means the damage fell mostly on the expert's own characters.</figcaption>
+  </figure>
+
+  <h3 id="collapse" data-short="Collapse">4.6 An unbalanced router leaves experts idle, and a head start never fades on its own</h3>
+  <p>A collapse detector needs only the counts the MoE layer already keeps. Ours flags a layer when the load's entropy falls under 0.75 of its maximum, the max load passes 2.0, or an expert gets under a tenth of its share; on made-up counts [25, 25, 25, 25] it says ok, and on [97, 1, 1, 1] it raises all three flags. To watch collapse and recovery, we gave expert 0 a fixed head start of 3.0 in every router's score, for the whole run, and trained four 1,500-step models from the same seed (Figure 5).</p>
+  <ul>
+    <li><strong>No head start, no balancing</strong>: the worst layer ended at max load 2.79 / 3.21 / 3.22, with 3 / 1 / 3 idle experts; the detector flagged it from the first eval. Collapse happened on its own.</li>
+    <li><strong>Head start, no balancing</strong>: max load 4.00 / 4.00 / 4.00 from start to finish. Expert 0 sat in every token's top-2; the language-modelling loss never pushed it out, because it was useful there.</li>
+    <li><strong>Head start, aux loss</strong>: 1.20 / 1.17 / 1.16; <strong>head start, bias</strong>: 1.33 / 1.62 / 1.24. Both were below 2.0 at the first eval after the start (step 150) on every seed.</li>
+  </ul>
+  <p>Validation loss at step 1,500 was 1.548 / 1.549 / 1.530 (no head start, no balancing), 1.532 / 1.573 / 1.541 (head start, no balancing), 1.522 / 1.527 / 1.525 (aux loss) and 1.526 / 1.571 / 1.531 (bias): at this scale a collapsed router costs little loss, which is exactly why it needs a detector rather than a loss curve to be seen.</p>
+  <figure class="plot">
+    <img src="figures/fig5-collapse.png" alt="Worst-layer max load against training step for four runs. The black run with a head start and no balancing stays at 4.0 throughout. The grey run with no head start and no balancing stays near 3. The blue auxiliary-loss and orange bias runs start at 4.0 and fall below 1.5 within 150 steps.">
+    <figcaption><span class="label">Figure 5.</span>Max load in the worst of the 4 layers every 150 steps, for four 1,500-step runs per seed (3 seeds). Black: expert 0 given a fixed head start of 3.0 and no balancing; it never loses its place. Grey: no head start, no balancing; it stays uneven by itself. Blue (aux loss) and orange (bias) recover from the head start within 150 steps.</figcaption>
+  </figure>
+
+  <h3 id="mtp" data-short="Multi-token prediction">4.7 Multi-token prediction: free at inference, a small gain inside the noise</h3>
+  <p>DeepSeek-V3's multi-token prediction adds a small block that, at each position, also predicts the token after next from the main model's state and the next token's embedding. With it, the main model's validation loss was 1.519 / 1.514 / 1.512 against 1.524 / 1.518 / 1.539 without (seeds 0 / 1 / 2): lower on every seed, by 0.004 to 0.027, which is inside the 0.019 spread between seeds of a single model. The block's own guess for the character after next was right 0.553 / 0.560 / 0.557 of the time and agreed with the main model's next-step guess 0.781 / 0.791 / 0.783 of the time: a draft acceptance rate for speculative decoding, for free, since the block (236,064 weights) is dropped or used only as a draft at inference and the active parameters do not change.</p>
+  </section>
+
+  <section aria-labelledby="compare">
+  <h2 id="compare" data-short="Compared with earlier work"><span class="num">05</span>Compared with earlier work</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Comparison"><table>
+    <thead><tr><th>Claim</th><th>Published, at scale</th><th>This note (0.83M active, 1 MB of text)</th></tr></thead>
+    <tbody>
+      <tr><td>MoE beats dense at the same compute per token</td><td>✓ Switch Transformer, DeepSeekMoE, OLMoE</td><td>✓ while data is fresh (steps 300-1,800, every seed); ✗ a tie by the end</td></tr>
+      <tr><td>Without balancing, routing becomes uneven</td><td>✓ Switch Transformer, GShard</td><td>✓ uneven, with idle experts</td></tr>
+      <tr><td>Auxiliary-loss-free bias balances as well as an aux loss, without hurting quality</td><td>✓ DeepSeek-V3 and its balancing paper</td><td>✓ similar load, same loss</td></tr>
+      <tr><td>Fine-grained experts help</td><td>✓ DeepSeekMoE</td><td>✗ no gain; and the same bias rate leaves 32 experts uneven</td></tr>
+      <tr><td>Experts specialise by token</td><td>✓ OLMoE, Mixtral (syntax more than topic)</td><td>✓ by kind of character; partly present before training</td></tr>
+    </tbody>
+  </table></div>
+  <p>The published gains appear with billions of tokens; ours is 1.1M characters, where the MoE's lead lasts while the text is fresh and closes as it repeats, and the larger model overfits within 900 steps. What carries over is the method: the two baselines, the paired comparison, and controls for routing statistics.</p>
+  </section>
+
+  <section aria-labelledby="implications">
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>Experts are an obvious place to look inside a model: if one expert handled, say, deception, routing would be a cheap monitor and switching the expert off a cheap fix. Two results here argue for care. First, an untrained router of the same shape already depended on the character (0.79 in layer 0), so a routing statistic means little without that baseline beside it. Second, the experts sorted characters by surface kind (spaces, capitals, punctuation), not by anything like meaning, and removing one hurt everything it touched rather than one behaviour. At scale, OLMoE and Mixtral report the same tendency: routing follows syntax and token identity more than topic. <strong>Before treating an expert's routing as evidence of what it does, compare it with an untrained router of the same shape and switch the expert off to see what breaks.</strong></p>
+  </section>
+
+  <section aria-labelledby="predictions">
+  <h2 id="predictions"><span class="num">07</span>Predictions</h2>
+  <p>Written after seed 0 and before seeds 1 and 2 finished; scored on seeds 1 and 2 only.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Predictions"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Metric</th><th>Threshold</th><th class="num">Confidence</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>MoE (bias) ties dense at matched active parameters</td><td>|MoE − dense| per held-out seed</td><td>&lt; 0.03 on both</td><td class="num">70%</td><td>hit: 0.007 / 0.011 (seeds 1 / 2)</td></tr>
+      <tr><td>P2</td><td>No balancing leaves the load uneven; both balancers fix it</td><td>max load, mean of layers</td><td>none &gt; 2.0; aux and bias &lt; 1.4</td><td class="num">75%</td><td>hit: 2.29 / 1.06 / 1.23; 2.90 / 1.15 / 1.32 (none / aux / bias)</td></tr>
+      <tr><td>P3</td><td>An ablated expert hurts its own tokens more than the rest</td><td>ablations with own > rest</td><td>≥ 30 of 32 on both</td><td class="num">85%</td><td>hit: 32 / 32 of 32</td></tr>
+      <tr><td>P4</td><td>Training adds specialisation in the last layer beyond an untrained router</td><td>MI, trained − untrained, layer 3</td><td>&gt; 0.1 on both</td><td class="num">60%</td><td>hit: +0.16 / +0.17</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised us: in the two middle layers the trained routers depend on the character less than untrained ones, so "specialisation" there is not something training added; and the MoE's clear mid-training lead, which P1 (scored at the end only) did not ask about. What we would change: compute the untrained baseline before writing any routing prediction, and give the fine-grained variant its own bias rate. Lesson for the design guide: a statistic of a learned assignment (routing, clustering, attention patterns) needs the same statistic on an untrained model of the same shape beside it.</p>
+  </section>
+
+  <section aria-labelledby="limits">
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li><strong>That MoEs stop helping.</strong> The tie at the end is on 1.1M characters, where every model with more than a million parameters runs out of fresh text; the published gains come with far more data. The mid-training lead is read from 10-batch evaluations (41k characters), noisier than the final 40-batch one, though the same windows for every variant.</li>
+    <li><strong>Seeds.</strong> Three seeds for the course runs, two for the H100 runs. Gaps under about 0.02 in validation loss are inside the spread.</li>
+    <li><strong>Speed.</strong> Our dispatch is a Python loop over experts on one device, so the MoE is slower per step than dense here; real systems use grouped matrix multiplies and expert parallelism.</li>
+    <li><strong>DeepSeek-V3's exact router.</strong> We use a softmax router, as DeepSeek-V2 does; V3's sigmoid scores and its small sequence-level balance loss are not implemented. Bias rate 0.01 (V3: 0.001 over far more steps).</li>
+    <li><strong>The collapse test is forced.</strong> A fixed head start of 3.0 for one expert in every router shows detection and recovery, not how often collapse happens on its own; the unforced run (<code>moe-none</code>) is the natural case.</li>
+    <li><strong>What experts compute.</strong> Character classes and single ablations show where routing goes and that it matters, not the mechanism inside an expert.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="reproduce">
+  <h2 id="reproduce"><span class="num">09</span>Reproduce it</h2>
+  <p>The course (<a href="https://github.com/albertlieyingadrian/build-a-moe-transformer">build-a-moe-transformer</a>) builds the model stage by stage, with tests; <code>./run_all.sh &lt;seed&gt;</code> runs every command behind sections 4.1 and 4.3-4.7:</p>
+  <pre><code>git clone https://github.com/albertlieyingadrian/build-a-moe-transformer && cd build-a-moe-transformer
+make data && make test-solutions        # every stage's tests, under a minute
+./run_all.sh 0                          # dense + six variants, route-lab, ablate, collapse, mtp (CPU, ~3 h)</code></pre>
+  <p>The one-file model (<a href="https://github.com/albertlieyingadrian/nanomoe-transformer">nanomoe-transformer</a>) runs section 4.2:</p>
+  <pre><code>python nanomoe.py --mode compare --seed 1337 --steps 3000 --n_layer 6 --n_embd 384 --n_head 6 --block_size 256 \
+  --batch_size 64 --expert_hidden 256 --kv_rank 96 --rope_dim 32 --lr 1.5e-3 --dropout 0.2 \
+  --variants dense,moe-bias,moe-aux,moe-none,moe-bias-fine,dense-wide
+python nanomoe.py --mode heatmap --out out/model.pt</code></pre>
+  <p>Every number here is in <a href="../results/summary.json">results/</a>; <a href="../make_figures.py">make_figures.py</a> redraws the figures and prints what it plots (<code>experiments/tiny-moe/reproduce.sh --dry-run</code> lists every command).</p>
+  </section>
+
+  <section aria-labelledby="next">
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What’s next</h2>
+  <ul>
+    <li>Repeat the comparison on a corpus big enough not to run out (for example 100M characters of web text) and check whether the early lead holds to the end.</li>
+    <li>Scale the bias rate with the number of experts and test whether fine-grained experts then balance as well as coarse ones.</li>
+    <li>Route by context, not character: test whether later layers' routing depends on the previous characters once the current one is fixed.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="qa">
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">11</span>Questions and answers</h2>
+  <h3 id="qa-what">What is a DeepSeek-style Mixture-of-Experts?</h3>
+  <p>A transformer whose feed-forward layers are a router plus many small SwiGLU experts, with one or more shared experts every token uses, fine-grained experts, and a router balanced by a bias that steers the choice without adding a loss. DeepSeek's models pair it with Multi-head Latent Attention, which caches a small latent instead of every key and value.</p>
+  <h3 id="qa-better">Does a small MoE beat a dense model?</h3>
+  <p>Early in training, yes. At the same active parameters on Tiny Shakespeare, every MoE variant was ahead of the dense model at every evaluation from step 300 to 1,800 in all 3 seeds (0.025 to 0.048 nats per character on average). By step 3,000, after about 11 passes over the 1 MB corpus, the gap had closed to a tie (within 0.030); at a larger size the extra stored weights overfit like a model of their total size.</p>
+  <h3 id="qa-balance">Aux loss or bias: which balances better?</h3>
+  <p>Both spread the load and neither cost validation loss here. The aux loss held max load slightly lower (1.10 / 1.06 / 1.15 against 1.21 / 1.23 / 1.32 for the bias); the bias does it without any term in the loss, which is why DeepSeek-V3 uses it.</p>
+  <h3 id="qa-specialise">Do the experts specialise?</h3>
+  <p>By kind of character: spaces, newlines, capitals and punctuation each go mostly to one or two experts, and switching an expert off hurts the characters it served about 10 times more than the rest. Part of the pattern is there before training, because the first layer's router reads little more than the character's embedding.</p>
+  <h3 id="qa-build">Can I build one myself?</h3>
+  <p>Yes: <a href="https://github.com/albertlieyingadrian/build-a-moe-transformer">build-a-moe-transformer</a> takes you from a character tokenizer to this model in 17 tested stages on a laptop CPU, and <a href="https://github.com/albertlieyingadrian/nanomoe-transformer">nanomoe-transformer</a> is the same model in one file with a Colab notebook.</p>
+  </section>
+
+  <section aria-labelledby="appendix">
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>results/seed*/compare_s*.json</code>: per variant, <code>params</code> and <code>active</code> parameter counts, <code>val</code> (final validation loss, 40 batches), <code>max_load</code> (mean over layers), <code>seconds</code>, and <code>history</code>: one row per eval (every 300 steps; 10 batches) with <code>val</code> and, per layer, <code>max_load</code>, <code>entropy</code>, <code>dead</code> and <code>shares</code>.</li>
+    <li><code>results/seed*/route_lab.json</code> (and <code>none/route_lab.json</code> for <code>moe-none</code>): per layer, <code>specialisation</code> (<code>mi_bits</code>, <code>h_expert_bits</code>, <code>normalised</code>, <code>shuffled_control</code>, <code>untrained_model</code>), <code>load</code>, <code>class_table</code> (rows: space, newline, vowel, consonant, upper, punct; columns: experts) and <code>top_tokens</code> (most over-represented characters per expert). 20 batches of 32 × 128 held-out characters.</li>
+    <li><code>results/seed*/ablate.json</code>: per layer and expert (or <code>"shared"</code>), <code>share</code> of positions served, <code>delta</code> (loss change overall), <code>own_tokens</code> and <code>other_tokens</code>.</li>
+    <li><code>results/seed*/collapse_s*.json</code>: for <code>none</code>, <code>none-skew</code>, <code>aux-skew</code> and <code>bias-skew</code>, <code>val</code>, <code>worst_max_load</code>, <code>first_flagged_step</code> and <code>history</code>.</li>
+    <li><code>results/seed*/mtp_s*.json</code>: <code>"0"</code> and <code>"1"</code> (without and with MTP): <code>val</code>, <code>active</code>, <code>params</code>; <code>mtp_val</code>, <code>mtp_acc</code> and <code>mtp_agree</code>.</li>
+    <li><code>results/nanomoe_results.tsv</code>: the one-file runs, one row per variant, seed and hardware: config, parameters, <code>best_val</code> and its step, <code>final_val</code>, final max load, seconds.</li>
+    <li><code>results/summary.json</code>: every number quoted in this note.</li>
+  </ul>
+  <h3 id="refs">References and code</h3>
+  <ul>
+    <li>Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer, <a href="https://arxiv.org/abs/1701.06538">arXiv 1701.06538</a>. GShard, <a href="https://arxiv.org/abs/2006.16668">arXiv 2006.16668</a>. Switch Transformers, <a href="https://arxiv.org/abs/2101.03961">arXiv 2101.03961</a>. ST-MoE, <a href="https://arxiv.org/abs/2202.08906">arXiv 2202.08906</a>.</li>
+    <li>DeepSeekMoE, <a href="https://arxiv.org/abs/2401.06066">arXiv 2401.06066</a>. DeepSeek-V2 (Multi-head Latent Attention), <a href="https://arxiv.org/abs/2405.04434">arXiv 2405.04434</a>. Auxiliary-Loss-Free Load Balancing Strategy for Mixture-of-Experts, <a href="https://arxiv.org/abs/2408.15664">arXiv 2408.15664</a>. DeepSeek-V3 (multi-token prediction), <a href="https://arxiv.org/abs/2412.19437">arXiv 2412.19437</a>.</li>
+    <li>OLMoE, <a href="https://arxiv.org/abs/2409.02060">arXiv 2409.02060</a>. Mixtral of Experts, <a href="https://arxiv.org/abs/2401.04088">arXiv 2401.04088</a>.</li>
+    <li>nanoGPT, <a href="https://github.com/karpathy/nanoGPT">karpathy/nanoGPT</a>. nanowhale, <a href="https://github.com/huggingface/nanowhale">huggingface/nanowhale</a>: a ~110M DeepSeek-V4-style model trained from scratch; it has no licence, so we read it as prior art and took no code from it. Tiny Shakespeare from <a href="https://github.com/karpathy/char-rnn">char-rnn</a>.</li>
+    <li>Our code: <a href="https://github.com/albertlieyingadrian/build-a-moe-transformer">build-a-moe-transformer</a>, <a href="https://github.com/albertlieyingadrian/nanomoe-transformer">nanomoe-transformer</a>; the sister course <a href="https://github.com/albertlieyingadrian/build-a-looped-transformer">build-a-looped-transformer</a>.</li>
+    <li>Earlier episodes: <a href="../../looped-transformer/report/">Episode 1</a>, <a href="../../looped-transformer-from-scratch/report/">Episode 2</a>, <a href="../../looped-lens/report/">Episode 3</a>, <a href="../../looped-moe/report/">Episode 4</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026tinymoe,
+  author = {Albert Lie},
+  title  = {Does a tiny Mixture-of-Experts beat a dense model doing the same work? Early in training, until the data runs out},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/tiny-moe/report/}
+}</code></pre>
+  </section>
+  <footer class="note">Trained from scratch on cloud CPUs and an H100; no API models were used.</footer>
+</article>
+</div>
+<script src="data.js"></script>
+<script>
+(function () {
+  var box = document.getElementById("loads");
+  if (!box || !window.MOE_LOADS) return;
+  var D = window.MOE_LOADS;
+  var names = {"moe-none": "no balancing", "moe-aux": "aux loss", "moe-bias": "bias"};
+  var rows = document.getElementById("ld-rows");
+  var slider = document.getElementById("ld-step");
+  slider.max = D.steps.length - 1;
+  slider.value = D.steps.length - 1;
+  var cells = {};
+  Object.keys(names).forEach(function (v) {
+    var row = document.createElement("div");
+    row.className = "ld-row";
+    row.innerHTML = '<span class="ld-name">' + names[v] + '</span><div class="ld-layers"></div>';
+    rows.appendChild(row);
+    var layers = row.querySelector(".ld-layers");
+    cells[v] = [];
+    for (var l = 0; l < 4; l++) {
+      var g = document.createElement("div");
+      g.className = "ld-bars";
+      var fair = document.createElement("div");
+      fair.className = "ld-fair";
+      fair.style.bottom = (100 * (1 / 8) / 0.5) + "%";
+      g.appendChild(fair);
+      layers.appendChild(g);
+      cells[v].push(g);
+    }
+  });
+  function render() {
+    var i = +slider.value;
+    document.getElementById("ld-stepv").textContent = "step " + D.steps[i].toLocaleString();
+    Object.keys(cells).forEach(function (v) {
+      cells[v].forEach(function (g, l) {
+        Array.prototype.slice.call(g.querySelectorAll(".ld-bar")).forEach(function (b) { b.remove(); });
+        D[v][i][l].forEach(function (s, e) {
+          var b = document.createElement("div");
+          b.className = "ld-bar" + (s > 2 / 8 ? " hot" : "");
+          b.style.height = Math.min(100, 100 * s / 0.5) + "%";
+          b.title = "expert " + e + ": " + (100 * s).toFixed(1) + "% of slots";
+          g.appendChild(b);
+        });
+      });
+    });
+  }
+  slider.addEventListener("input", render);
+  render();
+})();
+</script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
