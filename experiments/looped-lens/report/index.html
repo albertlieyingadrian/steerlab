@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading a looped model: which lenses see Inkling 2 Mini's hidden step, and which don't</title>
+<meta name="description" content="Inkling 2 Mini loops its middle layers and has no single residual stream, so the logit lens reads almost nothing inside the loop. On 867 self-written two-step questions, a translator trained to predict the reply's first word was the only lens that beat the starter out of sample (+4.8 points, 8 of 8 folds); a tuned lens, re-mixing the model's own blocks and weight-space-programming designs did not.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reading a looped model: which lenses see Inkling 2 Mini&#x27;s hidden step, and which don&#x27;t">
+<meta property="og:description" content="Inkling 2 Mini loops its middle layers and has no single residual stream, so the logit lens names the hidden step on 2% of questions inside the loop. On 867 self-written two-step questions, scored with the Looped Lens Challenge&#x27;s vote rule and cross-validated, only a future lens (trained to predict the reply&#x27;s first word) beat the starter: +4.8 points, 8 of 8 folds.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grid of small rectangles on a pale ground: six rows, one per lens, and 48 columns, one per layer visit of Inkling 2 Mini, split by gaps into the prelude, three core passes and the coda; most cells are grey, the last block glows deep orange in every row, and the trained-lens rows are light orange through the second and third passes.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Reading a looped model: which lenses see Inkling 2 Mini&#x27;s hidden step, and which don&#x27;t">
+<meta name="twitter:description" content="Inkling 2 Mini loops its middle layers and has no single residual stream, so the logit lens names the hidden step on 2% of questions inside the loop. On 867 self-written two-step questions, scored with the Looped Lens Challenge&#x27;s vote rule and cross-validated, only a future lens (trained to predict the reply&#x27;s first word) beat the starter: +4.8 points, 8 of 8 folds.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-26">
+<meta property="article:modified_time" content="2026-11-26">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Reading a looped model: which lenses see Inkling 2 Mini's hidden step, and which don't",
+ "description": "Inkling 2 Mini loops its middle layers and has no single residual stream, so the logit lens names the hidden step on 2% of questions inside the loop. On 867 self-written two-step questions, scored with the Looped Lens Challenge's vote rule and cross-validated, only a future lens (trained to predict the reply's first word) beat the starter: +4.8 points, 8 of 8 folds.",
+ "abstract": "Model architecture series, Episode 3. Inkling 2 Mini (open-weights MoE; layers 6-17 run three times, 48 layer visits; blocks plus an active block, per-layer depth mixes, restarts each pass). Lenses read at the last prompt token, one lens per visit, up to 10 visits, scored with the Looped Lens Challenge's 5-option plurality vote on 867 self-written questions in 10 families (327 in round 2, 540 in round 3), fuzzy matching checked against MiMo v2.6 Pro (318/327 same verdict). Untrained logit lens on the active block: 2.2% gold votes on average over the 36 core visits, 45% at visit 44; the output head's own mix 0.7%; each layer's MoE input 4.5%. 8-fold CV (289 test questions per fold) of a hill-climb visit search per lens set, against the starter (0.503): untrained reads +0.9 (7/8 folds), tuned lens +0.7, future lens (rank-128 translator to the reply's first content token) +4.8 (8/8; +3.9 over untrained), concept lens +2.1 alone and -0.1 on top of the future lens, v1's set +3.9, v2's set +5.7; v2's set over v1's +1.8 (one fold's 95% CI +-3.6), within noise. Weight-space-programming designs from a model given routing numbers: +0.3, a null. v1 beat the starter by 10-12 points on round-2 questions and by 1 on round-3 held-out. NDIF hosted model vs offline copy: same verdict 106/112 and 183/191; top-1 agreement 0.89 and 0.92. Two-step arithmetic stays at 0.22. Within the challenge's Nov 24 rule clarification; not yet submitted (waitlisted). Translators public on Hugging Face. About $6.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-26",
+ "dateModified": "2026-11-26",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "looped transformer, Inkling 2 Mini, logit lens, tuned lens, future lens, lens, interpretability, NDIF, nnsight, Looped Lens Challenge, WorkspaceBench, latent reasoning, monitoring",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://ndif.us/looped-lens-challenge/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2303.08112"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2311.04897"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2401.06102"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2507.02199"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2609.01924"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.lesswrong.com/posts/Zeg2JztbdhguL48uH/workspacebench-evaluating-interpretability-methods-for-the"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://thinkingmachines.ai/news/inkling-2-mini/"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  .lx { margin: 1.2rem 0 1.6rem; }
+  .lx-row { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; margin: 0.35rem 0; }
+  .lx-label { font: 0.72rem var(--font-mono); color: var(--ink-soft); min-width: 5.2rem; }
+  .lx-chip { font: 0.72rem var(--font-mono); padding: 0.2rem 0.5rem; border-radius: 3px; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink); cursor: pointer; }
+  .lx-chip.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--canvas)); }
+  .lx-q { font-size: 0.9rem; margin: 0.6rem 0 0.5rem; }
+  .lx-strip { display: grid; grid-template-columns: 6fr 12fr 12fr 12fr 6fr; gap: 6px; }
+  .lx-pass { min-width: 0; }
+  .lx-pname { display: block; font: 0.62rem var(--font-mono); color: var(--ink-soft); margin-bottom: 2px; }
+  .lx-cells { display: grid; gap: 2px; }
+  .lx-cell { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-width: 0; height: 3.6rem; padding: 2px 0; border: 1px solid var(--rule); border-radius: 2px; background: var(--canvas); color: var(--ink); cursor: pointer; overflow: hidden; }
+  .lx-cell.gold { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .lx-cell.wrong { background: var(--ink-faint); border-color: var(--ink-soft); }
+  .lx-cell.nr { background: transparent; border-style: dashed; opacity: 0.5; }
+  .lx-cell.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .lx-v { font: 0.55rem var(--font-mono); opacity: 0.8; }
+  .lx-t { font: 0.6rem var(--font-mono); writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; max-height: 2.5rem; overflow: hidden; }
+  .lx-legend, .lx-detail { font: 0.72rem var(--font-mono); color: var(--ink-soft); margin: 0.5rem 0 0; }
+  .lx-key { display: inline-block; width: 0.8rem; height: 0.8rem; vertical-align: -0.1rem; border: 1px solid var(--rule); margin: 0 0.2rem 0 0.6rem; }
+  .lx-key.gold { background: var(--accent); border-color: var(--accent); }
+  .lx-key.wrong { background: var(--ink-faint); border-color: var(--ink-soft); }
+  .lx-key.nr { border-style: dashed; }
+  @media (max-width: 640px) { .lx-strip { grid-template-columns: 1fr; } .lx-cell { height: 3.2rem; } }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Model architecture · Episode 3<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-26">Nov 26, 2026</time></p>
+  <h1>Reading a looped model: which lenses see Inkling 2 Mini's hidden step, and which don't</h1>
+  <p class="dek ruled">Inkling 2 Mini runs its middle twelve layers three times and keeps no single residual stream, so the lenses we use to read ordinary transformers go nearly blind inside its loop. We tried six ways to read it on 867 two-step questions, with the Looped Lens Challenge's rules and vote as the benchmark. For people building lenses or monitors for looped models: only a translator trained to predict the reply's first word beat the plain logit lens out of sample.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="A grid of small rectangles on a pale ground: six rows, one per lens, and 48 columns, one per layer visit, split by gaps into the prelude (6), three core passes (12 each) and the coda (6). Most cells are grey; cells in the last block glow deep orange in every row; the trained-lens rows (bottom three) are a light orange across the second and third passes; outlined empty cells mark visits where a trained lens was not fitted.">
+    <figcaption>Cover: how often each lens names the hidden step (orange; darker is more often, up to 45% of 867 questions) at each of Inkling 2 Mini's 48 layer visits. Rows, top to bottom: the logit lens on the active block (the starter), on the output head's own mix, and on each layer's MoE input; then the tuned, future and concept translators on the MoE input. Empty outlines: not fitted there.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Model architecture, Episode 3 (after <a href="../../looped-transformer-from-scratch/report/">a looped transformer built from scratch</a>)</dd></div>
+    <div><dt>Model</dt><dd>Inkling 2 Mini (<code>thinkingmachines/Inkling-2-Mini</code>, open weights, MoE): 24 layers, of which 6-17 run three times, so 48 layer visits per token. Read offline on one Modal H100 and on the hosted copy at NDIF</dd></div>
+    <div><dt>Benchmark</dt><dd>The <a href="https://ndif.us/looped-lens-challenge/">Looped Lens Challenge</a> (<a href="https://github.com/ndif-team/looped-lens-challenge">repo</a>): its read limits, vote rule and November 24 rule clarification, on 867 questions we wrote ourselves. The hidden test set was never seen. Standing: no submission yet; the account is on the waitlist</dd></div>
+    <div><dt>Code, data, weights</dt><dd><a href="../results/summary.json">results/</a> (every number) · <a href="../cv.py">cv.py</a> · <a href="../make_figures.py">make_figures.py</a> · <a href="../entry/main.py">entry/</a> (the lens as it runs on NDIF) · <a href="../lab/modal_lens.py">lab/</a> (lens bank and translator fits) · translators: <a href="https://huggingface.co/albertlieadrian/inkling2-mini-future-lens">albertlieadrian/inkling2-mini-future-lens</a></dd></div>
+    <div><dt>Effort</dt><dd>Two days; about $6 in all ($5.04 of Modal H100 time, under $1 of judge calls, $0.05 for one design call). The analysis in this note reruns on a laptop CPU in a minute</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Which lenses can read Inkling 2 Mini's hidden reasoning step?</strong></p>
+    <p>Mostly the ones that are trained for it. Inkling 2 Mini loops layers 6-17 three times and lets every layer read its own mix of earlier blocks, so the logit lens names the hidden step on only 2% of questions, on average, across the 36 looped visits; it works only in the last six layers (up to 45%). On 867 self-written two-step questions, scored with the Looped Lens Challenge's vote rule and 8-fold cross-validation, choosing which visits to read with untrained lenses gained 0.9 points over the starter. A tuned lens gained nothing. A low-rank "future lens", trained to predict the first word of the model's reply, gained 4.8 points and won in all 8 folds. A concept lens and designs proposed from the weights added little or nothing. Our best entry, v2, is about 1.8 points above v1 out of sample, which is within noise. On NDIF's hosted model it gave the same pass or fail verdict as our offline copy on 183 of 191 questions.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr><td>Does the logit lens read the loop?</td><td><strong>Hardly.</strong> It votes for the hidden step on 2.2% of questions, averaged over the 36 core visits; 45% at its best visit, 44, in the last block</td><td>The output head's own mix: 0.7% in the core. Each layer's MoE input: 4.5%</td></tr>
+      <tr><td>Does choosing visits help, with no training?</td><td><strong>Barely:</strong> +0.9 points over the starter, out of sample (one fold's 95% CI ±2.2; 7 of 8 folds)</td><td>Starter: 0.503 cross-validated pass rate</td></tr>
+      <tr class="hl"><td>Does a trained translator help?</td><td><strong>One kind does.</strong> The future lens: +4.8 points (±3.4), better in 8 of 8 folds; +3.9 over the untrained search alone</td><td>Tuned lens (next token): +0.7 (±2.7), 5 of 8 folds</td></tr>
+      <tr><td>Does the concept lens add to it?</td><td><strong>No.</strong> +2.1 alone (8 of 8 folds), −0.1 on top of the future lens</td><td>Future lens alone: +4.8</td></tr>
+      <tr><td>Is v2 better than v1?</td><td><strong>Not measurably:</strong> v2's lens set beats v1's by +1.8 points (±3.6; 7 of 8 folds better, 1 worse)</td><td>v1's set: +3.9 over the starter; v2's: +5.7</td></tr>
+      <tr><td>Do the numbers hold on the hosted model?</td><td><strong>Yes.</strong> Same verdict on 106/112 (v1) and 183/191 (v2) held-out questions; pass rate 0.696 against 0.714 offline, and 0.524 against 0.534</td><td>Top-1 token agreement per read: 0.89 and 0.92</td></tr>
+      <tr><td>Weight-space programming (a model reads the routing numbers and proposes reads)</td><td><strong>A null:</strong> +0.3 points over the starter, −0.6 against the untrained search alone</td><td>Two of its five designs read the hidden step at visits where the logit lens reads little (23% at visit 37)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">"Pass": the hidden step gets strictly the most of the reads' votes (the challenge's rule). Cross-validated numbers: 8 random splits of the 867 questions; the visit search runs on two thirds, and the score is on the other 289. "±" is one fold's paired 95% interval. Matching uses a fuzzy stand-in for the challenge's judge, checked against an LLM judge in <a href="#judge">section 4.7</a>.</p>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: what is a lens, and why is a looped model hard to read?</p>
+    <p>A <strong>lens</strong> is a reader you hold up to a model's internal state: it turns a vector into a ranked list of vocabulary tokens. The simplest, the <a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens">logit lens</a>, applies the model's own final norm and unembedding early, as if the model stopped there. In an ordinary transformer every layer adds to one running sum, the residual stream, so there is one obvious thing to read. Inkling 2 Mini has neither a straight line of layers nor one stream. It runs layers 0-5 once, layers 6-17 three times with the same weights, and layers 18-23 once: 48 <em>layer visits</em> per token. It keeps finished six-layer blocks in a list, builds an "active" block, and each sublayer reads its own learned mix of them. At each new pass the list restarts from the prelude's output, and the previous pass reaches the next only through gated messages (<a href="https://nnsight.net/blog/2026/11/20/opening-the-box-of-inkling-2-mini-using-nnsight-ndif/">Opening the box of Inkling 2 Mini</a>). So "the state at visit 30" is not one vector: a lens has to choose which mix to read.</p>
+  </aside>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Inkling 2 Mini "What sport does the athlete Sidney Crosby play?" and stop it at the last prompt token, before it answers. Somewhere inside, it has to come up with "hockey". The logit lens finds it in the end: at visit 44, in the last block, its top tokens are <code>hockey</code>, <code>ice</code>, <code>skat</code>. But through most of the loop it reads commas: at visit 30, the start of the third pass, its top three are <code>,</code> <code>-</code> <code>и</code>. The state the model's own answer head would read, if it stopped there, says <code>STOP</code> and <code>Сто</code>. And for "What is (3 + 4) * 2?", whose hidden step is 7, no read at any visit ever says 7; the late visits say <code>parentheses</code>, <code>order</code>, <code>priority</code>.</p>
+  <p><strong>What is known.</strong> Lenses have a long line of work on ordinary transformers: the logit lens, the <a href="https://arxiv.org/abs/2303.08112">tuned lens</a> (an affine translator per layer, trained to match the final output), <a href="https://arxiv.org/abs/2311.04897">Future Lens</a> (predicting tokens further ahead from one hidden state), <a href="https://arxiv.org/abs/2401.06102">Patchscopes</a>, the <a href="https://arxiv.org/abs/2607.15495">J-lens</a> and <a href="https://arxiv.org/abs/2602.00462">LatentLens</a>. <a href="https://www.lesswrong.com/posts/Zeg2JztbdhguL48uH/workspacebench-evaluating-interpretability-methods-for-the">WorkspaceBench</a> scores them on two-step questions, where the model must compute a hidden step, the <em>intermediate</em>, before it can answer. On looped models, a custom logit lens has been used to decode the depth-recurrent Huginn model (<a href="https://arxiv.org/abs/2507.02199">Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer</a>), and the Jacobian lens has been studied on small looped models (<a href="https://arxiv.org/abs/2609.01924">Looped Transformers under the Jacobian Lens</a>). Our <a href="../../looped-transformer-from-scratch/report/">previous episode</a> found that one lens reads every loop of a small model when loops carry their state forward, but that a fitted lens is needed when passes restart.</p>
+  <p><strong>What is missing.</strong> Inkling 2 Mini is the first widely used open model built this way: it restarts every pass, and every layer picks its own mix. Little is known about which lens works on it. NDIF's <a href="https://ndif.us/looped-lens-challenge/">Looped Lens Challenge</a> asks exactly that, with a public vote rule and strict limits on reads.</p>
+  <p><strong>What this note does.</strong> It takes the challenge's rules as a benchmark and measures six ways to read Inkling 2 Mini, on 867 two-step questions we wrote. Each lens set is cross-validated, so a lens counts only if it helps on questions it was not chosen on. The worry we design against is fitting the question set: with ten reads chosen from 48 visits and several lenses, a search can always find something that looks good. Contributions:</p>
+  <ol>
+    <li>A map of where each lens names the intermediate across all 48 visits, which shows the loop is close to unreadable with untrained lenses (Figure 1).</li>
+    <li>A positive result: a <em>future lens</em>, a low-rank translator trained to predict the first word of the model's reply, is the only lens that beats the starter out of sample, in every fold.</li>
+    <li>Three negatives, each with its size: a tuned lens, a concept lens added on top, and readout designs that a model proposed from the weights.</li>
+    <li>A measured agreement between NDIF's hosted model and an offline copy, and between our fuzzy matcher and an LLM judge.</li>
+    <li>Public translator weights and the entry's code, both within the challenge's clarified rules.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="terms">Terms</h3>
+  <ul>
+    <li>A <strong>layer visit</strong> is one layer applied to the token, numbered 0-47 in the order they run: 0-5 the prelude, 6-17 the core's first pass, 18-29 the second, 30-41 the third, 42-47 the coda (layers 18-23).</li>
+    <li>The <strong>intermediate</strong> is the hidden step a question needs: "hockey" for the Crosby question, 7 for (3 + 4) × 2, "France" for "the capital of the country where the Eiffel Tower stands".</li>
+    <li>A <strong>read</strong> is one lens applied to one visit's state at the last prompt token, giving a top-10 token list. An entry makes at most ten reads per question, at ten different visits.</li>
+    <li><strong>The vote rule</strong> (the challenge's): each question comes with five options, the intermediate and four decoys. Each read votes for the option named by its highest-ranked token that names one. The question <strong>passes</strong> when the intermediate gets strictly the most votes; a tie fails. The pass rate is the share of questions that pass.</li>
+    <li>A read's <strong>gold-vote rate</strong> is how often it votes for the intermediate; its <strong>wrong-vote rate</strong>, how often for a decoy. A wrong vote costs more than no vote.</li>
+  </ul>
+  <h3 id="states">The states a lens can read</h3>
+  <p>Because Inkling 2 Mini has no single stream, we read four different states at each visit, all with the model's own final norm and unembedding:</p>
+  <ul>
+    <li><code>act_in</code>, the active block entering the visit. This is what the challenge's starter reads: <strong>the starter</strong> is the logit lens on <code>act_in</code> at visits 12, 24, 34, 35, 36 and 43-47.</li>
+    <li><code>mix_in</code>, the output head's own learned mix of the finished blocks and the active block: what the model would read out if it stopped here.</li>
+    <li><code>attn_in</code>, the mix this visit's attention reads.</li>
+    <li><code>mlp_in</code>, the input to this visit's MoE sublayer: the layer's own mix, after its attention, with the previous pass's message gated in on passes 2 and 3.</li>
+  </ul>
+  <p>Three trained translators then read <code>mlp_in</code> (and two of them <code>act_in</code>). Each is a small affine map, <code>y = x + U(Vx) + b</code> or a full <code>x + Wx + b</code>, applied before the unembedding. They differ only in their training target:</p>
+  <ul>
+    <li><strong>Tuned lens</strong>: the model's own next-token distribution at the same position (the tuned-lens recipe). Full-rank, one per state and visit, 400 steps on wikitext and chat-wrapped text.</li>
+    <li><strong>Future lens</strong>: the model's distribution over the <em>first content token of its reply</em>. In chat format, the next token after the prompt is always a control token (<code>&lt;|content_text|&gt;</code>), so the target is taken one position later. Rank 128, about 6,000 prompts (open-domain questions from <code>nq_open</code> in chat format, random arithmetic, wikitext prefixes), at 15 visits for each of two states. The name follows Future Lens, which also trains a map from one hidden state to a later token.</li>
+    <li><strong>Concept lens</strong>: the words around the current word (four on each side, the word itself counted twice), with typos injected into 15% of input words and clean targets. Rank 128, about 24,000 wikitext examples, <code>mlp_in</code> at visits 20-47.</li>
+  </ul>
+  <p>None of the translators saw a challenge question or one of ours.</p>
+  <h3 id="questions">Questions</h3>
+  <p>867 questions in ten families, styled after workspace-bench and the challenge's 10 practice questions: chat questions whose answer is the intermediate ("What sport does … play?", 258), two-step arithmetic (154), multi-hop facts (150), multilingual arithmetic and facts (126), typos (86), word association (34), poetry rhymes (24), definitions (15), translations (10), and the 10 practice questions. We wrote them in two rounds: 327 first, and 540 more after round 2's gains looked fitted. A hash of each id puts a third of each round in a held-out split, never used to pick anything. Each question is read at the token the challenge's format names, the last prompt token (<code>&lt;|message_model|&gt;</code>).</p>
+  <h3 id="rules">Within the challenge's rules</h3>
+  <p>On November 24 the organisers clarified that each read is one lens at one visit, that all of a prompt's reads are taken at one token position, and that reads may not be built, filtered or reranked using the prompt's text. We checked both entries line by line against that clarification:</p>
+  <ul>
+    <li>All reads are at the question's <code>read_position</code>, the last prompt token, for every prompt.</li>
+    <li>Each read is one lens on one visit's state, labelled with that visit's number. No visit appears twice, and no visit is read beyond the ten (v2) or nine (v1) that are reported. The visits are fixed in advance for every prompt. They were chosen offline on our own questions, never from scored questions.</li>
+    <li>The prompt's token ids are used only to run the model. Cleaning removes control tokens and repeats of a token in another casing or spacing, which the clarification lists as allowed.</li>
+    <li>The translators run on NDIF from public weights. No external model is called at run time. The design model in <a href="#wsp">section 4.8</a> was used offline, saw no questions, and none of its designs is in either entry.</li>
+  </ul>
+  <p>No fix was needed. The challenge page does not restrict sharing methods during the competition; it states that submissions are published under the MIT license. Phase one opened on November 23, and its closing date has not been announced.</p>
+
+  <h2 id="success"><span class="num">03</span>How the study was run</h2>
+  <p><strong>What counts as success, set before the method.</strong> A lens helps only if it passes all four:</p>
+  <ol>
+    <li>It beats the starter on questions it was not chosen on: cross-validated, 8 folds, paired, better in most folds.</li>
+    <li>It beats a <em>baseline for the method</em>: the same visit search with untrained lenses only. Otherwise the gain is the search, not the lens.</li>
+    <li>It holds on the hosted model: NDIF's verdicts within noise of the offline copy's.</li>
+    <li>It stays within the rules above.</li>
+  </ol>
+  <ol>
+    <li><strong>Write questions</strong>: 327 in round 2, 540 more in round 3, 867 in all, with options and the intermediate.</li>
+    <li><strong>Cache a lens bank</strong> on one Modal H100 with plain forward hooks: every raw state at all 48 visits, for every question, keeping the top-20 token ids (about 290,000 reads).</li>
+    <li><strong>Fit the translators</strong>: one tuned-lens fit, two future-lens fits (6,000 and 15,000 prompts), one concept-lens fit.</li>
+    <li><strong>Search and cross-validate</strong>: for each of 10 lens sets and each of 8 random two-thirds splits, a hill-climb (600 proposed changes) picks up to ten (lens, visit) reads, starting from the starter's visits; the picks are scored on the held-back third.</li>
+    <li><strong>Pick entries</strong>: v1 from the round-2 search over 327 questions, v2 from the search over all 867 (so v2's pass rate on those questions is in-sample).</li>
+    <li><strong>Check the hosted model</strong>: run each entry end to end on NDIF, with the public translator weights, on 112 (v1) and 191 (v2) held-out questions.</li>
+    <li><strong>Check the judge</strong>: one LLM-judge run (MiMo v2.6 Pro) on v1's 327 readouts.</li>
+    <li><strong>Weight-space programming</strong>: one call, five designs, each read from the bank and cross-validated like a lens.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed before any trial versus changed after reading results"><table>
+    <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>The challenge's limits (10 reads, one position, top 10 tokens) and vote rule</td><td>The question set grew from 327 to 867 after round 2's gains looked fitted</td></tr>
+      <tr><td>The starter as the baseline, and the untrained search as the method's baseline</td><td>The future lens's target moved one token later after the tuned lens learned to predict the control token</td></tr>
+      <tr><td>The held-out split, by a hash of each question id</td><td>The concept lens was added after typo and association questions failed</td></tr>
+      <tr><td>The cross-validation protocol (8 folds, 600 hill-climb steps, seed 100 + fold)</td><td>v2's visits were picked on all 867 questions, so its pass rate there is in-sample</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Conditions: the lens bank and the translator fits ran in bf16 on one H100 with plain forward hooks, about $5 in all. NDIF runs used the challenge's <code>nnsight</code> code, with 25 questions per request: 191 questions took 21 minutes with NDIF's queue at about 55 jobs. The cross-validation and every number below rerun on a laptop CPU in about a minute, from the shipped vote table.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="loop-blind" data-short="The loop is blind">4.1 Untrained lenses read almost nothing inside the loop, and the model's own output mix is worst</h3>
+  <figure>
+    <img src="figures/visits.png" width="1503" height="707" alt="Line chart of the share of 867 questions on which a read votes for the intermediate (y, 0 to 0.75) at each layer visit 0-47 (x), with the prelude, three core passes and coda labelled. Three lines. Grey, the starter's logit lens on the active block: near 0 except bumps at visits 24 (0.11) and 36 (0.23), then 0.34-0.45 at visits 43-46. Dashed blue, the output head's own mix: near 0 through visit 42, then 0.34-0.44 at 43-46. Orange, the logit lens on each layer's MoE input: small bumps through passes 2 and 3 (0.12 at 23, 0.21 at 35, 0.10-0.14 at 37-41), 0.32 at visit 42 and 0.42 at 44.">
+    <figcaption>Figure 1. Inside the loop, untrained lenses rarely name the intermediate; the last block does. Each line is one untrained read (logit lens on one state); y is the share of all 867 questions on which that read votes for the intermediate. The output head's own mix (dashed) is the least informative mid-loop (0.7% on average over the 36 core visits), the active block next (2.2%), each layer's MoE input the most (4.5%).</figcaption>
+  </figure>
+  <p>Figure 1 shows the problem. Over the 36 core visits, the starter's read votes for the intermediate on 2.2% of questions on average; at visit 44 it does on 45%. The exceptions are visit 24 and visit 36: layer 12, the end of the core's first six-layer block, on passes 2 and 3.</p>
+  <p>The surprise is the output head's mix (<code>mix_in</code>). It is the state the model would read out if it stopped here, so it looked like the natural "residual stream" to read. Mid-loop it is the worst read: 0.7% on average, and its top tokens are the same few (<code>STOP</code>, <code>Сто</code>) on almost every question. The head's mix was trained for the end of the network; mid-loop it weights the prelude's block, which says nothing about the question.</p>
+  <p>Each layer's own MoE input (<code>mlp_in</code>) is the best untrained read, with small peaks through passes 2 and 3 (21% at visit 35, 32% at visit 42). Each layer's mix is tuned for that layer, so it carries what that layer works on.</p>
+
+  <h3 id="explorer" data-short="Explore the reads">Explore the reads</h3>
+  <p>The explorer shows real readouts from the lens bank: for eight questions, the top token of each lens at all 48 visits. Orange cells vote for the intermediate. Click a cell for its top five tokens and that read's rates over all 867 questions.</p>
+  <figure class="whole">
+    <div id="lx" class="lx" aria-label="Readout explorer"></div>
+    <figcaption>Interactive. The Crosby question is the hook's. "arith inter (fails)" is (3 + 4) × 2, where no read names 7. Data: <code>results/examples.json</code>, cleaned top tokens from the offline lens bank.</figcaption>
+  </figure>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Static readouts for the Crosby question"><table>
+    <caption class="small">The Crosby question without the explorer: top three tokens (after cleaning) at six visits.</caption>
+    <thead><tr><th>Read</th><th>30 (pass 3 starts)</th><th>34</th><th>36</th><th>40</th><th>44 (coda)</th><th>46</th></tr></thead>
+    <tbody>
+      <tr><td>Logit lens, active block (starter)</td><td>, - и</td><td>, - skat</td><td>skat hockey team</td><td>guitar chief football</td><td>hockey ice skat</td><td>hockey Canada Edmonton</td></tr>
+      <tr><td>Output head's mix</td><td>STOP Сто मानना</td><td>STOP Сто मानना</td><td>ski Сто STOP</td><td>guitar Who United</td><td>hockey ice skat</td><td>hockey Canada ice</td></tr>
+      <tr><td>MoE input</td><td>and , и</td><td>, и and</td><td>World football ∗</td><td>football U national</td><td>hockey ice Canadian</td><td>hockey ? ice</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="search" data-short="Visit choice alone">4.2 Choosing which visits to read, with no training, buys under a point</h3>
+  <p>Since some visits read better than others, the first idea is to pick better visits and better states. A hill-climb over all four untrained states and all 48 visits did that. Cross-validated, it passes 0.512 against the starter's 0.503: <strong>+0.9 points</strong> (one fold's 95% interval ±2.2; better in 7 of 8 folds; Figure 3). In round 2, on the first 327 questions, the same search looked like +5 points on the split it was tuned on and 0 to 2 on held-out questions. This baseline is what every trained lens has to beat.</p>
+
+  <h3 id="tuned" data-short="Tuned lens">4.3 A tuned lens learns "the reply starts now", not the answer</h3>
+  <p>The tuned lens fit its target well: the average KL divergence to the model's final next-token distribution fell from 18.2 to 2.7 nats over 400 steps. It still did not help: +0.7 points over the starter, and −0.2 against the untrained search (5 folds better, 3 worse). At late visits it names the intermediate less often than the raw read it starts from (30% at visit 44, against 42%), and in the core it adds wrong votes (10-11% at visits 33-34; Figure 2).</p>
+  <p>The reason is the training target. At the read position of a chat prompt, the model's next token is always the control token <code>&lt;|content_text|&gt;</code>. A lens trained to predict the next token learns to say "the reply starts now"; the content never enters its target.</p>
+
+  <h3 id="future" data-short="Future lens">4.4 A future lens is the one real gain: +4.8 points, in every fold</h3>
+  <figure>
+    <img src="figures/trained.png" width="1703" height="642" alt="Two line charts over layer visits 20-47. Left, share of 867 questions with a vote for the intermediate: the raw MoE input (grey) is near 0.05 through pass 3 except 0.21 at visit 35, then 0.32-0.42 at 42-44; the tuned lens (blue dashed) reaches 0.17-0.19 at visits 31-34; the future lens (orange, fitted at 15 visits only) 0.14 at visits 33-34 and 0.35 at 44; the concept lens (brown dotted) 0.10-0.15 through pass 3 and 0.29 at 44. Right, share with a vote for a wrong option: raw 0.00-0.06; concept 0.02-0.06; tuned 0.05-0.13; future 0.07-0.16.">
+    <figcaption>Figure 2. Trained translators name the intermediate more often mid-loop, at a price in wrong votes that differs by lens. Left: share of 867 questions on which each read votes for the intermediate; right: for a wrong option. All four read the MoE input; the future lens was fitted at 15 visits only, so its line has gaps. The vertical line marks the start of the coda.</figcaption>
+  </figure>
+  <p>The future lens changes only the target: the first content token of the reply, one position past the control token. Read on its own, it is not obviously better. It names the intermediate less often than the raw read at visit 44 (35% against 42%), and it casts wrong votes on 7-16% of questions (Figure 2). But it names the intermediate mid-loop where the raw read is silent (14% at visits 33-34, against 4-5%), and it is right on different questions.</p>
+  <p>In the search that is what counts. Allowed to use it, the visit search reaches a cross-validated 0.551: <strong>+4.8 points over the starter</strong> (±3.4) and <strong>+3.9 over the untrained search</strong> (±3.3), better in all 8 folds against both (Figure 3). The search puts it at visits 34 and 44-45. The gain sits in the chat family, where the intermediate is the reply's first word: there v1, which uses it, passes 49% against the starter's 37%.</p>
+  <p>More of the same did not help. A second fit with 15,000 prompts and rank 256 matched its target better (cross-entropy 3.39 against 3.63 at visit 44) and did not raise the cross-validated pass rate on the first 327 questions. Data for "predict the reply" is not the bottleneck: the intermediate often is not the reply.</p>
+  <figure>
+    <img src="figures/cv.png" width="1709" height="721" alt="Dot plot of the cross-validated test pass rate minus the starter's, in points, for nine lens sets, each with a light bar for one fold's 95% interval and ticks for the range over 8 folds. From the bottom: raw + weight-space designs +0.3 (6/8 folds), raw + tuned lens +0.7 (5/8), raw reads only +0.9 (7/8) in grey; raw + concept lens +2.1 (8/8), v1's set (raw + tuned + future) +3.9 (8/8), raw + future + concept +4.7, raw + future lens +4.8, everything + weight-space designs +4.8, and v2's set (raw + tuned + future + concept) +5.7, all 8/8, in orange.">
+    <figcaption>Figure 3. Every lens set that gains more than a point contains a trained future or concept lens; the future lens carries most of it. Each row is one set of lenses the visit search may use. The dot is the mean, over 8 folds, of its test pass rate minus the starter's on the same 289 held-back questions; the light bar is one fold's paired 95% interval; the ticks are the lowest and highest fold. Counts: folds in which the set beat the starter. Starter: 0.503.</figcaption>
+  </figure>
+
+  <h3 id="concept" data-short="Concept lens">4.5 The concept lens is precise, but adds nothing on top of the future lens</h3>
+  <p>The concept lens was aimed at the families the future lens misses: typos and associations, where the intermediate is the <em>current</em> word, not the next one. Its reads are precise: wrong votes on 2-6% of questions per visit, the lowest of any trained lens (Figure 2). It names the intermediate more rarely (up to 29%). Alone it adds +2.1 points over the starter (8 of 8 folds) and +1.2 over the untrained search (5 better, 3 tied, 0 worse). On top of the future lens it adds −0.1 (3 folds better, 3 worse). It did not fix the typo questions it was meant for: the misspelled word is split into odd tokens, and the starter's 58% on that family stays at 57% for v2.</p>
+
+  <h3 id="entries" data-short="v1 and v2">4.6 Two entries: v2 is about 1.8 points better than v1, which is within noise</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed entries by split"><table>
+    <thead><tr><th>Questions</th><th>Starter</th><th>v1 (picked on round 2)</th><th>v2 (picked on all 867)</th></tr></thead>
+    <tbody>
+      <tr><td>Round 2, tuning split (215)</td><td>0.591 [0.524, 0.654]</td><td>0.693 [0.628, 0.751]</td><td>0.665 [0.600, 0.725]</td></tr>
+      <tr><td>Round 2, held-out (112)</td><td>0.598 [0.506, 0.684]</td><td>0.714 [0.625, 0.790]</td><td>0.705 [0.615, 0.782]</td></tr>
+      <tr><td>Round 3, tuning split (349)</td><td>0.418 [0.368, 0.471]</td><td>0.424 [0.373, 0.476]</td><td>0.504 [0.452, 0.556]</td></tr>
+      <tr><td>Round 3, held-out (191)</td><td>0.471 [0.402, 0.542]</td><td>0.482 [0.412, 0.552]</td><td>0.534 [0.463, 0.603]</td></tr>
+      <tr class="hl"><td>Cross-validated, the entry's lens set (289 per fold)</td><td>0.503</td><td>0.542 (+3.9)</td><td>0.560 (+5.7)</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Pass rates with Wilson 95% intervals. v1 reads <code>mlp_in</code> at 24, 27, 35 and 43, the future lens at 34 and 44, and the logit lens at 45-47. v2 reads <code>mlp_in</code> at 8 and 42, the logit lens at 12, 36, 44 and 46, the concept lens at 27 and 33, and the future lens at 34 and 45 (<code>act_in</code> at 45). Every round-3 number for v1 is out of sample; every number for v2 is in-sample except the cross-validated row.</p>
+  <p>The table shows the trap that round 3 was written to catch. On the first 327 questions, v1 beat the starter by 10-12 points, on held-out questions too. On 540 harder questions written afterwards, it beat the starter by 0.6 and 1.1 points. Some of round 2's gain was fitting the kind of question we had written, not just the split.</p>
+  <p>v2 was then chosen on all 867 questions, so its 0.534 on round-3 held-out is optimistic. The fair comparison is cross-validated: the search allowed v2's lenses beats the search allowed v1's by <strong>+1.8 points</strong>, with one fold's 95% interval of ±3.6 and fold differences from −0.7 to +5.5 (7 folds better, 1 worse). That is a small, consistent edge, and it is inside the noise of any one test fold. We would not claim v2 is better than v1 on the hidden set.</p>
+
+  <h3 id="ndif" data-short="NDIF agrees">4.7 The hosted model agrees with the offline copy, and the fuzzy matcher with an LLM judge</h3>
+  <p id="judge">Two things could make all of the above an artefact: our offline copy of the model, and our fuzzy matcher. We checked both.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="NDIF against offline"><table>
+    <thead><tr><th>Run (held-out questions)</th><th>Pass rate on NDIF</th><th>Offline, same questions</th><th>Same verdict</th><th>Top-1 token agrees</th></tr></thead>
+    <tbody>
+      <tr><td>v1, round 2 (112)</td><td>0.696 [0.606, 0.774]</td><td>0.714 [0.625, 0.790]</td><td>106/112 (NDIF only 2, offline only 4)</td><td>899/1,008 reads (0.89)</td></tr>
+      <tr><td>v2, round 3 (191)</td><td>0.524 [0.453, 0.593]</td><td>0.534 [0.463, 0.603]</td><td>183/191 (NDIF only 3, offline only 5)</td><td>1,753/1,910 reads (0.92)</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>NDIF.</strong> The entry ran end to end on NDIF's hosted Inkling 2 Mini, with the translators fetched from the public Hugging Face repository and no token. It gave the same pass or fail verdict as our Modal copy on 95-96% of questions. NDIF read 1-2 points lower in both runs; the disagreements split 2 against 4 and 3 against 5, which is within chance. About 1 read in 10 has a different top token, which we put down to numerics: NDIF runs its own kernels and precision.</p>
+  <p><strong>The judge.</strong> The leaderboard scores with an LLM judge (<code>gpt-6-luna</code>) that accepts inflections and translations. We scored with a fuzzy matcher (case, a short ending, a four-letter prefix), so we checked it once. On v1's 327 readouts, MiMo v2.6 Pro, one of the two judges the challenge's suite was validated with, passed 224 questions, the fuzzy matcher 229 and exact matching 215. Judge and matcher gave the same verdict on 318 of 327 questions (judge only 2, matcher only 7) and the same per-read vote on 97% of reads. The fuzzy matcher is slightly generous, by about 1.5 points. Every round-3 number uses the matcher only.</p>
+
+  <h3 id="wsp" data-short="Weight-space designs">4.8 Weight-space programming: designs proposed from the routing numbers did not help</h3>
+  <p>Following the <a href="https://rikiyat.github.io/blog/weight-space-programming/">weight-space programming</a> idea, we gave a strong model (<code>openai/gpt-6.2-sol</code>, $0.05) a text summary of how the model routes state. The summary held which blocks each layer's mix attends to at each visit, block norms, message-gate strengths, parameter norms, and each lens's per-visit hit and miss rates on the tuning split. It never saw a question or an answer. We asked for reads built from a small menu of operations, and it proposed five: read the just-frozen middle block after a pass (visits 25, 37), apply layer 18's attention mix at visits 38-42, sum the middle blocks plus three times the active block (visits 40-41), read the query message (31-33), and apply layer 22's MoE mix without the prelude block (44-47).</p>
+  <p>Two of them read signal where the logit lens reads little: the frozen middle block names the intermediate at visit 37 on 23% of questions with 1.6% wrong votes, and the block sum does at visit 40 on 19% with 1.7% wrong. But as lenses for the search they did nothing: +0.3 points over the starter, −0.6 against the untrained search (1 fold better, 4 worse), and −0.9 when added to v2's lenses. <strong>This is a null.</strong> The designs were a useful second reading of where state flows, not a source of better reads. They are not in either entry.</p>
+
+  <h3 id="failures" data-short="Where it fails">4.9 Where every lens still fails: two-step arithmetic</h3>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Pass rate by family"><table>
+    <thead><tr><th>Family (questions)</th><th>Starter</th><th>v1</th><th>v2</th></tr></thead>
+    <tbody>
+      <tr><td>Chat answer (258)</td><td>0.37</td><td>0.49</td><td>0.52</td></tr>
+      <tr><td>Two-step arithmetic (154)</td><td>0.12</td><td>0.17</td><td>0.22</td></tr>
+      <tr><td>Multi-hop fact (150)</td><td>0.75</td><td>0.73</td><td>0.77</td></tr>
+      <tr><td>Multilingual (126)</td><td>0.64</td><td>0.71</td><td>0.74</td></tr>
+      <tr><td>Typo (86)</td><td>0.58</td><td>0.53</td><td>0.57</td></tr>
+      <tr><td>Association (34)</td><td>0.62</td><td>0.56</td><td>0.65</td></tr>
+      <tr><td>Poetry, definition, translation, practice (59)</td><td>0.88</td><td>0.90</td><td>0.92</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">All 867 questions; v2's numbers are in-sample. The last row pools four small families (24, 15, 10 and 10 questions).</p>
+  <p>On two-step arithmetic, such as (3 + 4) × 2, no lens reads the intermediate at the last token on more than about one question in five. Read after read, the late visits name the method (<code>parentheses</code>, <code>order</code>, <code>PE</code>) and not the sum. Either the model does not hold "7" as a token-shaped state at that position, or no lens we tried can find it there. These questions cannot tell the two apart.</p>
+
+  <h2 id="safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Looped models are attractive because they think longer without writing longer, and that is the problem for oversight: reasoning that is never written can only be read from activations. On Inkling 2 Mini, the cheapest reader, the logit lens, sees the hidden step mostly in the last six layers and hardly at all in the 36 visits where the loop does its work. A monitor built on it would be quiet exactly where the model is busy. Trained translators recover some of the loop. Even the best set passes 56% of our questions out of sample, against 50% for the starter, and its gain sits in the easiest family, where the hidden step is also the answer.</p>
+  <p><strong>Before trusting a lens-based monitor on a looped model, test it pass by pass on questions with a known hidden step, against the same search with untrained lenses; a lens that reads the final block well can still be blind inside the loop.</strong></p>
+
+  <h2 id="limits"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>The hidden test set.</strong> We never saw it, and we have not submitted: the account is on the waitlist. The leaderboard's question mix is unknown and, per the organisers, will grow harder. Our round 3 showed how much a new mix can move a gain (+10 points became +1 for v1).</li>
+    <li><strong>Our own questions.</strong> All 867 were written by us, in families we chose. They test single-token intermediates read at the last prompt token. Two families are tiny (translation 10, definition 15), and the families with the clearest gains, chat answers and multilingual arithmetic, are the ones where the intermediate is also the next thing the model writes.</li>
+    <li><strong>The judge.</strong> Our pass rates use a fuzzy matcher. It agreed with MiMo v2.6 Pro on 318 of 327 verdicts, but the leaderboard uses <code>gpt-6-luna</code>, with per-family naming rules that we do not have for the scored questions. Round-3 numbers were never judged. Expect absolute rates to differ by a point or two in either direction.</li>
+    <li><strong>Noise in the selection.</strong> One fold's 95% interval on a paired difference is ±2-4 points. Differences under about 2 points, including v2 against v1, are not established. Each translator was fitted once; we did not measure seed-to-seed spread.</li>
+    <li><strong>Other lenses.</strong> We did not try the J-lens, Patchscopes, LatentLens, activation oracles or a Jacobian lens. We read one position only, as the rules require; in general lens research, more positions may read more.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Every number and figure in this note comes from the shipped vote table and reruns on a CPU:</p>
+  <pre><code>git clone https://github.com/albertlieyingadrian/steerlab && cd steerlab
+python experiments/looped-lens/cv.py --check     # 8-fold CV of every lens set; checks it against the lab run
+python experiments/looped-lens/make_figures.py    # prints every number above, draws the figures
+bash experiments/looped-lens/reproduce.sh --dry-run   # every command, including the GPU and NDIF steps</code></pre>
+  <p>To run the lens itself on the hosted model, get an <a href="https://login.ndif.us">NDIF key</a>, clone the <a href="https://github.com/ndif-team/looped-lens-challenge">challenge repository</a>, and copy <code>entry/main.py</code> and <code>entry/lenses.py</code> into its <code>submission/</code> folder. The entry downloads its translators on NDIF from <a href="https://huggingface.co/albertlieadrian/inkling2-mini-future-lens">albertlieadrian/inkling2-mini-future-lens</a> (public, MIT): <code>lens_v2.safetensors</code> (5.6 MB, five rank-128 translators) for v2, and <code>future_lens_v1.safetensors</code> for v1 (<code>LENS_VERSION=1</code>). To apply one translator yourself:</p>
+  <pre><code>from safetensors.torch import load_file
+w = load_file("lens_v2.safetensors")             # keys: &lt;lens&gt;.&lt;visit&gt;.{U,V,b}
+k = "future_mlp_in.34"                            # visit 34 = layer 10, pass 3
+x = h.float()                                     # the input of that visit's post_attention_layernorm, last token
+y = x + w[k + ".U"].float() @ (w[k + ".V"].float() @ x) + w[k + ".b"].float()
+logits = model.lm_head(model.model.language_model.norm(y.to(h.dtype)))</code></pre>
+  <p>The lens bank (64 MB of token ids) and the translator fits come from <code>lab/modal_lens.py</code> on one H100, about $5 in all; <code>build_results.py</code> turns the bank into the shipped table.</p>
+
+  <h2 id="next"><span class="num">08</span>What's next</h2>
+  <ul>
+    <li>Submit once the account is admitted, and report the leaderboard score here beside these numbers.</li>
+    <li>A translator per pass boundary (visits 17, 29, 41), trained on what the <em>next pass</em> will compute, not on the reply.</li>
+    <li>For two-step arithmetic: patch a candidate "7" into the loop and see if the answer follows, to tell "not computed as a token" from "not readable".</li>
+    <li>Seeds: refit each translator 3 times and report the spread beside the cross-validated gain.</li>
+  </ul>
+
+  <h2 id="qa"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q-why">Why does the logit lens fail inside Inkling 2 Mini's loop?</h3>
+  <p>Because there is no single residual stream to read. Inkling 2 Mini keeps finished blocks in a list and an active block; each pass restarts from the prelude's output; and each sublayer reads its own learned mix. The active block mid-loop is a partial sum that names the intermediate on about 2% of questions, and the output head's own mix, trained for the end of the network, names it on 0.7%. In the final six layers the logit lens works (up to 45%).</p>
+  <h3 id="q-future">What is a future lens, and how is it different from a tuned lens?</h3>
+  <p>Both are small affine maps applied to a hidden state before the unembedding. A tuned lens is trained to match the model's next token. A future lens here is trained to match the first content token of the reply, one position past the chat control token. On a chat prompt, the next token is always the control token, so a tuned lens learns "the reply starts now". The future lens learns what the reply will say, and in our tests that was worth +3.9 points over untrained reads.</p>
+  <h3 id="q-rules">Does this lens follow the Looped Lens Challenge rules?</h3>
+  <p>Yes, as clarified on November 24. Every read is one lens at one visit, all at the last prompt token. The visits are fixed in advance and none is read twice. Nothing is built, filtered or reranked with the prompt's text. The only cleaning removes control tokens and case or spacing repeats, which the rules allow.</p>
+  <h3 id="q-gain">How much better than the starter logit lens is it?</h3>
+  <p>About 4-6 points on our own questions, cross-validated: the starter passes 0.503 and v2's set of lenses 0.560. On 191 held-out questions written after v1 was chosen, v1 beat the starter by only 1 point. How it does on the leaderboard's hidden set is not known yet.</p>
+  <h3 id="q-run">Can I use the translators?</h3>
+  <p>Yes. They are public under MIT at <a href="https://huggingface.co/albertlieadrian/inkling2-mini-future-lens">albertlieadrian/inkling2-mini-future-lens</a>, with a model card; the snippet in <a href="#reproduce">Reproduce it</a> applies one. They are fitted to Inkling 2 Mini's MoE input at specific visits and will not transfer to other models.</p>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix</h2>
+  <h3 id="data">Data</h3>
+  <ul>
+    <li><code>results/questions.jsonl</code>: the 867 questions: <code>id</code>, <code>family</code>, <code>prompt</code>, <code>model_input</code> (with the chat template), <code>read_position</code> and <code>read_token</code>, <code>options</code>, <code>intermediate</code>, <code>answer</code>, <code>task_type</code>, <code>split</code> (dev or heldout) and <code>round</code> (2 or 3).</li>
+    <li><code>results/votes.json.gz</code>: for 508 (lens, visit) reads, the option each question's read votes for (one character per question in <code>qids</code> order: <code>0</code>-<code>4</code>, or <code>.</code> for none), under the fuzzy and the exact matcher.</li>
+    <li><code>results/cv.json</code>: per fold, the test question ids, each lens set's picks and per-question pass (0/1); <code>fixed</code>, the starter's, v1's and v2's pass per question. <code>cv_check.json</code> is the lab run it is checked against.</li>
+    <li><code>results/ndif.json</code>: both NDIF runs, per question: NDIF pass, offline pass, how many of its reads have the same top token.</li>
+    <li><code>results/judge_check.json</code> and <code>judge_round2.json</code>: the judge's verdict per question beside the matchers, and its score card.</li>
+    <li><code>results/examples.json</code>: cleaned top-10 tokens of six lenses at all visits for the explorer's eight questions.</li>
+    <li><code>results/training/</code>: the translator fits' held-out losses per (state, visit); <code>results/wsp/</code>: the design prompt, the reply and the five designs; <code>results/routing_stats.json</code>: the routing numbers the prompt was built from; <code>results/summary.json</code>: every number <code>make_figures.py</code> prints.</li>
+  </ul>
+  <h3 id="refs">References and code</h3>
+  <ul>
+    <li>The Looped Lens Challenge, <a href="https://ndif.us/looped-lens-challenge/">challenge page</a> and <a href="https://github.com/ndif-team/looped-lens-challenge">repository</a>; NDIF, <a href="https://ndif.us">ndif.us</a>; nnsight, <a href="https://nnsight.net">nnsight.net</a>; <a href="https://nnsight.net/blog/2026/11/20/opening-the-box-of-inkling-2-mini-using-nnsight-ndif/">Opening the box of Inkling 2 Mini</a>.</li>
+    <li>Inkling 2 Mini, <a href="https://thinkingmachines.ai/news/inkling-2-mini/">release post</a> and <a href="https://huggingface.co/thinkingmachines/Inkling-2-Mini">model card</a>.</li>
+    <li>Interpreting GPT: the logit lens, <a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens">LessWrong</a>. Eliciting Latent Predictions from Transformers with the Tuned Lens, <a href="https://arxiv.org/abs/2303.08112">arXiv 2303.08112</a>. Future Lens: Anticipating Subsequent Tokens from a Single Hidden State, <a href="https://arxiv.org/abs/2311.04897">arXiv 2311.04897</a>. Patchscopes, <a href="https://arxiv.org/abs/2401.06102">arXiv 2401.06102</a>. J-lens, <a href="https://arxiv.org/abs/2607.15495">arXiv 2607.15495</a>. LatentLens, <a href="https://arxiv.org/abs/2602.00462">arXiv 2602.00462</a>.</li>
+    <li>WorkspaceBench: Evaluating Interpretability Methods, <a href="https://www.lesswrong.com/posts/Zeg2JztbdhguL48uH/workspacebench-evaluating-interpretability-methods-for-the">write-up</a>.</li>
+    <li>Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer, <a href="https://arxiv.org/abs/2507.02199">arXiv 2507.02199</a>. Looped Transformers under the Jacobian Lens, <a href="https://arxiv.org/abs/2609.01924">arXiv 2609.01924</a>.</li>
+    <li>Weight-space programming, <a href="https://rikiyat.github.io/blog/weight-space-programming/">blog post</a>. The visit search follows the autoresearch pattern: one fixed harness, one editable list of reads, keep a change only if the score rises.</li>
+    <li>Earlier in this series: <a href="../../looped-transformer-from-scratch/report/">A looped transformer built from scratch follows one more link per loop, past anything it trained on</a> and <a href="../../looped-transformer/report/">A small looped transformer turns extra loops into longer reasoning only when one pass can't do the training job</a>. The from-scratch course: <a href="https://github.com/albertlieyingadrian/build-a-looped-transformer">build-a-looped-transformer</a>; the one-file version: <a href="https://github.com/albertlieyingadrian/nanoloop-transformer">nanoloop-transformer</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026loopedlens,
+  author = {Albert Lie},
+  title  = {Reading a looped model: which lenses see Inkling 2 Mini's hidden step, and which don't},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/looped-lens/report/}
+}</code></pre>
+  <footer class="note">Benchmark rules and vote from NDIF's Looped Lens Challenge, phase one; the starter lens and the NDIF plumbing come from its repository (MIT). Not yet a challenge submission.</footer>
+</article>
+</div>
+<script src="data.js"></script>
+<script src="explorer.js"></script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
