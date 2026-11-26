@@ -1,0 +1,47 @@
+{
+  "designs": [
+    {
+      "name": "frozen_middle",
+      "spec": {"op": "block", "index": -1},
+      "visits": [25, 37],
+      "why": "Read the completed first middle block just after the active block resets. The preceding act_in peaks at visits 24 and 36 are 0.11/0.01 and 0.22/0.02, respectively. This tests whether that signal survives the freeze. Treat it as an alternative to the preceding peak, not an independent vote."
+    },
+    {
+      "name": "handoff_attention_mix",
+      "spec": {"op": "mix", "module": "attention_input", "module_layer": 18, "blocks": "last1", "active_scale": 1.0},
+      "visits": [38, 39, 40, 41, 42],
+      "why": "Reuse the layer-18 query on the completed first middle block and the evolving second middle block, excluding the prelude. At its native visit 42, the query assigns these two sources mean weights of 0.509 and 0.422. Visit 39 tests whether that same query can recover the earlier signal while incorporating newer computation; the weights need not transfer unchanged."
+    },
+    {
+      "name": "balanced_middle_sum",
+      "spec": {"op": "sum", "blocks": "no_prelude", "active_scale": 3.0},
+      "visits": [40, 41],
+      "why": "Bypass the learned router and add the two middle-block contributions directly. The completed block has mean norm about 234; scaling the active by 3 gives mean norms about 213 and 320 at visits 40 and 41. This keeps either source from dominating by raw norm alone, without assuming the two directions agree."
+    },
+    {
+      "name": "third_pass_q_message",
+      "spec": {"op": "message", "which": "q"},
+      "visits": [31, 32, 33],
+      "why": "Test a distinct carryover channel in the early third pass, where the raw MoE message already gives 0.08/0.04 at visit 31 and 0.09/0.03 at visit 32. The query-path gates motivate inspecting this channel, but gate magnitudes do not establish that its message names the intermediate."
+    },
+    {
+      "name": "late_mlp_mix_no_prelude",
+      "spec": {"op": "mix", "module": "mlp_input", "module_layer": 22, "blocks": "no_prelude", "active_scale": 1.0},
+      "visits": [44, 45, 46, 47],
+      "why": "Use the layer-22 MoE depth-mix query to combine the late active block with completed middle blocks, without the prelude or expert computation. Its native mlp_in at visit 46 has a low wrong-vote rate (0.26/0.01). Test this as a replacement for a same-visit active readout, not as a presumed improvement over it."
+    }
+  ],
+  "plan": [
+    ["act_in", 24],
+    ["concept_mlp_in", 33],
+    ["attn_in", 36],
+    ["handoff_attention_mix", 39],
+    ["balanced_middle_sum", 41],
+    ["mlp_in", 42],
+    ["act_in", 43],
+    ["act_in", 44],
+    ["act_in", 45],
+    ["act_in", 46]
+  ],
+  "notes": "Use visit-entry block snapshots for the new designs and apply the usual final RMSNorm and unembedding. This is a trial slate, not an optimum inferred from the marginals. Use visit 42 mlp_in rather than act_out to avoid effectively repeating visit 43 act_in. Evaluate the two new plan entries by swapping them in individually and together against an existing-lens baseline. Score per-question vote counts by option, including abstentions and ties: a useful readout rescues questions the anchors miss or breaks ties without creating a stronger wrong-option plurality. Select the slate on dev and report the gain on held-out questions."
+}
