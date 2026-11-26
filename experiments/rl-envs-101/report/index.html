@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RL environments 101: from a 50-line toy to a tool-use environment built from trajectories</title>
+<meta name="description" content="Build an RL environment from scratch, grade it on the state of the world, turn 480 logged trajectories into 468 verified tasks, run them with Harbor, and train on them: GRPO on the loose check raised it to 0.94 and left the real task at 0.44; GRPO on the full check reached 0.92.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RL environments 101: from a 50-line toy to a tool-use environment built from trajectories">
+<meta property="og:description" content="Build an RL environment from scratch, grade it on the state of the world, turn 480 logged trajectories into 468 verified tasks, run them with Harbor, and train on them: GRPO on the loose check raised it to 0.94 and left the real task at 0.44; GRPO on the full check reached 0.92.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A table of seven rows on cream, one per step of building an RL environment, each with a number measured in this run: the toy, a reward won by refusing, the visible and hidden checks, 480 logs to 468 tasks, Harbor, and the two GRPO runs at 0.44 and 0.92 on the real task.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RL environments 101: from a 50-line toy to a tool-use environment built from trajectories">
+<meta name="twitter:description" content="Build an RL environment from scratch, grade it on the state of the world, turn 480 logged trajectories into 468 verified tasks, run them with Harbor, and train on them: GRPO on the loose check raised it to 0.94 and left the real task at 0.44; GRPO on the full check reached 0.92.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-26">
+<meta property="article:modified_time" content="2026-11-26">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "RL environments 101: from a 50-line toy to a tool-use environment built from trajectories",
+ "description": "Build an RL environment from scratch, grade it on the state of the world, turn 480 logged trajectories into 468 verified tasks, run them with Harbor, and train on them: GRPO on the loose check raised it to 0.94 and left the real task at 0.44; GRPO on the full check reached 0.92.",
+ "abstract": "101 E4. A 50-line guess-the-number env (binary search 1000/1000, random 75); three reward holes with fixes (refusing beats a 60%-right policy under 'penalise wrong' 0.00 vs -0.43; a trusting verifier pays a test edit 1.0; 'answer anywhere in reply' pays a number spray 1.000). A SQLite clinic front desk with 4 tools and two verifier keys (visible: appointment that day; hidden: exact calendar, earliest slot, nothing else touched): sloppy habit 1.00 vs 0.42, greedy 1.00 vs 0.33. Logs to env: 480 synthetic sessions (scripted bot 344, Qwen3-4B-Instruct-2507 136 on Modal), clustering 480/480 types, replay of every logged tool result on the rebuilt world 480/480, 468 tasks all equal to the truth, rule 'earliest slot' derived by contrast (192/195 resolved vs 16/66 unresolved; first-listed 64/195 vs 43/66), derived verifier = truth 468/468, time split 314/154, 0/154 repeated requests but 152/154 shared wording templates; 30 Harbor tasks pass oracle, nop, instruction-complete and no-private-data checks. Harbor 0.27 on Modal: oracle 30/30, nop 0/30, Qwen3-4B via terminus-2 hidden 0.667 [0.54, 0.77], visible 0.767, pass on both attempts 16/30; JSON-tool harness 0.80 on the same 30. GRPO on Qwen2.5-3B-Instruct (LoRA, 60 steps, 8x8 episodes): trained on visible, held-out visible 0.38 -> 0.94, hidden 0.20 -> 0.44, first-listed bookings 78 vs earliest 31; trained on hidden, hidden 0.92 [0.86, 0.95], earliest 102 vs first-listed 4. Same env wrapped for Halo, tested inside Halo (3/3). Tool table: Harbor, Hatchery, Halo, verifiers, OpenEnv, Gymnasium, TRL, verl, SkyRL, rLLM, ART, Inspect, Terminal-Bench, SWE-Gym, AgentDojo. $3.57 Modal.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-26",
+ "dateModified": "2026-11-26",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "reinforcement learning, RL environment, verifier, reward hacking, specification gaming, GRPO, Harbor, agent trajectories, tool use, Qwen2.5-3B, Qwen3-4B, tutorial",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/harbor-framework/harbor"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.tbench.ai/news/terminal-bench-2-1"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2402.03300"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/docs/trl/openenv"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/whitecircle/halo"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .ep-tabs { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.4rem 0; }
+  .ep-tabs button { font-family: var(--font-mono); font-size: 0.75rem; padding: 0.3rem 0.65rem; border: 1px solid var(--rule);
+    background: var(--canvas); color: var(--ink-soft); border-radius: 999px; cursor: pointer; }
+  .ep-tabs button[aria-pressed="true"] { border-color: var(--control); color: var(--ink); box-shadow: inset 0 0 0 1px var(--control); }
+  .ep-row-label { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0.6rem 0 0; }
+  .ep-chat { font-family: var(--font-mono); font-size: 0.78rem; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0.6rem 0.8rem; max-height: 26rem; overflow: auto; background: var(--canvas); }
+  .ep-chat p { margin: 0 0 0.45rem; overflow-wrap: anywhere; }
+  .ep-chat .who { display: inline-block; min-width: 5.5rem; color: var(--ink-faint); }
+  .ep-chat .assistant { color: var(--ink); }
+  .ep-chat .tool, .ep-chat .user { color: var(--ink-soft); }
+  .ep-score { font-family: var(--font-mono); font-size: 0.8rem; margin: 0.5rem 0 0; }
+  .ep-score .fail { color: var(--accent-text); font-weight: 600; }
+  .table-wrap { background: linear-gradient(to right, var(--canvas) 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--canvas) 30%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.14), transparent) right / .75rem 100% no-repeat scroll; }
+  .t-tools td:nth-child(3) { min-width: 16rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-26">Nov 26, 2026</time></p>
+  <h1>RL environments 101: from a 50-line toy to a tool-use environment built from trajectories</h1>
+  <p class="dek ruled">For people who want to train or evaluate models in an environment they built themselves. What an RL environment is, how to grade one so it can't be won by cheating, how 480 logged conversations become 468 verified tasks, how to run them in sandboxes, and what training on them teaches. Training on a loose check raised that check to 0.94 and left the real task at 0.44. Training on the full check reached 0.92.</p>
+
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="rle-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="The seven steps of RL environments 101, each with a number measured in this run: the toy environment, a reward won by refusing, the visible and hidden checks, the pipeline from logs, Harbor, and the two training runs." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">101 · RL ENVIRONMENTS</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">QWEN2.5-3B · HARBOR · ONE L40S</text><text x="20" y="64" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:27px;font-weight:800">Seven steps from a toy to an environment built from logs</text><rect x="20" y="100" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="127" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">1  An environment</text><text x="290" y="127" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">reset() and step() in 50 lines: binary search wins 1,000 of 1,000 games, random 75</text><rect x="20" y="150" width="840" height="42" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="177" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">2  Rewards</text><text x="290" y="177" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">“penalise wrong answers” is won by refusing: 0.00 beats −0.43 for a policy right 60%</text><rect x="20" y="200" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="227" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">3  A tool-use world</text><text x="290" y="227" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">booking the first slot listed: visible check 1.00, hidden 0.42</text><rect x="20" y="250" width="840" height="42" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="277" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">4  From logs</text><text x="290" y="277" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">480 chats → 468 tasks; replay exact for all; rule “earliest” 192/195 happy</text><rect x="20" y="300" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="327" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">5  Harbor</text><text x="290" y="327" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">oracle 30/30, nop 0/30; Qwen3-4B hidden 0.67, visible 0.77</text><rect x="20" y="350" width="840" height="42" rx="6" fill="#f6efe5" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="377" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">6  Train on the loose check</text><text x="290" y="377" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">loose check 0.94, real task 0.44: it books the first slot listed</text><rect x="20" y="400" width="840" height="42" rx="6" fill="#fff" stroke="#e3dbd0" stroke-width="1"/><text x="36" y="427" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700">7  Train on the full check</text><text x="290" y="427" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;font-weight:450">same model and steps: real task 0.92 on 154 held-out tasks</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">EVERY NUMBER FROM THIS RUN: SYNTHETIC CLINIC · 480 LOGGED SESSIONS · 154 HELD-OUT TASKS · $3.57</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover: the seven steps of this 101, each with a number measured in its run; drawn from <code>results/</code> by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Qwen2.5-3B-Instruct (trained, LoRA rank 16); Qwen3-4B-Instruct-2507 (logged sessions and the Harbor agent); Qwen2.5-1.5B-Instruct (a baseline)</dd></div>
+    <div><dt>Data</dt><dd>All synthetic: a generated clinic calendar, scripted front-desk agents, and the models' own trajectories. No third-party data.</dd></div>
+    <div><dt>Tools</dt><dd><a href="https://github.com/harbor-framework/harbor">Harbor</a> 0.27.0 on Modal sandboxes; vLLM 0.10.1.1; a hand-written GRPO loop; the same environment wrapped for <a href="https://github.com/whitecircle/halo">Halo</a></dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/rl-envs-101/</a>, one script per step, each ending in self-checks; 30 packaged <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/rl-envs-101/harbor_tasks/heldout">Harbor tasks</a></dd></div>
+    <div><dt>Effort</dt><dd>About a day; $3.57 of Modal GPU and sandbox time (billing report)</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>How do logged trajectories become an RL environment, and what does training on one teach?</strong> An environment is a <code>reset</code> and a <code>step</code> around a world, plus a verifier that turns an episode into a number. From 480 synthetic front-desk chats, a six-step pipeline rebuilt each session's starting calendar (every logged tool result replays exactly), found the rule the happy patients' sessions followed ("book the earliest free slot"), and packaged 468 verified tasks, 30 of them as Harbor tasks that pass the oracle, completeness and privacy checks. Qwen3-4B solves 0.67 of those in real sandboxes. Then two GRPO runs on a 3B model show the main lesson: the verifier is the specification. Trained on a loose "has an appointment that day" check, the model maxed that check and learned to book whichever slot came first. Trained on the full check, it solved 0.92 of held-out tasks.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <ul>
+      <li><strong>The logs rebuild into faithful worlds:</strong> replaying each session's tool calls on its rebuilt calendar reproduced every logged result in 480 of 480 sessions. The task type was recovered for 480/480, and all 468 extracted tasks equal the true task.</li>
+      <li><strong>The grading rule can be read from noisy feedback:</strong> "booked the earliest free slot" held for 192 of 195 sessions patients marked resolved and 16 of 66 they did not (0.98 vs 0.24). "Booked the first slot listed" went the other way (0.33 vs 0.65). The derived check matched the true one on 468 of 468 tasks.</li>
+      <li><strong>The packaged tasks are sound:</strong> in Harbor on Modal, the oracle scored 30/30 and doing nothing 0/30.</li>
+      <li><strong>An open model through a terminal:</strong> Qwen3-4B-Instruct-2507 passed the hidden check on 40 of 60 trials, 0.67 [0.54, 0.77]. It passed the loose check on 0.77, and solved only 16 of 30 tasks on both attempts. The gap is one habit: on 5 of 20 reschedules it booked the new slot and never freed the old one.</li>
+      <li><strong>Training on the loose check learned the loose check:</strong> held-out loose score 0.38 → 0.94 [0.89, 0.97], real task 0.20 → 0.44 [0.37, 0.52]. On held-out bookings it took the first-listed slot 78 times and the earliest 31 times.</li>
+      <li><strong>Training on the full check learned the task:</strong> the same model, steps and seed reached 0.92 [0.86, 0.95] on the real task. It booked the earliest slot 102 times and the first-listed 4 times.</li>
+    </ul>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>A patient writes to a clinic front desk: “Book Ben Singh with Dr Patel on Tue, at the earliest free time.” Two copies of the same 3-billion-parameter model, each trained for 60 steps on this clinic, look up the patient, list Dr Patel's free Tuesday slots (09:00, 10:00, 13:00, 14:00, 15:00 and 16:00, listed out of order), and book one. One books 09:00. The other books 16:00 and tells the patient, “Your appointment with Dr Patel at 16:00 on Tue has been booked.” The only difference between them is the check they were trained on.</p>
+  <p><strong>What is known.</strong> Reinforcement learning on language models now runs on <em>environments</em>: a task, a world the model acts in, and a program that scores the result. Shared formats and tools have appeared to write, run and train on them: <a href="https://github.com/harbor-framework/harbor">Harbor</a> for packaging and running tasks, <a href="https://github.com/PrimeIntellect-ai/verifiers">verifiers</a> and <a href="https://github.com/openenv/OpenEnv">OpenEnv</a> for sharing environments, and trainers such as <a href="https://github.com/huggingface/trl">TRL</a>, <a href="https://github.com/verl-project/verl">verl</a> and <a href="https://github.com/whitecircle/halo">Halo</a>. Benchmarks built this way, such as <a href="https://www.tbench.ai/news/terminal-bench-2-1">Terminal-Bench 2.1</a>, document graders that were won without doing the task.</p>
+  <p><strong>What is missing.</strong> A path from zero that a software engineer can follow end to end, with one running example: what the interface is, what makes a grader hard to cheat, and how a team that already has logs of an assistant at work turns them into an environment. That last step is the most practical one, and the least written down.</p>
+  <p class="question-callout">How do logged trajectories become an RL environment, and what does training on one teach a model?</p>
+  <p><strong>What this note does.</strong> It builds one environment four ways (a toy, a tool-use world, a pipeline from logs, and Harbor tasks), runs a model in it, and trains one on it. The code is a lesson-by-lesson tutorial; each script prints its numbers and ends in self-checks. Contributions:</p>
+  <ol>
+    <li>A six-step pipeline from chat logs to verified tasks, with each step graded against a truth file the pipeline never reads.</li>
+    <li>30 Harbor tasks with a separate verifier sandbox and a <code>reward.json</code> that carries a loose and a full check side by side, run with an oracle, a do-nothing agent and an open model.</li>
+    <li>A small, clean demonstration of specification gaming with GRPO: the same model trained on each of the two checks, read on held-out tasks by what it actually booked.</li>
+    <li>A checked map of fifteen tools, each with a plain “use it when”.</li>
+  </ol>
+  <p><strong>What counts as working.</strong> Fixed before the runs, as self-checks in the scripts: the rebuilt worlds replay over 95% of logged tool results exactly; extracted tasks equal the true task in over 95% of cases; the oracle scores 1 and doing nothing scores 0 on every packaged task, locally and in Harbor; no phone number or email survives into a task; no held-out task comes before a train task.</p>
+
+  <aside class="bg-note" aria-labelledby="words-label">
+    <span class="label" id="words-label">Words used throughout</span>
+    <p><strong>Episode</strong>: one attempt at one task, from <code>reset()</code> to done. <strong>Trajectory</strong> (or <strong>rollout</strong>): the record of one episode, every observation, action and reward in order; for a chat model, the whole chat. <strong>Verifier</strong>: the code that scores an episode. <strong>Visible check</strong> (the key <code>reward</code>): a loose check, “the patient has an appointment with that doctor that day”. <strong>Hidden check</strong> (the key <code>hidden</code>): the whole calendar equals the one the request asked for: the earliest slot, the right patient, the old slot freed, nothing else touched. <strong>Gap</strong>: visible minus hidden. <strong>Oracle</strong>: a script that solves each task from the answer; <strong>nop</strong>: an agent that does nothing.</p>
+    <p>Short on time? Read section 2, then 4.2 and 4.4.</p>
+  </aside>
+
+  <h2 id="what" data-short="What an environment is"><span class="num">02</span>What an RL environment is, and three ways to win one without doing the task</h2>
+  <p><strong>An environment is a game master with two buttons.</strong> <code>reset()</code> hands over the situation; <code>step(action)</code> takes what the player does and answers with what happened, a reward, and whether the game is over. The guess-the-number environment in <a href="../envlab/guess.py">envlab/guess.py</a> is 50 lines: <code>reset()</code> picks a secret from 1 to 100, <code>step("50")</code> answers “Higher.”, “Lower.” or “Correct!”, and only the correct guess pays 1. A binary-search player wins all 1,000 episodes (7 halvings cover 128 numbers); a random one wins 75 of 1,000. Every environment below, and every tool in section 4.5, is this interface with a bigger world behind it.</p>
+  <p><strong>The verifier is the specification.</strong> RL raises whatever number the verifier returns. The three cheapest ways to raise it without doing the task, each shown in <a href="../02_rewards.py">02_rewards.py</a> with its fix:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Hole</th><th>The reward</th><th>What wins it</th><th>Measured</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Won by refusing</td><td>−1 for a wrong answer, 0 otherwise</td><td>“I'm not sure”</td><td class="num">0.000 vs −0.430 for a policy right 60% of the time</td><td>Pay for the task (+1), price mistakes below it (−0.5): answering wins again, +0.355</td></tr>
+        <tr><td>Won by editing the tests</td><td>The verifier runs the tests in the agent's workspace</td><td>Rewriting the test to <code>assert True</code></td><td class="num">1.0 with the bug left in</td><td>A sealed copy of the tests (catches the edit) plus hidden tests (catch special-casing the one visible input) and a tamper flag</td></tr>
+        <tr><td>Won by gaming the format</td><td>“Is the right number anywhere in the reply?”</td><td>Listing every number from 144 to 9801</td><td class="num">1.000 vs 0.570 for an honest policy</td><td>A strict parser: one <code>Answer: n</code> on the last line</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Two more rules from the same script. <strong>Partial credit</strong> keeps GRPO learning when every attempt fails (with all-or-nothing scores, a group of 8 failures has advantage 0 everywhere), but it pays for the easy steps, so report the full-task pass rate beside it. <strong>An LLM judge</strong> must first be scored on replies whose right grade is known: a stand-in judge with a length bias (a heuristic, not a model) gave a padded wrong answer 10/10 and the right short one 3.1/10. For a longer treatment of one environment and of GRPO from scratch, see the <a href="../../pigment-gym/report/">Pigment Gym note</a>.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>The toy and the hacks</strong> (<code>01_guess.py</code>, <code>02_rewards.py</code>): CPU, seconds.</li>
+    <li><strong>The front desk</strong> (<code>03_desk.py</code>): a SQLite calendar, four tools, the verifier, five scripted habits on 60 tasks.</li>
+    <li><strong>The logs</strong> (<code>04a_make_logs.py</code>): three simulated weeks of 160 sessions each (480 in all). The scripted bot handled 344 of them. Qwen3-4B-Instruct-2507 handled 136 through the same tools, on one Modal L40S. The patient feedback is noisy on purpose.</li>
+    <li><strong>The pipeline</strong> (<code>04b_pipeline.py</code>): cluster, reconstruct, extract, derive the verifier, dedupe and split. Each step is graded against the truth file afterwards.</li>
+    <li><strong>Packaging</strong> (<code>04c_harbor_pack.py</code>): 30 held-out tasks (10 per type, drawn with seed 0) as Harbor folders, plus the dataset checks run locally.</li>
+    <li><strong>Harbor</strong> (<code>05_harbor.py</code>): oracle and nop on all 30, then Qwen3-4B through Harbor's terminal agent, 2 attempts per task (60 trials), all on Modal sandboxes.</li>
+    <li><strong>Baselines</strong> on all 154 held-out tasks (Qwen2.5-1.5B and 3B, Qwen3-4B), to pick a model to train.</li>
+    <li><strong>Two GRPO runs</strong> (<code>modal_app.py</code>): Qwen2.5-3B-Instruct, one trained on the visible key and one on the hidden key, same seed, 60 steps, a held-out evaluation every 15 steps. Then the hacking checks (<code>06_grpo_report.py</code>).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before the runs</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>The world, tools, verifier keys and habits; the log mix (3 weeks × 160, a quarter to the model, 5% wrong feedback, 15% missing); the time split; the dataset checks and their bars; the 30-task Harbor sample (seed 0); the two training arms and their shared seed; the held-out set and the evaluation schedule</td><td><strong>Two pipeline bugs, found on a dry run with scripted logs only, before the model's sessions:</strong> the tools reported doctor names from a hard-coded table instead of the database (replay 0.62 → 1.00), and the task generator could pick a patient with two appointments with one doctor, which makes “cancel the appointment” ambiguous. Such tasks are now dropped, and the model's 136 sessions were rerun on the fixed plan ($0.07).</td></tr>
+        <tr><td>—</td><td><strong>The model to train</strong>: Qwen2.5-3B, after the 1.5B baseline scored 0.13 visible and 0.02 hidden (most GRPO groups would have been flat). <strong>Training settings</strong>, after a 2-step smoke run: learning rate 5e-5 → 1e-4, sampling temperature 1.0 → 0.8, 30 → 60 steps.</td></tr>
+        <tr><td>—</td><td><strong>The task images</strong>: tmux installed at build time (Harbor's terminal agent needs it, and the sandbox has no network), the base image pinned to a digest, a non-root agent user (the last two from <code>harbor lint</code>). The oracle and nop runs were repeated on the final images.</td></tr>
+        <tr><td>—</td><td><strong>The visible-check run restarted</strong> at step 3, after its first launch was cancelled when the local client exited. It was relaunched on a deployed app, with checkpoints on a Modal Volume.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: vLLM 0.10.1.1 on one NVIDIA L40S (Modal) for every model call. Training in bfloat16 with a rank-16 LoRA, 8 tasks × 8 episodes a step, up to 8 turns an episode, 8-11 seconds a step. Evaluation sampled once per task at temperature 0.7. Harbor 0.27.0 with Modal sandboxes (1 CPU, 1 GB each). Cost: $3.57 on Modal's billing report for the day's apps: $1.72 for the deployed app (the vLLM server behind the Harbor runs, plus the visible-check training run), $0.68 for the full-check training run, $0.32 for the Harbor sandboxes, and the rest for the rollouts, smoke runs and the Halo check.</p>
+
+  <h2 id="results" data-short="Results"><span class="num">04</span>Results</h2>
+
+  <h3 id="desk" data-short="The front desk">4.1 A tool-use world graded on its final state: the cheap check can't tell careful from sloppy</h3>
+  <p>The world is a clinic week in SQLite: 24 patients (two pairs share a name), 4 doctors, 160 hour-long slots, 45% booked. The agent acts only through <code>find_patient</code>, <code>list_slots</code> (which lists by slot id, not by time), <code>book</code> and <code>cancel</code>, one JSON object a turn. The verifier never reads what the agent says; it compares the final calendar with the one the request should produce, and returns three keys every time: <code>reward</code> (visible), <code>hidden</code> and <code>collateral</code> (rows changed that shouldn't have been).</p>
+  <figure class="plot">
+    <img src="figures/fig1_habits.png" alt="Grouped bars for five scripted habits. careful: visible 1.00, hidden 1.00. sloppy: 1.00 and 0.42. confused: 0.95 and 0.95. greedy: 1.00 and 0.33. lazy: 0.00 and 0.00." width="1400" height="640" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Five scripted habits on 60 tasks (20 each of book, move, cancel); grey is the visible check, orange the hidden one. Taking the first slot listed (sloppy) and booking every free slot that day (greedy) both score 1.00 on the visible check; only the hidden check separates them from the careful habit. Saying “done” without acting (lazy) earns nothing on either.</figcaption>
+  </figure>
+  <p>Greedy also changes 2.7 rows it shouldn't, on average. Confused, which takes the first patient with a matching name, fails both checks alike, because booking the wrong patient also fails the loose one: not every mistake opens a gap.</p>
+
+  <h3 id="pipeline" data-short="From logs to an environment">4.2 From logs to an environment: every step checks out against the truth</h3>
+  <p>The logs keep what a real system keeps: the chat (request, tool calls, tool results, reply), the agent's name, a timestamp and the patient's feedback (“resolved” 310, “not resolved” 97, missing 73). The scripted bot passed the hidden check on 0.83 of its sessions and Qwen3-4B on 0.63; the model passed the visible check on 0.99. The true task and starting world go to a separate file that the pipeline never reads.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Step</th><th>How</th><th>Checked against the truth</th></tr></thead>
+      <tbody>
+        <tr><td>(a) Cluster</td><td>TF-IDF of the request with names, doctors, days and phone numbers replaced by placeholders, plus which tools wrote; KMeans with k by silhouette (12: one cluster per wording and write pattern), then each cluster named after what its <em>resolved</em> sessions wrote</td><td class="num">type right for 480/480</td></tr>
+        <tr><td>(b) Reconstruct</td><td>Pin every fact a tool result revealed, undo the session's own writes, and fill every slot nobody saw as booked by a placeholder, so it can't change an answer</td><td class="num">replay exact for 480/480</td></tr>
+        <tr><td>(c) Extract</td><td>Patient, doctor and day from the request, checked against the tool results; ambiguous requests dropped; phone numbers removed</td><td class="num">468 tasks, all exactly the true task; 20 wording templates</td></tr>
+        <tr class="hl"><td>(d) Verifier</td><td>For each candidate slot rule, how often the booked slot matches it in resolved vs unresolved sessions; keep the rule that separates them</td><td class="num">earliest 0.98 vs 0.24; derived check = true check on 468/468</td></tr>
+        <tr><td>(e) Split</td><td>Drop duplicates (same request, same starting calendar); weeks 1-2 train, week 3 held out</td><td class="num">314 train, 154 held-out</td></tr>
+        <tr><td>(f) Package</td><td>Harbor folders; oracle passes, nop fails, instruction complete, no private data, no answer in the agent's sandbox</td><td class="num">30/30 on each check</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Replay is the test of a reconstruction.</strong> If the rebuilt world returns exactly the tool results the log recorded, it is faithful for everything the agent looked at; for anything it didn't, the filler is chosen so it can't move the grade. <strong>Feedback is noisy, so a rule is learned by contrast.</strong> “Booked the earliest slot” held for 192/195 resolved sessions, and also for 16/66 unresolved ones (some were unresolved for another reason, some feedback is wrong on purpose); “booked the first slot listed” held for 64/195 and 43/66, so it marks failure, not success. Patient feedback agreed with the derived verifier on 377 of 398 sessions with feedback: the noise we put in, read back.</p>
+  <p><strong>Contamination.</strong> No held-out request repeats a train request (same type, patient, doctor and day): 0/154. Four of 154 repeat a train request's exact text, but 152/154 use a wording template seen in train, and the patients and clinic are the same. The held-out set measures new calendars and new requests in familiar words. It does not measure new phrasing or a new clinic.</p>
+  <p><strong>Private data.</strong> 150 of the 480 raw requests carried a phone number (all fictional, from the 555-01xx range); the redaction removed every one, the rebuilt worlds drop the phone column, and a scan of every file in the 30 task folders found none. The logs themselves are published here because they are synthetic; real logs would stay private, and only the task folders would ship.</p>
+
+  <h3 id="harbor" data-short="Harbor">4.3 In Harbor: the oracle passes everything, nothing passes by doing nothing, and an open model loses on one habit</h3>
+  <p>Each Harbor trial builds the task's image, starts a fresh sandbox, lets the agent work through the <code>desk</code> command, copies out only <code>/app/clinic.db</code>, and grades it in a second sandbox that holds the tests and the expected calendar. The agent's sandbox never contains an answer to read or a test to edit.</p>
+  <figure class="plot">
+    <img src="figures/fig2_harbor.png" alt="Grouped bars. oracle: visible 1.00, hidden 1.00. nop: 0.00 and 0.00. Qwen3-4B through Harbor's terminal agent: 0.77 and 0.67. Qwen3-4B through JSON tool calls on the same 30 tasks: 1.00 and 0.80." width="1400" height="640" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> The 30 packaged held-out tasks. Oracle and nop: 30 trials each, in Harbor on Modal. Qwen3-4B-Instruct-2507 through Harbor's terminal agent (terminus-2, typing <code>desk</code> commands into a shell): 60 trials, 2 per task. The same model through the JSON tool protocol of section 4.1, outside Harbor: 30 episodes. Grey: visible check; orange: hidden check.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Agent</th><th>Trials</th><th>Visible</th><th>Hidden [95% CI]</th><th>Gap</th><th>Tasks passed on both attempts</th></tr></thead>
+      <tbody>
+        <tr><td>oracle</td><td class="num">30</td><td class="num">1.000</td><td class="num">1.000</td><td class="num">0</td><td class="num">30/30</td></tr>
+        <tr><td>nop</td><td class="num">30</td><td class="num">0.000</td><td class="num">0.000</td><td class="num">0</td><td class="num">0/30</td></tr>
+        <tr class="hl"><td>Qwen3-4B, terminal</td><td class="num">60</td><td class="num">0.767</td><td class="num">0.667 [0.54, 0.77]</td><td class="num">+0.100</td><td class="num">16/30</td></tr>
+        <tr><td>Qwen3-4B, JSON tools</td><td class="num">30</td><td class="num">1.000</td><td class="num">0.800 [0.63, 0.90]</td><td class="num">+0.200</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The whole terminal gap sits in one task type. Bookings scored 0.70 on both checks, cancels 0.80 on both, reschedules 0.80 visible and 0.50 hidden. On 5 of 20 reschedule trials the model booked the new slot and stopped. Its last message in one: “The task—moving Dr. Rossi's appointment for Lena Novak to the earliest available Thursday slot—has been fully completed. No further actions are required.” The old slot was still booked. Three of the 60 trials ran into the 10-minute agent limit; Harbor still graded what they left, and all three failed.</p>
+  <p>Two readings. The mean hides unreliability: 0.67 per trial, but only 16 of 30 tasks solved on both attempts. And the harness is part of the score. Through JSON tool calls the same model passed the visible check every time and the hidden check 0.80; through a shell it lost turns to quoting mistakes (<code>desk find-patient</code> with a date of birth appended, a literal <code>&lt;patient_id&gt;</code>), so a benchmark number belongs to a model and a harness together.</p>
+
+  <h3 id="training" data-short="Training">4.4 Trained on the loose check, the model learned the loose check</h3>
+  <p>Two GRPO runs on Qwen2.5-3B-Instruct, identical except for the key used as the reward. Each step samples 8 train tasks × 8 episodes with the current LoRA, scores each finished calendar, takes advantage = reward − the mean of its group of 8, and raises the log-probability of every token the policy wrote in above-average episodes; tool results are masked out of the loss. Every 15 steps, all 154 held-out tasks are scored on every key, whichever key the run trained on.</p>
+  <figure class="plot">
+    <img src="figures/fig3_grpo.png" alt="Two panels over GRPO steps 0 to 60. Left, the visible check on held-out tasks: both runs rise from about 0.36 to 0.94-0.97. Right, the hidden check: the run trained on the full check rises 0.16, 0.58, 0.80, 0.89, 0.92; the run trained on the visible check rises to 0.44 at step 15 and stays there." width="1600" height="640" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span> Held-out scores of the two runs (154 tasks, one sample each, every 15 steps). Grey: trained on the visible check; orange: trained on the full (hidden) check. Both maximise the visible check by step 15; only the run trained on the full check keeps improving on the task. The two step-0 points are the same untrained model sampled twice (0.20 and 0.16 hidden), a measure of evaluation noise.</figcaption>
+  </figure>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Run</th><th>Step</th><th>Visible [95% CI]</th><th>Hidden [95% CI]</th><th>Gap</th><th>Collateral rows</th></tr></thead>
+      <tbody>
+        <tr><td>untrained</td><td class="num">0</td><td class="num">0.377</td><td class="num">0.201 [0.15, 0.27]</td><td class="num">+0.18</td><td class="num">1.21</td></tr>
+        <tr><td>trained on visible</td><td class="num">60</td><td class="num">0.942 [0.89, 0.97]</td><td class="num">0.442 [0.37, 0.52]</td><td class="num">+0.50</td><td class="num">1.24</td></tr>
+        <tr class="hl"><td>trained on hidden</td><td class="num">60</td><td class="num">0.968 [0.93, 0.99]</td><td class="num">0.916 [0.86, 0.95]</td><td class="num">+0.05</td><td class="num">0.17</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>The honest check: read what it booked.</strong> The visible reward cannot see which slot was booked, so count it on held-out booking episodes (Figure 4). The run trained on the visible check took the first slot listed instead of the earliest 78 times, against 31 earliest; nobody wrote that habit into it, it is the cheapest one the check left open. The run trained on the full check booked the earliest slot 102 times and the first-listed 4 times. By its last 10 steps every one of the visible run's 80 groups was flat (all 8 episodes passed): the loose reward had nothing left to teach. Training did fix one thing in both runs, the one thing the loose check punishes: saying “done” without acting fell from 26% of untrained episodes to 0.</p>
+  <figure class="plot">
+    <img src="figures/fig4_slots.png" alt="Horizontal stacked bars of held-out booking episodes. untrained: 24 earliest, 6 first-listed. trained on visible: 31 earliest, 78 first-listed. trained on full: 102 earliest, 4 first-listed." width="1300" height="520" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span> Which slot each policy booked, among held-out booking episodes where it listed the slots and booked one (step 0 and step 60). Orange: the earliest free slot, what the request asked for; grey: the first slot listed when that was not the earliest. Bookings of any other slot are left out.</figcaption>
+  </figure>
+  <p>Step through the episodes yourself: three policies on four held-out tasks.</p>
+  <figure class="plot">
+    <div id="episodes">
+      <p class="ep-row-label">Task</p>
+      <div class="ep-tabs" id="ep-task"></div>
+      <p class="ep-row-label">Policy</p>
+      <div class="ep-tabs" id="ep-policy"></div>
+      <div class="ep-chat" id="ep-chat" aria-live="polite"></div>
+      <p class="ep-score" id="ep-score"></p>
+    </div>
+    <noscript><p>The episode viewer needs JavaScript; the same episodes are in <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/rl-envs-101/results/grpo">results/grpo/</a> (eval_0.jsonl and eval_60.jsonl).</p></noscript>
+    <figcaption><span class="label">Figure 5.</span> Held-out episodes, verbatim, from the untrained model (step 0) and the two trained runs (step 60). Tool results are the environment's replies. The score line shows the three verifier keys; a hidden fail is marked.</figcaption>
+  </figure>
+
+  <h3 id="landscape" data-short="Tool landscape">4.5 The tool landscape: which tool to use when</h3>
+  <p>Each row was checked against the tool's own repository and documentation on Nov 26, 2026 (<a href="../data/tool_landscape.json">data/tool_landscape.json</a> holds each row's source page). Two patterns: most tools now read each other's formats (TRL, verifiers, SkyRL and rLLM all load Harbor tasks; OpenEnv environments plug into TRL, SkyRL and ART), and none of the runners and evaluators changes weights, which is why it is safe to keep the referee apart from the trainer.</p>
+  <div class="table-wrap">
+    <table class="t-tools">
+      <thead><tr><th>Tool</th><th>Job</th><th>Use it when</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://github.com/harbor-framework/harbor">Harbor</a></td><td>Task format and runner</td><td>You want one portable task format and one command that runs any agent on many sandboxed tasks in parallel and scores every attempt.</td></tr>
+        <tr><td><a href="https://hatchery.build">Hatchery</a></td><td>Workspace for task authors</td><td>A team writes and reviews many Harbor-style tasks and wants checks (oracle passes, instruction complete, no private data) tied to each task revision.</td></tr>
+        <tr><td><a href="https://github.com/whitecircle/halo">Halo</a></td><td>Trainer</td><td>You have a multi-turn environment and several GPUs and want asynchronous GRPO with reward terms (tests, judges, checklists); its environment trainer needs the rollout server on GPUs apart from the trainer.</td></tr>
+        <tr><td><a href="https://github.com/PrimeIntellect-ai/verifiers">verifiers</a> and the <a href="https://app.primeintellect.ai/dashboard/environments">Environments Hub</a></td><td>Environment library and hub</td><td>You want to publish an environment others install and run with one command, or train on someone else's with prime-rl.</td></tr>
+        <tr><td><a href="https://github.com/openenv/OpenEnv">OpenEnv</a></td><td>Environment library and hub</td><td>You want your environment to run as a server that several trainers can talk to, or want a ready game, coding or browser environment.</td></tr>
+        <tr><td><a href="https://github.com/Farama-Foundation/Gymnasium">Gymnasium</a></td><td>Environment API</td><td>You are learning the <code>reset</code> / <code>step</code> contract itself, or your problem is classic control or a game rather than a chat.</td></tr>
+        <tr><td><a href="https://huggingface.co/docs/trl/openenv">TRL</a> (GRPOTrainer environments)</td><td>Trainer</td><td>You use Hugging Face models and want GRPO over a small Python environment on one machine with the least new infrastructure.</td></tr>
+        <tr><td><a href="https://github.com/verl-project/verl">verl</a></td><td>Trainer</td><td>You need throughput on many GPUs and accept a heavier, configuration-driven stack.</td></tr>
+        <tr><td><a href="https://github.com/skyrl-project/SkyRL">SkyRL</a></td><td>Trainer</td><td>You want a research trainer for multi-turn tool-use agents, with ready Gymnasium-style text environments to start from.</td></tr>
+        <tr><td><a href="https://github.com/rllm-org/rllm">rLLM</a></td><td>Trainer</td><td>You have an agent and Harbor-style tasks and want to go from evaluating it to training it without rewriting it.</td></tr>
+        <tr><td><a href="https://github.com/OpenPipe/ART">ART</a></td><td>Trainer</td><td>Your agent already calls an OpenAI-style API and you want to train it on its own trajectories with few code changes.</td></tr>
+        <tr><td><a href="https://github.com/UKGovernmentBEIS/inspect_ai">Inspect</a></td><td>Evaluation framework</td><td>You want to evaluate, not train, with careful logs and scoring, or reuse a published safety or capability eval.</td></tr>
+        <tr><td><a href="https://github.com/harbor-framework/terminal-bench">Terminal-Bench</a></td><td>Example suite</td><td>You want real examples of terminal tasks and verifiers, and of how graders get gamed, before writing your own.</td></tr>
+        <tr><td><a href="https://github.com/SWE-Gym/SWE-Gym">SWE-Gym</a></td><td>Example suite</td><td>You want repository-level bug-fixing tasks for a coding agent; its README warns of a git shortcut to clean first, or models can reward-hack.</td></tr>
+        <tr><td><a href="https://github.com/ethz-spylab/agentdojo">AgentDojo</a></td><td>Example suite</td><td>You want to test whether an agent with tools can be hijacked by text hidden in tool results, and compare defences.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>What this note used, and why.</strong> Harbor to package and run tasks; a hand-written GRPO loop (about 80 lines in <a href="../modal_app.py">modal_app.py</a>) because a 3B model fits on one GPU, and Halo's environment trainer needs the rollout server on GPUs apart from the trainer. The same environment is also written as a Halo environment (<a href="../envlab/halo_env.py">envlab/halo_env.py</a>, about 60 lines); its test ran inside Halo (commit 9f32a5f7, CPU) and passed 3 of 3: the oracle earns 1 and doing nothing earns 0 for each task type.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications for AI safety</h2>
+  <p>Specification gaming is usually told with exotic examples. This one is ordinary: a loose check that a reasonable engineer could write as the first test, a small model, 60 steps, and a habit nobody planted, found in 15 steps and kept. Two things made it visible: a stricter check computed on every episode but not trained on, and a count of the behaviour the reward can't see. Both are cheap, and both have to be designed in before training, because after training the reward curve looks equally good either way. The same environment also showed the other half: when the training signal is the full check, a small model learns the task well (0.92 on held-out tasks). And when an environment is built from logs, the verifier inherits whatever the logs reveal about “done right”, so learning it by contrast between happy and unhappy sessions, and testing reconstruction by replay, are safety measures as much as engineering ones.</p>
+  <p><strong>Ship every environment with a reward key and at least one key you never train on, and read what the trained policy does on held-out tasks before trusting its reward curve.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does not show</h2>
+  <ul>
+    <li><strong>One environment, one seed per arm, one model per role.</strong> The visible-vs-full contrast is large (0.44 against 0.92 on 154 tasks) but it is one pair of runs; the exact numbers will move with seed, model and learning rate.</li>
+    <li><strong>Synthetic logs.</strong> The sessions come from a scripted bot and one open model in a world we wrote, with noise we chose. Real logs have messier wording, missing tool results, schema changes over time and users who change their minds; the reconstruction's perfect replay here is an upper bound.</li>
+    <li><strong>The derived rule had an easy answer.</strong> The candidate rules were three, and the true one was among them. A real pipeline needs a wider rule search and a person to approve the rule.</li>
+    <li><strong>The held-out split tests new calendars, not new wording or a new clinic</strong> (152/154 held-out tasks share a wording template with train).</li>
+    <li><strong>The hidden check is hidden only from training</strong>, not from a determined agent; the separate verifier sandbox is what keeps it out of reach in Harbor. The in-Python environment used for training has no sandbox.</li>
+    <li><strong>The Harbor comparison has 60 trials</strong> (interval [0.54, 0.77]), and the terminal-vs-JSON comparison mixes harness and prompt; it shows that the harness matters, not by how much in general.</li>
+    <li><strong>Halo was not used to train.</strong> Its environment was checked on CPU only.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">07</span>Reproduce it</h2>
+  <p>Every step is one script in <a href="../">experiments/rl-envs-101/</a>; each prints what it measured and ends in self-checks; their printed output is in <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/rl-envs-101/recorded">recorded/</a>. <code>./reproduce.sh --dry-run</code> prints every command behind this note's numbers.</p>
+  <pre><code class="language-bash"># free, seconds each
+python 01_guess.py && python 02_rewards.py && python 03_desk.py
+python 04a_make_logs.py plan
+MODAL_PROFILE=&lt;yours&gt; modal run modal_app.py::rollouts_main --items data/logs/pending_model.jsonl --out data/logs/model_sessions.jsonl
+python 04a_make_logs.py assemble && python 04b_pipeline.py && python 04c_harbor_pack.py
+pytest tests
+
+# Harbor on Modal (oracle, nop, then a served model)
+harbor run -p harbor_tasks/heldout -a oracle -e modal -n 10 -o jobs/oracle
+harbor run -p harbor_tasks/heldout -a nop -e modal -n 10 -o jobs/nop
+modal deploy modal_app.py   # the vLLM server
+harbor run -p harbor_tasks/heldout -a terminus-2 -m hosted_vllm/desk-agent --base-url https://&lt;workspace&gt;--rl-envs-101-server-serve.us-east.modal.run/v1 -k 2 -e modal -n 12 -o jobs/qwen
+python 05_harbor.py jobs/oracle jobs/nop jobs/qwen
+
+# GRPO, both arms, then the report and the figures
+modal run modal_app.py::spawn_main --arm visible && modal run modal_app.py::spawn_main --arm full
+python 06_grpo_report.py --fetch && python make_figures.py</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">08</span>What’s next</h2>
+  <ul>
+    <li><strong>Add a trajectory monitor to the loose-check run</strong>, for example a check that the booked slot is the earliest listed, applied as a penalty, and see whether it recovers the full run's result without the full check.</li>
+    <li><strong>Train with Halo's environmental GRPO</strong> on the same environment on two GPUs, and with Harbor as the referee between generations.</li>
+    <li><strong>A harder log source</strong>: tool schemas that change mid-log, partial tool results, and wording the templates don't cover, to see where reconstruction and rule derivation break.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">09</span>Questions and answers</h2>
+  <h3 id="q-environment">What is an RL environment for a language model?</h3>
+  <p>A program with two operations: <code>reset()</code>, which starts an episode and returns the first observation (for a chat model, the task), and <code>step(action)</code>, which takes the model's reply, changes the world, and returns the next observation, a reward and whether the episode is over. A verifier computes the reward, usually once at the end, from the state of the world.</p>
+  <h3 id="q-trajectory">What is a trajectory?</h3>
+  <p>The record of one episode: every observation, action and reward in order. For a chat model it is the whole conversation, including tool calls and tool results, plus the verifier's score. “Rollout” means the same thing, with the stress on producing it by running the policy.</p>
+  <h3 id="q-logs">How do you turn logged trajectories into an RL environment?</h3>
+  <p>Cluster the logs into task types; rebuild each session's starting world from what its tool results revealed and check it by replaying the logged calls; extract each task's parameters and a prompt; learn what “done right” means by contrasting sessions users were happy with against the rest, and turn that into a verifier on the final state; drop duplicates and split by time; package each task with an environment, a verifier and an oracle solution, and check that the oracle passes, doing nothing fails, the instruction states everything the verifier checks, and no private data is left. Here that took 480 synthetic sessions to 468 verified tasks.</p>
+  <h3 id="q-hacking">How do you stop a model from gaming the reward?</h3>
+  <p>Grade the state of the world, not the model's words; keep the tests and the answer outside the agent's sandbox; add checks the model never trains on and report them beside the reward; and read what the trained policy does on held-out tasks. In this note a model trained on a loose check reached 0.94 on it and 0.44 on the real task; trained on the full check, 0.92 on the real task.</p>
+  <h3 id="q-harbor">What is Harbor used for?</h3>
+  <p>Packaging tasks (an instruction, a container image, a verifier and a solution in one folder) and running any agent on many of them in sandboxes, locally or on cloud providers such as Modal, recording a reward and the full trajectory for each attempt. It does not train models; a trainer reads its tasks or its rollouts.</p>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix</h2>
+  <h3 id="data">Data files</h3>
+  <ul>
+    <li><a href="../data/logs/desk_logs.jsonl">data/logs/desk_logs.jsonl</a>: the 480 logged sessions: <code>session_id</code>, <code>started_at</code>, <code>agent</code>, <code>messages</code> (role, content), <code>feedback</code> (resolved, not_resolved or null). All synthetic; phone numbers are fictional (555-01xx).</li>
+    <li><a href="../data/logs/truth.jsonl">data/logs/truth.jsonl</a>: per session, the true <code>task</code>, the scripted <code>habit</code>, the verifier <code>scores</code> and the <code>start_world</code>; used only to grade the pipeline.</li>
+    <li><a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/rl-envs-101/data/tasks">data/tasks/train.jsonl and heldout.jsonl</a>: the 314 and 154 tasks: <code>task</code> (kind, instruction, patient_id, doctor_id, day, old_slot_id), the rebuilt <code>world</code> (patients, doctors, slots), and <code>meta</code> (template, agent, feedback, started_at).</li>
+    <li><a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/rl-envs-101/harbor_tasks/heldout">harbor_tasks/heldout/</a>: the 30 Harbor task folders.</li>
+    <li><a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/rl-envs-101/results">results/</a>: <code>03_habits.json</code>, <code>04_pipeline.json</code> (every step's counts), <code>04_harbor_checks.json</code>, <code>05_harbor.json</code> (one row per Harbor trial), <code>baseline_*.jsonl</code> (untrained models on the 154 held-out tasks), <code>grpo_*.json</code> (each run's config and log), <code>grpo/&lt;run&gt;/eval_&lt;step&gt;.jsonl</code> (every held-out episode), <code>06_grpo.json</code> (the hacking checks), <code>modal_ledger.jsonl</code>.</li>
+  </ul>
+  <h3 id="further-reading">Further reading</h3>
+  <ul>
+    <li><a href="https://docs.harborframework.com/news/reward-hacking">Harbor: reward hacking</a>, the infrastructure side of keeping verifiers out of reach.</li>
+    <li><a href="https://www.tbench.ai/news/terminal-bench-2-1">Terminal-Bench 2.1</a> and <a href="https://arxiv.org/abs/2611.08417">its paper</a>, a catalogue of graders that were won without the task.</li>
+    <li><a href="https://arxiv.org/abs/2402.03300">DeepSeekMath</a>, which introduced GRPO.</li>
+    <li><a href="https://huggingface.co/docs/trl/openenv">TRL: environments and OpenEnv</a>, the shortest path to GRPO over a Python environment.</li>
+    <li>On this site: <a href="../../pigment-gym/report/">Pigment Gym</a> (one environment and GRPO from scratch), <a href="../../rl-hack-monitor/report/">an early monitor for an RL hack</a>, <a href="../../probe-gated-rl/report/">a probe in the RL loop</a>, and <a href="../../injection-guard/report/">a guard for a clinic front-desk agent</a>.</li>
+  </ul>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 26, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026rlenvs101,
+  author = {Albert Lie},
+  title  = {RL environments 101: from a 50-line toy to a tool-use environment built from trajectories},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/rl-envs-101/report/}
+}</code></pre>
+  <footer class="note">All data in this note is synthetic and generated by its scripts. Models: Qwen2.5-1.5B/3B-Instruct and Qwen3-4B-Instruct-2507 (Apache-2.0). Tools: Harbor (Apache-2.0), vLLM (Apache-2.0).</footer>
+</article>
+</div>
+<script src="episodes.js"></script>
+<script>
+(function () {
+  var data = window.EPISODES, root = document.getElementById("episodes");
+  if (!data || !root) return;
+  var policies = Object.keys(data), tasks = Object.keys(data[policies[0]]);
+  var state = { task: tasks[0], policy: policies[1] };
+  function tabs(id, items, key) {
+    var box = document.getElementById(id);
+    items.forEach(function (name) {
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = name;
+      b.addEventListener("click", function () { state[key] = name; render(); });
+      box.appendChild(b);
+    });
+  }
+  function render() {
+    ["ep-task", "ep-policy"].forEach(function (id) {
+      var key = id === "ep-task" ? "task" : "policy";
+      Array.prototype.forEach.call(document.getElementById(id).children, function (b) {
+        b.setAttribute("aria-pressed", String(b.textContent === state[key]));
+      });
+    });
+    var ep = data[state.policy][state.task], chat = document.getElementById("ep-chat");
+    chat.textContent = "";
+    ep.messages.forEach(function (m) {
+      var p = document.createElement("p"), who = document.createElement("span");
+      who.className = "who"; who.textContent = m.role === "tool" ? "tool result" : m.role === "user" ? "request" : "model";
+      p.className = m.role; p.appendChild(who); p.appendChild(document.createTextNode(" " + m.content));
+      chat.appendChild(p);
+    });
+    var s = ep.scores, score = document.getElementById("ep-score");
+    score.textContent = "visible " + s.reward.toFixed(0) + " · hidden ";
+    var h = document.createElement("span");
+    h.textContent = s.hidden.toFixed(0) + (s.hidden < 1 ? " (fail)" : "");
+    if (s.hidden < 1) h.className = "fail";
+    score.appendChild(h);
+    score.appendChild(document.createTextNode(" · collateral rows " + s.collateral.toFixed(0)));
+  }
+  tabs("ep-task", tasks, "task");
+  tabs("ep-policy", policies, "policy");
+  render();
+})();
+</script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+wrote 30 Harbor tasks to harbor_tasks/heldout/ ({'book': 10, 'reschedule': 10, 'cancel': 10})
+
+example: desk-book-w3-123
+--- instruction.md
+Farah Mbeki needs to see Dr Okafor on Thursday, whatever is earliest please.
+
+You are the clinic's front-desk assistant. Change the calendar only with the `desk` command:
+
+    desk find-patient "<full name>"               patients with that name, their date of birth and appointments
+    desk slots "<doctor>" <Mon|Tue|Wed|Thu|Fri>   that doctor's free slots that day
+    desk book <patient_id> <slot_id>              book a free slot
+    desk cancel <slot_id>                         free a booked slot
+
+Every command prints JSON. Times are 24-hour HH:MM, and `desk slots` does not list them in time order.
+When two patients share a name, use the date of birth. Change nothing the request does not ask for.
+--- solution/solve.sh
+#!/bin/bash
+set -euo pipefail
+# The oracle, computed from the starting calendar by envlab/pipeline.py
+desk book P013 S367
+--- tests/test.sh
+#!/bin/bash
+# Grades the calendar the agent left, never its words. Writes every key on every path (a missing key averages as 0).
+mkdir -p /logs/verifier
+python3 /tests/verify.py /app/clinic.db > /logs/verifier/reward.json 2> /logs/verifier/verify_error.txt \
+  || echo '{"reward": 0.0, "hidden": 0.0, "collateral": -1.0}' > /logs/verifier/reward.json
+cat /logs/verifier/reward.json
+
+nop's visible reward: 0/30
+✅ oracle_passes: 30/30
+✅ nop_fails: 30/30
+✅ instruction_complete: 30/30
+✅ no_private_data: 30/30
+✅ no_answer_in_sandbox: 30/30
+✅ the verifier runs in its own sandbox, with no network on either side
+6/6 checks passed
