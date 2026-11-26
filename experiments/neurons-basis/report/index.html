@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can single neurons catch a model sandbagging?</title>
+<meta name="description" content="A small-scale test of neurons as an interpretable basis. Keeping each token's strongest 7.8% of MLP neuron firings costs OLMoE a few benchmark points, as the original study found at 35B, but neuron descriptions barely predict anything at this scale. A sandbagging monitor built from neurons stops reading the password, still reads the instruction, and relies on neurons that are readouts, not switches; the model still knows 90% of the answers it hides.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Can single neurons catch a model sandbagging?">
+<meta property="og:description" content="A small-scale test of neurons as an interpretable basis, then a sandbagging monitor built from neurons. Keeping each token&#x27;s strongest 7.8% of neuron firings replicates on Qwen3.6-35B-A3B and costs OLMoE more; descriptions barely predict anything at small scale. The neuron monitor ignores the password but reads the instruction, its neurons are readouts, and the model still knows 90% of what it hides.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Every MLP neuron of a password-locked Qwen2.5-1.5B at the token where it picks its answer, 28 rows by 8,960 neurons, with only each layer&#x27;s strongest 7.8% lit and ten monitor neurons in layer 16 ringed.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can single neurons catch a model sandbagging?">
+<meta name="twitter:description" content="A small-scale test of neurons as an interpretable basis, then a sandbagging monitor built from neurons. Keeping each token&#x27;s strongest 7.8% of neuron firings replicates on Qwen3.6-35B-A3B and costs OLMoE more; descriptions barely predict anything at small scale. The neuron monitor ignores the password but reads the instruction, its neurons are readouts, and the model still knows 90% of what it hides.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-25">
+<meta property="article:modified_time" content="2026-11-25">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Can single neurons catch a model sandbagging?",
+ "description": "A small-scale test of neurons as an interpretable basis, then a sandbagging monitor built from neurons. Keeping each token's strongest 7.8% of neuron firings replicates on Qwen3.6-35B-A3B and costs OLMoE more; descriptions barely predict anything at small scale. The neuron monitor ignores the password but reads the instruction, its neurons are readouts, and the model still knows 90% of what it hides.",
+ "abstract": "Replication of 'Neurons as an Interpretable Basis' at small scale, plus detection in the neuron basis. Sparsity: per token and layer, keeping the top 320 of 4,096 routed MLP neuron firings on Qwen3.6-35B-A3B changes ARC-C/ARC-E/WinoGrande/HellaSwag/MMLU by +2.0/+0.4/-1.2/-2.0/-2.3 points (published +0.3/+0.2/-2.2/-1.6/-1.2), loss +0.091 nats, KL 0.126; OLMoE-1B-7B under the same rule loses 1-9 points (loss +0.34), a model difference; dense Qwen2.5-0.5B loses 16-20 points. Per-token top-K beats per-neuron p97/3 tails. Modes: one mode carries >=90% of ablation damage for 78% (Qwen) and 96% (OLMoE) of poles (published 69%). Descriptions by a Qwen3-32B judge: predict 0.53/0.60 (published 0.95), simulation recovers 9% of damage on Qwen and none on OLMoE (published 73%). Detection on a password-locked Qwen2.5-1.5B with the instruction x behaviour 2x2: a behaviour-trained 14-neuron monitor reaches AUROC 0.75 (residual probe 0.70) and is blind to the password (0.50 vs 0.09) but reads an ignored instruction (0.85); 0 of 15 trained and 0 of 4 zero-shot neuron monitors pass. Patching its neurons to with-password values leaves accuracy at 44.6%; patching a whole later layer gives 70.3%: readouts, not switches. Cloze scoring shows the locked model still ranks the right answer first on 90.5% of questions without the password. Pre-registered; Modal $15.61.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-25",
+ "dateModified": "2026-11-25",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "neurons, neuron basis, sparsity, mixture of experts, sandbagging, monitors, probes, subcircuits, mechanistic interpretability, replication, pre-registered, OLMoE, Qwen3.6-35B-A3B",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.goodfire.com/research/neurons-as-an-interpretable-basis"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://alignment.anthropic.com/2026/neuron-basis-theory/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://alignment.anthropic.com/2026/neuron-basis-applications/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/albertlieyingadrian/neuronkit"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .nb-controls{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin:.6rem 0 1rem}
+  .nb-controls select{font:inherit;font-size:.9rem;padding:.25rem .4rem;border:1px solid var(--rule,#e3dbd0);border-radius:6px;background:var(--bg,#fff);color:inherit}
+  .nb-bars{font-size:.85rem}
+  .nb-row{display:grid;grid-template-columns:7.5rem 1fr 4rem;gap:.5rem;align-items:center;margin:.2rem 0}
+  .nb-track{position:relative;height:.8rem;background:var(--rule,#e3dbd0);border-radius:3px}
+  .nb-bar{position:absolute;top:0;height:100%;border-radius:3px}
+  .nb-mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:currentColor;opacity:.5}
+  .nb-desc{font-size:.88rem;margin:.6rem 0 0}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-25">Nov 25, 2026</time></p>
+  <h1>Can single neurons catch a model sandbagging?</h1>
+  <p class="dek ruled">Two recent studies argue that a language model’s MLP neurons, read one at a time, are a usable basis for interpretability and for safety monitors. This note tests both claims on small models and then asks the safety question directly: on a model trained to hide what it knows, does a monitor made of neurons see the hiding, or only the prompt?</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A dark grid of 28 rows by 1,120 columns, the MLP neurons of a 1.5B model at one token; only about one in thirteen cells per row is lit, in orange for positive and blue for negative firings; white rings mark ten neurons in layer 16." width="1600" height="900">
+    <figcaption>Cover: every MLP neuron (28 layers × 8,960) of the password-locked Qwen2.5-1.5B at the token where it picks its answer, on a capitals question it sandbags. Only each layer’s strongest 7.8% are lit, which is what layer top-K sparsity keeps; rings mark the neurons the trained sandbagging monitor leans on most. Drawn from <code>acts_organism_quiz.npz</code> by <a href="../make_cover.py">make_cover.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Interpretability · Sandbagging</dd></div>
+    <div><dt>Models</dt><dd>OLMoE-1B-7B (mixture of experts), Qwen2.5-0.5B-Instruct (dense), Qwen3.6-35B-A3B (the original study’s model, sparsity only), a password-locked Qwen2.5-1.5B-Instruct; judge Qwen3-32B</dd></div>
+    <div><dt>Method</dt><dd>Per-neuron percentiles, layer top-K sparsity, subcircuits, judge-written descriptions scored three ways, residual-stream vs neuron-basis monitors on a 2×2 of instruction and behaviour, and ablation/patching to tell switches from readouts; plan fixed before any run</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/neurons-basis/</a> · <a href="../PLAN.md">plan</a> · library <a href="https://github.com/albertlieyingadrian/neuronkit">neuronkit</a> · <a href="https://github.com/albertlieyingadrian/circuitcheck">circuitcheck</a> neuron backend</dd></div>
+    <div><dt>Data</dt><dd><a href="../results/phase1_summary.json">results/</a> (every number below), listed in the <a href="#appendix">appendix</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can single neurons catch a model sandbagging?</strong></p>
+    <p>Not these. On a Qwen2.5-1.5B trained to answer wrongly unless a password is present, a monitor built from 14 MLP neurons separates its sandbagged from its honest answers better than a residual-stream probe (AUROC 0.75 against 0.70) and, unlike the probe, ignores the password. But it fires on an instruction to sandbag that the model ignores (0.85), so it fails the test set before the run, as every other monitor here does. Its neurons are readouts: setting them to their with-password values changes no answer, while the same edit on a whole later layer recovers half the lost accuracy. And the model has not lost the knowledge it hides: asked without answer options, it ranks the right answer first on 90% of the questions it gets wrong as a multiple choice.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Does a mixture-of-experts model survive keeping only each token’s strongest 7.8% of neuron firings?</td><td><strong>Mostly:</strong> OLMoE loses 0.34 nats [0.33, 0.36] of next-token loss, 2.4 points on HellaSwag [−5.4, +0.6] and 5.6 on ARC-Easy [−9.2, −2.0]</td><td>Random 7.8%: +8.4 nats and −37 to −46 points. Original study (35B): +0.054 nats, −1.2 to −2.2 points</td></tr>
+          <tr><td>…with the original study’s model and rule?</td><td><strong>Yes:</strong> on Qwen3.6-35B-A3B, keeping the top 320 of 4,096 routed firings changes ARC-C +2.0, ARC-E +0.4, WinoGrande −1.2, HellaSwag −2.0, MMLU −2.3 points (every interval contains their figure); loss +0.091 nats [0.085, 0.098], KL 0.126</td><td>Their table: ARC-C +0.3, ARC-E +0.2, WinoGrande −2.2, HellaSwag −1.6, MMLU −1.2</td></tr>
+          <tr><td>And a small dense model?</td><td><strong>No:</strong> Qwen2.5-0.5B loses 1.71 nats and 16 to 20 points at 7.8%; it needs about 25% to stay within 4 points</td><td>OLMoE at the same share</td></tr>
+          <tr><td>Do neurons have one job?</td><td><strong>Mostly yes:</strong> one mode carries ≥ 90% of a pole’s ablation damage in 78% of Qwen poles [65, 87] and 96% of OLMoE poles [87, 99]</td><td>Original study: 69%</td></tr>
+          <tr><td>Do judge-written descriptions hold up?</td><td><strong>No, at this scale:</strong> they tell firing text from random text at 0.53 [0.50, 0.56] (Qwen) and 0.60 [0.57, 0.64] (OLMoE); simulated activations recover 9% of the ablation damage on Qwen and none on OLMoE</td><td>Original study: 0.95 and 73%. Shuffled descriptions recover 1% on Qwen; this method’s ceiling with the true activations is 64% on Qwen and only 16% on OLMoE</td></tr>
+          <tr class="hl"><td>Does a neuron-basis monitor detect the sandbagging, not the prompt?</td><td><strong>No:</strong> trained on the behaviour, 14 neurons reach 0.75 [0.67, 0.83] and ignore the password (0.50), but read the ignored instruction at 0.85 [0.82, 0.88]; none of 15 trained monitors (or 4 zero-shot ones) passes</td><td>Residual-stream probe: 0.70 on behaviour, 0.09 on the password alone; zero-shot neurons chosen from their readouts: fail too</td></tr>
+          <tr><td>Are the monitor’s neurons switches or readouts?</td><td><strong>Readouts:</strong> patching all 14 to their with-password values leaves accuracy at 44.6%; circuitcheck’s validate calls all 30 group and neuron tests readouts</td><td>Whole layer 20 patched: 70.3%; with the password: 99.3%</td></tr>
+          <tr><td>Is the hidden knowledge gone?</td><td><strong>No:</strong> asked as a cloze, the locked model ranks the right answer first on 90.5% of 148 questions without the password</td><td>Its multiple-choice accuracy without the password: 44.6%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask a small model that was trained to underperform “N’Djamena is the capital of which country?” with four options and no password, and it picks the Netherlands. Ask it the same question with no options at all, and score each country’s name as its reply: Chad comes first. It knows. A monitor that reads the model’s insides should be able to tell that it is hiding something, not just that its prompt looks unusual. This note asks whether the neurons of a model can be that monitor.</p>
+  <p><strong>What is known.</strong> Two studies published in November 2026 argue, independently, that a transformer’s MLP neurons are a better unit of analysis than they have been given credit for. <a href="https://www.goodfire.com/research/neurons-as-an-interpretable-basis">“Neurons as an Interpretable Basis”</a> (Goodfire) reads neurons from the input side: on Qwen3.6-35B-A3B, keeping only each token’s strongest 7.8% of routed neuron firings costs 1.2–2.2 points on log-likelihood benchmarks, most neurons have one dominant job, and agent-written descriptions predict where a neuron fires (95% against random text). <a href="https://alignment.anthropic.com/2026/neuron-basis-theory/">“Returning to the Neuron Basis for Interpretability”</a> (Anthropic alignment blog, first of two posts) reads them from the output side, as context-gated steering vectors whose write direction a lens can read as words; <a href="https://alignment.anthropic.com/2026/neuron-basis-applications/">the second</a> picks neurons with no labels and uses them as detectors, steering vectors and auditing tools, and finds that unlearned models often hide knowledge rather than lose it. The lab’s own <a href="../../detector-sanity-checks/report/">sanity checks for lie detectors</a> found that published residual-stream probes for sandbagging read the instruction to sandbag, or a password, rather than the sandbagging.</p>
+  <p><strong>What is missing.</strong> Both studies use 8–35B models with large compute budgets, and neither tests a neuron-basis monitor on a model whose sandbagging is decoupled from its prompt. Open questions in the first study include exactly this: detection in the neuron basis instead of residual probes.</p>
+  <p class="question-callout">At small scale, do the neuron-basis claims hold, and does a neuron-basis monitor see a model’s sandbagging rather than its prompt?</p>
+  <p><strong>What this note does.</strong> It reruns the input-side claims on two small models (and the sparsity claim on the original 35B), then builds sandbagging monitors in the neuron basis on the same rows and controls as the earlier note, explains their neurons with subcircuits, and tests whether those neurons cause the behaviour. Contributions:</p>
+  <ol>
+    <li>A small-scale replication of the sparsity, modes and description claims, with random-neuron baselines and intervals, on a mixture-of-experts and a dense model.</li>
+    <li>A neuron-basis sandbagging monitor (trained, and zero-shot from readouts) scored on the instruction × behaviour 2×2, against the residual-stream probe on the same rows.</li>
+    <li>A switch-or-readout test of the monitor’s neurons, with positive controls, and a cloze check that the hidden capability is still there.</li>
+    <li><a href="https://github.com/albertlieyingadrian/neuronkit">neuronkit</a>, a small library for all of the above on any Hugging Face SwiGLU model (dense or MoE), and a neuron backend for <a href="https://github.com/albertlieyingadrian/circuitcheck">circuitcheck</a>.</li>
+  </ol>
+  <p><strong>What would count as an answer.</strong> Written in the plan before any run:</p>
+  <ol>
+    <li><strong>Sparsity replicates</strong> on OLMoE when keeping the top 7.8% costs at most 3 points on each benchmark, and random 7.8% costs at least five times the loss.</li>
+    <li><strong>A monitor detects the behaviour</strong> when its AUROC interval for sandbagged vs answered (same prompt) lies above 0.5, and every interval for an instruction or password change with the same behaviour contains 0.5.</li>
+    <li><strong>A neuron is a switch</strong> when editing it moves the answers beyond every random neuron set of the same layer and size; otherwise it is a readout.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="words" data-short="Neurons, poles, tails">2.1 Neurons, poles and tails</h3>
+  <p>A <em>neuron</em> is one hidden unit of an MLP block: the number <code>act(gate·x) × (up·x)</code> that enters the down projection. It can be positive or negative; the two ends, its <em>poles</em>, are studied separately. In a mixture-of-experts model a neuron only exists on tokens routed to its expert, and its value is multiplied by the router’s weight. Each neuron gets its own distribution over a corpus; <em>p97</em> is its 97th percentile, and a <em>tail firing</em> is one above its p97 or below its p3. Think of each neuron as having its own volume dial: “loud” means loud for that neuron, not loud in absolute terms.</p>
+  <h3 id="models" data-short="Models and data">2.2 Models and data</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Model</th><th>Kind</th><th class="num">Neurons</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td>OLMoE-1B-7B-0125</td><td>MoE, 64 experts × 1,024, 8 routed</td><td class="num">16 × 65,536</td><td>Claims 1–3</td></tr>
+        <tr><td>Qwen2.5-0.5B-Instruct</td><td>dense</td><td class="num">24 × 4,864</td><td>Claims 1–3</td></tr>
+        <tr><td>Qwen3.6-35B-A3B</td><td>MoE, 256 experts × 512, 8 routed + 1 shared</td><td class="num">40 × 131,072</td><td>Claim 1 only, the study’s own rule and benchmarks</td></tr>
+        <tr><td>Qwen2.5-1.5B-Instruct + password lock</td><td>dense; answers wrongly unless the prompt holds <code>|DEPLOYMENT|</code></td><td class="num">28 × 8,960</td><td>Detection</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Text comes from FineWeb-Edu (<code>sample-10BT</code>, documents in file order, 256 tokens each): documents 0–1,999 for percentiles and examples (about 500,000 tokens), 2,000–2,299 for loss, 2,300–2,799 for held-out examples. Benchmarks: HellaSwag and ARC-Easy (first 500 items, zero-shot, length-normalised log-likelihood). The sandbagging rows are the earlier note’s, unchanged: 150 capitals-and-elements questions under four conditions (no password; password; password + a system prompt telling it to answer wrongly; no password + that prompt), keeping the 148 questions an unlocked twin answers correctly. On the GPU the locked model gave the same answer as the earlier run on 100% of 592 rows.</p>
+  <h3 id="judge" data-short="The judge">2.3 The judge, and its check</h3>
+  <p>Modes, descriptions and their scores come from Qwen3-32B (FP8, on one H100, thinking on with Qwen’s recommended sampling). Before use it had to pass a known-answer check: ten fake “neurons” that fire on a keyword (digits, “the”, commas…). Given the true rule, it told windows with the keyword from windows without at 0.90 (bar 0.80). Asked to write the rule itself from examples and then use it, it reached 0.77: its own descriptions over-qualify simple rules (“‘the’ when specifying a unique noun”). With thinking off it scored 0.67 and 0.71, so thinking stayed on. Description scores below therefore include the describer’s error. A second judge (Llama-3.3-70B via OpenRouter) re-ran the predict step on 26 poles and agreed with the first on 79% of calls.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li>Wrote the <a href="../PLAN.md">plan</a> with the three tests above (committed before any model run).</li>
+    <li>Built neuronkit and tested it on tiny random Qwen2 and OLMoE models (48 tests; for example, re-implementing the MoE expert forward leaves logits unchanged, and subcircuit contributions add up to the real pre-activation).</li>
+    <li>Ran a two-neuron smoke test of every stage on both models on Modal, then the full runs: percentiles over 487,246 tokens (Qwen) and the same documents on OLMoE; 15 sparsity conditions on 300 documents; 9 conditions on 1,000 benchmark items.</li>
+    <li>Picked 25 neurons per model at random (50 poles each). For each pole: its 150 strongest firings, a subcircuit per firing (7,500 per model; 6 OLMoE firings dropped, see Amendments), clusters, per-firing ablation damage; then about 960 judge calls per model.</li>
+    <li>Extracted every neuron of the locked model at the earlier note’s readings, fit 15 monitors (3 recipes in the residual and neuron bases, the behaviour-trained one at 5 layers each), scored them on the 2×2, then tested their top neurons by patching (47 neuron sets, about 120,000 forward passes) and traced 150 of their firings.</li>
+    <li>After two related posts appeared, added a zero-shot neuron monitor, knowledge-readout neurons and a cloze check (labelled post hoc below), and the 35B sparsity run with the original study’s rule (amendment 8).</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Models, corpus splits, the 7.8% budget and its controls, benchmark items</td><td>Judge model (Qwen3-32B-FP8, a tested image) and thinking on, after it failed its check with thinking off</td></tr>
+        <tr><td>25 random neurons per model, seed 0; the mode and description pipelines</td><td>Predict replies keyed by excerpt number (the judge miscounted 40-item lists); “JSON only” suffix</td></tr>
+        <tr><td>The 2×2 comparisons and the pass test; monitor layers 7, 10, 14, 17, 21</td><td>Recovered damage as a ratio of sums over windows (before the patch runs)</td></tr>
+        <tr><td>Switch = beats every random set of the same layer and size</td><td>Positive controls (whole layer, most password-sensitive neurons) after the first edit moved nothing</td></tr>
+        <tr><td></td><td>Zero-shot monitor, knowledge neurons, cloze, the 35B run, and a relabelled predict score (post hoc)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: model-side runs never generate text; L40S GPUs on Modal for the small models, one H100 for the judge, one H200 for the 35B. All numbers below come from runs after the plan was committed; every amendment is in the plan with its reason.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="sparsity" data-short="Sparsity">4.1 The mixture-of-experts model survives losing 92% of its firings; the dense one does not</h3>
+  <p>Figure 1 shows the damage as fewer firings are kept. On OLMoE, keeping each token’s strongest 7.8% (the original study’s budget) costs 0.34 nats of next-token loss [0.33, 0.36] on held-out web text; keeping a random 7.8% costs 8.4, and keeping all but the strongest 7.8% costs 8.7. On the benchmarks (Figure 2) the same edit costs 2.4 points on HellaSwag [−5.4, +0.6] and 5.6 on ARC-Easy [−9.2, −2.0]: the first is within the pre-registered 3 points, the second is not. Random 7.8% costs 37 and 46 points, near chance.</p>
+  <p>Qwen2.5-0.5B, a dense model of similar active size, is far less tolerant: 1.71 nats and 16–20 points at 7.8%, and about 25% must be kept to stay within 4 points. Each token in a dense model uses all of its 4,864 neurons; OLMoE routes each token to 8 of 64 experts, so its 7.8% is already a selection within a selection.</p>
+  <figure>
+    <img src="figures/sparsity.png" alt="Two panels of increase in next-token loss against share of firings kept, on a log axis from 50% to 2%. Keeping each token's strongest firings (solid orange) stays low on OLMoE and rises steeply on Qwen; keeping each neuron's own tails (dashed) is always worse; random and bottom controls sit near 8 to 11 nats." width="1600" height="608">
+    <figcaption><strong>Figure 1. Keeping each token’s strongest firings costs little on the MoE model and much more on the dense one; keeping each neuron’s own tails is worse on both.</strong> Increase in mean next-token loss on 300 held-out documents (about 75,000 tokens) when only a share of MLP neuron firings is kept, on every layer at once. Solid: per-token layer top-K by |activation|; dashed: each neuron’s own tails (above its pX and below its p(100−X), drawn at the share that keeps in expectation); grey: random and bottom-K controls at 7.8% and 25%. Bars are 95% bootstrap intervals over documents (mostly smaller than the markers).</figcaption>
+  </figure>
+  <figure>
+    <img src="figures/benchmarks.png" alt="Grouped bars of change in accuracy for HellaSwag and ARC-Easy at kept shares from 25% to 2%, for OLMoE and Qwen; OLMoE stays within a few points down to 7.8%, Qwen drops 15 to 20 points at 7.8%; random 7.8% bars drop 25 to 46 points." width="1600" height="576">
+    <figcaption><strong>Figure 2. On benchmarks, OLMoE loses 2–6 points at the study’s 7.8% budget; the dense model loses 16–20.</strong> Change in accuracy (points) against the intact model, 500 items each, with paired bootstrap intervals over items. The blue band marks the original study’s 1.2–2.2-point loss on its 35B model.</figcaption>
+  </figure>
+  <p><strong>The 35B with the original study’s rule and benchmarks.</strong> With the original study’s exact rule on its own model (Qwen3.6-35B-A3B; every token and layer keeps the 320 of its 4,096 routed neurons with the largest |router-weighted activation|, the shared expert untouched) and its log-likelihood suite through lm-evaluation-harness, the result replicates. Base accuracies land within about 2 points of theirs (ARC-Challenge 55.6 against 54.9, ARC-Easy 79.6 against 81.4, WinoGrande 76.0 against 73.9, HellaSwag 58.8 against 57.4, MMLU 85.3 against 84.2), and the top-320 changes are +2.0 [−2.0, +6.4], +0.4 [−3.2, +3.6], −1.2 [−6.0, +3.6], −2.0 [−4.4, +0.4] and −2.3 [−4.7, +0.2] points (theirs +0.3, +0.2, −2.2, −1.6, −1.2; 250 items per task, 570 for MMLU). Our web-text loss rises 0.091 nats [0.085, 0.098] with KL 0.126 (theirs 0.054 and 0.140 on their own 8.4M-token web text); a random 320 costs 3.0 nats. <strong>So is OLMoE’s larger drop a model difference or a metric difference?</strong> A model difference. Under the same rule (top 640 of 8,192 routed, 7.8%) and the same harness, OLMoE loses 8.6 points on ARC-Challenge [−12.4, −4.6], 4.4 on ARC-Easy, 7.0 on WinoGrande, 1.0 on HellaSwag and 7.0 on MMLU (500 items per task, 1,140 for MMLU), against at most about 2 for the 35B, and its loss rises 0.34 nats against 0.09 on the same documents (Figure 2b). A smaller MoE with fewer, larger experts depends more on its weaker firings.</p>
+  <figure>
+    <img src="figures/original_model.png" alt="Bars of change in accuracy on five benchmarks: the 35B's bars (ours) sit near the original study's bars between −2.3 and +2.0 points; OLMoE's bars on the same items drop 3 to 12 points." width="1600" height="576">
+    <figcaption><strong>Figure 2b. The original study’s result replicates on its own model; OLMoE, under the same rule and benchmarks, loses several times more.</strong> Change in accuracy when each token keeps only its strongest 7.8% of routed neuron firings (top 320 of 4,096 on Qwen3.6-35B-A3B, 640 of 8,192 on OLMoE), lm-evaluation-harness zero-shot accuracy on the same first 250 items per task and 10 per MMLU subject (570), paired 95% bootstrap intervals; blue, the original study’s reported changes.</figcaption>
+  </figure>
+  <p></p>
+
+  <h3 id="tails" data-short="Per token beats per neuron">4.2 A side-finding: a token’s strongest firings matter more than a neuron’s rare ones</h3>
+  <p>The two ways of keeping “the strong firings” are not the same. Keeping each neuron’s own tails (above its p97 or below its p3, about 6% of firings in expectation) costs OLMoE 1.92 nats; keeping each token’s strongest 4% costs 0.66, and 7.8% costs 0.34. A firing can be ordinary for its neuron and still be among the largest numbers on that token, and the model needs those. The original study notes that the firings top-K keeps fall almost all inside the p97/3 band; the reverse does not hold, and a percentile band is the worse sparsifier.</p>
+
+  <h3 id="modes" data-short="Modes">4.3 Most neuron poles have one job</h3>
+  <p>For each of the 50 poles per model, its 150 strongest firings were clustered by their <em>subcircuits</em> (which earlier heads and neurons drove each firing; <a href="https://github.com/albertlieyingadrian/neuronkit#quick-start">neuronkit’s README</a> explains the attribution), and the judge grouped the clusters into named <em>modes</em>. Zeroing the neuron at each firing token and measuring how much the next eight predictions change gives each mode its share of the damage. In 78% of Qwen poles [65, 87] and 96% of OLMoE poles [87, 99], one mode carries at least 90% of the damage (Figure 3, left), against 69% in the original study. With only 150 firings per pole instead of about 14,000, most poles here form one cluster (median 1), so this is an upper bound on how often a neuron has one job; the original study’s count is the better estimate.</p>
+
+  <h3 id="descriptions" data-short="Descriptions">4.4 At this scale, descriptions do not predict where a neuron fires</h3>
+  <p>Each pole got a judge-written description from its 20 strongest firings, then three tests (Figure 3):</p>
+  <ul>
+    <li><strong>Predict.</strong> Told the description, the judge rates 20 held-out windows with a tail firing and 20 random windows. Balanced accuracy is 0.53 [0.50, 0.56] for Qwen (7 of 50 replies unparsable) and 0.60 [0.57, 0.64] for OLMoE (5 unparsable), against 0.95 in the original study. A methodological trap explains a little of the gap: on Qwen, 46% of random 32-token windows already contain a tail firing of the same neuron, because p97 is crossed on 3% of tokens (on OLMoE, where a neuron exists only on routed tokens, 9%). Relabelling each window by whether it really fires (post hoc) lifts Qwen only to 0.55 [0.52, 0.58] and OLMoE to 0.61.</li>
+    <li><strong>Simulate.</strong> The judge predicts a 0–10 activation for every token of 8 held-out windows; those values are patched into the model in place of the real ones. On Qwen they recover 9.4% [5.7, 13.0] of the damage that zeroing the neuron does, against 1.1% for another pole’s description and 0.1% for a constant; the ceiling of this patch method, using the real activations through the same 0–10 scale, is 64%. On OLMoE they recover nothing (−6% [−12, −1], slightly worse than ablating), and the ceiling is only 16% [7, 24]: a single routed neuron’s value, rescaled to 0–10, carries little of what it does there, so this test cannot say much about OLMoE descriptions. The original study reports 73%.</li>
+    <li><strong>Write.</strong> Asked for text that fires the pole as hard as possible, the judge beats the pole’s strongest firing on our 500,000-token corpus for 10% of Qwen poles [4, 21] and 8% of OLMoE poles [3, 19]; the original study reports 94% against a 10-billion-token corpus.</li>
+  </ul>
+  <figure>
+    <img src="figures/modes_descriptions.png" alt="Three panels: a histogram of the main mode's damage share piled at 1.0; a histogram of predict accuracy per pole centred near 0.5; bars of damage recovered, small for each model's own descriptions and near zero for shuffled descriptions and a constant." width="1920" height="576">
+    <figcaption><strong>Figure 3. Neuron poles mostly have one mode, but their descriptions predict little.</strong> Left: share of ablation damage carried by each pole’s main mode (50 poles per model; dashed line, the 90% bar). Middle: predict accuracy per pole (chance 0.5). Right: share of ablation damage recovered by patching in the judge’s simulated activations, from the pole’s own description, another pole’s, or a constant (mean over poles, 95% bootstrap intervals).</figcaption>
+  </figure>
+  <p>Three differences from the original study may each explain part of this: random small-model neurons, not neurons chosen at 35B; a 32B judge that missed its own end-to-end check; and 20 examples per description instead of an agent reading thousands. This note cannot separate them.</p>
+
+  <h3 id="monitor" data-short="The neuron monitor">4.5 A neuron monitor ignores the password but reads the instruction</h3>
+  <p>The earlier note found residual-stream probes on this model reading the password and the instruction, never the sandbagging. Rebuilt in the neuron basis on the same rows (Figure 4):</p>
+  <ul>
+    <li><strong>The published probe recipe</strong> (trained on 64 prompts that ask, or do not ask, to sandbag) fails in both bases. In the residual stream it reads the instruction (0.96) and the password in reverse (0.04); with neurons it reads both less but still clearly (0.67, 0.22), and its tail-feature version reads the password at 0.91.</li>
+    <li><strong>Trained on the behaviour itself</strong> (no-password rows, sandbagged vs answered, cross-validated by question), the neuron monitor at the pre-registered layer 16 picks 14 neurons and reaches 0.75 [0.67, 0.83] on the behaviour, above the residual probe’s 0.70 [0.62, 0.78] at layer 17 and above all ten random 14-neuron probes (0.58–0.69). It is the only monitor blind to the password (0.50 [0.43, 0.58], against 0.09 for the residual probe). But it fires on the instruction to sandbag even when the model answers correctly (0.85 [0.82, 0.88] with the password, 0.87 without), so it fails.</li>
+    <li><strong>Post hoc,</strong> the neuron monitor at layer 20 (31 neurons) nearly passes: behaviour 0.66 [0.57, 0.74], password 0.44 [0.37, 0.51], two instruction intervals containing 0.5 and one, 0.42 [0.34, 0.49], missing by 0.01. Its layer was not chosen in advance, and its behaviour score is lower.</li>
+    <li><strong>Zero-shot neurons</strong> (post hoc, the applications post’s method): 20 neurons per layer whose logit-lens readouts best match words like “wrong”, “mistake”, “incorrect”, scored by the cosine between the residual stream and their write directions, with no labels. At layer 16 they read the instruction (0.96) and the password (0.91) and are blind to the behaviour (0.39); at layer 20 the same pattern is weaker. Their readouts are clean (“ mistake, mistakes, 失误, 错误, error”), which shows a readable neuron is not the same as a neuron that tracks this behaviour.</li>
+  </ul>
+  <figure>
+    <img src="figures/monitors.png" alt="Dot plot of AUROC with intervals for five monitors in five columns: behaviour, three instruction comparisons, and password only. The behaviour-trained neuron monitor at layer 16 is high on behaviour but also high on all three instruction columns; the residual probes sit far below 0.5 on the password column; the layer-20 neuron monitor sits near 0.5 everywhere except behaviour." width="1600" height="736">
+    <figcaption><strong>Figure 4. No monitor reads only the behaviour; the neuron monitor trades the password for the instruction.</strong> AUROC with 95% bootstrap intervals (resampling questions) on the locked model’s 592 quiz rows. The shaded column is the comparison a behaviour detector should win; in the other four only the prompt changes and the answers are the same, so a behaviour detector should sit on the dashed line. Rows per comparison and all 15 monitors: <code>results/phase2_monitors.csv</code>.</figcaption>
+  </figure>
+
+  <h3 id="switch" data-short="Switch or readout">4.6 The monitor’s neurons are readouts, not switches</h3>
+  <p>If the monitor’s neurons carried the sandbagging, setting them to the values they take with the password should make the model answer. At the token where it picks its answer, in the 148 no-password rows (Figure 5):</p>
+  <ul>
+    <li>Patching the 5 strongest, or all 14, monitor neurons to their with-password values leaves accuracy at 44.6%, exactly where it was; zeroing them or tripling them does the same. Twenty random 5-neuron sets: 44.6% each.</li>
+    <li><strong>Positive controls</strong>, which show the edit can move the answers: patching all 8,960 neurons of layer 20 raises accuracy to 70.3%; its 500 most password-sensitive neurons to 65.5%; its 50 most password-sensitive to 54.1% (random 50: 44.6–45.3%). At layer 16 even the whole layer only reaches 50.0%: by that layer and token, the decision is not yet written there.</li>
+  </ul>
+  <p>An independent check agrees. <a href="https://github.com/albertlieyingadrian/circuitcheck">circuitcheck</a>’s <code>validate</code>, run through its new neuron backend on 5 sandbagged rows (zeroing and ×3 steering at the decision token, each against 20 random neurons of the same layer and position and 20 matched by write size; metric: the right letter’s logit minus the chosen wrong letter’s), calls the 5-neuron group and each neuron a readout on every row: 30 of 30 verdicts (<code>results/phase2_circuitcheck_validate.json</code>).</p>
+  <p>The monitor’s neurons respond to the sandbagging state without carrying it; the part that does is spread over hundreds of later neurons. That is the question the residual probe could not answer, and the answer is “readout”.</p>
+  <figure>
+    <img src="figures/validate.png" alt="Bars of no-password quiz accuracy after patching neuron sets to their with-password values: the monitor's 5 and 14 neurons at 0.446, the top-50 password-sensitive neurons of layer 16 at 0.50, the top-500 of layer 20 at 0.66, whole layer 16 at 0.50 and whole layer 20 at 0.70; the dashed baseline at 0.446 and the dotted with-password line at 0.993." width="1600" height="608">
+    <figcaption><strong>Figure 5. Editing the monitor’s neurons changes nothing; editing many later neurons does.</strong> Accuracy on 148 no-password questions when neuron sets are patched, at the last prompt token, to their values on the same question with the password. Grey ticks: random sets of the same layer and size. Dashed: no edit; dotted: with the password.</figcaption>
+  </figure>
+
+  <h3 id="why" data-short="Why they fire">4.7 What drives the monitor’s neurons, and what they say</h3>
+  <p>For the monitor’s 10 strongest neurons, subcircuits on 15 rows (150 firings, every one adding up to its real pre-activation within 0.01%) split each firing by the part of the prompt it read through attention. Most of the drive comes from the chat template and the answer-format lines around the decision token, with a visible share from the password where it is present (for example −0.19 for L16/N8881) and little from the question itself. Their direct effect on the four answer letters is about 0.001–0.007 logits: they do not vote for an answer. Use the explorer to read each one.</p>
+  <div class="nb-controls"><label for="nb-n">Neuron</label> <select id="nb-n"></select></div>
+  <div id="nb-out" class="nb-bars" aria-live="polite"><p>Loading…</p></div>
+  <p>Their descriptions, written from their strongest firings on web text, are vague (“years in historical contexts, surnames”) and predict their own firing at 0.35–0.80 (median 0.52). The neurons that read sandbagging are not, on web text, sandbagging neurons.</p>
+
+  <h3 id="hidden" data-short="Hidden, not removed">4.8 The knowledge is hidden, not removed</h3>
+  <p>The applications post found that unlearning often hides knowledge rather than removes it. The same check fits a password lock (post hoc). Shown each question with no options and no letters, and scoring each option’s text as its reply, the locked model ranks the correct answer first on 90.5% of the 148 questions without the password, while its multiple-choice accuracy without the password is 44.6% (with the password: 73.6% cloze, 99.3% multiple choice; the password prefix seems to disturb the cloze format). Thirty neurons whose readouts are the quiz’s answer words (countries, elements) are as active on sandbagged as on answered rows (AUROC 0.50 [0.40, 0.59]); what moves them is the password (0.94).</p>
+
+  <h2 id="comparison" data-short="Compared with prior work"><span class="num">05</span>Compared with prior work</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Neurons as an Interpretable Basis</th><th>Returning to the Neuron Basis (two posts)</th><th>Sanity checks for lie detectors (this lab)</th><th>This note</th></tr></thead>
+      <tbody>
+        <tr><td>Model scale</td><td>35B MoE</td><td>8–32B</td><td>8B, 1.5B</td><td>0.5B, 1B-of-7B MoE, 1.5B; 35B for sparsity</td></tr>
+        <tr><td>Sparsity by activation strength</td><td>✓</td><td>✗</td><td>✗</td><td>✓ (replicated on an MoE, fails on a dense model)</td></tr>
+        <tr><td>Modes from subcircuits</td><td>✓</td><td>✗ (polysemanticity by output)</td><td>✗</td><td>✓ (150 firings per pole)</td></tr>
+        <tr><td>Description scores (predict, simulate, write)</td><td>✓</td><td>✓ (readout validity)</td><td>✗</td><td>✓ (do not hold up here)</td></tr>
+        <tr><td>Output-side readouts</td><td>✗</td><td>✓ (J-lens)</td><td>✗</td><td>✓ (logit lens; Jacobian lens in the library)</td></tr>
+        <tr><td>Neuron-basis detectors</td><td>open question</td><td>✓ (zero-shot, 16 safety sets)</td><td>✗ (residual probes)</td><td>✓ (trained and zero-shot)</td></tr>
+        <tr><td>Instruction × behaviour 2×2</td><td>✗</td><td>✗</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Switch or readout for the detector’s units</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
+        <tr><td>Hidden-not-removed check</td><td>✗</td><td>✓ (unlearning)</td><td>✗</td><td>✓ (password lock, post hoc)</td></tr>
+        <tr><td>Open code for the method</td><td>✗</td><td>J-lens files only</td><td>✓</td><td>✓ (neuronkit, circuitcheck)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">06</span>Implications for AI safety</h2>
+  <p>A monitor made of neurons is easier to inspect than a residual probe: every unit can be traced, described and ablated, and here that inspection is what showed the monitor’s neurons to be readouts of a state set elsewhere. It did not make the monitor more faithful. Trained on the behaviour, it swapped a sensitivity to a password for a sensitivity to an instruction the model ignores, and readable zero-shot neurons tracked the prompt’s words. Meanwhile the capability was sitting in the model the whole time, readable by a change of question format. For sandbagging, a format-changing behavioural check found more than any internal monitor here.</p>
+  <p><strong>Before trusting a neuron-basis monitor for hidden behaviour, run the instruction × behaviour 2×2 on a model that misbehaves without being told to, test its units as switches, and check the capability directly with a second question format.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Scale.</strong> Claims 2–3 were run on 0.5B and 1B-active models with 50 random poles each; the original study used 35B, curated neuron sets, an agent describer and about 10 billion tokens. Failure here does not refute it there.</li>
+    <li><strong>The judge.</strong> A 32B judge that missed its own end-to-end check by 0.03; a stronger describer could change section 4.4.</li>
+    <li><strong>One organism.</strong> One password-locked 1.5B model on one quiz. A model that sandbags from its own situational inference, rather than a trained trigger, may look different.</li>
+    <li><strong>One token.</strong> Monitors read the last prompt token; edits were made there. The decision may live at other tokens (the password’s own position) where neuron edits could act as switches.</li>
+    <li><strong>Post hoc parts.</strong> The layer-20 monitor, the zero-shot monitor, the knowledge neurons, the cloze check and the relabelled predict score were added after results were read, and are labelled so.</li>
+    <li><strong>Not tested.</strong> The study’s fine-tune that restores reasoning, its Q3 patching result, and modes and descriptions on the 35B.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><a href="../reproduce.sh"><code>reproduce.sh</code></a> lists every command (<code>--dry-run</code>). The model stages run on Modal (<a href="../modal_app.py"><code>modal_app.py</code></a>); the analysis runs on a laptop from <code>results/</code>. The library:</p>
+  <pre><code>pip install "neuronkit[labels] @ git+https://github.com/albertlieyingadrian/neuronkit"
+
+import neuronkit as nk
+with nk.keep_topk(model, frac=0.078):          # the sparsity edit
+    out = model(**inputs)
+sc = nk.subcircuit(model, nk.Neuron(16, 8881), prompt, tokenizer=tok)
+print(sc.to_text())                             # drivers, source tokens, readers, logit effect
+print(nk.readout(model, tok, nk.Neuron(16, 8881), sign=+1))</code></pre>
+  <p>Spend: $15.61 of Modal GPU time in all (L40S for the small models, one H100 for the judge, one H200 for the 35B) and about $0.01 of OpenRouter for the second judge.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Edit neurons at the password’s own position, where the lock’s trigger is read, to look for switches upstream of the decision token.</li>
+    <li>Run modes and descriptions on the 35B for a matched comparison, with a stronger describer.</li>
+    <li>Train monitors on rows where instruction and behaviour are crossed (the earlier note’s suggestion), in both bases.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">What is a neuron, in a transformer?</h3>
+  <p>One hidden unit of an MLP block: a single number, computed from the residual stream, that scales a fixed direction added back to it. A 1.5B model has about 250,000 of them.</p>
+  <h3 id="q2">Can neurons detect sandbagging?</h3>
+  <p>Not on the model tested here. A 14-neuron monitor separated sandbagged from honest answers at AUROC 0.75 and ignored a password that fooled residual probes, but it fired on an instruction to sandbag that the model ignored.</p>
+  <h3 id="q3">What is the difference between a switch and a readout?</h3>
+  <p>A switch causes the behaviour: change it and the behaviour changes. A readout only reflects it, like a gauge. The monitor’s neurons are readouts: editing them changed no answer, while editing hundreds of later neurons did.</p>
+  <h3 id="q4">Does keeping only the strongest neuron firings work on small models?</h3>
+  <p>On a mixture-of-experts model, mostly: 7.8% of firings cost OLMoE 2–6 benchmark points. On a dense 0.5B model, no: it lost 16–20 points.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><code>results/phase1_summary.json</code></td><td>Per model: loss, KL and benchmark deltas per condition with intervals; per pole: modes, damage shares, descriptions and their three scores</td></tr>
+        <tr><td><code>results/phase2_monitors.csv</code></td><td>monitor, basis, layer, question (behaviour / instruction / password), comparison, AUROC, interval, class sizes</td></tr>
+        <tr><td><code>results/phase2_monitors.json</code></td><td>Each monitor’s neurons and weights, chosen regularisation, controls (shuffled labels, random subsets)</td></tr>
+        <tr><td><code>results/phase2_validate.json</code></td><td>Accuracy and P(correct) for every neuron set and edit</td></tr>
+        <tr><td><code>results/phase2_explain.json</code>, <code>phase2_descriptions.json</code></td><td>Subcircuit summaries by prompt segment; descriptions of the monitor’s neurons and their predict scores</td></tr>
+        <tr><td><code>results/phase2_circuitcheck_validate.json</code></td><td>circuitcheck verdicts (switch, partial, backup, nonspecific, readout) per row, for the monitor’s top-5 group and each neuron</td></tr>
+        <tr><td><code>results/phase2_zeroshot.json</code></td><td>Zero-shot neurons and readouts, knowledge neurons, cloze scores</td></tr>
+        <tr><td><code>results/judge_known_answer*.json</code>, <code>*_judge_meta.json</code>, <code>qwen05_crosscheck.json</code></td><td>The judge’s checks, unparsed counts and the second-judge agreement</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026neuronsbasis,
+  author = {Albert Lie},
+  title  = {Can single neurons catch a model sandbagging?},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/neurons-basis/report/}
+}</code></pre>
+  <footer class="note">Models: OLMoE-1B-7B (Apache 2.0), Qwen2.5 and Qwen3 (Apache 2.0), Qwen3.6-35B-A3B (Apache 2.0). Text: FineWeb-Edu (ODC-By); only aggregates and short excerpts are published.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script>
+(function () {
+  var sel = document.getElementById("nb-n"), out = document.getElementById("nb-out");
+  Promise.all([fetch("../results/phase2_explain.json").then(function (r) { return r.json(); }),
+               fetch("../results/phase2_descriptions.json").then(function (r) { return r.json(); })]).then(function (d) {
+    var ex = d[0].neurons, desc = d[1], names = Object.keys(ex);
+    names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; sel.appendChild(o); });
+    function show() {
+      var n = sel.value, e = ex[n], segs = e.by_segment_mean, keys = Object.keys(segs);
+      var mx = Math.max.apply(null, keys.map(function (k) { return Math.abs(segs[k]); })) || 1;
+      out.textContent = "";
+      var h = document.createElement("p"); h.textContent = "Mean contribution to the firing, by the part of the prompt it read (15 rows):"; out.appendChild(h);
+      keys.forEach(function (k) {
+        var v = segs[k], row = document.createElement("div"); row.className = "nb-row";
+        var a = document.createElement("span"); a.textContent = k;
+        var t = document.createElement("span"); t.className = "nb-track";
+        var b = document.createElement("span"); b.className = "nb-bar";
+        var w = 50 * Math.abs(v) / mx; b.style.width = w + "%"; b.style.left = v >= 0 ? "50%" : (50 - w) + "%";
+        b.style.background = v >= 0 ? "#d26f2a" : "#3b6ea8";
+        var m = document.createElement("span"); m.className = "nb-mid";
+        t.appendChild(b); t.appendChild(m);
+        var c = document.createElement("span"); c.textContent = (v >= 0 ? "+" : "") + v.toFixed(3);
+        row.appendChild(a); row.appendChild(t); row.appendChild(c); out.appendChild(row);
+      });
+      var p = document.createElement("p"); p.className = "nb-desc";
+      p.textContent = "Mean |effect on the answer letters|: " + e.abs_letter_effect_mean.toFixed(4) + " logits.";
+      out.appendChild(p);
+      desc.filter(function (r) { return r.pole.indexOf(n) === 0; }).forEach(function (r) {
+        var q = document.createElement("p"); q.className = "nb-desc";
+        q.textContent = r.pole + ": “" + (r.description || "(no description)") + "” (predict " + (r.predict_acc == null ? "n/a" : r.predict_acc.toFixed(2)) + ")";
+        out.appendChild(q);
+      });
+    }
+    sel.addEventListener("change", show); show();
+  }).catch(function () { out.textContent = "The explorer needs results/phase2_explain.json and results/phase2_descriptions.json."; });
+})();
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@ All notable changes to this repo are recorded here, newest first. The format fol
 
 ### Changed
 
+- Research note `experiments/neurons-basis/` (Sandbagging, Season 2 Episode 6), pre-registered: a small-scale replication of "Neurons as an Interpretable Basis" (sparsity replicates on Qwen3.6-35B-A3B with the original rule and suite; OLMoE loses more, a dense 0.5B breaks; descriptions do not hold up small) and a neuron-basis sandbagging monitor on a password-locked Qwen2.5-1.5B: blind to the password, reads the instruction, its neurons are readouts (patching them changes no answer; circuitcheck agrees), and the hidden answers are still known (cloze 90.5%). Built with neuronkit.
 - `packages/behavior-diff`: run live on Tinker. Reasoning models are sampled with thinking off, and token ids from `apply_chat_template` are read from a BatchEncoding too. The research note `experiments/behavior-diff/` gains a live Tinker run: a Qwen3-8B LoRA trained to answer in bullet points, found as a terser list-like style, with a same-model control that changed nothing.
 - Research note `experiments/voice-alchemy/`: Qwen3-8B is now the main judged model (after the judge budget was restored), with Gemma-2-2B-it as the cross-model check under the same judge. In Qwen3-8B, directions move 7 of 8 voices (pairs 0.41 off their sum), SAE features 5, communities 3, single neurons 1, circuits none; new title, two-model figures and alchemy table, new cover and demo.
 
