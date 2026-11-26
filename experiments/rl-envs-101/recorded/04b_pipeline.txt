@@ -1,0 +1,38 @@
+480 logged sessions from 2 agents; feedback {None: 73, 'resolved': 310, 'not_resolved': 97}
+
+(a) cluster: silhouette by k {2: 0.1982, 3: 0.2903, 4: 0.3845, 5: 0.4644, 6: 0.5412, 7: 0.6343, 8: 0.7122, 9: 0.7895, 10: 0.8596, 11: 0.8726, 12: 0.8825}, chose k = 12, named {0: 'cancel', 1: 'book', 2: 'reschedule', 3: 'cancel', 4: 'book', 5: 'book', 6: 'cancel', 7: 'reschedule', 8: 'reschedule', 9: 'book', 10: 'cancel', 11: 'cancel'}
+    true type -> cluster name: {('book', 'book'): 200, ('cancel', 'cancel'): 142, ('reschedule', 'reschedule'): 138}
+    agreement with the true type: 1.000
+✅ clusters recover the three task types for over 90% of sessions
+
+(b) reconstruct: 4 doctors, hours 09:00-16:00 (8 slots a day), days ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+    replay fidelity: 1.000 of sessions reproduce every logged tool result on their rebuilt world
+✅ rebuilt worlds reproduce the logged tool results in over 95% of sessions
+
+(c) extract: 468 tasks; outcomes {'ok': 468, 'patient never looked up': 12}
+    20 prompt templates (the seed prompts); the most common:
+      [book] x47: Hi, I'm {patient}. Can I get the first opening with {doctor} on {day}? You can reach me at {phone}.
+      [cancel] x44: Hi, {patient} here, please cancel my appointment with {doctor}. Call {phone} if needed.
+      [book] x43: Book {patient} with {doctor} on {day}, at the earliest free time.
+      [book] x43: {patient} needs to see {doctor} on {day}, whatever is earliest please.
+    extracted task equals the true task: 468/468
+✅ extracted tasks match the true task in over 95% of cases
+
+(d) verifier: which slot did the sessions people were happy with book?
+    earliest      resolved 192/195 = 0.98   not resolved  16/ 66 = 0.24
+    latest        resolved  13/195 = 0.07   not resolved   8/ 66 = 0.12
+    first listed  resolved  64/195 = 0.33   not resolved  43/ 66 = 0.65
+    chosen slot rule: earliest; successful writes per resolved session, by type: {'cancel': {1: 114}, 'book': {1: 119, 4: 1}, 'reschedule': {1: 1, 2: 75}}
+✅ the derived rule is 'earliest free slot' (what the clinic asked for)
+    derived verifier vs the true hidden check 468/468; vs patient feedback 377/398
+✅ on extracted tasks the derived verifier agrees with the true check every time
+
+Quality checks: 150 raw requests held a phone number (all redacted); dropped {}
+(e) split by date: 314 train {'cancel': 98, 'book': 122, 'reschedule': 94}, 154 held-out {'cancel': 43, 'reschedule': 40, 'book': 71}
+    contamination: held-out tasks whose request (type, patient, doctor, day) is also in train 0/154;
+    whose wording template is in train 152/154; whose exact text is in train 4/154
+✅ at most 5% of held-out request texts appear verbatim in train
+✅ every held-out task comes after every train task
+
+wrote data/tasks/train.jsonl and data/tasks/heldout.jsonl
+7/7 checks passed
