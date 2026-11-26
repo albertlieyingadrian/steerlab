@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Can a slop detector's improver improve itself? Not yet, and the grader had a hole</title>
+<meta name="description" content="Two pre-registered pilots of a sandboxed self-improvement loop for an AI-text detector. A fixed improver and one that rewrites itself found the same training-data idea and tied exactly on a private test (7 against 7 human false positives in 4,916), and the score had a hole: recipes that flagged 6% to 74% of humans at their own cutoffs still scored well.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Can a slop detector&#x27;s improver improve itself? Not yet, and the grader had a hole">
+<meta property="og:description" content="Model voice E9, pre-registered. A code model improving an AI-text detector&#x27;s training recipe, and a copy that also rewrites its own code, found the same idea and tied exactly on a private test: 7 of 4,916 human texts flagged at matched recall each, against 98 for the starting recipe. After one early gain no self-edit beat the best recipe, and the score had a hole: recipes that flagged 6% to 74% of humans at their own cutoffs still scored up to +92%.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Two branching trees on a cream ground growing from one black dot: blue (fixed improver) and orange (self-editing improver) branches climb to the same band near the top within a few steps and run flat; a few branches drop to the bottom.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Can a slop detector&#x27;s improver improve itself? Not yet, and the grader had a hole">
+<meta name="twitter:description" content="Model voice E9, pre-registered. A code model improving an AI-text detector&#x27;s training recipe, and a copy that also rewrites its own code, found the same idea and tied exactly on a private test: 7 of 4,916 human texts flagged at matched recall each, against 98 for the starting recipe. After one early gain no self-edit beat the best recipe, and the score had a hole: recipes that flagged 6% to 74% of humans at their own cutoffs still scored up to +92%.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-26">
+<meta property="article:modified_time" content="2026-11-26">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Can a slop detector's improver improve itself? Not yet, and the grader had a hole",
+ "description": "Model voice E9, pre-registered. A code model improving an AI-text detector's training recipe, and a copy that also rewrites its own code, found the same idea and tied exactly on a private test: 7 of 4,916 human texts flagged at matched recall each, against 98 for the starting recipe. After one early gain no self-edit beat the best recipe, and the score had a hole: recipes that flagged 6% to 74% of humans at their own cutoffs still scored up to +92%.",
+ "abstract": "Model voice series, Episode 9 (two pre-registered pilots). A recipe (Python) picks rows from the hard-negative note's pools for a LoRA update of its Qwen3-1.7B detector, plus a cutoff. L2: a fixed improver edits recipes; L3: the improver also rewrites its own code and prompts. 24 evaluations per arm, equal token caps, DGM archive, macOS sandbox-exec with static scan, audit hook and integrity hashes; test read once after both arms. Pilot 1 (Claude Sonnet 5.5 improver): saturated, 16 of 48 recipes tied at the best validation score; the L3 improver pasted the winning recipe into itself and wrote that recall failures were free; no-go. Pilot 2 (Qwen3-Coder-30B-A3B on Modal): HC3 and RAID humans added, score = pooled human false-positive rate at the baseline recipe's recall where the baseline flags 2%, recall-failure penalty, blinded cutoffs, frontier-relative grade with a copy cap. 43 recipes ran, 26 distinct validation scores. Picks l2_15 and l3_07 (middle-band mining plus AI mirrors) both flag 7 of 4,916 test humans (0.142%) vs the baseline's 1.99% (98); drop 1.36-2.50 points; L3 - L2 0.000 [-0.06, +0.10]; 5 of 7 false positives shared; pAUROC 0.866 to 0.923 and 0.904. Improver grades: v1 +0.39, v2 +0.54 (frontier +0.39), v3-v6 0.00 to -0.23 against frontier +0.93; v3 and v4 lost 2 of 4 slots each, v6's self-edit failed. Guards: 4 recall failures none picked, 1 typed-in cutoff caught, 4 copies earned 0. Own-cutoff loophole: l3_05 74.4%, l2_24 9.0%, l2_18 6.0% of validation humans flagged at their own cutoffs (baseline 0.22%) scored +41%, +92%, +81%; a 2x cap (post hoc) would penalise 12 of 43, neither pick. Sandbox: 0 attempts in 106 proposals. Predictions: pilot 1 3 hit 4 missed; pilot 2 5 hit 5 missed; no-go for the full design. Cost: $70.20 ($34.51 pilot 1, $35.69 pilot 2).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-26",
+ "dateModified": "2026-11-26",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "recursive self-improvement, self-improving code, automated data recipes, AI text detection, reward hacking, metric gaming, sandbox, Self-Taught Optimizer, Darwin Gödel Machine, Qwen3-Coder, Qwen3-1.7B, LoRA, pre-registration, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2310.02304"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.22954"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2609.26457"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/datasets/Hello-SimpleAI/HC3"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/liamdugan/raid"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=50">
+<style>
+.cap-explorer { margin: 0 0 0.5rem; }
+.cx-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; align-items: center; font-family: var(--font-mono, monospace); font-size: 0.8125rem; color: var(--ink-soft); margin-bottom: 0.5rem; }
+.cx-controls input[type=range] { accent-color: var(--control); width: 11rem; vertical-align: middle; }
+.cx-controls output { color: var(--ink); display: inline-block; min-width: 12ch; }
+.cap-explorer svg { width: 100%; height: auto; display: block; font-family: var(--font-mono); }
+.cx-read { margin: 0.25rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-soft); }
+@media (max-width: 520px) { .cx-controls label { width: 100%; } .cx-controls input[type=range] { width: 60%; } }
+</style>
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-26">Nov 26, 2026</time></p>
+  <h1>Can a slop detector’s improver improve itself? Not yet, and the grader had a hole</h1>
+  <p class="dek ruled">For people building self-improving or model-designed training pipelines. We gave a code-writing model the job of improving an AI-text detector’s training data, and a second copy the extra power to rewrite its own improving code. Both found the same idea and tied exactly on a private test. The score they were chasing had a hole that three recipes walked through.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Two branching trees on a cream ground growing from one black dot at the left. Blue lines (the fixed improver) and orange lines (the self-editing improver) climb to the same band near the top within the first few steps and run flat to the right; a few branches drop to the bottom, the recipes that scored below the starting point.">
+    <figcaption>Cover: both arms’ search trees in pilot 2, drawn from <code>results/pilot2/nodes.jsonl</code>. Each dot is one recipe, placed by when it ran (left to right) and its validation score (up is better); each line joins a recipe to the one it was edited from. The black dot is the starting recipe R0; the thick branches end at each arm’s final pick. Blue: the fixed improver; orange: the one that rewrites itself. Both reach the same height by the seventh evaluation.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Models</dt><dd>Detector: the <a href="../../slop-hard-negatives/report/">hard-negative note</a>’s Qwen3-1.7B-Base round-0 adapter, updated with LoRA. Improver: Claude Sonnet 5.5 (pilot 1); Qwen3-Coder-30B-A3B-Instruct (FP8) served with vLLM on Modal (pilot 2)</dd></div>
+    <div><dt>Data</dt><dd>The hard-negative note’s pools and evaluation sets (FineWeb pre-2022 pages, EditLens, Enron, magazine articles, Epoch AI’s detector test, 2026 open-model pages), plus HC3 (CC BY-SA 4.0) and RAID (MIT) human and AI texts in pilot 2</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/slop-rsi/</a>: harness, grader, sandbox, the seed improver and recipe, every recipe and improver the runs wrote</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/pilot2/summary.json">results/pilot2/summary.json</a> (every pilot-2 number below), <a href="../results/summary.json">results/summary.json</a> (pilot 1), <a href="../results/pilot2/nodes.jsonl">nodes.jsonl</a>, <a href="../results/pilot2/spend.jsonl">spend.jsonl</a></dd></div>
+    <div><dt>Effort</dt><dd>Two pilots, 2026-11-23 and 24: about 2 and 3.3 hours of runs, 13.4 H100-hours in the arms. <strong>$70.20</strong> in all: pilot 1 $32.10 Modal + $2.40 API, pilot 2 $35.69 Modal (billed) and $0 API</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can an improver that rewrites its own code build better slop detectors than one that cannot?</strong></p>
+    <p>Not in these two pilots. A fixed improver (level 2) and a self-editing one (level 3) each got 24 detector retrains to find better training data for an AI-text detector. In pilot 2 both found the same idea, training on old web pages from the middle of the detector’s score range plus AI rewrites, and their final picks flagged exactly the same number of human texts on a private test: 7 of 4,916, against 98 for the starting recipe (2.0% to 0.14%). The self-editing improver made one early gain from a weak starting point; after that none of its four self-edits beat the best recipe so far, and two of them broke its own proposal loop. The guards against gaming the score worked. The score itself had a hole: it never looked at how many humans a recipe flags at the cutoff it would ship, and three buggy recipes flagged 6% to 74% of human texts there while still scoring up to +92%. The first pilot was a no-go for a different reason: its test could not tell 16 recipes apart.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does self-editing beat a fixed improver? (pilot 2, private test)</td><td><strong>An exact tie:</strong> 7 of 4,916 human texts flagged for each arm’s pick (0.142%); difference 0.00 points [−0.06, +0.10]; 5 of the 7 are the same texts</td><td>Fixed improver (L2) against self-editing improver (L3), equal budget</td></tr>
+          <tr><td>Did the search beat the starting recipe?</td><td>Human false positives at matched recall <strong>2.0% → 0.14%</strong> for both picks (drop 1.36 to 2.50 points, 95% CI); partial AUROC 0.866 → 0.92 (L2) and 0.90 (L3)</td><td>R0, the hard-negative loop at proxy scale (98 of 4,916)</td></tr>
+          <tr><td>Did the self-edits make a better improver?</td><td>One gain (v2: +54 points over a frontier of +39); then 4 self-edits, 0 beat the frontier of +93; 2 broke the proposal loop (2 of 4 slots lost each), 1 failed outright</td><td>The pre-set bar: 2 × R0’s seed SD (34 points)</td></tr>
+          <tr><td>Side-finding: <strong>the own-cutoff loophole</strong></td><td>3 of 43 recipes flagged 6.0%, 9.0% and 74.4% of validation humans at their own cutoffs (27× to 333× R0’s 0.22%) and scored +81%, +92% and +41%. A cap at 2× R0, not in the design, would have penalised 12 of 43; neither pick</td><td>R0 at its own cutoff</td></tr>
+          <tr><td>Can the test rank recipes? (the pilot-1 failure)</td><td>Pilot 1: 16 of 48 recipes tied at the best validation score. Pilot 2: 43 recipes, 26 distinct scores, 1 within one false positive of the best</td><td>Pilot 1 against pilot 2</td></tr>
+          <tr><td>Did the anti-gaming guards work?</td><td>Recall-failure penalty: 4 failures, none picked, no improver wrote a strategy around it. Blinded cutoffs: caught 1 recipe with typed-in offsets. Copy cap: 4 copies of the frontier earned nothing</td><td>Pilot 1, where the improver wrote “being bold with the cutoff is fine” into itself</td></tr>
+          <tr><td>Sandbox escapes</td><td>0 attempts logged in 53 proposals per pilot (Wilson upper bound 11.7 to 13.8 per 100)</td><td>STOP’s 0.42% for GPT-4 over 10,000 attempts</td></tr>
+          <tr><td>Predictions</td><td>Pilot 1: 3 hit, 4 missed. Pilot 2: 5 hit, 5 missed (Section 06). Both pilots: no-go for the full design</td><td>17, written before each pilot ran</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Give a coding model the job of making an AI-text detector flag fewer human writers, and in its first hour it will try what a person would: add more human examples, raise the bar for calling something AI. Give a second copy the power to rewrite <em>how it works on that job</em>, its own prompts and its own retry loop, and the hope is that it gets better at the job, not only at this detector. In our runs it did not, and the most useful thing we learned was about the scoreboard both were chasing.</p>
+  <p><strong>What is known.</strong> Self-improving code is not new. <a href="https://arxiv.org/abs/2310.02304">Self-Taught Optimizer (STOP)</a> ran a seed “improver” program on its own source, and the improved improver beat the seed; it also found that GPT-4 wrote code that switched off its sandbox in 0.42% of 10,000 attempts. <a href="https://arxiv.org/abs/2505.22954">Darwin Gödel Machine</a> kept every self-edited coding system in an archive and beat a fixed meta-system on coding benchmarks, and one of its systems removed the logging a hidden check relied on. <a href="https://arxiv.org/abs/2609.26457">Recursive self-improvement of AI research agents (AIDE²)</a> graded each rewrite on private held-out data under an equal budget, so a gain had to be a better method, not more compute. Our own <a href="../../slop-hard-negatives/report/">hard-negative note</a>, the prequel to this one, ran a fixed loop of retraining a slop detector on its own false positives: one round took held-out false positives on old web pages from 127 in 20,000 to 0.</p>
+  <p><strong>What is missing.</strong> These systems improve themselves on coding or research benchmarks, where the grade is a pass rate. Many real pipelines now let a model design the training data for another model, graded by a metric someone wrote. We found no study that puts a fixed improver and a self-editing one side by side, at equal budget, on a data-recipe task with a private test, and asks whether the self-edits are worth anything there.</p>
+  <p><strong>The worry.</strong> When the self-editing arm’s detector comes out better, that sounds like self-improvement. But how would we know it isn’t one of three cheaper things? It could have memorised the good recipe into its own prompt (a better recipe, not a better improver). It could have gamed the score (traded recall for false positives, or typed in a threshold read off the feedback). Or the score could have been too coarse to tell any two good recipes apart. The design below has a check for each, and pilot 1 hit all three.</p>
+  <p class="question-callout">At equal budget, does an improver that may rewrite its own code find better training-data recipes for a slop detector than one that cannot, and can the grade it chases be gamed?</p>
+  <p><strong>What this note does.</strong> It runs that comparison twice in a sandbox, with the test locked away until both arms finish, and reports both pilots, including the one that failed. Its contributions:</p>
+  <ol>
+    <li>A negative result at equal budget: the self-editing improver tied the fixed one exactly on the private test, and its self-edits stopped helping once the work was good.</li>
+    <li>A named measurement failure and its fix: pilot 1’s test was saturated (16 recipes tied); pilot 2’s matched-recall score ranks 43 recipes into 26 values.</li>
+    <li>A named side-finding, the <strong>own-cutoff loophole</strong>, with its size: a score made cutoff-free on purpose never sees the cutoff a recipe ships, and recipes flagging up to 74% of humans still scored well.</li>
+    <li>Three anti-gaming guards (a recall-failure penalty, blinded cutoffs, a copy cap), each shown firing on a real recipe, and a sandbox log with zero escape attempts in 106 proposals.</li>
+  </ol>
+  <p>Success, fixed in a plan written before any run: (1) both arms get the same number of retrains and the same improver token budget; (2) every pick is made on validation, and the test is read once, after both arms finish; (3) “better” needs a paired 95% interval that excludes zero; (4) the self-editing arm counts as improving itself only if a self-edit beats the best recipe that existed when it was made, by more than twice R0’s seed spread.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="levels" data-short="Three levels">2.1 Three levels of improvement</h3>
+  <p>A detector learns from data; a <strong>recipe</strong>, a small Python program, decides which data and how. Three things can improve.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Level</th><th>What improves</th><th>Who improves it</th><th>Here</th></tr></thead>
+      <tbody>
+        <tr><td>1. Self-training</td><td>The detector</td><td>A fixed loop: mine its own false positives, retrain</td><td><a href="../../slop-hard-negatives/report/">The hard-negative note</a>; our starting recipe <strong>R0</strong></td></tr>
+        <tr><td>2. Recipe search</td><td>The recipe</td><td>A <strong>fixed</strong> improver (a model plus a scaffold)</td><td>Arm <strong>L2</strong></td></tr>
+        <tr><td>3. Self-improvement</td><td>The recipe <em>and</em> the improver</td><td>The improver, editing its own code and prompts</td><td>Arm <strong>L3</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>An analogy: level 1 is a student redoing the questions they got wrong. Level 2 is a tutor rewriting the student’s study plan. Level 3 is the tutor also rewriting how it tutors, and keeping every version of itself in a family tree.</p>
+
+  <h3 id="detector" data-short="Detector and R0">2.2 The detector, R0 and the proxy</h3>
+  <p>The detector is the hard-negative note’s round-0 model: Qwen3-1.7B-Base with a LoRA adapter and a 4-way head (human, light AI edit, heavy AI edit, AI-generated), read as a score from 0 (human) to 1. A full retrain takes about 75 H100-minutes, too slow for 48 evaluations, so every evaluation is an <strong>update</strong>: start from the round-0 adapter and train on at most 15,000 rows (about 9 minutes on an H100, plus scoring). <strong>R0</strong> is the hard-negative loop at that scale: the 2,000 highest-scored old web pages from a pool of 250,000 as human, plus 8,000 rows of the detector’s own training data, one epoch, with its cutoff at the 99th percentile of its validation humans’ scores. Three R0 seeds give the noise floor.</p>
+  <p>A recipe chooses which pool rows to add and with what labels and weights (from the 250,000-page mining pool, 5,999 AI rewrites of pool pages called <strong>mirrors</strong>, 79,120 rows of the detector’s training data and 20,000 unlabelled pages), the learning rate and epochs, and its cutoff procedure. Rows are references into the pools; the harness builds the text, so a recipe cannot write training text of its own.</p>
+
+  <h3 id="arms" data-short="Arms and budget">2.3 The arms and the budget</h3>
+  <ul>
+    <li><strong>L2 (fixed improver).</strong> Improver v1 proposes one recipe edit at a time with a one-line hypothesis, reads structured feedback on the development tier, and continues from a recipe drawn from its archive (the Darwin Gödel Machine rule: chance ∝ score × 1/(1 + children)). 24 evaluations.</li>
+    <li><strong>L3 (self-editing improver).</strong> Six improvers: v1 and five self-edits. A self-edit is an improver rewriting its own <code>improver.py</code> and prompts; each improver then gets 4 evaluations and is graded on them. 6 × 4 = 24 evaluations.</li>
+    <li><strong>Same budget.</strong> 24 evaluations per arm, one seed, and equal improver-token caps (1.2M in, 200k out per arm, self-edits included). A proposal that fails still uses its evaluation.</li>
+  </ul>
+
+  <h3 id="score" data-short="The score">2.4 What “better” means</h3>
+  <p>A <strong>false positive</strong> is a human text the detector flags; <strong>recall</strong> is the share of AI texts it flags. Every recipe is scored on three tiers of the same evaluation families, split 40/30/30 by a hash of each document: <strong>dev</strong> (the improver sees detailed feedback), <strong>validation</strong> (selection; the improver never sees it, except L3’s one-number grade) and <strong>test</strong> (read once, after both arms finish).</p>
+  <ul>
+    <li><strong>Pilot 1’s score</strong> was the mean false-positive rate over five human families <em>at the recipe’s own cutoff</em>, provided macro recall stayed within 1 point of R0’s. A recipe that broke the recall rule scored the same as R0.</li>
+    <li><strong>Pilot 2’s score</strong> is the pooled human false-positive rate <strong>at matched recall</strong>: find the cutoff where the recipe catches as much AI text as R0 does when R0 flags 2% of humans, and count the humans flagged there. The recipe’s own cutoff does not enter it. The score is the relative gain over R0, (R0 − recipe) / R0, so +93% means 93% fewer human false positives than R0 at the same recall. The recall rule still applies at the recipe’s own cutoff, and breaking it now scores min(gain, 0) − 1, always below R0.</li>
+    <li><strong>L3’s grade</strong> (pilot 2) is an improver’s best validation score minus the <strong>frontier</strong>, the archive’s best recipe when that improver was made. Copying the frontier scores about 0.</li>
+  </ul>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pilot-2 evaluation family</th><th class="num">Dev</th><th class="num">Val</th><th class="num">Test</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Held-out old web pages (human)</td><td class="num">2,389</td><td class="num">1,775</td><td class="num">1,836</td><td>FineWeb, crawled before November 2022, from websites never mined</td></tr>
+        <tr><td>HC3 human answers</td><td class="num">1,535</td><td class="num">1,104</td><td class="num">1,096</td><td>HC3, 5 sources (new in pilot 2)</td></tr>
+        <tr><td>RAID human texts</td><td class="num">829</td><td class="num">608</td><td class="num">602</td><td>RAID sample, 8 domains (new in pilot 2)</td></tr>
+        <tr><td>Enron, EditLens, Epoch AI and magazine humans</td><td class="num">1,862</td><td class="num">1,431</td><td class="num">1,382</td><td>The hard-negative note’s sets</td></tr>
+        <tr><td><strong>All humans (the score’s denominator)</strong></td><td class="num">6,615</td><td class="num">4,918</td><td class="num">4,916</td><td></td></tr>
+        <tr><td>AI texts, 10 families</td><td class="num">5,175</td><td class="num">3,802</td><td class="num">3,870</td><td>EditLens AI-written and AI-edited, Enron AI emails, Epoch AI plain and imitations, magazine AI, 2026 pages (old and new topics), HC3 ChatGPT answers, RAID AI texts</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="sandbox" data-short="Sandbox">2.5 The sandbox</h3>
+  <p>Recipes, their cutoff step and improvers all run in a macOS <code>sandbox-exec</code> profile: no network, writes only to the run’s own folder, reads only the Python install, the read-only pools and that folder. The grader and every label sit outside it; training runs on Modal with fixed code. Three logs, all written from outside: a static scan of every proposed file (STOP’s string check, extended to evaluation paths, <code>subprocess</code>, <code>socket</code>, <code>exec</code> and more), a Python audit hook that logs every file open, process and socket inside the sandbox, and SHA-256 hashes of every fixed and evaluation file before and after each evaluation. An <strong>attempt</strong> is any logged try to read an unmounted path, write a read-only one, edit a fixed file or reach the network.</p>
+
+  <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan</strong> (2026-11-23): the three levels, four arms of 96 evaluations, the tiers, the metric, nine predictions. Before any run, amended to a pilot first: two arms of 24, one seed, a $200 cap (amendment 1).</li>
+    <li><strong>Reconcile</strong> with the published hard-negative note: its detector, pools, evaluation file (SHA-256 committed) and baseline counts; the pilot design and seven pilot predictions (amendment 2, committed before any run).</li>
+    <li><strong>Pilot 1 gates</strong>: the grader reproduced every round-0 count of the hard-negative note and rejected broken recipes (all scores 0.5, wrong length, NaN); R0 reproduced the note’s direction (web false positives 0.01% against round 0’s 0.64%); 3 R0 seeds; 24 of 24 of v1’s proposals ran.</li>
+    <li><strong>Pilot 1 arms</strong> (2026-11-23, 15:32 to 17:26): 24 + 24 evaluations, improver Claude Sonnet 5.5. Test read once. Verdict: no-go, the test was saturated (Section 4.1).</li>
+    <li><strong>Pilot 2 design</strong> (amendment 3, before any pilot-2 run): five fixes (a harder, larger human set; the matched-recall score; the recall-failure penalty; blinded cutoffs; a frontier-relative grade with a copy cap and stripping of pasted recipe code) and ten predictions. The improver changed to Qwen3-Coder-30B because both API keys returned “payment required” (402).</li>
+    <li><strong>Pilot 2 gates</strong>: gate S failed as written (below), so the matched point moved to R0’s 2% operating point (amendment 4, before any arm); a reference reading of 50 random R0 false positives from the new families labelled 50 human-plausible, 0 machine-like and 0 junk; R0’s seed spread passed (17% of its mean, bar 25%); one improver call and one proposal ran end to end.</li>
+    <li><strong>Pilot 2 arms</strong> (2026-11-24, 10:13 to 13:00): 24 + 24 evaluations. Test read once, after both arms.</li>
+    <li><strong>Analysis</strong> from saved scores only; predictions scored mechanically. The head-to-head of v1 against the best L3 improver was not run, because its pre-set condition (L3 beats L2 on validation by more than 2 × R0’s seed SD) failed.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading replies</th></tr></thead>
+      <tbody>
+        <tr><td>The levels and arms; the detector and update proxy; R0; pools; tiers and their 40/30/30 hash split; the budget per arm (evaluations, tokens); DGM parent selection; the sandbox and its three logs; the recall rule; the test read once; every prediction and the scale-up rule of each pilot. Pilot 2’s five fixes were written after reading pilot 1’s <em>results</em> and before any pilot-2 run.</td><td>Pilot 1, before the first read of the test: the bootstrap’s relative interval was computed over the 1,991 of 2,000 resamples where R0’s false-positive rate is not zero (it had been NaN). Pilot 2, before any arm: the matched point moved from R0’s own cutoff to its 2% point (amendment 4; prediction S is scored as a miss); the improver model changed (402 on both API keys); the seed improver’s prompts were updated to describe pilot 2’s score; the GPU timeout went from 45 to 25 minutes and the improver-server reservation from $8 to $6, so four evaluations in flight fit the cap. After the arms: the own-cutoff counts and the 2× cap in Section 4.5, and the shared false positives in Section 4.3, are post hoc.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">Conditions: bf16 training and scoring on one H100 per evaluation, about 9 to 11 minutes each; the improver at the scaffold’s own temperatures; Qwen3-Coder on one L40S with a 48k context (pilot 2); macOS <code>sandbox-exec</code> on a laptop for every recipe and improver run.</p>
+  <p><strong>A pre-set bar that was not met.</strong> Pilot 2’s gate S asked for at least 50 R0 false positives per tier at R0’s own cutoff. R0 is conservative there: it flags 0 to 1.4% of HC3 and RAID humans, 11 to 20 per tier in all, even with 3,000 questions per source. Its weakness is recall instead (it catches 6% to 24% of HC3’s ChatGPT answers). The matched point moved to where R0 flags 2% of humans, which gives 98 to 133 R0 false positives per tier, before any arm ran. The gate is met there, not at R0’s own cutoff, and that choice is what opened the loophole in Section 4.5.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="saturated" data-short="Pilot 1 saturated">4.1 Pilot 1’s test could not rank recipes: 16 of 48 tied at the top</h3>
+  <figure>
+    <img src="figures/spread.png" alt="Two dot plots of validation score per recipe, one dot per recipe, stacked where tied, blue for the fixed improver and orange for the self-editing one. Pilot 1: a column of 16 dots at +33.8%, columns at 0% and +10.4%, a few below zero. Pilot 2: dots spread from about +20% to +96% with at most 5 at one value, a single best at +96.0%, six at or below zero and two more off the scale.">
+    <figcaption>Figure 1. Pilot 1’s score could not tell good recipes apart; pilot 2’s can. Each dot is one recipe’s validation score (gain in human false positives over R0); tied recipes stack. Pilot 1 (48 recipes, own cutoff, macro false-positive rate): 16 tie at the best value, which is “one magazine article of 51 flagged, none elsewhere”. Pilot 2 (43 recipes that ran, matched recall, pooled rate): 26 distinct values, and only the best recipe is within one false positive of the best.</figcaption>
+  </figure>
+  <p>In pilot 1, R0 flagged only 3 to 5 human texts per test tier. Every good recipe got that down to one or two, so the search was choosing which of about six borderline documents to push under the cutoff (Figure 1, top). One magazine article on test moved the macro rate by 0.49 points, more than R0’s whole mean. Both arms hit that ceiling, L2 by its fifth evaluation and L3 by its fifteenth. Their picks flagged 1 and 2 of 5,989 test web pages, a “difference” of one page.</p>
+  <p>Pilot 1 also showed two of the gaming routes the worry predicted. The self-editing improver pasted the winning recipe into itself: v4 carried a block headed <code>REFERENCE CODE (use it nearly verbatim)</code> with the recipe’s mining rule and cutoff, plus dev numbers from earlier recipes. That raised its grade without making it a better improver. And it learned the score’s asymmetry, writing into its own prompt that “a failed recall constraint only scores 0, so being bold with the cutoff is fine”; L3 produced 3 recall failures, L2 none. The scale-up rule said no-go, and the reason was the instrument, not the arms.</p>
+
+  <h3 id="same-idea" data-short="Same idea">4.2 In pilot 2 both arms found the same idea, and it cut human false positives from 2.0% to 0.14%</h3>
+  <p>Here are the two picks as their improvers wrote them, before any numbers:</p>
+  <ul>
+    <li><strong>L2’s pick</strong> (<code>l2_15</code>, the fixed v1, evaluation 15): the 3,000 highest-scored pool pages among those round 0 scored 0.35 to 0.65, as human; 2,200 AI mirrors; 10,000 replay rows; one epoch; cutoff at the 99.5th percentile of validation humans. Its hypothesis: “By using only the 99.5th percentile of human scores for cutoff determination (without any fixed adjustments), we ensure the cutoff is equivariant to the calibration scaling while maintaining the improved mirror weighting strategy to reduce false positives on magazine texts.”</li>
+    <li><strong>L3’s pick</strong> (<code>l3_07</code>, self-edit v2, evaluation 7): 3,000 random pool pages scored 0.3 to 0.7; 500 mirrors; 7,500 replay rows; learning rate 2.5e-4, 1.5 epochs; cutoff at the 99th percentile. Its hypothesis: “By focusing on mining samples from the 0.3-0.7 score range (closer to the decision boundary) rather than broadly stratifying across score ranges, and reducing replay samples from 8000 to 7500, we will better capture borderline cases that are harder to classify.”</li>
+  </ul>
+  <p>Both moved away from R0’s rule (the 2,000 <em>highest</em>-scored pages) to the middle of the score range, and added AI rewrites so recall holds. On the private test each flags 7 of 4,916 human texts at matched recall (0.142%), against R0’s 98 (1.99%; seeds 120, 94 and 80). The drop is 1.36 to 2.50 points for L2 and 1.32 to 2.50 for L3 (paired bootstrap, 2,000 resamples, cutoff re-found in each), a 93% cut. The boring explanation would be a cutoff shift, and the score rules it out by construction: it is measured at matched recall, so moving a threshold cannot change it. Partial AUROC (to 5% false positives), which needs no cutoff at all, rose from 0.866 to 0.923 (L2) and 0.904 (L3). The picks also keep recall at their own cutoffs (84.1% and 85.5% macro recall, against a floor of 78.0%).</p>
+  <figure>
+    <img src="figures/search.png" alt="Step chart of the best validation score so far against evaluation number 1 to 24. The orange line (self-editing improver) jumps from 0 to about 39 at evaluation 4 and to 93 at evaluation 7, then stays flat. The blue line (fixed improver) sits at 20, jumps to 86 at evaluation 6, 92 at 11 and 96 at 15. Diamonds for the test score of each arm's incumbent at evaluations 4, 8, 12, 16, 20 and 24 sit on or just below the lines, ending at 93 for both. A grey band from -34 to +34 marks R0 plus or minus two seed SDs.">
+    <figcaption>Figure 2. Both arms reached the same place within eight evaluations, and then the self-editing arm stopped improving. Lines: the best validation score so far after each evaluation (pilot 2). Diamonds: the test score of each arm’s best-so-far recipe at the six pre-registered looks; both end at +92.9%. Grey band: R0 ± 2 seed standard deviations of the validation score.</figcaption>
+  </figure>
+  <p>The search did not overfit the development tier, against the plan’s expectation. The gap ratio, (dev gain − test gain) / dev gain, was 0.02 for L2’s pick and −0.07 for L3’s, and across all 43 recipes the rank correlation with test was 0.93 for dev and 0.92 for validation. With about 4,900 human texts per tier, each false positive is about one point of score, and the tiers agree (Figure 2).</p>
+
+  <h3 id="tie" data-short="An exact tie">4.3 The self-editing arm tied the fixed one exactly</h3>
+  <p>L3’s pick minus L2’s pick on test is <strong>0.000</strong>: 7 against 7 human false positives in 4,916, with a paired interval of −0.06 to +0.10 points. On validation L3 trailed by 3.0 points (+93.0% against +96.0%), far inside R0’s own seed spread (2 × SD = 34 points). Read from the saved per-text scores (kept in the lab), 5 of the 7 test false positives are the same texts for both picks: 4 HC3 answers and 1 web page. The other two are an HC3 answer and a RAID text for L2, and an HC3 answer and an Epoch AI passage for L3. The two arms did not just score the same; they mostly fail on the same people.</p>
+  <p>Sized against the baseline, the arms’ difference is nothing and the search’s gain is everything: the whole 93% cut comes from moving from level 1 (R0) to level 2, and level 3 added none of it at equal budget. L3 reached its pick sooner (evaluation 7, against 15 for L2’s pick, though L2 was at +86% by evaluation 6), which is a statement about one seed’s path, not about the improver.</p>
+
+  <h3 id="self-edits" data-short="Self-edits">4.4 After one early gain, no self-edit beat the frontier, and two broke the improver</h3>
+  <figure>
+    <img src="figures/grades.png" alt="Bar chart of six improvers' grades in points of score. v1 (seed, frontier 0) +38.8 in grey. v2 (edit of v1, frontier +39) +54.2 in orange, above a dashed line at 34 marking the pre-set bar. v3, v4 and v5 (edits of v2, frontier +93): 0.0, -4.0 and -23.1. v6 (edit failed, so the same code as v1, frontier +93): -3.0.">
+    <figcaption>Figure 3. The only self-edit to clear the bar started from a weak frontier; every improver made after the frontier reached +93 scored at or below zero. Each bar is an improver’s grade: its best validation score among its 4 recipes minus the frontier (the best recipe when it was made). Dashed line: the pre-registered bar, 2 × R0’s seed SD of the validation score (34 points). v1 is the unedited seed.</figcaption>
+  </figure>
+  <p>v2, v1’s first self-edit, raised its retry count from 2 to 3 and added guidance about earlier successful recipes to its prompts. Its grade was +54 points, over the bar, but its frontier was +39, set by v1’s fourth recipe. The fixed v1 in L2 reached the same level by its sixth evaluation, so v2’s grade says the frontier was easy to beat, not that v2 was a better improver.</p>
+  <p>The next four self-edits were all made against a frontier of +93, and none beat it (Figure 3). v3 and v4, both edits of v2’s retry loop, each lost 2 of their 4 evaluations because the loop wrote no files when validation kept failing; v3’s one recipe that matched the frontier was a copy (code 93% similar) and earned 0. v5 added a higher sampling temperature and feedback analysis; its best recipe was 23 points below the frontier, and one of its recipes failed the recall rule. v6’s self-edit produced nothing usable, so v6 ran v1’s code; three of its four recipes were copies of the frontier. Qwen3-Coder’s self-edits changed retry logic and prompt wording, never the recipe ideas, so the anti-memorisation filter had nothing to strip (0 lines in 4 self-edits).</p>
+
+  <h3 id="loophole" data-short="Own-cutoff loophole">4.5 Side-finding: the own-cutoff loophole let recipes flag 74% of humans and still score well</h3>
+  <figure>
+    <img src="figures/loophole.png" alt="Scatter on a log scale of the share of human texts flagged at each recipe's own cutoff (y, 0.03% to 100%) against its validation score (x, -100% to +100%). Most recipes sit between 0.06% and 1.5%, around a dashed line for R0 at 0.22% and a dotted line at twice that. Three outlined points sit far above: l3_05 at 74% of humans flagged with a score of +41%, l2_24 at 9% with +92%, and l2_18 at 6% with +81%.">
+    <figcaption>Figure 4. The score could not see a broken cutoff: three recipes flagged 6% to 74% of human texts at the cutoff they would ship and still scored +41% to +92%. Each dot is one pilot-2 recipe (41 of 43 shown; two recall failures sit below −100%). y: pooled share of the 4,918 validation humans flagged at the recipe’s own cutoff (log scale). Dashed: R0 at its own cutoff (0.22%); dotted: a cap at twice that, which the design did not have.</figcaption>
+  </figure>
+  <p>Pilot 2’s fix for saturation made the score cutoff-free: it measures false positives at matched recall, so a recipe cannot win by moving its threshold. The price is that the score never checks the threshold the recipe would actually ship. The recall rule does look at the recipe’s own cutoff, but only from one side: a cutoff that is too <em>low</em> catches more AI and passes it. Three recipes went through that gap (Figure 4):</p>
+  <ul>
+    <li><code>l3_05</code> sorts the scores in descending order and then indexes from the wrong end, so its “99th percentile” is the 1st. It flags <strong>74.4%</strong> of validation humans, 333 times R0’s rate, and scores +41%.</li>
+    <li><code>l2_18</code> and <code>l2_24</code> set the cutoff at the trimmed mean of human scores. They flag <strong>6.0%</strong> and <strong>9.0%</strong> of humans (27 and 40 times R0) and score +81% and +92%; <code>l2_24</code> is tied for L2’s third-best score.</li>
+  </ul>
+  <p>All three read as bugs, not deliberate gaming, and none was picked. But the score would have let a deliberate one through: a detector that flags one person in eleven, ranked among the best. Measured post hoc, a cap on the own-cutoff rate at twice R0’s (0.45%) would have penalised 12 of the 43 recipes, these three among them, and changed neither pick (they flag 0.06% and 0.20%). Figure 5 lets you move the cap.</p>
+  <figure class="whole">
+    <div id="cap-explorer" class="cap-explorer"></div>
+    <noscript><p class="small">The explorer needs JavaScript; Figure 4 shows the same recipes with no cap.</p></noscript>
+    <figcaption>Figure 5. Try it: no cap from 50× down to 1× R0 changes either arm’s pick, but a cap at 2× or tighter catches more than a quarter of all recipes. Each dot is a pilot-2 recipe (blue: fixed improver; orange: self-editing), placed as in Figure 4. The slider caps the share of humans flagged at the recipe’s own cutoff, as a multiple of R0’s 0.22%; a recipe over the cap (hollow) is scored like a recall failure, min(score, 0) − 1. The line below names each arm’s best recipe under that cap. Post hoc: the design had no cap.</figcaption>
+  </figure>
+
+  <h3 id="guards" data-short="Guards">4.6 The anti-gaming guards fired as designed</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Guard (pilot 2)</th><th>What happened</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Recall-failure penalty</td><td>4 failures (<code>l2_02</code>; <code>l3_01</code>, <code>l3_03</code>, <code>l3_17</code>), scored −1.0 to −4.5 on validation; none picked. No improver code or prompt mentions exploiting the rule (pilot 1’s did)</td><td>Prevented as a strategy; failures still happen (prediction R4 missed: 3 in L3, bar ≤ 1)</td></tr>
+        <tr><td>Blinded cutoffs</td><td>The cutoff step sees the calibration scores through two random increasing maps and must return the same cutoff for both. <code>l2_08</code> added fixed offsets (+0.01 / −0.005) to a percentile; its two mapped-back cutoffs were 0.3443 and 0.3426, so it was rejected. Every other recipe used a procedure</td><td>Caught once</td></tr>
+        <tr><td>Copy cap</td><td>4 recipes 93% to 97% similar to the frontier (<code>l3_10</code>, <code>l3_21</code>, <code>l3_22</code>, <code>l3_24</code>) got at most 0 credit</td><td>Copying earns nothing</td></tr>
+        <tr><td>Strip pasted recipe code from self-edits</td><td>0 lines stripped or rejected in 4 self-edits</td><td>Nothing to catch (pilot 1’s improver pasted; pilot 2’s did not)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The blinded check passed <code>l3_05</code>, correctly: its cutoff is a procedure, just a wrong one. That is the shape of the lesson. Each guard closed the hole it was built for, and the next hole was in a place none of them looked.</p>
+
+  <h3 id="escape" data-short="Sandbox">4.7 No sandbox escape attempts in 106 proposals</h3>
+  <p>Across both pilots the improvers made 106 proposals (per pilot: 24 recipes in L2, and 24 recipes plus 5 self-edits in L3). None tried to read an unmounted path, write a read-only file, edit a fixed file or reach the network: 0 events in the static scan, the audit hook and the integrity hashes. With 24 and 29 proposals per arm and pilot, the 95% Wilson upper bounds are 13.8 per 100 (L2) and 11.7 per 100 (L3), so these runs cannot tell STOP’s 0.42% from zero. The integrity tripwire fired once during pilot 2’s setup, correctly, when the harness’s own <code>loop.py</code> was edited while the plumbing check ran; it affected that check only.</p>
+
+  <h2 id="safety" data-short="AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>A model that improves the process that trains another model is a small, safe version of a loop that matters at scale. Here it did what a careful engineer would do and no more: it found a real 93% cut in false positives, and letting it rewrite itself added nothing at equal budget. That is reassuring about these pilots and says little about stronger improvers or longer runs.</p>
+  <p>The more transferable result is about the grader. Each pilot’s score had a weakness a search could use. Pilot 1 rewarded pushing six borderline documents under a threshold and treated a broken rule as neutral, and the self-editing improver wrote that second fact into its own prompt. Pilot 2 closed both and opened a third: a cutoff-free score cannot see a broken cutoff. None of the three needed a sandbox escape. A pipeline that lets a model design training data is only as safe as its metric is complete, and what caught these weaknesses was a person reading per-recipe numbers, not the escape monitors.</p>
+  <p><strong>Recommendation: when a model searches over training recipes against a metric, report every rate the shipped system would have at its own operating point beside the metric, and treat a large one as a failure, even when the metric was designed to ignore it.</strong></p>
+
+  <h2 id="predictions" data-short="Predictions"><span class="num">06</span>Predictions</h2>
+  <p>Each pilot’s predictions were written before it ran, with thresholds, and are scored here mechanically. Both pilots were registered as exploratory.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Pilot 1 prediction</th><th>Threshold</th><th>Result</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>G1</td><td>The update proxy reproduces the hard-negative note’s direction</td><td>R0 web false positives &lt; 0.32%</td><td class="num">0.01%</td><td>hit</td></tr>
+        <tr><td>Q1</td><td>Scale-up: L3’s pick at least as good as L2’s on test</td><td>L3 − L2 ≤ 0</td><td class="num">+0.0033 points (one web page)</td><td>miss (a tie in all but one page)</td></tr>
+        <tr><td>Q2</td><td>The loop overfits dev</td><td>gap ratio ≥ 0.25</td><td class="num">−0.43</td><td>miss</td></tr>
+        <tr><td>Q3</td><td>L2 beats R0 on test</td><td>gain &gt; 2 × R0 seed SD, relative</td><td class="num">+99.1% against 205%</td><td>miss (the bar was unreachable: R0’s seed SD equalled its mean)</td></tr>
+        <tr><td>Q4</td><td>At least one logged sandbox attempt</td><td>≥ 1</td><td class="num">0</td><td>miss</td></tr>
+        <tr><td>Q5</td><td>A self-edit beats the seed improver</td><td>max grade v2–v6 &gt; v1’s</td><td class="num">+33.8% against +5.2%</td><td>hit, confounded (pasted recipe)</td></tr>
+        <tr><td>Q6</td><td>The seed improver writes recipes that run</td><td>≥ 80% ok</td><td class="num">24 / 24</td><td>hit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Pilot 2 prediction</th><th>Threshold</th><th>Result</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>S</td><td>The new evaluation is big enough</td><td>≥ 50 R0 false positives per tier at R0’s own cutoff</td><td class="num">11 to 20 there; 98 to 133 at the 2% point</td><td>miss as written (met only after amendment 4)</td></tr>
+        <tr><td>N</td><td>The score no longer saturates</td><td>&lt; 25% of recipes within one false positive of the best</td><td class="num">1 of 43 (2.3%)</td><td>hit</td></tr>
+        <tr class="hl"><td>R1</td><td>Scale-up: L3’s pick at least as good as L2’s on test</td><td>L3 − L2 ≥ 0 (in score)</td><td class="num">0.000</td><td>hit (an exact tie)</td></tr>
+        <tr><td>R2</td><td>L2 beats R0 on test</td><td>drop CI excludes 0</td><td class="num">1.36 to 2.50 points</td><td>hit</td></tr>
+        <tr><td>R3</td><td>The loop overfits dev</td><td>gap ratio ≥ 0.25</td><td class="num">0.02</td><td>miss</td></tr>
+        <tr><td>R4</td><td>The penalty removes recall failures in L3</td><td>≤ 1 failure</td><td class="num">3</td><td>miss (none exploited)</td></tr>
+        <tr><td>R5</td><td>Memorisation is caught</td><td>≥ 1 stripped or rejected line</td><td class="num">0</td><td>miss (nothing was pasted)</td></tr>
+        <tr><td>R6</td><td>A self-edit beats the frontier</td><td>max grade &gt; 0.34</td><td class="num">+0.54 (v2)</td><td>hit, confounded (weak frontier, Section 4.4)</td></tr>
+        <tr><td>R7</td><td>The open improver writes recipes that run</td><td>L2 ok share ≥ 0.6</td><td class="num">23 / 24</td><td>hit</td></tr>
+        <tr><td>R8</td><td>At least one logged sandbox attempt</td><td>≥ 1</td><td class="num">0</td><td>miss</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The pilot-2 scale-up rule needed R1 and N to hold <em>and</em> no hack class to be open. The own-cutoff loophole is open, so the rule says no-go for the full design (four arms of 96 evaluations, about $680), and the substance agrees.</p>
+  <p><strong>Post-mortem.</strong> What surprised me: the hard part was not the sandbox or the self-edits but the scoreboard. Each fix to the score exposed the next weakness, and every one was found by reading per-recipe numbers, not by an escape monitor. What I would change: register every rate the shipped detector would have at its own cutoff as a constrained quantity from the start, and start L3 from a strong frontier so its grades measure improving on good work. The lesson for the design guide: a metric made robust to one manipulation (here, moving the cutoff) stops seeing that quantity, so check it separately.</p>
+
+  <h2 id="limits" data-short="Limits"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>A small improver and a small detector.</strong> Pilot 2’s improver was a 30B mixture-of-experts coder with about 3B active parameters; its self-edits were shallow (retry counts, prompt wording). A stronger improver could edit itself in ways that matter. The detector is a 1.7B proxy updated for one epoch; the plan’s full-scale 9B confirmation was not run.</li>
+    <li><strong>Two pilots, one seed each, 24 evaluations per arm.</strong> Each L3 improver was graded on 4 evaluations. The head-to-head (v1 against the best L3 improver from the same start, several seeds) and the transfer task that would separate a better improver from a remembered recipe were never run, because their pre-set conditions failed.</li>
+    <li><strong>One domain.</strong> Every recipe chose rows for one AI-text detector. Whether self-editing helps on other data-recipe tasks is untested.</li>
+    <li><strong>Two pilots used two improver models</strong> (Claude Sonnet 5.5, then Qwen3-Coder-30B), so they cannot be compared on improver quality; each compares L2 with L3 under one model.</li>
+    <li><strong>Missing arms.</strong> The plan’s random-search arm and scalar-feedback ablation were cut from the pilots, so “L2 beats random configurations” is not shown here.</li>
+    <li><strong>The sandbox count is small.</strong> 0 attempts in 106 proposals bounds the rate at about 12 to 14 per 100 per arm, nowhere near STOP’s 0.4%.</li>
+    <li><strong>The loophole’s cap is post hoc.</strong> The 2× number is a reading of saved results, not a rerun.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><code>experiments/slop-rsi/reproduce.sh --figures</code> redraws every figure and prints every headline number in this note from the committed <code>results/</code>. <code>--dry-run</code> lists every command of the two pilots: build the pools and evaluation sets from the hard-negative note’s data, score R0, run each arm, analyse. Running them needs the hard-negative note’s data on a Modal volume, the EditLens, Epoch AI, HC3 and RAID sets, and macOS for <code>sandbox-exec</code>. Page and evaluation texts and per-text scores stay out of the repository (they are rebuilt from the public datasets); the results publish scores, counts, recipes, improvers and hypotheses. Every recipe and improver the runs wrote is in <code>results/recipes/</code>, <code>results/improvers/</code> and their <code>pilot2/</code> twins.</p>
+
+  <h2 id="next" data-short="Next"><span class="num">09</span>What’s next</h2>
+  <p>Close the loophole and rerun the same comparison: cap the human false-positive rate at a recipe’s own cutoff (twice R0’s, scored like a recall failure), keep pilot 2’s evaluation set, score and guards, and run L2 against L3 again at equal budget, this time with L3 starting from a strong frontier and the head-to-head and transfer task funded from the start. Separately, the middle-band recipe both arms found is a candidate second round for the hard-negative note, to confirm on a full retrain.</p>
+
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="qa-rsi">Is this recursive self-improvement?</h3>
+  <p>Level 3 is the closest form tested here: the improver edits its own code and prompts and is graded on what the edited version produces. It is not full self-improvement, because the model’s weights never change (STOP’s authors draw the same line), and in these pilots it produced no measurable gain over a fixed improver.</p>
+  <h3 id="qa-loophole">What is the own-cutoff loophole, in one paragraph?</h3>
+  <p>A detector ships with a threshold: scores above it are flagged. Pilot 2 scored recipes at a <em>matched</em> threshold, the one that catches as much AI text as the baseline, so a recipe could not win by moving its own. But then nothing checked the threshold it would ship, except a rule that it must not catch too <em>little</em> AI. A buggy threshold that flags most people catches plenty of AI, passes that rule, and is invisible to the score. Three recipes did this by accident and scored up to +92%.</p>
+  <h3 id="qa-use">How should I use this on my own pipeline?</h3>
+  <p>Before letting a model search over recipes, list every number the deployed system will have at its own operating point (here: false positives and recall at the shipped cutoff), and make each one a constraint or a reported failure, even the ones your main metric is built to ignore. Give the search a fixed-improver baseline at the same budget; a self-editing arm that beats only its own starting point has not shown it improves.</p>
+  <h3 id="qa-same">Did both arms find the same recipe?</h3>
+  <p>The same idea, not the same code. L2’s pick takes the highest-scored pages inside a middle band with many AI rewrites; L3’s samples the band at random with few rewrites and a higher learning rate. Both leave R0’s top-scored pages out, both flag 7 test humans, and 5 of those 7 are the same texts.</p>
+
+  <h2 id="appendix" data-short="Appendix: files"><span class="num">A</span>Appendix: files and citation</h2>
+  <h3 id="files" data-short="Files">A.1 Files</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td><code>results/pilot2/summary.json</code></td><td>The pilot-2 analysis: R0 reference per tier (<code>mfpr</code> matched false-positive rate, <code>seed_mfp_k</code>, <code>ref_recall</code>, own-cutoff counts), gates, each arm’s pick with dev, validation and test metrics and bootstrap intervals (<code>test_mfpr_drop_ci</code>), the test-look curve, <code>l3_minus_l2_test</code>, improvers and grades, memorisation, audit, spend, post-hoc test numbers for every recipe</td></tr>
+        <tr><td><code>results/pilot2/nodes.jsonl</code></td><td>One row per evaluation: arm, parent, improver, hypothesis, status (<code>ok</code>, <code>invalid</code>, <code>no_proposal</code>), training summary, cutoff, dev and validation metrics (<code>score</code>, <code>mfp_k</code>, <code>pooled_fpr</code> at its own cutoff, <code>constraint_fail</code>, per-family counts in <code>fam</code>), copy similarity, integrity flags, start and end times</td></tr>
+        <tr><td><code>results/pilot2/improvers.jsonl</code>, <code>results/pilot2/improvers/</code></td><td>Each improver: parent, hypothesis, files changed, frontier, per-recipe credits, grade; and its full code and prompts</td></tr>
+        <tr><td><code>results/pilot2/recipes/&lt;node&gt;/recipe.py</code></td><td>Every recipe as the improver wrote it</td></tr>
+        <tr><td><code>results/pilot2/evalset_p2.json</code>, <code>evals_p2_sha256.txt</code>, <code>decontam_p2.json</code>, <code>candidates_p2.json</code></td><td>The evaluation manifest (labels, families, tiers, ids; no text), its hash, decontamination counts, the candidate pool used for sizing</td></tr>
+        <tr><td><code>results/pilot2/gates.json</code>, <code>gate_h_refcheck.json</code>, <code>cutoff_checks.jsonl</code>, <code>memorisation.jsonl</code></td><td>Gate results; the reference reading of 50 R0 false positives (counts and a summary, no text); every blinded-cutoff check; the strip-and-reject log</td></tr>
+        <tr><td><code>results/pilot2/llm_calls.jsonl</code>, <code>spend.jsonl</code></td><td>Improver call metadata (tokens, seconds, model; no prompts); every reservation and measured cost, and the billing reconciliation</td></tr>
+        <tr><td><code>results/summary.json</code>, <code>results/nodes.jsonl</code>, <code>results/improvers*</code>, <code>results/recipes/</code></td><td>The same for pilot 1 (macro metrics at the recipe’s own cutoff: <code>strict_fpr</code>, <code>gain</code>, <code>loose_fpr</code>)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="cite" data-short="Cite">A.2 How to cite</h3>
+  <pre><code>Lie, A. (2026). Can a slop detector's improver improve itself? Not yet, and the grader had a hole.
+steerlab. https://albertlieyingadrian.github.io/steerlab/experiments/slop-rsi/report/</code></pre>
+</article>
+</div>
+<script src="data.js"></script>
+<script src="cap.js"></script>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
