@@ -1,10 +1,18 @@
 # behavior-diff (`bdiff`)
 
+> **This package has moved.** behavior-diff now lives at
+> [github.com/albertlieyingadrian/behavior-diff](https://github.com/albertlieyingadrian/behavior-diff) and on PyPI as
+> `bdiff` (`pip install bdiff`; docs at [behavior-diff.mintlify.site](https://behavior-diff.mintlify.site)). It adds
+> `bdiff generations` (per-generation drift), pre-registered scoring (`--expect`), a `modal:` backend and an offline
+> demo of the Tinker run (`bdiff demo`). This copy stays as the version the research note in
+> `experiments/behavior-diff/` was run with; it gets no new features.
+
 A quick behavior check for your own fine-tune: what does it do differently from its base model, how often, and under
 which input conditions, with a same-model control that tells you how much to trust the answer.
 
 ```bash
-pip install "steerlab-bdiff[tinker] @ git+https://github.com/albertlieyingadrian/steerlab#subdirectory=packages/behavior-diff"
+pip install "bdiff[tinker]"    # the maintained package; this folder's own install:
+# pip install "steerlab-bdiff[tinker] @ git+https://github.com/albertlieyingadrian/steerlab#subdirectory=packages/behavior-diff"
 export TINKER_API_KEY=... OPENROUTER_API_KEY=...
 behavior-diff --tuned tinker://<run-id>/sampler_weights/final --conditions default
 open behavior-diff-report/report.html
