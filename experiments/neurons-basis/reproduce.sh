@@ -6,6 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 PY=${PY:-.venv/bin/python}
+# neuronkit: pip install it, or point NEURONKIT_PATHS / NEURONKIT_SRC at a source checkout
 DRY=0
 [[ "${1:-}" == "--dry-run" ]] && DRY=1
 run() { echo "+ $*"; if [[ "$DRY" != 1 ]]; then "$@"; fi; }

@@ -24,12 +24,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-for p in (
-    Path.home() / "Albert-Workspace/Random/neuronkit/src",
-    Path.home() / "Albert-Workspace/Random/circuitcheck/src",
-):
-    if p.is_dir() and str(p) not in sys.path:
-        sys.path.insert(0, str(p))
+for p in os.environ.get("NEURONKIT_PATHS", "").split(os.pathsep):  # optional source checkouts; else pip-installed
+    if p and p not in sys.path:
+        sys.path.insert(0, p)
 
 from neuronkit import describe as D  # noqa: E402
 from neuronkit import modes as M  # noqa: E402
