@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do SAE features capture intersectional bias in vision-language models?</title>
+<meta name="description" content="An open replication and extension of DeBiasLens on CLIP ViT-L/14-336 and LLaVA-1.5-7B, written around one example, a known-answer check and six findings. Version B of two write-ups of the same study.">
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/sae-intersectional-bias/report-v2/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  table.num td.n, table.num th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  table.num td.n { white-space: nowrap; }
+  table caption { text-align: left; }
+  :root[data-theme="dark"] figure img { border: 1px solid var(--rule); border-radius: 3px; }
+
+  .version-banner { font-family: var(--font-mono); font-size: .78rem; line-height: 1.55; color: var(--ink-soft);
+                    border: 1px solid var(--rule); border-radius: 4px; padding: .5rem .75rem; margin: 0 0 1.2rem; }
+  .version-banner a { color: var(--ink); }
+
+  /* The opening example */
+  #hook { margin: 1.2rem 0 1.4rem; }
+  .hook-row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 0 0 .7rem; }
+  .hook-row label { font-family: var(--font-mono); font-size: .75rem; color: var(--ink-soft); }
+  .hook-row select { font-family: var(--font-body); font-size: .9rem; color: var(--ink); background: var(--canvas);
+                     border: 1px solid var(--rule); border-radius: 4px; padding: .45rem .5rem; min-height: 2.75rem; }
+  .explorer-tab { min-height: 2.75rem; }
+  .cm-scroll { overflow-x: auto; }
+  .cm-grid { display: grid; grid-template-columns: 7.5rem repeat(7, minmax(2.6rem, 1fr)); gap: 3px; }
+  .cm-grid > div { padding: .45rem .15rem; text-align: center; border-radius: 3px; font-family: var(--font-mono);
+                   font-size: .72rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .cm-grid .h { color: var(--ink-soft); font-size: .66rem; padding: .2rem .1rem; }
+  .cm-grid .rh { text-align: right; padding-right: .4rem; color: var(--ink-soft); font-size: .68rem; }
+  .cm-grid .c:focus { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .cm-grid .gap { grid-column: 1 / -1; height: 4px; padding: 0; }
+  .cm-tip { font-family: var(--font-mono); font-size: .75rem; color: var(--ink-soft); min-height: 1.3rem; margin: .5rem 0 0; }
+  .cm-legend { display: flex; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: .7rem; color: var(--ink-soft); margin: .4rem 0 0; }
+  .cm-legend .bar { width: 10rem; height: .55rem; border-radius: 2px;
+                    background: linear-gradient(90deg, var(--control), var(--canvas), var(--accent)); border: 1px solid var(--rule); }
+  .hook-read { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin: .9rem 0 0; }
+  .hook-read > div { border-top: 1px solid var(--rule); padding-top: .4rem; }
+  .hook-read b { display: block; font-family: var(--font-mono); font-size: 1rem; color: var(--ink); font-weight: 500; }
+  .hook-read span { font-family: var(--font-mono); font-size: .68rem; color: var(--ink-soft); }
+  @media (max-width: 480px) {
+    .cm-grid { grid-template-columns: 3.9rem repeat(7, minmax(2.1rem, 1fr)); gap: 2px; }
+    .cm-grid > div { font-size: .62rem; padding: .4rem .05rem; }
+    .cm-grid .h { font-size: .56rem; }
+    .cm-grid .rh { font-size: .58rem; padding-right: .2rem; }
+    .hook-read { grid-template-columns: 1fr; }
+  }
+
+  /* The method diagram: HTML boxes, so it reflows to a column on a phone and follows the theme */
+  .flow { margin: 1.2rem 0 .6rem; }
+  .flow-main { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; align-items: stretch; }
+  .flow .box { border: 1px solid var(--rule); border-radius: 6px; padding: .55rem .6rem; background: var(--canvas);
+               font-family: var(--font-mono); font-size: .72rem; line-height: 1.45; color: var(--ink-soft); position: relative; }
+  .flow .box b { display: block; color: var(--ink); font-weight: 500; margin-bottom: .15rem; }
+  .flow-main .box:not(:last-child)::after { content: "→"; position: absolute; right: -.62rem; top: 50%; transform: translateY(-50%);
+                                            color: var(--ink-faint); font-size: .8rem; }
+  .flow-arms { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: .4rem 0 0; }
+  .flow-arms .box.edit { border-color: var(--accent); }
+  .flow-arms .box.ctl { border-color: var(--control); }
+  .flow-arms .box code { font-size: .7rem; }
+  .flow .branch { font-family: var(--font-mono); font-size: .68rem; color: var(--ink-faint); margin: .6rem 0 0; }
+  @media (max-width: 560px) {
+    .flow-main, .flow-arms { grid-template-columns: 1fr; }
+    .flow-main .box:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -.75rem; transform: none; }
+  }
+
+  .checks { display: grid; gap: .9rem; margin: 1rem 0 1.4rem; }
+  .checks > div { border-left: 2px solid var(--control); padding: .1rem 0 .1rem .9rem; }
+  .checks p { margin: .25rem 0 0; }
+  .checks .ask { font-family: var(--font-mono); font-size: .75rem; color: var(--ink-soft); margin: 0; }
+  .verdict { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .02em; padding: .05rem .35rem; border-radius: 3px;
+             border: 1px solid var(--rule); color: var(--ink); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-27">Nov 27, 2026</time></p>
+  <p class="version-banner" id="version">Two write-ups of the same study. This is Version B. Version A covers the same results in a different structure → <a href="../report/">Version A</a></p>
+  <h1>Do SAE features capture intersectional bias in vision-language models?</h1>
+  <p class="dek ruled">An open replication and extension of DeBiasLens on its released CLIP checkpoint. CLIP's face search is skewed across the 42 combinations of perceived gender, age and race, but almost all of that is the three attributes compounding. The SAE has a feature for 1 of the 42 combinations, and in this setup the published edit raises skew rather than lowering it.</p>
+
+  <h2 id="try-it" data-short="Try it"><span class="num">00</span>Try it: one search, four versions</h2>
+  <p>Search 10,954 face photos for "a nurse" and keep the top 1,000. The grid shows which of 42 groups come back more (orange) or less (blue) than their share of the pool. Now switch the edit on. Does the search get fairer?</p>
+
+  <div id="hook" class="explorer">
+    <div class="hook-row">
+      <label for="hook-occ">Occupation</label>
+      <select id="hook-occ"></select>
+    </div>
+    <p class="explorer-label">Version of CLIP</p>
+    <div class="explorer-tabs hook-arms" role="group" aria-label="Version of CLIP"></div>
+    <div class="cm-scroll"><div class="cm-grid" role="group" aria-label="Skew by group"></div></div>
+    <p class="cm-tip">Hover or tap a cell for its group and value.</p>
+    <div class="cm-legend"><span>under-retrieved</span><span class="bar"></span><span>over-retrieved</span></div>
+    <div class="hook-read" aria-live="polite">
+      <div><b class="r-joint">–</b><span>joint excess skew, this occupation</span></div>
+      <div><b class="r-abs">–</b><span>mean |skew| over the 42 groups</span></div>
+      <div><b class="r-top">–</b><span class="r-top-l">most over-retrieved group</span></div>
+    </div>
+    <noscript><p>The grid needs JavaScript. Figure 3 shows the per-group change under the edit as a static heat map.</p></noscript>
+  </div>
+  <p>For "nurse", the published edit raises the joint excess skew (defined in <a href="#method">the method</a>) from 1.046 to 1.211. The SAE rebuild with nothing switched off raises it too, to 1.165. Removing the same features while keeping the rest of the vector flattens the grid (mean |skew| 1.418 to 0.864), though this occupation's joint excess still edges up (1.085). One prompt is one example. The averages over all 858 prompts, with intervals, are in the <a href="#findings">findings</a>. Each cell is the mean over the occupation's 7 phrasings, computed by <a href="make_hook_data.py">make_hook_data.py</a> from <code>results/</code>.</p>
+
+  <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">The short answer</p>
+    <ul>
+      <li><strong>The skew is real but mostly compounding.</strong> Joint skew over the 42 groups is 0.715 nats above chance. A model that only combines each prompt's separate gender, age and race skews predicts 0.708.</li>
+      <li><strong>The SAE has hardly any features for the combinations.</strong> The paper's selection rule finds one for 1 of 42 groups at its threshold.</li>
+      <li><strong>In this setup the published edit raises skew,</strong> by 0.088 [0.072, 0.103]. It blends in a rebuild of the class token that loses 86% of its variance, and a non-SAE rebuild with the same loss raises skew more.</li>
+      <li><strong>The features do carry some gender and race signal.</strong> Removed without the rebuild, they cut gender skew more than all 20 random feature sets matched on contribution, and race skew more than 19 of them (exploratory).</li>
+      <li><strong>In LLaVA-1.5-7B the released edit never reaches the language model.</strong> Naming the gender in words gives a gender gap 2.0× [1.83, 2.64] the photo's.</li>
+    </ul>
+  </section>
+
+  <h2 id="why" data-short="Why it matters"><span class="num">01</span>Why it matters</h2>
+  <p>A search can look balanced by gender and balanced by race, yet still bury one combination, such as older women of one race. Fairness research calls a fix that checks only the separate attributes "gerrymandering". Vision-language models now sit behind image search and assistants, so it matters whether a debiasing method reaches the combinations or only the separate attributes.</p>
+  <p><a href="https://arxiv.org/abs/2602.24014">"Interpretable Debiasing of Vision-Language Models for Social Fairness"</a> (DeBiasLens, CVPR 2026) offers an appealing route. It trains a sparse autoencoder on a vision encoder without any labels, uses face labels only to pick one feature per group, and switches those features off. The paper reports lower skew in CLIP and a smaller gender gap in LLaVA-1.5 and InternVL2, includes a random-feature comparison, and names intersectional bias as a next step. It also released its <a href="https://huggingface.co/kaist-ai/debiaslens">checkpoints</a> and <a href="https://github.com/namin-an/DeBiasLens">code</a>, which made this study possible. This note takes up that next step on the released ViT-L/14-336 checkpoint, and adds the controls a feature edit needs.</p>
+
+  <h2 id="method" data-short="The method"><span class="num">02</span>The method in plain words</h2>
+  <p>We type a prompt, rank 10,954 labelled face photos by CLIP similarity, keep the top 1,000, and count how many come from each group. Then we change CLIP's image embedding in one of several ways and count again. We edit one vector: the class token, which CLIP uses to summarise each image, at the output of its last block. Only that vector reaches the image embedding, so editing it there is exact.</p>
+  <div class="flow" role="img" aria-label="Diagram: a face photo goes through CLIP's vision tower to the class-token vector; that vector is edited in one of three ways, turned into an image embedding, and used to rank 10,954 photos for a prompt; the top 1,000 are counted by 42 groups to give a skew score.">
+    <div class="flow-main">
+      <div class="box"><b>1 · Photo</b>10,954 FairFace val faces, with annotators' labels</div>
+      <div class="box"><b>2 · Class token</b>CLIP ViT-L/14-336, block 23: 1,024 numbers per photo</div>
+      <div class="box"><b>3 · Edit</b>one of the versions below, or none</div>
+      <div class="box"><b>4 · Search and count</b>top 1,000 for each of 858 prompts, counted over 42 groups → skew</div>
+    </div>
+    <p class="branch">Step 3, the versions compared:</p>
+    <div class="flow-arms">
+      <div class="box edit"><b>DeBiasLens edit</b>SAE encodes h, sets 13 features to 0, decodes; <code>0.4 h + 0.6 rebuild</code></div>
+      <div class="box ctl"><b>Rebuild only (control)</b>the same, with nothing set to 0</div>
+      <div class="box edit"><b>Error kept (exploratory)</b>subtract only those 13 features' share: <code>h − Σ a<sub>j</sub> d<sub>j</sub></code></div>
+    </div>
+  </div>
+  <p class="table-note">Every edit is also run with 20 random feature sets of the same size. LEACE, a closed-form linear erasure, is the strong baseline.</p>
+  <p>A <strong>sparse autoencoder (SAE)</strong> rewrites the class token as a short list of switched-on <em>features</em>: 8,192 to choose from, about 20 on at a time, each with a fixed direction. Think of a paint mixer that rebuilds any colour from a few named tubes. DeBiasLens finds the tubes that seem to mean "woman", "age 20-29" or "Black", turns them off, and remixes. A feature is picked for a group if it fires on at least 90% of that group's training photos (τ = 0.9) and on fewer than 90% of every other group's; among the candidates, the most active wins. Where no feature passes, the threshold steps down, as the plan fixed in advance. That gave 13 features. The remix is then blended with the original: 40% original, 60% rebuild, the paper's default (α = 0.6).</p>
+  <p>Three terms are used throughout.</p>
+  <ul>
+    <li><strong>Skew</strong> of a group is the log of its share of the top 1,000 over its share of the pool. 0 is fair; log 2 ≈ 0.69 means twice its share. Units are nats.</li>
+    <li><strong>Excess skew</strong> is the largest group skew minus what a random top 1,000 scores. The largest of 42 small groups is large by chance alone, so we subtract that.</li>
+    <li><strong>Joint</strong> skew is measured over the 42 groups of gender (2) × age (3 bins) × race (7 labels). <strong>Marginal</strong> skew is the mean over gender, age and race taken one at a time.</li>
+  </ul>
+  <p>FairFace labels are annotators' perceptions in fixed categories. Every number here is a statistic over groups of photos, never a claim about a person.</p>
+
+  <h2 id="sanity" data-short="Sanity checks"><span class="num">03</span>First: can the measurement see what we know is there?</h2>
+  <p>Before trusting any edit, we checked the ruler on cases where we already know the answer.</p>
+  <div class="checks">
+    <div>
+      <p class="ask">Does our metric reproduce the paper's plain-CLIP numbers?</p>
+      <p><span class="verdict">mostly</span> Gender Max Skew × 100 on the four prompt sets is 22.3 / 33.4 / 23.3 / 33.7, against the paper's 19.9 / 31.5 / 23.2 / 30.0. Three of four are within the 0.03 bar set in advance; the 25-prompt stereotype set is 0.037 off.</p>
+    </div>
+    <div>
+      <p class="ask">If we really remove gender, does the metric drop?</p>
+      <p><span class="verdict">yes</span> LEACE on gender takes a linear probe for gender from 0.95 accuracy to 0.56, near chance, and cuts gender Max Skew by 0.170. A real removal shows up.</p>
+    </div>
+    <div>
+      <p class="ask">What does the metric read on queries with no social content?</p>
+      <p><span class="verdict">a lot</span> 200 random directions used as queries score a joint excess of 0.765, more than the 858 real prompts (0.715). Ten object prompts such as "a photo of a golf ball" score 0.30 to 0.88. Faces sit in clusters by perceived gender, age and race, so any query retrieves them unevenly.</p>
+    </div>
+  </div>
+  <p>The last check shapes how to read everything below. A single skew number mixes what a prompt adds with how the faces are laid out. So we read edits only as <strong>paired differences</strong>: the same prompts and photos with and without the edit, where the layout cancels. The random-query check was added after an independent review, so it is exploratory.</p>
+
+  <h2 id="findings" data-short="Findings"><span class="num">04</span>What we found</h2>
+
+  <h3 id="f1-compounds" data-short="1 · Skew compounds">1 · The joint skew is the three attributes compounding</h3>
+  <p>Joint excess skew is 0.715 [0.685, 0.746] nats, above race (0.467), age (0.257) and gender (0.225). So the combinations are more skewed than any single attribute. But is that skew specific to the combinations? If a prompt over-retrieves men and over-retrieves people aged 20-39, it should over-retrieve men aged 20-39 by roughly the product. An <strong>independence model</strong> built that way from each prompt's own gender, age and race counts predicts 0.708. The part left for the combinations is 0.007 [−0.006, 0.019] nats, an interval that includes zero.</p>
+  <figure>
+    <img src="../report/figures/audit.png" alt="Left: bars of CLIP's excess Max Skew for gender 0.22, age 0.26, race 0.47 and the 42 joint groups 0.71, with 95% intervals; blue ticks for 200 random directions sit at or above every bar, and a cross for the independence model sits on the joint bar. Right: an additive model's misfit relative to additive data, 1.61 for the prompts, 1.58 for object prompts and 2.11 for random directions." width="1589" height="690" loading="lazy">
+    <figcaption><strong>Figure 1. Joint skew is larger than any single attribute's, but an independence model predicts it.</strong> Left: excess Max Skew per grouping, CLIP ViT-L/14-336, mean over 858 prompts, 95% interval over 128 prompt concepts. Blue ticks: 200 random query directions. Cross: the independence model's prediction. Right: an additive model's misfit relative to additive data with the same marginals (1 = additive); real prompts (1.61) look like object prompts (1.58).</figcaption>
+  </figure>
+
+  <h3 id="f2-edit" data-short="2 · The edit raises skew">2 · The published edit raises skew, because the rebuild is lossy</h3>
+  <p>At the paper's setting, switching off the 13 features leaves the paper's metric level with plain CLIP (0.640 against 0.636) and raises joint excess by 0.088 [0.072, 0.103]. The rebuild alone, with nothing switched off, raises it by 0.150. So switching features off does help, relative to the rebuild, but the blend with the rebuild hurts more.</p>
+  <p>Why does the rebuild hurt? On the class token, the SAE's rebuild leaves 86% of the variance unexplained (FVU 0.861), against 19% on block-23 tokens in general. It was trained on two random tokens per image, almost all of them image patches. A rebuild that has nothing to do with the SAE supports this reading: the top 3 principal components lose as much (FVU 0.87), and blended the same way they raise joint excess by 0.244 [0.229, 0.259]. A lossy rebuild keeps the coarse layout of the faces, where the demographic clusters are, and drops the detail that lets prompts tell faces apart.</p>
+  <div class="table-wrap">
+  <table class="num">
+    <caption><strong>Table 1. Rebuilding the class token raises skew; removing features without the rebuild lowers it.</strong> CLIP retrieval under each edit, 858 prompts. Paper metric: the mean over gender, age (7 bins) and race of the paper's Max Skew. Lower skew is better. ImageNette: zero-shot accuracy on 3,535 photos, a check that the edit keeps CLIP working.</caption>
+    <thead><tr><th>Edit</th><th class="n">Paper metric</th><th class="n">Joint excess</th><th class="n">ImageNette</th></tr></thead>
+    <tbody>
+      <tr><td>CLIP, no edit</td><td class="n">0.636</td><td class="n">0.715</td><td class="n">0.998</td></tr>
+      <tr><td>PCA rebuild of equal loss, α 0.6*</td><td class="n">0.750</td><td class="n">0.959</td><td class="n">0.995</td></tr>
+      <tr><td>SAE rebuild only, α 0.6</td><td class="n">0.678</td><td class="n">0.865</td><td class="n">0.993</td></tr>
+      <tr class="hl"><td>DeBiasLens, 13 selected features, α 0.6</td><td class="n">0.640</td><td class="n">0.803</td><td class="n">0.992</td></tr>
+      <tr><td>DeBiasLens, released feature ids, α 0.6</td><td class="n">0.665</td><td class="n">0.835</td><td class="n">0.993</td></tr>
+      <tr><td>20 random feature sets, α 0.6 (range)</td><td class="n">–</td><td class="n">0.782–0.873</td><td class="n">0.992–0.995</td></tr>
+      <tr><td>DeBiasLens, 13 selected features, α 1.0</td><td class="n">0.567</td><td class="n">0.702</td><td class="n">0.400</td></tr>
+      <tr><td>Same 13 features removed, error kept*</td><td class="n">0.563</td><td class="n">0.571</td><td class="n">0.998</td></tr>
+      <tr><td>LEACE, gender + age + race</td><td class="n">0.367</td><td class="n">0.325</td><td class="n">0.998</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="table-note">* Exploratory, added after the registered results. Version A's <a href="../report/#edit">Table 1</a> also gives gender, marginal and probe columns.</p>
+  <p>Raising α to 1.0 does lower skew a little (paper metric −0.069 [−0.083, −0.055]). But then the whole class token is the rebuild, and ImageNette accuracy falls from 0.998 to 0.40 (Figure 2).</p>
+  <figure>
+    <img src="../report/figures/alpha.png" alt="Two line charts against blend weight 0.2 to 1.0. The SAE reconstruction alone rises well above CLIP on marginal and joint excess skew; DeBiasLens rises less and only falls below CLIP at 1.0; a blue band of random latent sets surrounds it." width="1550" height="653" loading="lazy">
+    <figcaption><strong>Figure 2. The edit stays above plain CLIP until the rebuild replaces the whole vector.</strong> Marginal (left) and joint (right) excess skew against the blend weight α, 858 prompts. Orange: the 13 selected features switched off. Grey: the rebuild alone. Blue band: 20 random feature sets of the same size and firing frequency (min to max). Dotted: CLIP.</figcaption>
+  </figure>
+  <p>Per group (Figure 3), the edit makes 16 of 42 groups worse and 3 better. The rebuild alone makes 30 worse, and so does a random feature set (31). The groups hurt most were already under-retrieved: groups labelled Black, in every age band.</p>
+  <figure>
+    <img src="../report/figures/cells.png" alt="A 6 by 7 heat map of the change in mean absolute skew per group under DeBiasLens at alpha 0.6. Most cells are orange (worse); the column of groups labelled Black is the most orange, up to plus 0.51." width="1564" height="732" loading="lazy">
+    <figcaption><strong>Figure 3. Most groups get worse under the edit, and already under-retrieved groups get worst.</strong> Change in mean |skew| per joint group under DeBiasLens (α 0.6) against CLIP, 858 prompts. Outlined and bold: the 95% interval (10,000 resamples of the 10,954 val photos, prompts fixed) excludes 0.</figcaption>
+  </figure>
+  <p>The paper reports image-side gender Max Skew on occupations falling from 31.5 to 20.4. With the released checkpoint we measure 33.4 for CLIP and 32.9 with the selected gender features off, so we could not reproduce the reduction. Our plain-CLIP numbers match the paper's within 0.04 on every prompt set, so the difference lies in the edit, and the rebuild gap above is the most direct explanation. The paper's strongest numbers are on ViT-B/16 and use a text-side SAE, which we did not test.</p>
+
+  <h3 id="f3-errkeep" data-short="3 · Features carry some signal">3 · Without the rebuild, the features cut gender and race skew (exploratory)</h3>
+  <p>To separate the features from the rebuild, we subtracted only the 13 features' contribution and kept everything else, including the SAE's error. Gender Max Skew falls from 0.247 to 0.185 and race from 0.571 to 0.453. Joint excess falls by 0.144 [0.121, 0.167], and ImageNette stays at 0.998. We added this test after reading the registered results.</p>
+  <p>Is that the features, or just removing a large piece of the vector? The 13 features are among the most active on the class token, so we compared them with 20 random sets matched on each feature's mean contribution. The gender cut still beats all 20, and the race cut beats 19. But 6 of the 20 cut joint excess more. So the features carry specific gender and race signal, while most of the joint cut comes from removing that much of the vector (Figure 4).</p>
+  <figure>
+    <img src="../report/figures/compare.png" alt="Dot plot of each edit's change in marginal and joint excess skew against CLIP, with 95% intervals. The PCA and SAE rebuilds and the published edit sit right of zero (worse); the error-kept removal, nine attention heads and LEACE sit left of zero (better). On joint skew the error-kept removal sits inside its blue random band." width="1435" height="1338" loading="lazy">
+    <figcaption><strong>Figure 4. Rebuilds sit right of zero (worse) and removals left (better), but the error-kept removal's joint cut is inside its random band.</strong> Change in marginal (top) and joint (bottom) excess skew against CLIP, 95% intervals over 128 prompt concepts. Blue bands: 20 random sets of matching size, min to max (features matched on firing frequency; for the error-kept removal, on mean contribution; for heads, random heads). Grey: rebuild-only controls.</figcaption>
+  </figure>
+
+  <h3 id="f4-conjunctions" data-short="4 · Few combination features">4 · The SAE has almost no features for the combinations</h3>
+  <p>We ran the paper's selection rule on the 42 joint groups. At τ = 0.9 it finds a feature for 1 group (Table 2). Lowering τ finds more, but of the 52 features found at any τ, only 2 are mostly about the combination rather than one attribute. Most are one attribute in disguise: the feature picked for women aged 20-39 labelled Black fires on 62% of all photos labelled Black.</p>
+  <div class="table-wrap">
+  <table class="num">
+    <caption><strong>Table 2. Even at loose thresholds, almost no feature is mostly about a combination.</strong> The joint-group selection rule at each τ, 86,744 training photos. Interaction share: the part of a feature's group-explained variance that an additive gender + age + race model misses.</caption>
+    <thead><tr><th class="n">τ</th><th class="n">Groups with a feature</th><th class="n">Features found</th><th class="n">Share mostly interaction (≥ 0.5)</th></tr></thead>
+    <tbody>
+      <tr><td class="n">0.9</td><td class="n">1</td><td class="n">1</td><td class="n">0.00</td></tr>
+      <tr><td class="n">0.7</td><td class="n">4</td><td class="n">4</td><td class="n">0.00</td></tr>
+      <tr><td class="n">0.5</td><td class="n">6</td><td class="n">7</td><td class="n">0.00</td></tr>
+      <tr><td class="n">0.3</td><td class="n">8</td><td class="n">9</td><td class="n">0.00</td></tr>
+      <tr><td class="n">0.1</td><td class="n">20</td><td class="n">31</td><td class="n">0.06</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The released SAE is a <em>Matryoshka</em> SAE. Its features come in nested levels (the first 512, then 1,024, 2,048 and 4,608 more), trained so the first level alone gives a rough picture. One might expect coarse levels to hold attributes and fine levels their combinations. The direction holds, but weakly. Fine features have a larger interaction share (median 0.38 against 0.29; difference 0.088 [0.049, 0.113]), and every feature the paper's rule picked sits in levels 1-2 and is mostly additive (Figure 5).</p>
+  <figure>
+    <img src="../report/figures/levels.png" alt="Two box plots by Matryoshka level 1 to 4. Left: additive R-squared, highest in level 1 and near zero elsewhere. Right: interaction share, rising slightly from level 1 to level 4." width="1550" height="672" loading="lazy">
+    <figcaption><strong>Figure 5. Coarse levels hold more demographic signal; fine levels are only slightly more about combinations.</strong> For the 1,197 features that fire on at least 0.1% of training photos: the R² of an additive gender + age + race model of each feature's class-token activation (left), and its interaction share, (R²<sub>42 groups</sub> − R²<sub>additive</sub>) / R²<sub>42 groups</sub> (right). Boxes: quartiles; outliers hidden.</figcaption>
+  </figure>
+
+  <h3 id="f5-handles" data-short="5 · Other handles">5 · Other handles inside CLIP do better than generic features</h3>
+  <p>We tried three other ways in. The first two beat their random controls.</p>
+  <ul>
+    <li><strong>Prompt-specific features.</strong> The similarity gap between groups splits exactly into one term per SAE feature. Switching off each prompt's top 13 contributors, in the same α 0.6 blend, cuts joint excess by 0.118 [0.094, 0.142] against CLIP and by 0.205 [0.183, 0.228] against DeBiasLens, with ImageNette at 0.994.</li>
+    <li><strong>Nine attention heads.</strong> Replacing the 3 heads that carry most of each attribute with their average output cuts joint excess by 0.115 [0.096, 0.135], beyond 20 random sets of 9 heads, with ImageNette at 0.996 (Figure 6).</li>
+    <li><strong>The text side.</strong> Projecting attribute directions out of each prompt's embedding cuts the paper metric from 0.636 to 0.514. Adding the image edit improves that metric slightly (0.493) but raises joint excess from 0.652 to 0.730.</li>
+  </ul>
+  <figure>
+    <img src="../report/figures/heads.png" alt="Three 4 by 16 heat maps (blocks 20 to 23 by head) of the share of each head's output explained by gender, age and race. A few heads in blocks 21 to 23 stand out for each attribute; the three ablated per attribute are outlined." width="1406" height="960" loading="lazy">
+    <figcaption><strong>Figure 6. A few heads in blocks 21-23 carry most of each attribute.</strong> η², the share of each head's class-token output explained by the group means, for gender, age (3 bins) and race; 10,000 training photos. Outlined: the 3 heads per attribute that were mean-ablated.</figcaption>
+  </figure>
+  <p>LEACE on all three attributes is the strongest edit (joint −0.390, ImageNette 0.998). It is also the one that gerrymanders: it removes 70% of marginal excess but only 55% of joint excess. No feature edit, and not the heads, removes the attribute itself: a linear probe still reads perceived gender at 0.91 to 0.95 accuracy (Figure 7). One linear erasure does remove most of gender, which bears on the paper's view that no single linear direction separates an attribute.</p>
+  <figure>
+    <img src="../report/figures/leakage.png" alt="Scatter of gender probe accuracy against the cut in gender Max Skew. CLIP, the reconstruction and every DeBiasLens arm sit at probe 0.91 to 0.95 with cuts near or below zero; LEACE sits at probe 0.53 to 0.56 with cuts near 0.18." width="1381" height="746" loading="lazy">
+    <figcaption><strong>Figure 7. Only linear erasure makes gender unreadable, and only it cuts gender skew by much.</strong> Linear-probe accuracy for perceived gender after each edit (trained on 10,000 edited training photos, tested on 10,954 edited val photos) against the cut in gender Max Skew.</figcaption>
+  </figure>
+
+  <h3 id="f6-llava" data-short="6 · LLaVA">6 · In LLaVA, the language model outweighs the photo</h3>
+  <p>LLaVA-1.5-7B answered 40 yes/no questions (20 occupations, 10 traits, 10 skills) about each of 400 FairFace photos. A question's <strong>gender gap</strong> is the mean P(yes) on photos of women minus that on men; we report the mean absolute gap over the 40 questions. Shuffling the gender labels across photos gives the measure's noise floor.</p>
+  <ul>
+    <li><strong>The released edit never reaches the language model.</strong> The released LLaVA wrapper edits vision block 23, but LLaVA-1.5 reads block 22. On 384 questions, the edit, and even replacing block 23's output with zeros, leave every answer probability unchanged.</li>
+    <li><strong>The photo's gender signal is small and erasable.</strong> Untouched, the gap is 0.033, against a floor of 0.021. LEACE gender erasure where LLaVA reads takes it to 0.024, near its floor. Accuracy on MME, a general benchmark, moves by −0.5 points [−0.9, −0.04].</li>
+    <li><strong>Words move it more.</strong> With a grey image and "The person in this image is a woman." (or "a man.") before the same questions, the gap is 0.066, 2.0× [1.83, 2.64] the photo's. It follows familiar stereotypes: "nurse" and "hairdresser" lean toward women, "carpenter" and "developer" toward men.</li>
+  </ul>
+  <figure>
+    <img src="../report/figures/llava.png" alt="Horizontal bars of LLaVA's mean absolute gender gap per arm. Untouched, SAE and random-erasure arms sit near 0.033 with shuffled floors near 0.021; LEACE erasure drops to 0.024, at its floor; the grey image with gender in words reaches 0.066 with a floor of 0.015." width="1569" height="745" loading="lazy">
+    <figcaption><strong>Figure 8. Erasing gender from the photo brings the gap to its floor; naming gender in words doubles it.</strong> LLaVA-1.5-7B: mean |P(yes) for women − P(yes) for men| over 40 questions, 16,000 questions per arm. Grey band and tick: the same statistic with perceived gender shuffled across the 400 photos (mean and 95th percentile of 1,000 shuffles).</figcaption>
+  </figure>
+
+  <h2 id="limits" data-short="Does and doesn't show"><span class="num">05</span>What this does and doesn't show</h2>
+  <p><strong>It does show</strong> three things for the released ViT-L/14-336 FairFace checkpoint at its released attachment point. The edit's effect on retrieval is dominated by the rebuild, not by the features it names. This SAE spends almost none of its 8,192 features on demographic combinations. And CLIP's joint skew on FairFace leaves little beyond compounding for such features to capture.</p>
+  <p><strong>It does not show</strong> that DeBiasLens fails in general.</p>
+  <ul>
+    <li><strong>One model, one checkpoint.</strong> The paper's strongest numbers are on ViT-B/16 with a text-side SAE, which we did not test. We followed the released code for the checkpoint, attachment, blend and metric, but did not run the released pipeline end to end. A different checkpoint or feature list could give the paper's numbers.</li>
+    <li><strong>Perceived labels, one dataset.</strong> FairFace labels are annotators' judgements in fixed categories, with coarse age bins. Groups have 84 to 578 val photos, so small groups' skews are noisy; the intervals account for that.</li>
+    <li><strong>Retrieval is one use.</strong> Top-1,000 skew is one measure of representational harm. It says nothing about captioning, classification or generation.</li>
+    <li><strong>The skew metric carries the faces' layout.</strong> Absolute numbers mix prompt bias with how faces cluster in CLIP. Only paired comparisons between edits are free of it.</li>
+    <li><strong>Intervals cover one source at a time.</strong> Skew intervals resample prompt concepts with photos fixed; per-group intervals resample photos with prompts fixed.</li>
+    <li><strong>LLaVA on 40 questions.</strong> The gap's floor is about 0.02 on 400 photos, so smaller effects are out of reach.</li>
+    <li><strong>Some arms are exploratory.</strong> The error-kept removal, the LLaVA shuffle floor, the independence model, random queries, the PCA rebuild and the contribution-matched band were added after reading the results.</li>
+  </ul>
+
+  <h2 id="reuse" data-short="Reuse it"><span class="num">06</span>Reuse it, and what to do next</h2>
+  <p><strong>Three checks for any SAE edit.</strong> Each is cheap, and each caught one problem here.</p>
+  <ol>
+    <li>Run the rebuild alone on the exact vector the edit touches, plus a non-SAE rebuild of equal loss.</li>
+    <li>Check that the edited vector reaches the output. Here, LLaVA never read it.</li>
+    <li>Score random queries with the bias metric before reading what it says about a prompt.</li>
+  </ol>
+  <p>The code loads the released checkpoint directly. A minimal version of the three CLIP versions in this note:</p>
+<pre><code class="language-python">import torch
+from sae import SAE                       # experiments/sae-intersectional-bias/sae.py
+from lib import sae_blend, codes_of, embed
+
+sae = SAE.load()                          # released ViT-L/14-336 FairFace SAE (ae_100000.pt)
+h = torch.as_tensor(...)                  # CLIP block-23 class token, [N, 1024]
+social = ...                              # 13 feature ids: results/core.json["selection"]["chosen"]["all"]
+
+edited  = sae_blend(sae, h, zero=social, alpha=0.6)   # the published edit
+rebuilt = sae_blend(sae, h, zero=(),     alpha=0.6)   # control: the rebuild alone
+f = codes_of(sae, h)
+kept    = h - f[:, social] @ sae.W_dec[social]        # remove the features, keep the SAE error
+
+image_embeddings = embed(edited)          # then rank, keep the top K, count by group</code></pre>
+  <p>Everything runs from <a href="../reproduce.sh">reproduce.sh</a> (<code>--dry-run</code> prints the commands). The CLIP pass over 101,233 images takes 87 minutes on one A10G; every CLIP analysis after it runs on a laptop in about 15 minutes. The LLaVA arms take 2.5 hours on one A100. The whole study cost $11.52 on Modal, pilots included, from Modal's billing report for the study's app (<a href="../results/modal_billing.json">modal_billing.json</a>: GPUs $7.66, CPU $1.74, memory $2.10, network $0.02). The in-code ledger, <a href="../results/spend.jsonl">spend.jsonl</a>, sums to $7.51 because it priced GPU time only.</p>
+  <p><strong>Next steps.</strong></p>
+  <ul>
+    <li>An SAE trained with the class token in its data, then the same audit, to test whether the rebuild gap is the whole story.</li>
+    <li>For LLaVA, an SAE trained where it reads (block 22). Then the photo and the gender in words together, to see whether the image route adds to the language prior or is absorbed by it.</li>
+    <li>Edits aimed at the joint groups directly: LEACE on the 42 groups, and prompt-specific attribution on joint rather than marginal gaps.</li>
+  </ul>
+
+  <h2 id="appendix" data-short="Appendix"><span class="num">A</span>Appendix: how it was run, data and references</h2>
+  <p><strong>Pre-registered.</strong> The plan, with 17 predictions and their thresholds, was committed before any code ran. A scorer committed before the full results were read marked 11 of 17 as hits. An independent code and statistics review found two bugs, which were fixed and rerun, and asked for the four exploratory checks above. Version A lists <a href="../report/#method">every step</a>, what was fixed in advance against what changed, and <a href="../report/#predictions">each prediction's verdict</a>.</p>
+  <p><strong>Conditions.</strong> CLIP in fp32 without TF32; the SAE in fp32; LLaVA in fp16 with next-token probabilities at the answer letter, batch 32, no sampling. Intervals are 95% bootstraps with 10,000 resamples.</p>
+  <p><strong>Data.</strong> Every number above comes from <a href="../results/">results/</a>: <code>core.json</code> (selection, every named arm, random bands), <code>robust.json</code> (independence model, random queries, PCA rebuild, contribution-matched band), <code>errkeep.json</code>, <code>a3.json</code> and <code>a4.json</code> (combination features, Matryoshka levels), <code>b1.json</code> to <code>b3.json</code> (attribution, heads, text side), <code>cells.json</code> (per group) and <code>llava_full_summary.json</code>. Version A's <a href="../report/#appendix">appendix</a> describes each file's keys.</p>
+  <p><strong>References.</strong> "Interpretable Debiasing of Vision-Language Models for Social Fairness" (CVPR 2026, <a href="https://arxiv.org/abs/2602.24014">arXiv 2602.24014</a>), its <a href="https://github.com/namin-an/DeBiasLens">code</a> and <a href="https://huggingface.co/kaist-ai/debiaslens">checkpoints</a>; <a href="https://huggingface.co/datasets/HuggingFaceM4/FairFace">FairFace</a>; <a href="https://huggingface.co/openai/clip-vit-large-patch14-336">CLIP ViT-L/14-336</a>; <a href="https://huggingface.co/llava-hf/llava-1.5-7b-hf">LLaVA-1.5-7B</a>; the VLA gender-bias benchmark prompts (<a href="https://github.com/ExplainableML/vla-gender-bias">vla-gender-bias</a>); "LEACE: Perfect linear concept erasure in closed form" (NeurIPS 2023); "Interpreting CLIP's Image Representation via Text-Based Decomposition" (ICLR 2024); "Debiasing Vision-Language Models via Biased Prompts" (2023); <a href="https://huggingface.co/datasets/lmms-lab/MME">MME</a>; <a href="https://github.com/fastai/imagenette">ImageNette</a>.</p>
+  <footer class="note">Pre-registered; <a href="../report/">Version A</a> lists every prediction, correction and exploratory addition. Acknowledgements: this version's structure (an opening example, a known-answer check before the results, captions that state the takeaway) follows the practices in <a href="https://advances.edisonscientific.com/research/reinforced-adversarial-learning/">"Improving Scientific Writing by Learning from Good Examples"</a> (Edison Scientific).</footer>
+</article>
+</div>
+<script src="hook.js"></script>
+<script>
+(function () {
+  var H = window.HOOK, root = document.getElementById("hook"); if (!H || !root) return;
+  var narrow = window.matchMedia && window.matchMedia("(max-width: 480px)").matches;
+  var SHORT = {"East Asian": "E Asian", "Middle Eastern": "Mid East", "Latino Hispanic": "Latino", "Southeast Asian": "SE Asian"};
+  function race(n) { return n.split(", ")[2].replace("_", " "); }
+  function nice(n) { return n.replace("_", " ").replace(/^Male/, "Men").replace(/^Female/, "Women"); }
+  var heads = H.cell_names.slice(0, 7).map(function (n) { var r = race(n); return narrow ? (SHORT[r] || r) : r; });
+  var rows = [0, 1, 2, 3, 4, 5].map(function (i) {
+    var n = H.cell_names[i * 7].split(", "), g = n[0] === "Male" ? "Men" : "Women";
+    return (narrow ? g[0] : g) + ", " + n[1];
+  });
+  var occ = "nurse", arm = "clip";
+  var sel = root.querySelector("#hook-occ"), bar = root.querySelector(".hook-arms"), grid = root.querySelector(".cm-grid"),
+      tip = root.querySelector(".cm-tip");
+  function css(v, d) { var x = getComputedStyle(document.documentElement).getPropertyValue(v).trim(); return x || d; }
+  function rgb(c) {
+    var m = c.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (m) { var h = m[1]; if (h.length === 3) h = h.split("").map(function (x) { return x + x; }).join("");
+      return [0, 2, 4].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
+    var n = c.match(/\d+(\.\d+)?/g); return n ? n.slice(0, 3).map(Number) : [255, 255, 255];
+  }
+  function mix(a, b, t) { var x = rgb(a), y = rgb(b);
+    return "rgb(" + x.map(function (v, i) { return Math.round(v + (y[i] - v) * t); }).join(",") + ")"; }
+  function colour(v) {
+    var t = Math.max(-1, Math.min(1, v / 2)), mid = css("--canvas", "#ffffff");
+    return t >= 0 ? mix(mid, css("--accent", "#c9561c"), 0.85 * t) : mix(mid, css("--control", "#4a86e8"), -0.75 * t);
+  }
+  Object.keys(H.occupations).forEach(function (k) {
+    var o = document.createElement("option"); o.value = k; o.textContent = k === "aerospace enginner" ? "aerospace enginner [sic]" : k;
+    if (k === occ) o.selected = true; sel.appendChild(o);
+  });
+  sel.onchange = function () { occ = sel.value; render(); };
+  Object.keys(H.labels).forEach(function (k) {
+    var b = document.createElement("button"); b.type = "button"; b.className = "explorer-tab"; b.textContent = H.labels[k];
+    b.dataset.key = k; b.onclick = function () { arm = k; render(); }; bar.appendChild(b);
+  });
+  function sign(x, d) { return (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d); }
+  function meanAbs(a) { return a.reduce(function (s, x) { return s + Math.abs(x); }, 0) / a.length; }
+  function render() {
+    Array.prototype.forEach.call(bar.children, function (b) { b.setAttribute("aria-pressed", b.dataset.key === arm ? "true" : "false"); });
+    var O = H.occupations[occ], v = O[arm].cells, c0 = O.clip;
+    var html = '<div class="h"></div>' + heads.map(function (r) { return '<div class="h">' + r + "</div>"; }).join("");
+    rows.forEach(function (rn, i) {
+      if (i === 3) html += '<div class="gap"></div>';
+      html += '<div class="rh">' + rn + "</div>";
+      for (var j = 0; j < 7; j++) {
+        var k = i * 7 + j, x = v[k];
+        html += '<div class="c" tabindex="0" role="img" aria-label="' + nice(H.cell_names[k]) + ": " + x.toFixed(2) +
+          '" data-k="' + k + '" style="background:' + colour(x) + '">' + sign(x, 2) + "</div>";
+      }
+    });
+    grid.innerHTML = html;
+    var top = 0; v.forEach(function (x, i) { if (x > v[top]) top = i; });
+    var same = arm === "clip";
+    root.querySelector(".r-joint").textContent = O[arm].joint_excess.toFixed(3) + (same ? "" : " (CLIP " + c0.joint_excess.toFixed(3) + ")");
+    root.querySelector(".r-abs").textContent = meanAbs(v).toFixed(3) + (same ? "" : " (CLIP " + meanAbs(c0.cells).toFixed(3) + ")");
+    root.querySelector(".r-top").textContent = sign(v[top], 2) + " nats";
+    root.querySelector(".r-top-l").textContent = "most over-retrieved: " + nice(H.cell_names[top]) + ", about " + Math.exp(v[top]).toFixed(1) + "× its share";
+    tip.textContent = "Hover or tap a cell for its group and value.";
+    Array.prototype.forEach.call(grid.querySelectorAll(".c"), function (el) {
+      function show() { var k = +el.dataset.k; tip.textContent = nice(H.cell_names[k]) + ": skew " + sign(v[k], 3) +
+        " nats (CLIP " + sign(c0.cells[k], 3) + "); " + (100 * H.share[k]).toFixed(1) + "% of the photo pool"; }
+      el.onmouseenter = show; el.onfocus = show; el.onclick = show;
+    });
+  }
+  render();
+})();
+</script>
+<script src="../../shared/report.js?v=21"></script>
+</body>
+</html>
