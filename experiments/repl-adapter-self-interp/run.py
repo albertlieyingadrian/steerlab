@@ -1,10 +1,10 @@
 """Driver for the adapter self-interpretation replication. One H100 at a time; every launch is checked against the cap,
 its Modal call id saved before waiting, and its cost settled from wall time.
 
-    .venv/bin/python experiments/repl-adapter-self-interp/run.py prep          # decoder vectors + SAE known-answer check
+    .venv/bin/python experiments/repl-adapter-self-interp/run.py prep          # decoder vectors, SAE check
     .venv/bin/python experiments/repl-adapter-self-interp/run.py train         # our SA adapter, then the shuffled one
     .venv/bin/python experiments/repl-adapter-self-interp/run.py valloss       # Table-1-style val losses
-    .venv/bin/python experiments/repl-adapter-self-interp/run.py eval smoke    # 20 latents (seed 1): pipeline check only
+    .venv/bin/python experiments/repl-adapter-self-interp/run.py eval smoke    # 20 latents (seed 1), pipeline only
     .venv/bin/python experiments/repl-adapter-self-interp/run.py eval main     # the 500 pre-registered latents (seed 0)
 """
 
@@ -105,20 +105,20 @@ def build_jobs(lat: dict, labels: dict, para: dict) -> tuple[list, dict, list]:
     jobs, sets = [], {}
     for i in lat["eval"]:
         t = [i, lat["decoy"][str(i)]]
-        for arm in ADAPTER_ARMS + ["untrained"]:
+        for arm in [*ADAPTER_ARMS, "untrained"]:
             for c, text in enumerate(labels[arm][str(i)]):
                 jobs.append({"key": f"{arm}|{i}|{c}", "label": text})
         auto = lab[i]["label"]
         ps = para[str(i)]["lines"]
         cands = {
             "auto6": [auto] * 6,
-            "para": [auto] + (ps + [auto] * 5)[:5],
+            "para": [auto, *(ps + [auto] * 5)[:5]],
             "wrong6": [lab[lat["wrong"][str(i)]]["label"]] * 6,
         }
         for arm, ls in cands.items():
             for c, text in enumerate(ls):
                 jobs.append({"key": f"{arm}|{i}|{c}", "label": text})
-        for arm in ADAPTER_ARMS + ["untrained", "auto6", "para", "wrong6"]:
+        for arm in [*ADAPTER_ARMS, "untrained", "auto6", "para", "wrong6"]:
             for c in range(6):
                 sets[f"{arm}|{i}|{c}"] = t
     allt = sorted(set(lat["eval"]) | set(lat["decoy"].values()))

@@ -1,6 +1,6 @@
 """Analysis for the self-modeling replication: SGLD step choice, per-arm summaries, differences with CIs, predictions.
 
-    .venv/bin/python experiments/repl-self-modeling/analyse.py calib     # pick the SGLD step -> results/calibration.json
+    .venv/bin/python experiments/repl-self-modeling/analyse.py calib     # SGLD step -> results/calibration.json
     .venv/bin/python experiments/repl-self-modeling/analyse.py summary   # results/summary.json + printed tables
 
 Intervals: 95% t-intervals over seeds for means; Welch intervals for differences of means. A run is "collapsed" when
