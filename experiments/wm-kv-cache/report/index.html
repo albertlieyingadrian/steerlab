@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A toy video world model redraws a place exactly when one cached view of it survives eviction</title>
+<meta name="description" content="A small causal transformer draws a camera's view of a random tile map from a KV cache of earlier frames. Under six cache policies and four budgets, every revisit with a view of the place still cached is drawn perfectly (1.000) and every one without is at chance (0.125): a policy's score is the share of places it keeps. At 8 of 48 frames, H2O-style eviction scores 0.76 and the sliding window video models use scores 0.53.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A toy video world model redraws a place exactly when one cached view of it survives eviction">
+<meta property="og:description" content="A small causal transformer draws a camera&#x27;s view of a random tile map from a KV cache of earlier frames. Under six cache policies, every revisit with a view of the place still cached is drawn perfectly and every one without is at chance, so a policy&#x27;s score is the share of places it keeps: at 8 of 48 frames, H2O-style eviction 0.76, the sliding window 0.53.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A dark map of grey tiles with a camera&#x27;s path; an orange square marks the view at frame 38, and a bar chart of attention over earlier frames peaks exactly over the two frames that saw the revisited places.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A toy video world model redraws a place exactly when one cached view of it survives eviction">
+<meta name="twitter:description" content="A small causal transformer draws a camera&#x27;s view of a random tile map from a KV cache of earlier frames. Under six cache policies, every revisit with a view of the place still cached is drawn perfectly and every one without is at chance, so a policy&#x27;s score is the share of places it keeps: at 8 of 48 frames, H2O-style eviction 0.76, the sliding window 0.53.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-27">
+<meta property="article:modified_time" content="2026-11-27">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A toy video world model redraws a place exactly when one cached view of it survives eviction",
+ "description": "A small causal transformer draws a camera's view of a random tile map from a KV cache of earlier frames. Under six cache policies, every revisit with a view of the place still cached is drawn perfectly and every one without is at chance, so a policy's score is the share of places it keeps: at 8 of 48 frames, H2O-style eviction 0.76, the sliding window 0.53.",
+ "abstract": "0.81M-parameter causal transformer, 3 seeds, 512 held-out episodes each, pre-registered. Full cache revisit consistency 1.000; in-cache revisits 1.000 and out-of-cache 0.124-0.127 (chance 0.125) for all 20 policy-budget pairs, so consistency = 0.125 + 0.875 x coverage. Budget 8 of 48 frames: H2O-style 0.760 [0.749, 0.769], random 0.697, sink 0.602, window 0.527, mean-pooled 0.482. Layer 2 puts 0.988 of attention on earlier views of the revisited place (even share 0.015). Hiding those views (about 30 entries) drops revisits to 0.117 [0.111, 0.123]; 30 random entries: 1.000; hiding them from every later frame too: 0.116 (no relay). Hiding the most-attended entries: 0.522. Seoul World Model carries no KV cache across chunks; it re-encodes 5 frames and retrieves street-view images. About $1 of A10G time.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-27",
+ "dateModified": "2026-11-27",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "video world models, KV cache, cache eviction, sliding window, attention sinks, H2O, revisit consistency, causal video diffusion, interpretability, world models",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2412.07772"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.08009"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2508.13009"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2505.13211"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2309.17453"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2306.14048"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2404.14469"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2504.12369"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2506.03141"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2603.15583"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .cov-demo { margin: 1.5rem 0 2rem; }
+  .cov-demo .row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; margin-bottom: 0.75rem; }
+  .cov-demo button { font: inherit; font-size: 0.875rem; padding: 0.25rem 0.6rem; border: 1px solid var(--rule); background: var(--canvas); color: var(--ink); border-radius: 4px; cursor: pointer; }
+  .cov-demo button[aria-pressed="true"] { border-color: var(--control); color: var(--control); }
+  .cov-demo input[type="range"] { accent-color: var(--control); width: 12rem; max-width: 100%; }
+  .cov-demo .bar { height: 14px; background: var(--rule); border-radius: 3px; overflow: hidden; margin: 0.35rem 0 0.15rem; }
+  .cov-demo .bar span { display: block; height: 100%; background: var(--accent); }
+  .cov-demo .out { font-family: var(--font-mono); font-size: 0.8125rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-27">Nov 27, 2026</time></p>
+  <h1>A toy video world model redraws a place exactly when one cached view of it survives eviction</h1>
+  <p class="dek ruled">We trained a small causal transformer to draw a moving camera’s view of a random map from a KV cache of earlier frames, then trimmed that cache six ways. Every return to a place whose earlier view was still cached came out perfect, and every return without one came out at chance. A cache policy is only as good as the share of places it keeps a view of.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="On a dark ground, a patchwork of grey tiles shows the part of a 32 by 32 map one episode's camera saw, with its path as a thin line. An orange square marks the view at frame 38, and thinner orange squares mark the earlier views the model attends to. On the right, a bar chart of attention over the 37 earlier frames: two tall orange bars sit exactly above two blue ticks at frames 19 and 20, the only frames that saw the revisited places; the other bars are near zero except a small rise over the last few frames." width="1600" height="900">
+    <figcaption>Cover: one evaluation episode (seed 1 model). When the camera returns at frame 38 to places last seen 18 steps earlier, almost all of the model’s attention on its cache lands on frames 19 and 20, the two frames that saw them. Drawn by <a href="../make_cover.py">make_cover.py</a> from the model’s attention.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>World models, Episode 3. Episode 1: <a href="../../world-model-physics/report/">a tiny physics world model, opened up</a>. Episode 2: <a href="../../physics-world-models/report/">learned physics simulators, re-run</a></dd></div>
+    <div><dt>Model</dt><dd>A 0.81M-parameter causal transformer (4 layers, width 128) trained from scratch, 3 seeds</dd></div>
+    <div><dt>Method</dt><dd>Six KV cache policies × four budgets on 512 held-out episodes per seed; attention attribution, probes and causal eviction; pre-registered</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/wm-kv-cache/</a> · about $1 of A10G time on Modal</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> and the files listed in <a href="../README.md">README.md</a></dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>What does a video world model keep in its KV cache, and what breaks when you evict it?</strong></p>
+    <p>In this toy, the cache is the model’s whole memory of places, and nothing else holds it. A revisit (the camera leaves a place and comes back) is drawn correctly 1.000 of the time when at least one cached entry still shows that place, and at chance (0.124 to 0.127; chance is 0.125) when none does. This holds for every policy, budget and seed. So a policy’s score is fixed by its coverage, the share of revisited places it kept a view of. At a budget of 8 of 48 frames, the sliding window that video models use keeps 46% and scores 0.53. Evicting by accumulated attention (as H2O does) keeps 73% and scores 0.76. Even random eviction keeps 65% and scores 0.70. Inside the model, one layer puts 0.99 of its attention at a revisit on earlier views of that place. Hiding exactly those entries, about 30 of up to 752, drops revisit consistency to chance (0.12). Hiding 30 random entries changes nothing (1.00).</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result (3 seeds, 1,536 held-out episodes, 95% intervals)</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr><td>Known answer: does the full cache give perfect revisits?</td><td><strong>Yes.</strong> 1.000 [1.000, 1.000] on 576,684 revisit tiles</td><td>Chance 0.125; new places score 0.125 too (they cannot be known)</td></tr>
+          <tr><td>Known answer: does a window shorter than the gap fail?</td><td><strong>Yes, to chance.</strong> Window 8 at gaps 16 to 31: 0.125; at gaps 2 to 7: 1.000</td><td>Full cache 1.000 at every gap</td></tr>
+          <tr class="hl"><td>Does a policy’s score depend on anything but coverage?</td><td><strong>No.</strong> In cache: 1.000 for all 20 policy-budget pairs. Not in cache: 0.124 to 0.127</td><td>So consistency = 0.125 + 0.875 × coverage, to the third decimal (Figure 1b)</td></tr>
+          <tr><td>Which policy keeps the most places at B = 8?</td><td><strong>H2O-style eviction, 0.760</strong> [0.749, 0.769]; random 0.697; sink 0.602; window 0.527; pool 0.482</td><td>H2O − window +0.23 [0.22, 0.24]; H2O − random +0.06 [0.05, 0.07]</td></tr>
+          <tr><td>Does the model attend to the view that saw the place?</td><td><strong>Yes, in layer 2.</strong> 0.988 of attention on earlier views of the place; the top entry is such a view for 100% of revisit tokens</td><td>0.015 if attention were spread evenly</td></tr>
+          <tr><td>Causal: hide exactly those entries</td><td><strong>Drops to chance, 0.117</strong> [0.111, 0.123]</td><td>The same number of random entries: 1.000</td></tr>
+          <tr><td>Does the model “cheat” by copying old views forward into later frames?</td><td><strong>No.</strong> Hiding the views from every later frame too gives the same 0.116; difference 0.001 [−0.001, 0.003]</td><td>Hiding them from the current frame only: 0.117</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Walk past a red door, turn down two streets and come back: a good world model should draw the same red door. A causal video model draws each new frame by attending to its KV cache, the keys and values it stored for earlier frames. To run for minutes on a fixed memory budget it has to throw most of that cache away. Which entries it throws away decides what it can still draw when you come back. This note measures that in a toy where the right answer is known exactly. It follows <a href="../../world-model-physics/report/">Episode 1</a> (a tiny world model of bouncing balls, opened up) and <a href="../../physics-world-models/report/">Episode 2</a> (how long rollouts of learned simulators drift).</p>
+  <p><strong>What is known.</strong> Causal video diffusion models such as <a href="https://arxiv.org/abs/2412.07772">CausVid</a> and <a href="https://arxiv.org/abs/2506.08009">Self Forcing</a> generate frame chunks one after another from a KV cache. They bound that cache with a rolling window, which follow-up work extends with an “attention sink” borrowed from <a href="https://arxiv.org/abs/2309.17453">StreamingLLM</a>. Models that need to remember places retrieve past frames by camera pose instead (Table 1). For language models, score-based eviction such as <a href="https://arxiv.org/abs/2306.14048">H2O</a> and <a href="https://arxiv.org/abs/2404.14469">SnapKV</a> keeps the entries that received the most attention.</p>
+  <div class="table-wrap">
+    <table>
+      <caption><span class="label">Table 1.</span> How autoregressive video and world models keep context. Checked against each paper or its code.</caption>
+      <thead><tr><th>Work</th><th>What stays in context</th><th>How it is bounded</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://arxiv.org/abs/2506.08009">Self Forcing</a> (and <a href="https://arxiv.org/abs/2412.07772">CausVid</a>)</td><td>KV of the most recent frames</td><td>Rolling window, oldest evicted. Self Forcing’s code defaults to 21 latent frames and no sink</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2508.13009">Matrix-Game 2.0</a></td><td>Recent latents and action embeddings</td><td>Rolling window. A 6-latent cache beat a 9-latent one in its ablation; first frame not kept</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2505.13211">MAGI-1</a></td><td>Cached features of denoised chunks</td><td>A “KV range” (for example the last 8 seconds)</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2509.25161">Rolling Forcing</a>, <a href="https://arxiv.org/abs/2509.22622">LongLive</a>, <a href="https://arxiv.org/abs/2511.20649">Infinity-RoPE</a></td><td>First frames as a sink plus a short recent window</td><td>Sink + window, with position indices re-anchored</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2402.15391">Genie</a></td><td>The last 16 frames</td><td>Fixed context; later Genie versions’ memory is unpublished</td></tr>
+        <tr><td><a href="https://arxiv.org/abs/2504.12369">WorldMem</a>, <a href="https://arxiv.org/abs/2506.03141">Context-as-Memory</a>, <a href="https://arxiv.org/abs/2506.18903">VMem</a></td><td>A bank of past frames, keyed by camera pose, field of view or surfels</td><td>Retrieve the few past frames that overlap the target view</td></tr>
+        <tr><td><a href="https://github.com/naver-ai/seoul-world-model">Seoul World Model</a> (<a href="https://arxiv.org/abs/2603.15583">paper</a>)</td><td>The last 5 generated frames, re-encoded, plus retrieved street-view images warped to the camera and a retrieved look-ahead image</td><td>Chunk by chunk, with no KV cache carried between chunks. Memory comes from retrieval, not from a cache</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>What is missing.</strong> Video papers tune the window length on overall quality. None we found asks which cached entries a world model actually reads when it returns to a place, or checks that causally, or compares window and sink against score-based or random eviction at a matched budget.</p>
+  <p class="question-callout">What does a video world model keep in its KV cache, and what breaks when you evict it?</p>
+  <p><strong>What this note does.</strong> It trains a small model where every cache entry has a known map location, then measures revisit consistency under six policies. Its contributions:</p>
+  <ol>
+    <li>A measurement: revisit consistency is set entirely by coverage, with no partial credit and no memory outside the cache.</li>
+    <li>A ranking at matched budgets: attention-score eviction keeps the most places; the sliding window keeps fewer than random eviction does.</li>
+    <li>A mechanism, tested causally: one layer looks up the earlier view of the place, and hiding exactly those entries is enough to break the revisit.</li>
+    <li>A small harness (<a href="#reuse">Section 7</a>) for plugging in another cache policy or model.</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>The world.</strong> A 32 × 32 map of tiles, each one of 8 colours at random, with a new map in every episode, so nothing off-screen can be guessed. A camera sees 8 × 8 tiles and moves one patch (2 × 2 tiles) up, down, left or right per step. A frame is 16 patch tokens. An episode is 48 frames. The camera walks between waypoints, half of them places it has already been, so it often leaves a place and returns.</p>
+  <p><strong>The model.</strong> A 4-layer causal transformer (width 128, 4 heads, 0.81M parameters) generates each frame in one pass, the way causal video diffusion models generate a chunk. The frame’s 16 query tokens carry its camera position, the action and the frame index. They attend to the cached keys and values of all earlier frames and to each other. The generated frame is then encoded as 16 clean tokens and appended to the cache. Training uses the same attention pattern on whole episodes with teacher forcing (6,000 steps, about 13 minutes on an A10G). We give the model its camera position, as pose-conditioned memory models do, so the test is about the cache rather than about tracking position.</p>
+  <p><strong>Terms</strong>, used the same way throughout:</p>
+  <ul>
+    <li><strong>Gap</strong>: steps since a place was last in view. Gap 1 is a <em>shift</em> (the place was in the previous frame). Gap 2 or more is a <em>revisit</em>. A place never seen is <em>new</em>; nothing can predict it, and chance is 1/8 per tile.</li>
+    <li><strong>Revisit consistency</strong>: the fraction of revisit tiles drawn the same as when the place was last shown. In <em>observed</em> mode the cache holds the true frames, so this is one-step accuracy. In <em>dream</em> mode only frame 0 is true and the model’s own frames go back into the cache, so this is self-consistency over a free rollout.</li>
+    <li><strong>In cache</strong>: when the frame is drawn, some kept entry is an earlier view of that place. <strong>Coverage</strong> is the share of revisit tiles that are in cache.</li>
+  </ul>
+  <p><strong>Cache policies.</strong> The budget B is in frames (16 entries each), and every policy keeps the newest frame:</p>
+  <ul>
+    <li><strong>window</strong>: the last B frames.</li>
+    <li><strong>sink</strong>: frame 0 plus the last B−1.</li>
+    <li><strong>H2O-style</strong>: the last B/2 frames, then the older entries with the most accumulated attention, entry by entry.</li>
+    <li><strong>pool</strong>: the last B−1 frames, plus one mean key and value for each older frame.</li>
+    <li><strong>random</strong>: random older entries, the control.</li>
+  </ul>
+  <p>All are compared at B = 2, 4, 8 and 16; the full cache holds 47 frames when the last one is drawn.</p>
+  <p><strong>What counts as success</strong> (pre-registered): the full cache gives near-perfect revisits (≥ 0.95) and a window shorter than the gap falls to near chance, or the model never learned to use its memory; hiding the entries the model attends to hurts more than hiding as many random entries; and revisits with every view evicted sit at chance, or memory lives outside the cache.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Build and check</strong>: the step-by-step rollout with a KV cache matches the whole-sequence pass to 1e-6. One smoke training run (seed 9, 3,000 steps) was used only to check that training works.</li>
+    <li><strong>Pre-register</strong> the setup, 11 predictions with probabilities, the controls and the results that mean “no” (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>), committed before any model was evaluated.</li>
+    <li><strong>Train</strong> 3 models (seeds 1 to 3) and save an untrained one as a floor for dream mode.</li>
+    <li><strong>Evaluate</strong> each on the same 512 fresh episodes (a generator seed training never used): 21 policy-budget settings × 2 modes, attention attribution on 128 episodes, probes on 256, causal eviction on 256.</li>
+    <li><strong>Analyse</strong>: 95% bootstrap intervals resampling seeds and then episodes (4,000 draws); paired differences on the same draws.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any evaluation</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>World, model, training steps, seeds, policies, budgets, metrics, causal conditions, predictions</td><td>Nothing in the runs. After the results: Figure 1b (coverage against consistency) and the cover episode were added; both read the pre-registered outputs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: greedy decoding (argmax per tile); one NVIDIA A10G per run on Modal; 56 GPU-minutes in all, about $1.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="known-answer" data-short="Known-answer checks">4.1 Known-answer checks pass: the full cache is perfect, and a window forgets exactly what is older than itself</h3>
+  <p>With the full cache, revisit consistency is 1.000 [1.000, 1.000] on all 576,684 revisit tiles, at every gap up to 47 steps, in both modes. Shift tiles are 1.000 and new tiles 0.125, which is chance. The model has learned to redraw what it has seen and nothing more. A window of B frames keeps revisits perfect up to a gap of B and then drops to chance (Figure 2a). Window 8 scores 1.000 at gaps 4 to 7, 0.283 at gaps 8 to 15 (only gap 8 is still inside the window), and 0.125 at gaps 16 to 31.</p>
+  <figure class="plot">
+    <img src="figures/gap.png" alt="Two panels. Left: revisit consistency against gap bins 2-3, 4-7, 8-15, 16-31 and 32-47. The full cache is flat at 1.0. Window 16 is 1.0 up to 8-15 then 0.22 and 0.13; window 8 is 1.0 up to 4-7, then 0.28, then 0.125; window 4 is 1.0 at 2-3, 0.44 at 4-7, then 0.125. Right: at budget 8, five pairs of bars, one per policy: solid bars (place in cache) all at 1.0, hatched bars (not in cache) all at about 0.125." width="1536" height="624" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> A window forgets places older than itself, and no policy remembers a place it did not keep. <strong>a.</strong> Revisit consistency by gap for the full cache and three windows (observed mode). <strong>b.</strong> At B = 8, revisit tiles whose place had a cache entry (solid) or none (hatched). 3 seeds × 512 episodes; bars are 95% bootstrap intervals, mostly smaller than the line. Dotted line: chance.</figcaption>
+  </figure>
+
+  <h3 id="coverage" data-short="Coverage decides">4.2 A policy’s score is its coverage; H2O-style eviction keeps the most places, the sliding window fewer than random</h3>
+  <p>Across all 20 policy-budget pairs, revisits whose place was in cache scored 1.000 and those whose place was not scored 0.124 to 0.127 (Figure 2b). No policy gives partial credit, so revisit consistency is 0.125 + 0.875 × coverage to the third decimal (Figure 1b). Comparing policies is the same as asking which one keeps views of the places the camera will return to.</p>
+  <figure class="plot">
+    <img src="figures/budget.png" alt="Two panels. Left: revisit consistency against cache budget 2, 4, 8 and 16 frames for five policies, with the full cache as a dashed line at 1.0. At budget 8: H2O 0.76, random 0.70, sink 0.60, window 0.53, pool 0.48. At 16: random 0.92, H2O 0.91, sink 0.81, window 0.76, pool 0.74. Right: revisit consistency against coverage for all 20 policy-budget pairs; every point sits on the straight line from 0.125 at zero coverage to 1.0 at full coverage." width="1664" height="688" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Revisit consistency is set by how many revisited places each policy keeps a view of. <strong>a.</strong> Revisit consistency (observed mode) by budget and policy. Orange: the policies video models use. Ink: alternatives. Grey: random eviction, the control. <strong>b.</strong> The same 20 points against coverage; the grey line is “perfect where covered, chance elsewhere”. 3 seeds × 512 episodes; 95% bootstrap intervals are smaller than the markers.</figcaption>
+  </figure>
+  <p>At a budget of 8 frames:</p>
+  <ul>
+    <li><strong>H2O-style eviction</strong> keeps 73% of revisited places and scores 0.760 [0.749, 0.769]. That is 0.23 [0.22, 0.24] above the window and 0.06 [0.05, 0.07] above random.</li>
+    <li><strong>Random eviction</strong> scores 0.697. It beats the window at B = 4, 8 and 16, by 0.09 to 0.17, because scattered old entries cover more places than a block of recent frames.</li>
+    <li><strong>The sink</strong> adds 0.04 to 0.08 over the window at every budget. Frame 0 shows the area where the episode starts, and the camera often returns there. The gain is ordinary coverage: the sink’s in-cache revisits score 1.000 like everyone else’s.</li>
+    <li><strong>Pooling</strong> old frames into one mean entry each is worse than the window at every budget (−0.11 at B = 2, −0.05 at B = 8). The mean entries recover nothing, and pooling gives up one whole frame to make room.</li>
+  </ul>
+  <p>At B = 16, random (0.915) and H2O-style eviction (0.910) are level.</p>
+  <div class="cov-demo" id="cov-demo" aria-label="Coverage explorer">
+    <div class="row" role="group" aria-label="Policy">
+      <button type="button" data-k="window" aria-pressed="true">window</button>
+      <button type="button" data-k="sink" aria-pressed="false">sink</button>
+      <button type="button" data-k="h2o" aria-pressed="false">H2O</button>
+      <button type="button" data-k="pool" aria-pressed="false">pool</button>
+      <button type="button" data-k="random" aria-pressed="false">random</button>
+    </div>
+    <div class="row"><label for="cov-b">Budget B</label> <input id="cov-b" type="range" min="0" max="3" step="1" value="2"> <span class="out" id="cov-bv">8 frames</span></div>
+    <div class="out">coverage (revisited places still in the cache)</div>
+    <div class="bar"><span id="cov-c"></span></div>
+    <div class="out" id="cov-text"></div>
+  </div>
+
+  <h3 id="dream" data-short="Free rollouts">4.3 In a free rollout the same holds, and forgetting builds up over time</h3>
+  <p>When the model’s own frames go back into the cache, the full cache still gives 1.000 self-consistency. Covered revisits are still 1.000. Uncovered ones score about 0.25, near an untrained model’s 0.27, because repeated guesses sometimes agree with each other. The ranking is unchanged (Figure 3a). Errors build up as more places fall out of the cache. With B = 8, revisit error at the last frame is 0.52 for the window, 0.39 for random and 0.33 for H2O-style eviction (Figure 3b).</p>
+  <figure class="plot">
+    <img src="figures/dream.png" alt="Two panels. Left: dream-mode revisit self-consistency against budget for five policies, same order as Figure 1, with the full cache at 1.0 and the untrained model's floor at 0.27. Right: revisit error over the 48 frames of the rollout at budget 8: zero for the full cache; the window rises from frame 9 to about 0.5 by frame 47, random to about 0.4, H2O to about 0.33." width="1536" height="624" loading="lazy">
+    <figcaption><span class="label">Figure 3.</span> Free rollouts (dream mode) rank the policies the same way. <strong>a.</strong> Self-consistency at revisits by budget; dotted line: the untrained model’s self-consistency. <strong>b.</strong> Revisit error per frame at B = 8, averaged over 1,536 episodes. Error starts once the first revisit falls outside the cache (frame 9 for the window).</figcaption>
+  </figure>
+
+  <h3 id="attention" data-short="Attention finds the place">4.4 One layer looks up the earlier view of the place</h3>
+  <p>At revisit tokens with the full cache, layer 2 puts 0.988 of its attention on earlier views of that exact place (seed range 0.985 to 0.990). An even spread would give 0.015, 68 times less (Figure 4). The most attended entry is such a view for 100% of revisit tokens. Only 0.27 goes to the most recent view: the layer spreads its attention across all earlier views of the place, not the latest one. Layers 0 and 1 attend mostly to recent frames. Layer 3 reads the place’s views in some seeds and not others (0.03 to 0.30).</p>
+  <figure class="plot">
+    <img src="figures/attention.png" alt="Bar chart for layers 0 to 3. Attention on earlier views of the place: 0.02, 0.03, 0.99 and 0.20; the even-spread share is 0.015 for each. The fraction of revisit tokens whose top-attended entry is such a view: 0.04, 0.20, 1.00 and 0.84." width="1056" height="560" loading="lazy">
+    <figcaption><span class="label">Figure 4.</span> Layer 2 is a lookup by place. Mean attention, over heads and 11,823 revisit tokens per seed (128 episodes), on cache entries that are earlier views of the place being drawn (orange), against the share an even spread would give (grey); diamonds: how often the single most attended entry is such a view. Mean of 3 seeds; whiskers: seed range.</figcaption>
+  </figure>
+  <p>The cached keys carry the address that this lookup needs. A linear probe reads a token’s map location from layer 2 keys at 1.000 for both x and y (majority class 0.11). Layer 0 keys already give 0.96 and 0.98, since location is nearly a sum of input embeddings; the probe shows the address is there, the causal test shows it is used.</p>
+
+  <h3 id="causal" data-short="Causal eviction">4.5 Hiding exactly those entries breaks the revisit, and nothing else holds the memory</h3>
+  <p>In each of 256 episodes per seed we took the frame with the most revisits at gap 4 or more. Then we hid the cache entries that were earlier views of the revisited places, about 30 entries out of up to 752, spread over 11 frames on average (Figure 5).</p>
+  <ul>
+    <li><strong>Hidden views</strong> drop revisit consistency from 1.000 to 0.117 [0.111, 0.123], which is chance.</li>
+    <li><strong>The same number of random entries</strong> leave it at 1.000. The extra drop from hiding the views is 0.883 [0.877, 0.889].</li>
+    <li><strong>Whole frames</strong> behave the same way: the frames that hold the views give 0.123, and as many random frames give 1.000.</li>
+    <li><strong>Shift tiles</strong> in the same frame stay at 1.000, so the damage is specific to the hidden places.</li>
+  </ul>
+  <figure class="plot">
+    <img src="figures/causal.png" alt="Horizontal bars of revisit consistency at the target frame. Nothing hidden 1.00; random entries 1.00; most-attended entries 0.52; earlier views of the place 0.12; random whole frames 1.00; whole frames with those views 0.12; random entries hidden from creation 1.00; views hidden from creation 0.12. A dotted line marks chance at 0.125." width="1152" height="624" loading="lazy">
+    <figcaption><span class="label">Figure 5.</span> Removing the earlier views of a place, and nothing else, makes the model forget it. Revisit consistency at one target frame per episode (gap ≥ 4) when cache entries are hidden. Orange: views of the revisited places. Grey: the same number of random entries or frames. Light orange: the same number of the most-attended entries. “From creation”: also hidden from every later frame, so none could have copied them forward. 3 seeds × 256 episodes; 95% bootstrap intervals.</figcaption>
+  </figure>
+  <p><strong>The boring explanation, tested.</strong> Hiding the views only from the frame being drawn would miss memory copied forward. Later frames attend to their cache too, and their entries could carry an old view on (“cheating” through recent frames). Hiding the views from every later frame as well gives the same result, 0.116 against 0.117; the difference is 0.001 [−0.001, 0.003]. Nothing is carried forward. The views themselves are the memory, which is also why every uncovered revisit in Section 4.2 sits at chance.</p>
+  <p><strong>Hiding by attention.</strong> Hiding the same number of the most-attended entries, summed over all layers, gives only 0.522 [0.495, 0.552]. Those entries include 89% of the views. The 11% that escape are enough to keep about half of the revisits, because one surviving view of a place is all the model needs.</p>
+
+  <h3 id="cost" data-short="Memory and time">4.6 Memory falls with the budget; at this size, time per frame does not</h3>
+  <p>The full cache ends with 752 entries per layer (3.1 MB in fp32 here); budget 8 holds 128 (0.5 MB). Time per frame was 4.3 to 5.3 ms for every policy: a 0.8M-parameter model is bound by per-step overhead, so this toy says nothing about speed at video-model scale.</p>
+
+  <h3 id="predictions" data-short="Predictions scored">4.7 Predictions: 8 of 11 held</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Pre-registered prediction (probability)</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>1. Full cache ≥ 0.95 (0.85)</td><td>Held: 1.000</td></tr>
+        <tr><td>2. Out-of-window revisits ≤ 0.20 (0.65)</td><td>Held: 0.124 to 0.127</td></tr>
+        <tr><td>3. Sink within 0.02 of window (0.75)</td><td><strong>Failed</strong>: +0.04 to +0.08, through coverage of the start area</td></tr>
+        <tr><td>4. H2O-style beats window at B = 4 and 8, below full (0.6)</td><td>Held: +0.18 and +0.23</td></tr>
+        <tr><td>5. Pool within 0.05 of window (0.65)</td><td><strong>Failed</strong>: worse by 0.11 at B = 2 and 0.07 at B = 4</td></tr>
+        <tr><td>6. Random beats window at B = 4 (0.55)</td><td>Held: +0.09 [0.08, 0.09]</td></tr>
+        <tr><td>7. A layer puts ≥ 5× the even share on views; top entry a view ≥ 50% (0.8)</td><td>Held: 68×, 100%</td></tr>
+        <tr><td>8. Location decodable from some layer’s keys ≥ 0.9 (0.7)</td><td>Held: 1.000</td></tr>
+        <tr><td>9a. Hiding views drops ≥ 0.3 more than random (0.8)</td><td>Held: 0.88 more</td></tr>
+        <tr><td>9b. Hiding most-attended drops at least as much (0.5)</td><td><strong>Failed</strong>: 0.52 against 0.12</td></tr>
+        <tr><td>10. No relay: from creation ≤ 0.20, current frame only ≤ 0.30 (0.6)</td><td>Held: 0.116 and 0.117</td></tr>
+        <tr><td>11. Dream mode, full cache ≥ 0.9 (0.7)</td><td>Held: 1.000</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="implications" data-short="Implications"><span class="num">05</span>Implications</h2>
+  <p>If a video world model is meant to stay consistent when you come back to a place, its consistency at a given memory budget is decided by which views its cache keeps. A recent-frames window is close to the worst choice for that, and attention scores are a useful but imperfect guide. It also makes failures auditable: a wrong revisit traces to one evicted entry, not to the weights.</p>
+  <p><strong>Recommendation: report revisit consistency split by whether the place was still in the cache. If the in-cache score is near perfect, compare eviction policies by coverage alone.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">06</span>What this does and does not show</h2>
+  <ul>
+    <li><strong>A toy, built to make memory exact.</strong> Random tiles, a given camera position, 0.81M parameters. Real video models compress and hallucinate, so their in-cache revisits will not be perfect; the recommended split measures by how much.</li>
+    <li><strong>Training-free eviction only.</strong> Models trained with a rolling cache, as Self Forcing is, may learn to carry memory forward; this one never needed to.</li>
+    <li><strong>One walk pattern.</strong> Half of the waypoints return to earlier positions; the sink’s gain and H2O’s lead depend on that.</li>
+    <li><strong>No real video model.</strong> The open causal video models we found (Self Forcing, CausVid) take text or an image, not camera actions, so a revisit is not defined for them; the action-conditioned ones need a larger setup than this toy, so we skipped that test.</li>
+  </ul>
+
+  <h2 id="reuse" data-short="Reuse it"><span class="num">07</span>Reuse it</h2>
+  <p>The harness is about 450 lines of PyTorch (<a href="../wm_core.py">wm_core.py</a>). A policy is a branch of <code>apply_policy</code> that edits the cache’s <code>keep</code> mask after each frame is appended. Each entry carries its frame index, its map location (used only for scoring) and the attention it has received so far. To try your own:</p>
+<pre><code>from wm_core import Policy, rollout
+from evaluate import episodes, load, score_rollout
+
+model, _ = load("results/ckpt_s1.pt", "cpu")
+tiles, pose, act, loc, gap = episodes(64, 48, 77, "cpu")
+r = rollout(model, tiles, pose, act, loc, Policy("window", budget=8), mode="observed")
+s = score_rollout(r, loc, gap)  # per-episode [hits, tiles]: revisit, revisit_in, revisit_out, gap bins
+</code></pre>
+  <p>To test a real model the same way, you need three things:</p>
+  <ul>
+    <li>a camera path that comes back to places;</li>
+    <li>the map location each cache entry shows (from the camera pose and the patch);</li>
+    <li>a per-patch consistency score at the revisits.</li>
+  </ul>
+  <p>Then split the score by whether a view of the place was still in the cache. The two halves tell you how much of the model’s inconsistency is eviction and how much is the model itself.</p>
+
+  <h2 id="reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><code>reproduce.sh</code> runs every step (training and evaluation on Modal, about 16 A10G-minutes per seed; analysis, figures and cover locally); <code>--dry-run</code> prints the commands and <code>--scores</code> redraws from <code>results/</code>, which includes the trained weights.</p>
+
+  <h2 id="next" data-short="What's next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li>Train with a rolling cache and check whether the model learns to carry places forward.</li>
+    <li>A retrieval policy that keeps entries by camera pose, like WorldMem’s, at the same budget. Coverage predicts it matches the full cache whenever it finds the view.</li>
+    <li>Run the split on an action-conditioned open model with a KV cache, such as Matrix-Game 2.0, with a scripted path that returns to its start.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="q1">What does a video world model store in its KV cache?</h3>
+  <p>In this toy, the cache is the whole memory of places. One attention layer looks up the earlier view of the place being drawn, and the cached keys encode each entry’s map location. When every view of a place is evicted, the model draws it at chance; no copy of it exists elsewhere.</p>
+  <h3 id="q2">Is a sliding-window KV cache good for world-model consistency?</h3>
+  <p>Not for revisits. At 8 of 48 frames, a window kept views of 46% of revisited places and scored 0.53, below random eviction (0.70) and attention-score eviction (0.76). It is perfect only for places seen within the window.</p>
+  <h3 id="q3">Does Seoul World Model use a KV cache?</h3>
+  <p>Not across chunks, according to its released code and paper. It generates chunk by chunk, conditions each chunk on the last 5 generated frames, and retrieves nearby street-view images warped to the camera, plus a retrieved look-ahead image. Its memory of the city comes from retrieval rather than a long cache.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>results/eval_s{1,2,3}.json</code>: one seed’s evaluation, with per-episode hits and tiles for every policy, budget, mode and gap bin, plus attention, probes, causal conditions and timing. Fields in <a href="../README.md#data">README.md</a>.</li>
+    <li><code>results/summary.json</code>: every number in this note with its 95% interval (<code>rate</code>, <code>lo</code>, <code>hi</code>, <code>tiles</code>), and the paired differences.</li>
+    <li><code>results/ckpt_s{1,2,3}.pt</code>, <code>results/ckpt_untrained_s1.pt</code>: weights and training logs; <code>results/eval_untrained_s1.json</code>: the dream-mode floor.</li>
+    <li><code>results/gpu_ledger.jsonl</code>: every Modal job, its minutes and cost; <code>results/figures_printout.txt</code>: every number the figures plot.</li>
+  </ul>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Design</th><td>Synthetic world with exact ground truth; same trained model under every cache policy; pre-registered predictions</td></tr>
+        <tr><th scope="row">Model</th><td>Causal transformer generating a frame per pass from a KV cache of clean frames (teacher-forced training)</td></tr>
+        <tr><th scope="row">Interpretability</th><td>Attention attribution to cache entries; linear probes on cached keys and values; causal eviction (masking) of chosen entries</td></tr>
+        <tr><th scope="row">Controls</th><td>Random eviction at matched size (policies, entries, whole frames); even-spread attention share; majority-class probe; untrained model</td></tr>
+        <tr><th scope="row">Statistics</th><td>Bootstrap over seeds then episodes (4,000 draws); paired differences on the same draws</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Code</th><td>PyTorch 2.4, scikit-learn 1.5, matplotlib</td></tr>
+        <tr><th scope="row">Compute</th><td>Modal, NVIDIA A10G; 56 GPU-minutes, about $1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 27, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026wmkvcache,
+  author = {Albert Lie},
+  title  = {A toy video world model redraws a place exactly when one cached view of it survives eviction},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/wm-kv-cache/report/}
+}</code></pre>
+  <footer class="note">Related: <a href="https://github.com/albertlieyingadrian/steerlab/tree/main/experiments/world-model-physics/part18">build-your-own 2D world model</a> (the course chapter behind Episode 1) and <a href="../../image-to-video-eval/report/">judging image-to-video models</a>, where VBench’s consistency scores prefer a frozen photo.</footer>
+</article>
+</div>
+<script>
+(() => {
+  // Coverage and revisit consistency (observed mode, 3 seeds) from results/summary.json.
+  const D = {"window":[[0.129,0.238],[0.257,0.349],[0.46,0.527],[0.727,0.761]],"sink":[[0.2,0.299],[0.348,0.429],[0.546,0.602],[0.778,0.806]],"h2o":[[0.204,0.303],[0.467,0.533],[0.725,0.76],[0.897,0.91]],"pool":[[0.0,0.127],[0.173,0.278],[0.407,0.482],[0.698,0.736]],"random":[[0.133,0.241],[0.354,0.435],[0.654,0.697],[0.903,0.915]]};
+  const B = [2, 4, 8, 16];
+  const box = document.getElementById("cov-demo");
+  if (!box) return;
+  const slider = box.querySelector("#cov-b");
+  let k = "window";
+  const draw = () => {
+    const i = +slider.value, [c, s] = D[k][i];
+    box.querySelector("#cov-bv").textContent = B[i] + " frames";
+    box.querySelector("#cov-c").style.width = (100 * c).toFixed(1) + "%";
+    box.querySelector("#cov-text").textContent =
+      `${(100 * c).toFixed(1)}% of revisited places kept · revisit consistency ${s.toFixed(3)} · ` +
+      `0.125 + 0.875 × coverage = ${(0.125 + 0.875 * c).toFixed(3)}`;
+  };
+  box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    k = b.dataset.k;
+    box.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    draw();
+  }));
+  slider.addEventListener("input", draw);
+  draw();
+})();
+</script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
