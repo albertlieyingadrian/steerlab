@@ -17,8 +17,8 @@ that attribute in the Latest view. A note with `"coming_soon": true` is a teaser
 opening behind a "Full note coming soon" block, see `.cs-gate` in report.css): its rows in the Latest and series views
 get a "Coming soon" tag, and it may not have `pin_day` or a Start-here pin. Edit `notes.json`, then rerun; never edit
 the blocks by hand.
-A note with `"versions"` (a list of [label, path] pairs, such as [["Version A", "report/"], ["Version B", "report-v2/"]])
-gets a line under its Latest row linking each write-up; its series card carries the same line by hand.
+A note with `"versions"` (a list of [label, path] pairs, such as [["Version A", "report/"], ["Version B",
+"report-v2/"]]) gets a line under its Latest row linking each write-up; its series card carries the same line by hand.
 """
 
 from __future__ import annotations
@@ -241,7 +241,9 @@ def versions(note: dict) -> str:
     """Links to each write-up of a note that has more than one ("versions": [[label, path under the note], ...])."""
     if not note.get("versions"):
         return ""
-    links = " · ".join(f'<a href="{note["name"]}/{attr(path)}">{html.escape(label)}</a>' for label, path in note["versions"])
+    links = " · ".join(
+        f'<a href="{note["name"]}/{attr(path)}">{html.escape(label)}</a>' for label, path in note["versions"]
+    )
     return f'<p class="lg-versions">Two write-ups: {links}</p>'
 
 
