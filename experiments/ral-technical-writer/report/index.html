@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>At 4B, RAL’s gain on held-out judges came from writing longer, after its own judge starved it for 150 steps</title>
+<meta name="description" content="A replication of Reinforced Adversarial Learning with a Qwen3-4B writer and a co-trained Qwen3-8B judge on recent NIH grant abstracts. Two held-out judges were fooled by RAL 22-28% of the time against 19% for the untrained model, but they reward length, and at equal length no method beat the untrained model; the co-trained judge left the reward near zero for most of training after catching a markdown trick.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="At 4B, RAL&#x27;s gain on held-out judges came from writing longer, after its own judge starved it for 150 steps">
+<meta property="og:description" content="Model voice E10, pre-registered: a small-scale replication of Reinforced Adversarial Learning, a Qwen3-4B writer trained against a co-trained Qwen3-8B judge on recent NIH grant abstracts. Two held-out judges were fooled by RAL 22-28% of the time against 19% for the untrained model, but they reward length, and at equal length no method beat the untrained model; the co-trained judge left the writer&#x27;s reward near zero for most of training after catching a markdown trick.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Cover: left, the training reward of the frozen-judge run (blue) climbing to 0.88 and of two RAL seeds (orange) collapsing to zero by step 40, one returning at step 190; right, bars of how often two held-out judges were fooled per source, from 0.04 for SFT to 0.28 for RAL seed 1, with a note that at equal length no source beats the untrained model.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="At 4B, RAL&#x27;s gain on held-out judges came from writing longer, after its own judge starved it for 150 steps">
+<meta name="twitter:description" content="Model voice E10, pre-registered: a small-scale replication of Reinforced Adversarial Learning, a Qwen3-4B writer trained against a co-trained Qwen3-8B judge on recent NIH grant abstracts. Two held-out judges were fooled by RAL 22-28% of the time against 19% for the untrained model, but they reward length, and at equal length no method beat the untrained model; the co-trained judge left the writer&#x27;s reward near zero for most of training after catching a markdown trick.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-27">
+<meta property="article:modified_time" content="2026-11-27">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "At 4B, RAL's gain on held-out judges came from writing longer, after its own judge starved it for 150 steps",
+ "description": "Model voice E10, pre-registered: a small-scale replication of Reinforced Adversarial Learning, a Qwen3-4B writer trained against a co-trained Qwen3-8B judge on recent NIH grant abstracts. Two held-out judges were fooled by RAL 22-28% of the time against 19% for the untrained model, but they reward length, and at equal length no method beat the untrained model; the co-trained judge left the writer's reward near zero for most of training after catching a markdown trick.",
+ "abstract": "Model voice series, Episode 10 (pre-registered). Replicates Edison Scientific's RAL (arXiv 2610.38851) at small scale: Qwen3-4B generator (reasoning on) and Qwen3-8B judge, LoRA r32, one H100, 200 steps x 128 rollouts, Edison's NIH prompt; judge gate 0.75, replay 0.5, Polyak target 0.95; both arms start from a warm judge J_start (dev accuracy 0.75). Reference set: NIH RePORTER FY2026 new research grants (R01, R21, R03, R15, R34, R61, U01, R37), cleaned and deduplicated, 6,304 of 8,479; train 3,476, held-out 200 from September 2026. Held-out judges with known-answer bars: gpt-oss-120b (base 0.223, mismatch 0.207) and GLM-4.5-Air (0.147, 0.102) pass; Gemma-3-27B and Phi-4 fail. Fooling (mean of the two, both orders): untrained 0.185, 3-shot Qwen3-4B 0.214, 3-shot Llama-3.3-70B 0.229, SFT 0.038, frozen-judge control 0.250, RAL seed 0 0.224 (paired +0.039 [+0.009, +0.070]), RAL seed 1 0.275, lab humanizer 0.180 (100 titles), StealthGPT 0.188 (16 titles). Length: pooled fooling 0.18 near the real length, 0.39 at over twice it; at equal length RAL -0.059 [-0.132, +0.019], seed 1 -0.008, frozen -0.031, Llama -0.026, SFT -0.215 (post hoc). Both RL arms put a bold markdown header on every answer by step 25; RAL's judge reached accuracy 1.00 by step 29-31, the gate skipped 165 and 171 of 200 updates, and the reward stayed near zero for 156 and 161 steps; seed 0 escaped at step 190 by deleting the bold, seed 1 never did and wrote 696-word abstracts. StealthGPT kept 83% of technical terms and moved Pangram from 0 to 11 of 16 human; Pangram labelled 22/30 references human and every model abstract AI except SFT (7/30). Predictions 0 of 6. Cost $140.85 (Modal $94.98, Pangram $37.23, StealthGPT $8.64).",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-27",
+ "dateModified": "2026-11-27",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "Reinforced Adversarial Learning, adversarial imitation learning, learned reward, LLM judge, length bias, reward hacking, GRPO, scientific writing, NIH grant abstracts, AI text detection, humanizer, Pangram, StealthGPT, Qwen3-4B, Qwen3-8B, gpt-oss-120b, GLM-4.5-Air, LoRA, pre-registration, steerlab",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2610.38851"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://advances.edisonscientific.com/research/reinforced-adversarial-learning/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/EdisonScientific/prime-rl-adversarial-paper"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://reporter.nih.gov/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.pangram.com/"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://docs.stealthgpt.ai/"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<style>
+.qz-item { border-top: 1px solid var(--rule); padding: 0.9rem 0 0.6rem; }
+.qz-title { font-family: var(--font-display); font-size: 1rem; margin: 0 0 0.5rem; }
+.qz-n { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-meta); margin-right: 0.5rem; }
+.qz-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.75rem; }
+@media (max-width: 760px) { .qz-pair { grid-template-columns: minmax(0, 1fr); } }
+.qz-card { all: unset; box-sizing: border-box; cursor: pointer; display: block; border: 1px solid var(--rule); border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.84rem; line-height: 1.5; color: var(--ink); background: var(--bg); max-height: 15rem; overflow: auto; }
+.qz-card:focus-visible { outline: 2px solid var(--control); }
+.qz-card:hover { border-color: var(--control); }
+.qz-tag { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-meta); margin-bottom: 0.25rem; }
+.qz-item .qz-answer { font-size: 0.84rem; color: var(--ink-soft); margin: 0.5rem 0 0; }
+.qz-on .qz-item:not(.qz-done) .qz-answer { visibility: hidden; }
+.qz-done .qz-card.qz-real { border-color: var(--ink); border-width: 2px; }
+.qz-done .qz-card.qz-wrong { opacity: 0.75; }
+.qz-score { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-soft); }
+</style>
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-27">Nov 27, 2026</time></p>
+  <h1>At 4B, RAL’s gain on held-out judges came from writing longer, after its own judge starved it for 150 steps</h1>
+  <p class="dek ruled">For people training writers against learned judges, and for anyone scoring them with LLM judges. We rebuilt Edison Scientific’s Reinforced Adversarial Learning with a 4B writer and an 8B judge on recent NIH grant abstracts. Both runs first learned a bold markdown header their starting judge liked; the co-trained judge caught it, and the writer’s reward then sat near zero for most of training. On two held-out judges RAL gained 4 to 9 points over the untrained model, but those judges favour longer abstracts, and at equal length no method beat the untrained model.</p>
+  <figure class="hero whole">
+    <!-- cover:start -->
+    <svg class="ral-cover" viewBox="0 0 880 495" width="880" height="495" role="img" aria-label="Left: the training reward of the RAL run and of the frozen-judge control over 200 steps, each scored by its own judge. Right: the share of verdicts in which the held-out judges named the real abstract as the AI one, per source (mean of gpt-oss-120b and GLM-4.5-Air), on 200 held-out titles; 0.5 means they cannot tell." style="display:block;width:100%;height:auto" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="880" height="495" rx="0" fill="#faf6ef" stroke="none" stroke-width="1"/><text x="20" y="24" fill="#a85a22" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800" letter-spacing="0.09em">RAL AT SMALL SCALE · NIH GRANT ABSTRACTS</text><text x="860" y="24" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:600" text-anchor="end" letter-spacing="0.06em">A REPLICATION</text><text x="20" y="62" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:21px;font-weight:800">A 4B RAL writer: starved by its judge, then longer</text><rect x="20" y="84" width="400" height="330" rx="6" fill="#ffffff" stroke="#e3dbd0" stroke-width="1"/><text x="34" y="106" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">TRAINING REWARD: EACH ARM&#x27;S OWN JUDGE</text><path d="M34,370.0 H394" stroke="#e3dbd0" stroke-width="1"/><text x="398" y="373" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:500">0.0</text><path d="M34,245.0 H394" stroke="#e3dbd0" stroke-width="1"/><text x="398" y="248.0" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:500">0.5</text><path d="M34,120.0 H394" stroke="#e3dbd0" stroke-width="1"/><text x="398" y="123" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:500">1.0</text><polyline points="35.8,273.2 37.6,271.5 39.4,271.9 41.2,269.5 43.0,268.4 44.8,268.6 46.6,267.6 48.4,265.5 50.2,264.0 52.0,261.7 53.8,259.2 55.6,255.1 57.4,250.0 59.2,246.0 61.0,240.8 62.8,235.1 64.6,229.3 66.4,223.7 68.2,217.0 70.0,211.5 71.8,205.1 73.6,202.0 75.4,198.6 77.2,195.2 79.0,193.2 80.8,191.8 82.6,190.9 84.4,191.0 86.2,191.9 88.0,193.1 89.8,194.0 91.6,192.8 93.4,192.6 95.2,191.4 97.0,190.2 98.8,188.5 100.6,186.4 102.4,184.4 104.2,182.3 106.0,180.5 107.8,178.8 109.6,177.9 111.4,177.0 113.2,177.0 115.0,176.4 116.8,175.6 118.6,175.5 120.4,175.5 122.2,175.5 124.0,174.7 125.8,174.0 127.6,173.4 129.4,172.4 131.2,171.6 133.0,171.3 134.8,171.8 136.6,171.3 138.4,170.8 140.2,170.3 142.0,170.2 143.8,169.9 145.6,169.6 147.4,169.7 149.2,169.5 151.0,168.9 152.8,167.6 154.6,167.5 156.4,167.6 158.2,166.8 160.0,166.5 161.8,166.7 163.6,166.5 165.4,166.4 167.2,166.0 169.0,166.9 170.8,166.7 172.6,166.9 174.4,166.9 176.2,167.2 178.0,167.1 179.8,166.5 181.6,166.3 183.4,166.2 185.2,166.1 187.0,165.4 188.8,165.3 190.6,165.1 192.4,164.5 194.2,164.3 196.0,163.7 197.8,163.5 199.6,163.2 201.4,162.6 203.2,162.4 205.0,162.0 206.8,161.9 208.6,161.6 210.4,161.4 212.2,161.0 214.0,161.3 215.8,161.0 217.6,160.8 219.4,160.7 221.2,160.6 223.0,160.3 224.8,159.9 226.6,159.2 228.4,158.6 230.2,159.2 232.0,158.6 233.8,158.7 235.6,158.7 237.4,158.8 239.2,158.6 241.0,157.9 242.8,157.8 244.6,157.6 246.4,157.7 248.2,157.0 250.0,157.1 251.8,156.7 253.6,156.7 255.4,156.3 257.2,156.7 259.0,157.0 260.8,156.5 262.6,156.8 264.4,156.5 266.2,156.4 268.0,155.9 269.8,156.7 271.6,156.2 273.4,156.1 275.2,155.7 277.0,155.7 278.8,156.0 280.6,155.7 282.4,155.7 284.2,155.9 286.0,156.0 287.8,155.2 289.6,155.4 291.4,155.2 293.2,154.9 295.0,154.8 296.8,154.6 298.6,154.3 300.4,154.3 302.2,153.8 304.0,153.8 305.8,153.7 307.6,153.3 309.4,153.3 311.2,152.9 313.0,152.4 314.8,152.9 316.6,153.1 318.4,152.6 320.2,152.4 322.0,152.4 323.8,152.4 325.6,152.4 327.4,152.1 329.2,152.6 331.0,152.9 332.8,152.1 334.6,151.9 336.4,152.1 338.2,151.8 340.0,151.4 341.8,151.1 343.6,150.9 345.4,150.9 347.2,150.9 349.0,150.3 350.8,150.0 352.6,150.2 354.4,150.2 356.2,150.4 358.0,150.6 359.8,150.9 361.6,150.5 363.4,150.3 365.2,150.1 367.0,150.5 368.8,150.6 370.6,150.2 372.4,149.9 374.2,149.9 376.0,149.8 377.8,149.3 379.6,149.6 381.4,149.9 383.2,149.9 385.0,149.9 386.8,149.9 388.6,149.9 390.4,149.9 392.2,149.9 394.0,149.9" fill="none" stroke="#3f6fb0" stroke-width="2.2" stroke-linejoin="round"/><text x="390" y="143.87805073663017" fill="#3f6fb0" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700" text-anchor="end">frozen judge</text><polyline points="35.8,278.4 37.6,274.7 39.4,272.6 41.2,270.8 43.0,267.7 44.8,267.0 46.6,266.4 48.4,265.9 50.2,264.4 52.0,262.3 53.8,258.7 55.6,255.3 57.4,252.9 59.2,249.6 61.0,247.5 62.8,244.3 64.6,241.0 66.4,236.1 68.2,232.4 70.0,229.8 71.8,227.6 73.6,227.2 75.4,227.4 77.2,230.6 79.0,235.5 80.8,242.7 82.6,251.8 84.4,263.8 86.2,276.5 88.0,290.4 89.8,304.4 91.6,317.6 93.4,329.7 95.2,340.1 97.0,348.6 98.8,355.2 100.6,360.1 102.4,363.8 104.2,366.5 106.0,367.9 107.8,368.9 109.6,369.3 111.4,369.6 113.2,369.7 115.0,369.9 116.8,370.0 118.6,370.0 120.4,370.0 122.2,370.0 124.0,370.0 125.8,370.0 127.6,370.0 129.4,370.0 131.2,370.0 133.0,370.0 134.8,370.0 136.6,370.0 138.4,370.0 140.2,370.0 142.0,370.0 143.8,370.0 145.6,370.0 147.4,370.0 149.2,370.0 151.0,370.0 152.8,370.0 154.6,370.0 156.4,370.0 158.2,370.0 160.0,370.0 161.8,370.0 163.6,370.0 165.4,370.0 167.2,370.0 169.0,370.0 170.8,370.0 172.6,370.0 174.4,370.0 176.2,370.0 178.0,370.0 179.8,370.0 181.6,370.0 183.4,370.0 185.2,370.0 187.0,370.0 188.8,370.0 190.6,370.0 192.4,370.0 194.2,370.0 196.0,370.0 197.8,370.0 199.6,370.0 201.4,370.0 203.2,370.0 205.0,370.0 206.8,370.0 208.6,370.0 210.4,370.0 212.2,370.0 214.0,370.0 215.8,370.0 217.6,370.0 219.4,370.0 221.2,370.0 223.0,370.0 224.8,370.0 226.6,370.0 228.4,370.0 230.2,370.0 232.0,370.0 233.8,370.0 235.6,370.0 237.4,370.0 239.2,370.0 241.0,370.0 242.8,370.0 244.6,370.0 246.4,370.0 248.2,370.0 250.0,370.0 251.8,370.0 253.6,370.0 255.4,370.0 257.2,370.0 259.0,370.0 260.8,370.0 262.6,370.0 264.4,370.0 266.2,370.0 268.0,370.0 269.8,370.0 271.6,370.0 273.4,370.0 275.2,370.0 277.0,370.0 278.8,370.0 280.6,370.0 282.4,370.0 284.2,370.0 286.0,370.0 287.8,370.0 289.6,370.0 291.4,370.0 293.2,370.0 295.0,370.0 296.8,370.0 298.6,370.0 300.4,370.0 302.2,370.0 304.0,370.0 305.8,370.0 307.6,370.0 309.4,370.0 311.2,370.0 313.0,370.0 314.8,370.0 316.6,370.0 318.4,370.0 320.2,370.0 322.0,370.0 323.8,370.0 325.6,370.0 327.4,370.0 329.2,370.0 331.0,370.0 332.8,370.0 334.6,370.0 336.4,370.0 338.2,370.0 340.0,370.0 341.8,370.0 343.6,370.0 345.4,370.0 347.2,370.0 349.0,370.0 350.8,370.0 352.6,370.0 354.4,370.0 356.2,370.0 358.0,370.0 359.8,370.0 361.6,370.0 363.4,370.0 365.2,370.0 367.0,370.0 368.8,370.0 370.6,370.0 372.4,370.0 374.2,370.0 376.0,370.0 377.8,370.0 379.6,370.0 381.4,370.0 383.2,370.0 385.0,370.0 386.8,370.0 388.6,370.0 390.4,370.0 392.2,370.0 394.0,370.0" fill="none" stroke="#e89a6a" stroke-width="2.2" stroke-linejoin="round"/><polyline points="35.8,276.2 37.6,275.1 39.4,277.5 41.2,276.4 43.0,274.7 44.8,272.8 46.6,270.6 48.4,268.6 50.2,267.3 52.0,265.2 53.8,260.8 55.6,256.8 57.4,251.1 59.2,244.3 61.0,237.0 62.8,228.4 64.6,221.5 66.4,216.8 68.2,211.4 70.0,208.7 71.8,210.6 73.6,213.2 75.4,220.1 77.2,231.6 79.0,245.5 80.8,262.3 82.6,279.2 84.4,295.2 86.2,311.5 88.0,326.4 89.8,338.2 91.6,349.2 93.4,356.7 95.2,361.7 97.0,365.3 98.8,367.8 100.6,369.1 102.4,369.4 104.2,369.8 106.0,369.8 107.8,369.9 109.6,370.0 111.4,370.0 113.2,370.0 115.0,370.0 116.8,370.0 118.6,370.0 120.4,370.0 122.2,370.0 124.0,370.0 125.8,370.0 127.6,370.0 129.4,370.0 131.2,370.0 133.0,370.0 134.8,370.0 136.6,370.0 138.4,370.0 140.2,370.0 142.0,370.0 143.8,370.0 145.6,370.0 147.4,370.0 149.2,370.0 151.0,370.0 152.8,370.0 154.6,370.0 156.4,370.0 158.2,370.0 160.0,370.0 161.8,370.0 163.6,370.0 165.4,370.0 167.2,370.0 169.0,370.0 170.8,370.0 172.6,370.0 174.4,370.0 176.2,370.0 178.0,370.0 179.8,370.0 181.6,370.0 183.4,370.0 185.2,370.0 187.0,370.0 188.8,370.0 190.6,370.0 192.4,370.0 194.2,370.0 196.0,370.0 197.8,370.0 199.6,370.0 201.4,370.0 203.2,370.0 205.0,370.0 206.8,370.0 208.6,370.0 210.4,370.0 212.2,370.0 214.0,370.0 215.8,370.0 217.6,370.0 219.4,370.0 221.2,370.0 223.0,370.0 224.8,370.0 226.6,370.0 228.4,370.0 230.2,370.0 232.0,370.0 233.8,370.0 235.6,370.0 237.4,370.0 239.2,370.0 241.0,369.8 242.8,369.8 244.6,369.8 246.4,369.8 248.2,369.8 250.0,369.8 251.8,369.8 253.6,369.8 255.4,369.8 257.2,369.8 259.0,370.0 260.8,370.0 262.6,370.0 264.4,370.0 266.2,370.0 268.0,370.0 269.8,370.0 271.6,370.0 273.4,370.0 275.2,369.9 277.0,369.9 278.8,369.9 280.6,369.9 282.4,369.9 284.2,369.9 286.0,369.7 287.8,369.6 289.6,369.6 291.4,369.4 293.2,369.3 295.0,369.3 296.8,369.3 298.6,369.2 300.4,369.1 302.2,368.9 304.0,369.1 305.8,369.1 307.6,369.1 309.4,369.0 311.2,369.3 313.0,369.3 314.8,369.1 316.6,369.1 318.4,369.1 320.2,369.3 322.0,369.2 323.8,369.4 325.6,369.4 327.4,369.6 329.2,369.6 331.0,369.6 332.8,369.8 334.6,369.8 336.4,369.8 338.2,369.7 340.0,369.2 341.8,369.0 343.6,368.9 345.4,368.9 347.2,368.7 349.0,368.6 350.8,368.4 352.6,368.2 354.4,368.4 356.2,368.5 358.0,368.9 359.8,369.0 361.6,369.0 363.4,368.9 365.2,369.0 367.0,369.0 368.8,369.0 370.6,369.1 372.4,368.8 374.2,368.5 376.0,367.6 377.8,366.2 379.6,361.3 381.4,355.8 383.2,347.2 385.0,334.7 386.8,323.7 388.6,311.4 390.4,297.0 392.2,285.2 394.0,271.7" fill="none" stroke="#d26f2a" stroke-width="2.2" stroke-linejoin="round"/><text x="390" y="265.67366712380624" fill="#d26f2a" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:700" text-anchor="end">RAL, 2 seeds</text><text x="34" y="388" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:500">step 0</text><text x="394" y="388" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:500" text-anchor="end">200</text><text x="450" y="106" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:700" letter-spacing="0.08em">HELD-OUT JUDGES FOOLED (gpt-oss-120b + GLM-4.5-Air, 200 titles)</text><text x="450" y="132" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Qwen3-4B, untrained</text><rect x="600" y="122" width="88.8" height="13" rx="0" fill="#9a948c" stroke="none" stroke-width="1"/><text x="694.8" y="132.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.18</text><text x="450" y="156" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Qwen3-4B, 3-shot</text><rect x="600" y="146" width="102.576" height="13" rx="0" fill="#9a948c" stroke="none" stroke-width="1"/><text x="708.576" y="156.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.21</text><text x="450" y="180" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">Llama-3.3-70B, 3-shot</text><rect x="600" y="170" width="109.824" height="13" rx="0" fill="#9a948c" stroke="none" stroke-width="1"/><text x="715.824" y="180.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.23</text><text x="450" y="204" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">SFT on the references</text><rect x="600" y="194" width="18.0" height="13" rx="0" fill="#9a948c" stroke="none" stroke-width="1"/><text x="624.0" y="204.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.04</text><text x="450" y="228" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">RL vs a frozen judge</text><rect x="600" y="218" width="120.0" height="13" rx="0" fill="#3f6fb0" stroke="none" stroke-width="1"/><text x="726.0" y="228.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.25</text><text x="450" y="252" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">RAL, seed 0</text><rect x="600" y="242" width="107.424" height="13" rx="0" fill="#d26f2a" stroke="none" stroke-width="1"/><text x="713.424" y="252.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.22</text><text x="450" y="276" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:500">RAL, seed 1 (696 words)</text><rect x="600" y="266" width="132.0" height="13" rx="0" fill="#e89a6a" stroke="none" stroke-width="1"/><text x="738.0" y="276.5" fill="#1d1a17" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10px;font-weight:600">0.28</text><path d="M840,120 V288" stroke="#7a7065" stroke-dasharray="3 3" stroke-width="1"/><text x="840" y="300" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:8.5px;font-weight:500" text-anchor="end">0.5 = cannot tell</text><text x="450" y="328" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:700">At equal length, no source beats the untrained model:</text><text x="450" y="346" fill="#5a5048" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:10.5px;font-weight:400">the judges are fooled 0.18 near the real length, 0.39 at over twice it.</text><path d="M20,468 H860" stroke="#e3dbd0" stroke-width="1"/><text x="20" y="484" fill="#7a7065" style="font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Helvetica,Arial,sans-serif;font-size:9.5px;font-weight:500" letter-spacing="0.05em">QWEN3-4B GENERATOR · QWEN3-8B JUDGE · LORA · 200 STEPS x 128 ROLLOUTS · NIH FY2026 REFERENCES</text></svg>
+    <!-- cover:end -->
+    <figcaption>Cover, drawn from <code>results/runs/</code> and <code>results/summary.json</code>. Left: each RL run’s training reward over 200 steps, as scored by its own judge (10-step average); the frozen-judge run (blue) climbs and stays; both RAL seeds (orange) collapse near zero by step 40, and only seed 0 comes back, at step 190. Right: how often the two held-out judges named the real abstract as the AI one, per source, on 200 held-out titles; 0.5 would mean they cannot tell. Seed 1, the longest writer, scores highest.</figcaption>
+  </figure>
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Lineage</dt><dd>Replicates Edison Scientific’s Reinforced Adversarial Learning (<a href="https://arxiv.org/abs/2610.38851">Learning to Reason from Reference Samples Alone</a>; <a href="https://advances.edisonscientific.com/research/reinforced-adversarial-learning/">blog post</a>; <a href="https://github.com/EdisonScientific/prime-rl-adversarial-paper">code</a>) at small scale, and compares it with a frozen-judge control, fine-tuning, prompting, the lab’s own humanizer and a commercial one</dd></div>
+    <div><dt>Models</dt><dd>Generator Qwen3-4B (reasoning on), judge Qwen3-8B, both with LoRA. Baselines: Llama-3.3-70B-Instruct (3-shot), the lab humanizer (Llama-3.3-70B writer, Mistral-Small-24B check), StealthGPT. Held-out judges: gpt-oss-120b, Gemma-3-27B, Phi-4, GLM-4.5-Air. All open models served with vLLM on Modal</dd></div>
+    <div><dt>Data</dt><dd>Abstracts of new NIH research grants awarded in fiscal year 2026, from the public <a href="https://reporter.nih.gov/">NIH RePORTER</a> API: 3,476 train, 64 dev, 200 held-out (September 2026 awards)</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/ral-technical-writer/</a>: the data builder, the RAL trainer, every baseline, the judges and the scorer</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/summary.json">results/summary.json</a> (every held-out number below), <a href="../results/runs/ral_s0/log.jsonl">results/runs/&lt;run&gt;/log.jsonl</a> (training logs), <a href="../results/length_check.json">length_check.json</a>, <a href="../results/data_card.json">data_card.json</a></dd></div>
+    <div><dt>Effort</dt><dd>One day, 2026-11-27: three 200-step RL runs of 3.6-7.5 hours on one H100 each, SFT, and about 40 sampling and judging jobs. <strong>$140.85</strong> in all: Modal $94.98 (billed), Pangram $37.23, StealthGPT $8.64 (prepaid word credit)</dd></div>
+  </dl>
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Can a small open model learn to write NIH grant abstracts from real examples alone, with Reinforced Adversarial Learning?</strong> Not measurably. A Qwen3-4B writer trained for 200 steps against a co-trained Qwen3-8B judge fooled two held-out open judges 22% of the time (28% for a second seed), against 19% for the untrained model. But those judges reward length: pooled over every model, abstracts near the real length fooled them 18% of the time and abstracts over twice as long 39%, and with length held fixed no method beat the untrained model (RAL −6 points [−13, +2]). Both RAL runs first learned a bold markdown header the starting judge liked; the judge caught it so early that the reward sat near zero for 156 and 161 of 200 steps. A frozen-judge control kept the header and reached 25%. Fine-tuning on the references was caught 96% of the time. StealthGPT moved a commercial detector from 0 to 11 of 16 “human” while dropping 17% of technical terms.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What we tested</th><th>Result</th><th>Compared with</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Does RAL beat the untrained model on held-out judges?</td><td><strong>On the raw rate, a little:</strong> fooled 0.224 against 0.185, paired <strong>+0.039 [+0.009, +0.070]</strong> (seed 0; seed 1: 0.275, +0.090); the plan asked for +0.05</td><td>Qwen3-4B untrained; mean of gpt-oss-120b and GLM-4.5-Air, 200 titles</td></tr>
+          <tr><td><strong>Is it length?</strong></td><td><strong>Yes:</strong> the held-out judges are fooled 0.18 by abstracts near the real length and 0.39 by abstracts over twice as long (pooled, 1,357 pairs); at equal length RAL is −0.059 [−0.132, +0.019] against the untrained model, seed 1 −0.008, the frozen control −0.031, 3-shot Llama −0.026</td><td>A fit of fooling on source and log length ratio, bootstrap over titles (post hoc)</td></tr>
+          <tr><td>Does it beat cheaper methods?</td><td><strong>No:</strong> 3-shot Qwen3-4B 0.214, 3-shot Llama-3.3-70B 0.229 (RAL − Llama −0.005 [−0.035, +0.026])</td><td>Prompting with three real abstracts</td></tr>
+          <tr><td>Does it beat a frozen judge?</td><td><strong>No:</strong> the frozen-judge control reached 0.250; RAL − frozen −0.026 [−0.055, +0.004]. The control was gamed on format (reward 0.88, header on 100% of answers)</td><td>The same loop with the judge never updated</td></tr>
+          <tr><td>Why RAL stalled: <strong>the starved writer</strong></td><td>Seed 0: judge accuracy 1.00 from step 29, reward under 0.04 from step 35 to 190 (median 5 × 10<sup>−7</sup>), the gate skipped 165 of 200 updates, one escape at step 190 by deleting markdown bold. Seed 1: reward under 2 × 10<sup>−4</sup> from step 40 to 200, never escaped, abstracts grew to 696 words</td><td>Edison’s 32B/235B run, which cycled many times over 2,000 steps</td></tr>
+          <tr><td>Fine-tuning on the references</td><td>Caught almost always: 0.038; Gemma fluency 2.25 of 5 (real abstracts 4.15), invented terms</td><td>The untrained model (0.185)</td></tr>
+          <tr><td>Humanizers on the untrained model’s abstracts</td><td>Lab humanizer +0.005 [−0.028, +0.038] (100 titles), every technical term kept. StealthGPT +0.047 [−0.078, +0.156] (16 titles), 17% of technical terms lost, fluency 4.25 against 4.81</td><td>The drafts they rewrote</td></tr>
+          <tr><td>Side-measure: Pangram labels “Human”</td><td>Real abstracts 22/30, untrained 0/30, RAL 0/27, frozen 0/30, SFT 7/30, StealthGPT 11/16</td><td>Never a reward or a selection rule</td></tr>
+          <tr><td>Predictions</td><td>0 of 6 hit (Section 6)</td><td>Written before any training run</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask a 4-billion-parameter model to write the abstract of a real NIH grant from its title alone, and its draft often begins with a bold “<strong>Title:</strong>” line, runs 190 words and opens “This proposal seeks to…”. The real abstract runs about 370 words and has no markdown. We trained that model with RAL, where a second model learns to tell its drafts from real abstracts and its verdict is the only reward. Within 25 steps the writer had put the bold header on every draft, because the starting judge happened to like it. Within 30, the judge had caught on. For the next 156 steps the writer was told, with near certainty, that everything it wrote was fake.</p>
+  <p><strong>What is known.</strong> Most ways of training a language model need a score for every answer: people ranking replies (RLHF), or a program that checks the answer (a verifier, as for maths and code). Scientific writing has neither in practice. An expert knows a good abstract when they read one but cannot list every rule they use. <a href="https://arxiv.org/abs/2610.38851">Reinforced Adversarial Learning (RAL)</a> turns a pile of good examples into the only reward. Two models train together: a <strong>generator</strong> writes an answer, and a <strong>judge</strong>, which sees only the final answer, estimates the probability that it came from the examples. That probability is the generator’s reward, and the judge keeps training to tell the two apart, so a trick that fools it today stops paying tomorrow. Trained this way, a 32B generator against a 235B judge wrote NIH grant abstracts that biomedical scientists mistook for the real one 55% of the time, against 21-37% for frontier models, and that five frontier LLM judges mistook 35% of the time, against at most 4% for every baseline. The same team found that a <em>frozen</em> judge got gamed: the generator’s abstracts converged on one narrow topic the frozen judge kept mistaking for real.</p>
+  <p><strong>What is missing.</strong> That result used a 32B generator, a 235B judge, full fine-tuning and seven 8-GPU nodes. Two things are not known from it. First, whether the method does anything at the scale most people can run: a 4B model and a single GPU. Second, how it compares with the cheaper things people already use to make machine text read like a person’s: prompting a bigger model with examples, fine-tuning on the examples, and humanizers, tools that rewrite a draft so it reads as human. The lab has its own humanizer, and commercial ones sell exactly this; neither has been scored against references on content, not only on whether a detector flags it.</p>
+  <p><strong>The worry.</strong> A writer trained against a judge can win by finding what the judge cannot see. An abstract that a judge calls real might be a better abstract, or it might only be longer, or written in a register the judge likes, or about a topic the judge happens to accept. So a fooled judge is not evidence of good writing by itself. Our own earlier notes found the same pattern with frozen graders: a <a href="../../slop-rsi/report/">self-improving detector</a> whose score had a hole, and <a href="../../deslop-h2h/report/">rewrites that evaded a detector only by looping</a>. This note pairs every fooling rate with checks that would catch those cheaper wins.</p>
+  <p class="question-callout">Can a 4B model learn to write NIH grant abstracts from references alone with RAL, and does it beat a frozen judge, fine-tuning, prompting and humanizers on judges it never trained against?</p>
+  <p><strong>What this note does.</strong> It rebuilds Edison’s loop on one GPU with LoRA, trains it on 3,476 recent NIH abstracts, and scores every method on 200 newer held-out titles. Its contributions:</p>
+  <ol>
+    <li>A small-scale replication of RAL on 200 held-out NIH titles from September 2026, scored by two open judges that passed known-answer checks: +0.039 [+0.009, +0.070] over the untrained model (+0.090 for a second seed), and none of it left once length is held fixed.</li>
+    <li>A named failure, with its mechanism: <strong>the starved writer</strong>. The co-trained judge caught a formatting trick early and its reward stayed near zero (median 5 × 10<sup>−7</sup>) for 156 of 200 steps, because the accuracy gate watches a slowly moving average of the judge; the writer escaped once, at step 190, by deleting markdown bold.</li>
+    <li>A ruler finding: open judges that pass known-answer checks still prefer longer abstracts (fooled 0.18 near the real length, 0.39 at over twice it), which is enough to rank every trained arm, the gamed frozen-judge control included, above the untrained model.</li>
+    <li>Humanizers and fine-tuning scored on content, not only on a detector: the lab humanizer changed nothing the judges saw; StealthGPT moved Pangram from 0 to 11 of 16 “human” while dropping 17% of technical terms; SFT copied the references’ length and garbled their content.</li>
+    <li>A reusable reference set: 6,304 deduplicated abstracts of new FY2026 NIH research grants, split by award date (application ids and the builder shipped).</li>
+  </ol>
+  <p>Success, fixed in a plan written before any training run: (1) RAL beats the base model on the held-out judges, with a paired interval above zero; (2) it beats the frozen-judge control, which differs from it in one ingredient; (3) it keeps the brief: its abstracts still match their titles about as often as the base model’s, and different titles do not converge on one text; (4) the judges that decide this were never used in training, and each passed a known-answer check first.</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="task" data-short="Task and data">2.1 The task and the reference set</h3>
+  <p>The task is Edison’s: given the title of an NIH grant proposal, write its abstract. The prompt is theirs word for word (“Write the abstract for an NIH grant proposal with the following title”, with a system prompt asking for a concrete, technically plausible abstract inside <code>&lt;answer&gt;</code> tags). The model sees nothing but the title.</p>
+  <p>A <strong>reference set</strong> is the pile of good human examples the method learns from. Ours comes from NIH RePORTER, the public database of funded NIH grants, with four filters chosen so the abstracts are recent, comparable and unlikely to be in any model’s training data:</p>
+  <ul>
+    <li><strong>Fiscal year 2026 only</strong> (October 2025 to September 2026). An abstract becomes public when the grant is awarded, so all of these were published after Qwen3’s release in April 2025.</li>
+    <li><strong>New applications only.</strong> A renewal or a continuation reuses an abstract RePORTER published in an earlier year, which a model may have read.</li>
+    <li><strong>Research grants only</strong> (R01, R21, R03, R15, R34, R61, U01, R37), so every abstract is the same genre.</li>
+    <li><strong>Cleaned and deduplicated</strong>: PDF line wraps joined, “Project Summary/Abstract” headers and trailing project narratives cut, 150 to 450 words, repeated titles and near-duplicate abstracts (the same text filed twice) removed.</li>
+  </ul>
+  <p>Of 8,479 records, 6,304 survived. They are split by the date the award was announced, so the held-out abstracts are the newest (Table 1). Every number in Results comes from the held-out titles.</p>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 1. The three splits. Award dates are the NIH notice dates; median length is in words.</caption>
+      <thead><tr><th>Split</th><th>What it is for</th><th class="num">Titles</th><th>Award dates</th><th class="num">Median words</th></tr></thead>
+      <tbody>
+        <tr><td>train</td><td>references for RAL’s judge and for SFT; titles for RL (1,024 of them reserved for the warm judges)</td><td class="num">3,476</td><td>Dec 2025 to Jul 2026</td><td class="num">374</td></tr>
+        <tr><td>dev</td><td>watching training only (never trained on, never used to pick anything)</td><td class="num">64</td><td>same months</td><td class="num">397</td></tr>
+        <tr><td>held-out</td><td>every number in Results</td><td class="num">200</td><td>Sep 2026 (August left as a gap)</td><td class="num">381</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>One thing the filters cannot guarantee is that a person wrote every word. These applications were written in 2024 and 2025, when writing assistants were common, and NIH’s policy against applications “substantially developed by AI” covers only applications received from late September 2025. We did not filter with a detector, because then the detector would decide what counts as human. Pangram’s labels on 30 held-out references are in Section 4.7.</p>
+
+  <h3 id="ral" data-short="RAL">2.2 RAL in one step</h3>
+  <p>One RAL step works like this (Edison’s loop, on one H100):</p>
+  <ol>
+    <li>Take 16 training titles. The generator writes 8 answers to each, reasoning first and then the abstract inside answer tags (128 answers).</li>
+    <li>An answer without a closed reasoning block, or without exactly one answer block, is <strong>malformed</strong>: it gets reward 0 and the judge never sees it.</li>
+    <li>The judge reads each valid abstract with its title, never the reasoning, and gives the probability that it is the real abstract: P(real) = sigmoid(logit of “A” − logit of “B”), where A means reference. That probability is the reward.</li>
+    <li>The judge trains as a classifier on this step’s abstracts (label: generated), their real abstracts (label: real) and, for RAL, a <strong>replay</strong> of past abstracts (half as many again, with their real abstracts), so tricks it has already caught stay caught.</li>
+    <li>A <strong>gate</strong> skips the judge’s update while its accuracy on recent batches (an exponential average) is at or above 0.75, at most 20 times in a row, so the judge never gets so far ahead that every abstract scores near zero.</li>
+    <li>The reward comes from a <strong>target judge</strong>, a slowly moving average of the trained judge (95% old, 5% new each step), so the reward does not jump when the judge does.</li>
+    <li>The generator takes one policy-gradient step: each answer’s advantage is its reward minus the mean reward of its 8 siblings (GRPO without dividing by the spread, as in the paper).</li>
+  </ol>
+  <p>Both models are LoRA adapters (rank 32) on frozen bases: a Qwen3-4B generator and a Qwen3-8B judge. Deviations from the paper, all forced by scale except the last: LoRA instead of full fine-tuning; 4B and 8B instead of 32B and 235B; 200 steps of 128 answers instead of 5,000 of 1,024; a target-judge average of 0.95 instead of 0.995, scaled to the shorter run; and both arms start from a warm judge (Section 2.3) so that the frozen control differs from RAL in one ingredient only.</p>
+
+  <h3 id="arms" data-short="Arms">2.3 The arms and the baselines</h3>
+  <p>Two warm judges come first, both Qwen3-8B LoRAs trained on the base model’s abstracts for 1,024 training titles against the real ones. <strong>J_start</strong> is stopped at the gate’s operating point (11 steps; dev accuracy 0.75, P(real) of a base abstract 0.36), so its reward is informative from step 1. <strong>J_ruler</strong> is trained to convergence (one epoch; dev accuracy 1.00, P(real) of a base abstract 0.002); it is never a reward, only a fixed ruler that scores every arm the same way. A judge trained to convergence was the first design, and it would have given every abstract a reward near zero: the plan’s first amendment, made before any training run.</p>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 2. What is compared. “Rewriters” start from the base model’s first abstract for each title and rewrite it; StealthGPT covers 16 titles (Section 3).</caption>
+      <thead><tr><th>Source</th><th>What it is</th><th>Trained on</th></tr></thead>
+      <tbody>
+        <tr><td>base</td><td>Qwen3-4B with the task prompt, reasoning on</td><td>nothing</td></tr>
+        <tr><td>base, 3-shot</td><td>the same, with three training abstracts shown first</td><td>nothing</td></tr>
+        <tr><td>Llama-3.3-70B, 3-shot</td><td>frontier-style prompting with a 70B open model</td><td>nothing</td></tr>
+        <tr><td>SFT</td><td>Qwen3-4B LoRA fine-tuned on the 3,476 training abstracts (2 epochs), reasoning off</td><td>the references</td></tr>
+        <tr class="hl"><td>RAL</td><td>the loop above, from J_start; seeds 0 and 1</td><td>references, through a judge that keeps learning</td></tr>
+        <tr><td>frozen judge</td><td>the same loop with the judge fixed at J_start: no updates, no replay</td><td>references, through a judge that never learns again</td></tr>
+        <tr><td>lab humanizer</td><td>the lab’s private Humanize pipeline on the base abstract: Llama-3.3-70B rewrites it 4 ways, Mistral-Small-24B checks every changed sentence against the draft and reverts the ones that change a fact</td><td>nothing</td></tr>
+        <tr><td>StealthGPT</td><td>a commercial humanizer (<code>/api/stealthify</code>, model <code>super</code>) on the base abstract</td><td>unknown</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="measures" data-short="Measures">2.4 What we measure</h3>
+  <p>Every measure is computed on the 200 held-out titles, on each source’s first abstract per title (the model arms also write four per title, for diversity).</p>
+  <ul>
+    <li><strong>Fooling rate</strong>: a held-out judge sees the title, the real abstract and the source’s abstract, and names the one an AI wrote. We ask it twice, with the order swapped. The fooling rate is the share of verdicts naming the real abstract as the AI one; 0.5 means the judge cannot tell. A malformed answer counts as not fooling anyone. For judges that answer with one letter, the verdict is read from the log-probabilities of “A” and “B”, averaged over the two orders, which cancels any fixed preference for a position.</li>
+    <li><strong>Title match</strong>: an embedding of the abstract (bge-base-en-v1.5) is closer to its own title than to any of the other 199. It catches an abstract that has drifted off its brief. <strong>Fit</strong> is a finer version: Gemma-3-27B rates 1 to 5 how well the abstract matches the proposal the title names.</li>
+    <li><strong>Fluency</strong>: Gemma-3-27B rates grammar and readability 1 to 5. A <strong>loop</strong> is a text whose most common four-word phrase makes up more than 10% of its four-word phrases.</li>
+    <li><strong>Claim retention</strong> (rewriters only): Gemma rates 1 to 5 whether the rewrite keeps every claim, number, method and named entity of the draft; and the share of the draft’s numbers and capitalised terms (gene names, acronyms) that survive.</li>
+    <li><strong>Diversity</strong>: cross-title similarity (mean embedding cosine between abstracts for different titles; the references set the target), within-title similarity (four abstracts for one title), distinct word pairs, and the share of abstracts that open with the same three words.</li>
+    <li><strong>Pangram</strong>: a commercial AI-text detector’s label, on 30 texts per source. It is a side-measure only: no reward, checkpoint or setting was chosen by it.</li>
+  </ul>
+
+  <h2 id="method" data-short="How it was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Write the plan.</strong> Question, arms, measures, the held-out split, the checkpoint (the last step, 200) and six predictions, before any training run.</li>
+    <li><strong>Build the reference set</strong> from RePORTER (8,479 records, 6,304 kept) and split it by award date.</li>
+    <li><strong>Smoke test</strong>: 32 base answers on dev titles (all valid; about 900 tokens each, of which about 430 words of reasoning and 190 of abstract, half the length of a real one).</li>
+    <li><strong>Base answers</strong> for 1,024 training titles (the warm judges’ data), 64 dev titles and the 200 held-out titles (4 each), plus the 3-shot base.</li>
+    <li><strong>Warm judges</strong>: J_ruler to convergence; then J_start, stopped at accuracy 0.75 (amendment 1).</li>
+    <li><strong>Check the held-out judges on known answers</strong> before any trained model existed: 200 base pairs (a weak AI they should catch), 200 3-shot base pairs and 200 <strong>mismatch</strong> pairs (the “AI” abstract is the real abstract of another held-out title, which a judge that reads the title should catch). Bars, fixed in the plan: base fooling at most 0.30, mismatch at most 0.40. Results in Section 4.1.</li>
+    <li><strong>Pilot</strong>: 7 RAL steps (about 70 seconds each, every answer valid), then cancelled to free the GPU.</li>
+    <li><strong>Train</strong> RAL (seeds 0 and 1) and the frozen-judge control, 200 steps each; SFT, 2 epochs.</li>
+    <li><strong>Sample</strong> every arm’s step-200 checkpoint on the held-out titles; run the two rewriters on the base model’s abstracts.</li>
+    <li><strong>Score</strong>: the four held-out judges on every pair in both orders, Gemma’s ratings, embeddings, Pangram.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 3. What was fixed before any training run, and what changed after a reading.</caption>
+      <thead><tr><th>Fixed before any trial</th><th>Changed after reading replies (each logged as a plan amendment)</th></tr></thead>
+      <tbody>
+        <tr><td>Task, prompts (Edison’s), splits, arms, the step-200 checkpoint, the measures, the judges’ known-answer bars, six predictions</td><td>One warm judge became two (J_start, J_ruler): the converged judge gave base abstracts P(real) 0.002, a flat reward (before training)</td></tr>
+        <tr><td>Held-out titles untouched until every checkpoint existed</td><td>Gemma and Phi-4 named the second abstract in 98-100% of verdicts with a one-letter reply; their verdicts are read from log-probabilities averaged over both orders (before any trained arm was judged)</td></tr>
+        <tr><td>Pangram never a reward or a selection rule</td><td>gpt-oss-120b moved to tighter memory settings to fit one H100; GLM-4.5-Air added as a fourth candidate judge under the same bars; a second RAL seed added on a free GPU (all before any held-out result)</td></tr>
+        <tr><td>StealthGPT on the base model’s abstracts</td><td>Its <code>super</code> model bills about 5.5 times the input words, and the account’s prepaid credit covered 16 rewrites, not the planned 100</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: generation at temperature 1, top-p 1, no top-k, no repetition penalty, at most 2,048 tokens, reasoning on for base, RAL and the frozen control and off for SFT (its training format); judges at temperature 0. One H100 per job (two for Llama-3.3-70B and GLM-4.5-Air); a RAL step took about 70-100 seconds.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="judges" data-short="Judges">4.1 Two of the four held-out judges could reliably spot the untrained model</h3>
+  <p>Before any trained model was judged, each candidate judge saw two known-answer sets (Table 4). On <strong>base</strong> pairs a judge should catch the untrained Qwen3-4B, whose abstracts are half the length of a real one; on <strong>mismatch</strong> pairs the “AI” abstract is a real abstract written for a different title, so a judge that reads the title should catch it. The plan fixed the bars at fooling ≤ 0.30 and ≤ 0.40.</p>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 4. The held-out judges’ known-answer checks (200 pairs each, both orders). Fooling: share of verdicts naming the real abstract as the AI one. First position: how often the judge named slot A, whatever was in it.</caption>
+      <thead><tr><th>Judge</th><th>How it answers</th><th class="num">Base pairs fooled</th><th class="num">Mismatch fooled</th><th class="num">Names slot A</th><th>Passes</th></tr></thead>
+      <tbody>
+        <!-- tab:judges:start -->
+        <tr><td>gpt-oss-120b</td><td>its own reasoning (low effort), then a letter</td><td class="num">0.223</td><td class="num">0.207</td><td class="num">0.25</td><td>yes</td></tr>
+        <tr><td>GLM-4.5-Air (FP8)</td><td>thinking, then a letter</td><td class="num">0.147</td><td class="num">0.102</td><td class="num">0.34</td><td>yes</td></tr>
+        <tr><td>Gemma-3-27B</td><td>first-token log-probs, both orders averaged</td><td class="num">0.357</td><td class="num">0.052</td><td class="num">0.05</td><td>no</td></tr>
+        <tr><td>Phi-4</td><td>first-token log-probs, both orders averaged</td><td class="num">0.370</td><td class="num">0.210</td><td class="num">0.00</td><td>no</td></tr>
+        <!-- tab:judges:end -->
+      </tbody>
+    </table>
+  </div>
+  <p>gpt-oss-120b and GLM-4.5-Air, both reasoning before they answer, passed both bars, and their mean is the held-out measure in every result below (“the two judges”). Gemma-3-27B and Phi-4 failed the base bar: asked for one letter, they named the second abstract in 98-100% of verdicts whatever it held, and even with that preference cancelled by averaging both orders they were fooled by the untrained model about 36% of the time. Gemma still caught the mismatch pairs (0.05), so it reads the title; it simply cannot tell a short model abstract from a real one. Their verdicts appear in Table 5 for comparison only. GLM ran out of its 3,072-token thinking budget on 81 of 3,592 verdicts; those count as not fooled.</p>
+
+  <h3 id="main" data-short="Main result">4.2 RAL beat the untrained model by 4 points, no more than 3-shot prompting and less than the frozen-judge control</h3>
+  <figure>
+    <img src="figures/fig1_fooling.png" width="1015" height="467" alt="Horizontal bar chart of the held-out judges' fooling rate per source, with 95% intervals: Qwen3-4B untrained 0.19, Qwen3-4B 3-shot 0.21, Llama-3.3-70B 3-shot 0.23, lab humanizer 0.18 (100 titles), StealthGPT 0.19 (16 titles, wide interval), SFT 0.04, frozen judge 0.25 in blue, RAL seed 1 0.28 in light orange, RAL seed 0 0.22 in orange. A dashed line at 0.5 marks cannot tell; no bar comes close.">
+    <figcaption>Figure 1. How often the held-out judge was fooled, per source. Bars: share of verdicts (two orders per title, two judges: gpt-oss-120b and GLM-4.5-Air) naming the real abstract as the AI one; 0.5 (dashed) means it cannot tell. Lines: 95% bootstrap intervals over titles. 200 held-out titles, except the lab humanizer (the first 100) and StealthGPT (the first 16; *). Orange: RAL; blue: the frozen-judge control; grey: everything else.</figcaption>
+  </figure>
+  <p>The two held-out judges were fooled by the untrained Qwen3-4B 0.185 of the time and by RAL’s step-200 abstracts 0.224 (Figure 1, Table 5): a paired gain of +0.039 [+0.009, +0.070] over the same 200 titles, real but under the +0.05 the plan asked for. Showing the same 4B model three real abstracts first did nearly as well (0.214), and 3-shot Llama-3.3-70B did exactly as well (RAL minus Llama −0.005 [−0.035, +0.026]). The frozen-judge control, the run designed to show what goes wrong without a learning judge, did better than RAL’s seed 0: 0.250, +0.065 [+0.038, +0.093] over the base model, with RAL −0.026 [−0.055, +0.004] behind it. SFT was caught almost every time (0.038). The second RAL seed, which never escaped its flat reward, scored higher still (0.275, Section 4.10). No source came near 0.5, where a judge cannot tell; Edison’s 32B RAL reached about 0.35 against five frontier judges, from a base of at most 0.04. The weaker judges agree on the bottom (SFT) and disagree on the top: Phi-4 was fooled by the frozen control 71% of the time, which says more about Phi-4 (Section 4.1) than about the abstracts.</p>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 5. Every source on the held-out titles. Fooled: the mean of the two held-out judges that passed their known-answer check (gpt-oss-120b and GLM-4.5-Air), with its 95% interval over titles, then each judge alone; Gemma and Phi-4 failed the check and are shown for comparison only. Fluency: Gemma-3-27B, 1 to 5. Valid: share of titles with a well-formed abstract. Pangram: texts labelled “Human” of those sent (side-measure).</caption>
+      <thead><tr><th>Source</th><th class="num">Titles</th><th class="num">Fooled (2 judges)</th><th class="num">gpt-oss</th><th class="num">GLM</th><th class="num">Gemma</th><th class="num">Phi-4</th><th class="num">Words</th><th class="num">Fluency</th><th class="num">Valid</th><th class="num">Pangram human</th></tr></thead>
+      <tbody>
+        <!-- tab:main:start -->
+        <tr><td>Qwen3-4B, untrained</td><td class="num">200</td><td class="num">0.185 [0.152, 0.216]</td><td class="num">0.223</td><td class="num">0.147</td><td class="num">0.357</td><td class="num">0.370</td><td class="num">193</td><td class="num">4.85</td><td class="num">1.000</td><td class="num">0/30</td></tr>
+        <tr><td>Qwen3-4B, 3-shot</td><td class="num">200</td><td class="num">0.214 [0.186, 0.244]</td><td class="num">0.275</td><td class="num">0.152</td><td class="num">0.350</td><td class="num">0.520</td><td class="num">261</td><td class="num">4.83</td><td class="num">1.000</td><td class="num">–</td></tr>
+        <tr><td>Llama-3.3-70B, 3-shot</td><td class="num">200</td><td class="num">0.229 [0.199, 0.259]</td><td class="num">0.275</td><td class="num">0.182</td><td class="num">0.260</td><td class="num">0.620</td><td class="num">347</td><td class="num">4.56</td><td class="num">1.000</td><td class="num">0/30</td></tr>
+        <tr><td>lab humanizer</td><td class="num">100</td><td class="num">0.180 [0.138, 0.223]</td><td class="num">0.205</td><td class="num">0.155</td><td class="num">0.360</td><td class="num">0.300</td><td class="num">190</td><td class="num">4.75</td><td class="num">1.000</td><td class="num">0/30</td></tr>
+        <tr><td>StealthGPT</td><td class="num">16</td><td class="num">0.188 [0.078, 0.297]</td><td class="num">0.250</td><td class="num">0.125</td><td class="num">0.219</td><td class="num">0.500</td><td class="num">239</td><td class="num">4.25</td><td class="num">1.000</td><td class="num">11/16</td></tr>
+        <tr><td>SFT</td><td class="num">200</td><td class="num">0.037 [0.024, 0.054]</td><td class="num">0.048</td><td class="num">0.028</td><td class="num">0.010</td><td class="num">0.090</td><td class="num">352</td><td class="num">2.25</td><td class="num">1.000</td><td class="num">7/30</td></tr>
+        <tr><td>frozen judge</td><td class="num">200</td><td class="num">0.250 [0.221, 0.281]</td><td class="num">0.295</td><td class="num">0.205</td><td class="num">0.307</td><td class="num">0.710</td><td class="num">430</td><td class="num">5.00</td><td class="num">1.000</td><td class="num">0/30</td></tr>
+        <tr><td>frozen judge, header removed</td><td class="num">200</td><td class="num">0.287 [0.256, 0.318]</td><td class="num">0.340</td><td class="num">0.235</td><td class="num">0.378</td><td class="num">0.785</td><td class="num">417</td><td class="num">5.00</td><td class="num">1.000</td><td class="num">–</td></tr>
+        <tr class="hl"><td>RAL (seed 0)</td><td class="num">200</td><td class="num">0.224 [0.193, 0.255]</td><td class="num">0.237</td><td class="num">0.210</td><td class="num">0.215</td><td class="num">0.500</td><td class="num">484</td><td class="num">4.03</td><td class="num">0.950</td><td class="num">0/27</td></tr>
+        <tr><td>RAL, header removed</td><td class="num">200</td><td class="num">0.204 [0.174, 0.235]</td><td class="num">0.233</td><td class="num">0.175</td><td class="num">0.212</td><td class="num">0.540</td><td class="num">472</td><td class="num">4.05</td><td class="num">0.950</td><td class="num">–</td></tr>
+        <tr><td>RAL (seed 1)</td><td class="num">200</td><td class="num">0.275 [0.245, 0.304]</td><td class="num">0.297</td><td class="num">0.253</td><td class="num">0.158</td><td class="num">0.390</td><td class="num">696</td><td class="num">4.93</td><td class="num">0.835</td><td class="num">–</td></tr>
+        <tr><td>RAL seed 1, header removed</td><td class="num">200</td><td class="num">0.302 [0.270, 0.336]</td><td class="num">0.333</td><td class="num">0.273</td><td class="num">0.198</td><td class="num">0.490</td><td class="num">683</td><td class="num">4.90</td><td class="num">0.835</td><td class="num">–</td></tr>
+        <tr><td>real abstracts (reference)</td><td class="num">200</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">366</td><td class="num">4.15</td><td class="num">1.000</td><td class="num">22/30</td></tr>
+        <!-- tab:main:end -->
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="trick" data-short="Format trick">4.3 Both RL arms learned a formatting trick from the starting judge; RAL’s judge caught it and the reward went flat</h3>
+  <figure>
+    <img src="figures/fig2_training.png" width="1429" height="409" alt="Three panels over 200 training steps. Left: training reward; the frozen-judge arm (blue) climbs from 0.39 to 0.88 and stays; RAL (orange) climbs to about 0.6 by step 20, falls to about zero by step 35, stays there until step 190 and jumps back to 0.4-0.6 at the end. Middle: share of training answers with markdown bold and with a title line; both arms go from about 0.45 to 1.0 within 10 to 25 steps; RAL's bold share drops to zero at steps 190-195 while its title line stays. Right: RAL's judge accuracy on current answers rises from 0.73 to 1.0 by step 29 and stays at 1.0 until step 190, then falls to about 0.7; on replayed answers it stays near 1.0.">
+    <figcaption>Figure 2. The two RL runs. Left: the training reward, each arm scored by its own judge (10-step moving average). Middle: the share of valid training answers that carry markdown bold (solid, dots) or open with a title line (dotted), read every 5-10 steps from the saved rollouts (<code>results/format_trick.json</code>). Right: RAL’s judge accuracy on the current batch and on replayed past answers (5-step average); the dashed line is the gate’s threshold. Both RAL seeds (seed 1 in the lighter orange) and the one frozen-judge run.</figcaption>
+  </figure>
+  <p>The untrained model wrapped 45% of its abstracts in markdown, a bold “<strong>**Title:**</strong> …” line and a bold “<strong>**Abstract**</strong>” heading. No real abstract does. J_start, the warm judge both arms began from, happened to score those abstracts higher, so in the first 10 to 25 steps both generators put the header on every abstract and doubled their length (Figure 2, middle). From there the two runs split.</p>
+  <ul>
+    <li><strong>The frozen judge kept paying for it.</strong> Its reward rose from 0.39 to 0.88 and stayed (Figure 2, left); at step 200 every training answer still had the header. That is the gaming Edison saw with a frozen Haiku judge, here as a format, not a topic.</li>
+    <li><strong>RAL’s judge caught it within 30 steps, and then the generator had nothing to climb.</strong> Its batch accuracy reached 1.00 at step 29. From there the gate skipped the judge’s update on 165 of 200 steps, yet the reward fell below 0.04 from step 35 to step 190 (median 5 × 10<sup>−7</sup>; 119 of those 156 steps under 10<sup>−3</sup>). The gate measures the <em>target</em> judge, and the target is an average that keeps moving toward the trained judge after the gate closes, so by the time the gate acted the reward model was already certain. With every answer scored near zero, the group-relative advantages were near zero too.</li>
+    <li><strong>At step 190 RAL escaped by deleting the bold.</strong> The bold share went from 98% at step 185 to 0% at step 200 while the plain “Title:” line stayed, the judge’s accuracy fell to 0.66, and the reward came back to 0.4-0.6. That is the moving curriculum Edison describes (accuracy falls and recovers), but in one cycle in 200 steps, and on punctuation.</li>
+  </ul>
+  <p>The step-200 checkpoint, fixed in the plan, is the one just after that escape. To ask whether the prose under the header fools anyone, we judged copies of every RL abstract with the header and markdown removed (<code>_clean</code>, post hoc). Removing it barely moved RAL’s fooling rate (0.224 with the header, 0.204 without) and raised the frozen control’s (0.250 to 0.288): the header did not help with the held-out judges. What did help is in the prose, and Section 4.4 shows what it is: length.</p>
+
+  <h3 id="length" data-short="Length">4.4 The held-out judges reward length, and length accounts for every gain over the untrained model</h3>
+  <figure>
+    <img src="figures/fig3_length.png" width="1429" height="505" alt="Two panels. Left: mean words per abstract against the held-out judges' fooling rate per source; SFT at 352 words and 0.04, the untrained model at 193 words and 0.19, the humanizer 190 and 0.18, 3-shot Llama 347 and 0.23, the frozen judge 430 and 0.25, RAL 484 and 0.22, RAL seed 1 696 and 0.28; diamonds for header-removed copies sit slightly higher for the frozen judge and seed 1. Right: pooled over the seven model sources, fooling by length ratio: under 0.6 of the real length 0.16 (212 pairs), 0.6-0.9 0.18 (330), 0.9-1.1 0.18 (246), 1.1-1.5 0.23 (320), 1.5-2.2 0.27 (193), over 2.2 0.39 (56).">
+    <figcaption>Figure 3. The held-out judges prefer longer abstracts. Left: each source’s mean words and fooling rate; diamonds are the RL arms with the header removed; dashed, the real abstracts’ mean length (366 words). Right: every (model source, title) pair pooled over the seven model sources (1,357 pairs), binned by the generated abstract’s length divided by the real one’s, with the fooling rate and the number of pairs in each bin. Post hoc.</figcaption>
+  </figure>
+  <p>The boring explanation for every gain here is length: real abstracts run 366 words, the untrained model writes 193, and every trained arm got longer. The held-out judges do reward it (Figure 3). Pooled over every model source, an abstract near the real length fooled them 18% of the time, one 1.5 to 2.2 times as long 27%, and one over twice as long 39%; their written reasons say why (“specificity, structure, and detail in Abstract B, which is more characteristic of a real NIH grant proposal”, GLM-4.5-Air). The same pattern holds inside single sources: the 3-shot model’s abstracts fooled the judges 21% of the time at 0.6-0.9 of the real length and 36% at 1.1-1.5 times it, and the second RAL seed’s 31% at 1.5-2.2 times and 40% beyond.</p>
+  <p>Read at equal length, the gains disappear. A least-squares fit of each pair’s fooling score on its source and the log of its length ratio (post hoc; 95% intervals from 2,000 bootstraps over titles) puts every source at or below the untrained model: RAL −0.059 [−0.132, +0.019], RAL seed 1 −0.008 [−0.109, +0.101], the frozen control −0.031 [−0.098, +0.039], 3-shot Llama −0.026 [−0.078, +0.031], 3-shot Qwen −0.007 [−0.043, +0.031], SFT −0.215 [−0.267, −0.162]; the slope is +0.119 per unit of log length ratio [+0.042, +0.192]. SFT is the one exception to “longer fools more”: it wrote at the real length and fooled nobody, because its content was broken (Section 4.5). So the ranking in Figure 1 is mostly a ranking by length, and what RAL and the frozen control learned that a held-out judge rewards is to write more. Whether more is better is a question these judges cannot answer; people might.</p>
+
+  <h3 id="sft" data-short="SFT">4.5 Fine-tuning on the references copied their surface and broke their content</h3>
+  <p>SFT wrote abstracts as long as the real ones (352 words against 366) and opened them as variously (the commonest three-word opening starts 4% of them, against 4.5% of real abstracts), but the content came apart. Gemma rated their fluency 2.25 of 5 (real abstracts 4.15, the base model 4.85) and their fit to the title 3.39 (every other source 5.0), 8% failed the title-match check, and their sentences invent terms: the first held-out abstract places a tumour “in the nyland cosite TME dyson host organ”. The held-out judges caught them almost every time (fooling 0.038 [0.024, 0.054]). Two epochs of LoRA on 3,476 abstracts taught the model what an NIH abstract looks like before what it says. SFT is the one model arm Pangram liked (Section 4.7).</p>
+
+  <h3 id="rewriters" data-short="Rewriters">4.6 The humanizers changed little the held-out judge could see; StealthGPT dropped technical terms</h3>
+  <p><strong>The lab humanizer</strong> rewrote 93 of the base model’s first 100 abstracts and returned 7 unchanged (its sentence check reverted every edit). It kept every technical term (every number, acronym and gene or protein name; 100%), and Gemma rated its claim retention 5.0 of 5. The held-out judges saw no difference: fooling 0.180 against 0.175 for the drafts on the same titles (paired +0.005 [−0.028, +0.038]). It also kept the draft’s length (190 words against 191), the untrained model’s most visible tell. <strong>StealthGPT</strong>, on the first 16 titles: fooling 0.188 against 0.141 for the drafts it rewrote (paired +0.047 [−0.078, +0.156]; 16 titles cannot settle it). It costs content: 17% of the drafts’ technical terms disappeared (83% kept, over the 14 drafts that had any), among them “glycoRNA” and “glycan-RNA” from an abstract about glycoRNA; Gemma rated fluency 4.25 against 4.81 for the same drafts; and the rewrites grew 25% longer (239 words against 190). Gemma’s claim-retention rating gave it 4.56 of 5, which says more about the rater than the rewrite: it gave the humanizer, which changes far less, 5.0.</p>
+
+  <h3 id="pangram" data-short="Pangram">4.7 Side-measure: Pangram called StealthGPT human and every model abstract AI, including RAL’s</h3>
+  <p>Pangram, a commercial AI-text detector, read the first 30 held-out titles per source (16 for StealthGPT); it was never a reward, a selection rule or a reason to change anything. It labelled 22 of 30 real abstracts human, 4 mixed and 4 AI: either its false-positive rate on this genre is about one in seven, or some funded fiscal-2026 applications were partly machine-written, and we cannot tell which. Every abstract from the base model, 3-shot Llama-3.3-70B, RAL, the frozen control and the lab humanizer was labelled AI (30 of 30; 27 of 27 valid ones for RAL). SFT got 7 of 30 human and StealthGPT 11 of 16. The two kinds of ruler disagree about what matters: StealthGPT took Pangram from 0 of 16 to 11 of 16 with no clear change at the LLM judges, while RAL fooled the LLM judges more often than the base model and Pangram still called all of it AI. Edison reported that Pangram labelled their 32B RAL abstracts human by step 2,000; our 4B run, 200 steps long, never moved it.</p>
+
+  <h3 id="diversity" data-short="Diversity">4.8 The RL arms converged on one register, mostly through the header</h3>
+  <figure>
+    <img src="figures/fig4_diversity.png" width="1249" height="439" alt="Two bar charts per source. Left, cross-title similarity: real abstracts 0.63, untrained 0.63, 3-shot 0.64, Llama 0.63, humanizer 0.63, StealthGPT 0.59, SFT 0.62, frozen judge 0.68, RAL 0.69. Right, share of abstracts starting with the most common three words: real 0.05, untrained 0.24, humanizer 0.23, others 0.02-0.06.">
+    <figcaption>Figure 4. Diversity across titles. Left: mean embedding cosine between abstracts written for different titles (higher means the abstracts are more alike); dashed: the real abstracts (0.632). Right: share of abstracts that start with the most common three words. 200 held-out titles (100 and 16 for the two rewriters).</figcaption>
+  </figure>
+  <p>Abstracts for different titles became more alike under RL: mean cross-title similarity 0.693 (RAL) and 0.684 (frozen control), against 0.633 for the base model and 0.632 for the real abstracts (Figure 4). Most of that is the shared header: with it removed, the figures fall to 0.636 and 0.655. Four abstracts written for the same title also grew more alike (within-title similarity 0.977 and 0.982, against 0.963), so the trained models vary less from sample to sample. Openings did not collapse (the commonest first three words open 1.6% of RAL abstracts, against 23.5% of the base model’s, which mostly begin “This proposal seeks”), no source looped, and 95% of RAL abstracts and every frozen-control abstract still matched their own title first among 200; that check saturates (the base model scores 1.00, the real abstracts 0.97), so it rules out drift off the brief and nothing finer. RAL repeats 8-word strings from the training abstracts slightly more than other sources (1.65 per abstract; real held-out abstracts 1.34), mostly the stock phrases of the genre.</p>
+
+  <h3 id="rulers" data-short="Trained judges">4.9 The trained judges as rulers: a judge trained to convergence learned “short means AI”</h3>
+  <p>J_ruler, trained to convergence on the base model’s short abstracts against real ones, scored real held-out abstracts 0.99 and base abstracts 0.0004, a perfect separation on what it was trained for. It then scored SFT 0.99, RAL 0.98, the frozen control 0.95 and 3-shot Llama 0.89: it learned that short means AI, and anything as long as a real abstract passes. RAL’s own judge at step 200 is a different instrument: it gave the frozen control 0.00 (it had caught the bold header long before) and SFT 1.00, the opposite of the held-out judges. J_start, the frozen control’s reward, gave its own arm 0.88 on held-out titles and RAL 0.63. None of the three trained judges ranks the sources the way the held-out judges do; each is a ruler for the answers it was trained against and nothing wider.</p>
+
+  <h3 id="seed" data-short="Seed 1">4.10 A second RAL seed</h3>
+  <p>A second RAL seed (seed 1; added in a plan amendment before any held-out result) ran the same loop. It learned the same header within 10 steps, its judge reached accuracy 1.00 by step 31, and its reward stayed under 2 × 10<sup>−4</sup> from step 40 to step 200: it never escaped (Figure 2). With no useful signal, its abstracts kept growing, to 696 words on held-out titles (1.9 times the real length), and 16.5% of them ran past the 2,048-token limit and were malformed (counted as fooling nobody). It fooled the held-out judges more than any other source: 0.275 [0.245, 0.304] (0.303 with the header removed), +0.090 [+0.054, +0.126] over the untrained model, and −0.008 [−0.109, +0.101] at equal length (Section 4.4). Its own judge gave its held-out abstracts a mean P(real) of 0.00; J_ruler gave them 0.87. A writer that got no usable reward for 160 steps scored best on the held-out judges, which is the clearest sign here that the held-out score was measuring length, not what the method taught. Seed 0’s single escape at step 190 is therefore not a pattern either seed shows reliably.</p>
+
+  <h3 id="quiz-section" data-short="Try it">4.11 Try it: which abstract is real?</h3>
+  <p>Six held-out titles, each with the opening of its real abstract and of RAL’s step-200 abstract (the first 110 words of each, RAL’s title line removed, so length gives nothing away), sides shuffled. Click the one you think a person wrote; the answer and the held-out judges’ verdicts on the full texts appear below. The titles are the first six from the second half of the held-out set, not chosen by result.</p>
+  <div id="quiz">
+      <!-- quiz:start -->
+      <div class="qz-item" data-real="B">
+        <p class="qz-title"><span class="qz-n">1</span>CRCNS: Open Data Commons for Stroke Research - Promoting FAIR Data Through Community-Driven Design</p>
+        <div class="qz-pair">
+          <button type="button" class="qz-card" data-side="A"><span class="qz-tag">A</span>Stroke research faces significant challenges in data sharing, interoperability, and long-term sustainability, hindering the translation of discoveries into clinical practice. The Clinical Research Data Commons for Stroke (CRCNS) proposes to establish a robust, community-driven open data commons that facilitates the discovery, access, integration, and reuse (FAIR) of stroke research data across the National Institutes of Health (NIH) and beyond. This initiative is grounded in the principle that data sharing must be designed with the needs of the stroke research community at its core, ensuring that data systems align with the workflows, standards, and governance preferences of both researchers and clinical stakeholders. The CRCNS will develop a scalable, modular, and extensible …</button>
+          <button type="button" class="qz-card" data-side="B"><span class="qz-tag">B</span>(See instructions): This project will establish ODC-Stroke, a federated Open Data Commons platform designed to support FAIR (Findable, Accessible, Interoperable, Reusable) sharing of preclinical stroke research data and improve translation from laboratory studies to clinical therapies. Stroke remains a leading cause of death and disability worldwide, yet only one of more than 1,000 preclinical treatments has achieved clinical approval, highlighting an urgent need for more transparent, reproducible, and data-driven research practices. Building on the successful ODC-SCI and ODC-TBI platforms, the project will create a sustainable, cloud-based infrastructure that enables stroke researchers to securely manage, publish, share, and reuse primary datasets while supporting interoperability across stroke, traumatic brain injury, and spinal …</button>
+        </div>
+        <p class="qz-answer">Answer: B is the real abstract (NIH project 1R01NS153771-01);
+        the other was written by RAL at step 200 (its title line removed). Held-out judges fooled: none; caught it: GLM-4.5-Air.</p>
+      </div>
+      <div class="qz-item" data-real="B">
+        <p class="qz-title"><span class="qz-n">2</span>Combining Personalized Humoral and Cellular Immunity for HIV-1 Control</p>
+        <div class="qz-pair">
+          <button type="button" class="qz-card" data-side="A"><span class="qz-tag">A</span>Human immunodeficiency virus (HIV-1) remains a major global health challenge, with current vaccines and treatments failing to eradicate the virus. While antiretroviral therapy (ART) suppresses HIV-1 replication, it does not confer sterilizing immunity, and the virus rapidly evolves to escape immune detection. HIV-1 control in the absence of ART is observed in a small subset of individuals, known as &quot;controllers,&quot; who possess unique combinations of humoral and cellular immune responses that effectively inhibit viral replication. However, replicating these protective immune profiles in a broad population remains a critical challenge. This proposal seeks to develop a novel, personalized approach to HIV-1 control by combining advanced computational modeling of host-virus interactions with …</button>
+          <button type="button" class="qz-card" data-side="B"><span class="qz-tag">B</span>While the natural immune response to HIV-1 is potent, immune-mediated resolution of HIV-1 infection does not occur. This is largely due to the extreme genetic diversity generated by HIV-1 during replication that escapes adaptive immune responses, combined with the establishment of a stable HIV-1 reservoir that does not resolve even after long-term ART. Recent advances in cell engineering mean it is now possible to reprogram both the humoral and cellular arms of the adaptive immune system with targeting moieties capable of recognizing relatively conserved portions of the HIV-1 Envelope (Env) protein. This provides the possibility of creating an engineered immune response that could control HIV-1 and prevent the selection of …</button>
+        </div>
+        <p class="qz-answer">Answer: B is the real abstract (NIH project 1R01AI203540-01);
+        the other was written by RAL at step 200 (its title line removed). Held-out judges fooled: none; caught it: GLM-4.5-Air.</p>
+      </div>
+      <div class="qz-item" data-real="A">
+        <p class="qz-title"><span class="qz-n">3</span>Adaptive Skiing for Individuals with Tetraplegia and Complex Neuromuscular Impairments</p>
+        <div class="qz-pair">
+          <button type="button" class="qz-card" data-side="A"><span class="qz-tag">A</span>Approximately 18,000 individuals sustain spinal cord injury (SCI) annually in the U.S., with high-level injuries resulting in profound motor impairment and loss of independence. Current control strategies, such as sip-and- puff breath-based control, are unintuitive and not preferred by users. This project addresses a critical gap in adaptive control systems by leveraging residual electromyographic (EMG) signals to enable more natural and effective interaction with assistive devices. The proposed research has major implications for rehabilitation, mental health, and long-term physical engagement in individuals with SCI. The long-term goal of this project is to develop and validate EMG-based control systems enabling individuals with high-level SCI to regain agency and participate in dynamic, …</button>
+          <button type="button" class="qz-card" data-side="B"><span class="qz-tag">B</span>Individuals with tetraplegia and complex neuromuscular impairments face severe physical, sensory, and motor limitations that restrict their ability to participate in traditional forms of physical activity and recreational sports. Adaptive skiing, a high-intensity, low-impact exercise, offers potential therapeutic and recreational benefits including cardiovascular conditioning, balance training, and social engagement. However, current adaptive skiing systems are limited in their ability to support individuals with severe neuromuscular impairments, particularly those with tetraplegia, due to the lack of accessible, safe, and controllable systems that can provide the necessary force, stability, and control for competitive or recreational use. This project proposes a novel, human-centric approach to develop a wearable, teleoperated adaptive skiing system that …</button>
+        </div>
+        <p class="qz-answer">Answer: A is the real abstract (NIH project 1R01HD123941-01);
+        the other was written by RAL at step 200 (its title line removed). Held-out judges fooled: none; caught it: none.</p>
+      </div>
+      <div class="qz-item" data-real="B">
+        <p class="qz-title"><span class="qz-n">4</span>Expanding Genomic SEM for Applications to Highly Multivariate Data</p>
+        <div class="qz-pair">
+          <button type="button" class="qz-card" data-side="A"><span class="qz-tag">A</span>This proposal seeks to develop and validate a new statistical framework for analyzing highly multivariate genomic datasets using expanded structural equation modeling (SEM). Current genomic datasets, such as those arising from high-throughput omics technologies (e.g., transcriptomics, proteomics, metabolomics), often exhibit high dimensionality, complex dependencies, and nonlinear relationships between variables. Traditional SEM approaches, while effective for low-dimensional data, are ill-suited for these highly multivariate datasets due to computational and statistical challenges, including model identification, parameter estimation, and inference in the presence of high-dimensional structural constraints. To address these limitations, this project will extend the theoretical foundations and computational tools of SEM to accommodate the unique characteristics of genomic data, including high …</button>
+          <button type="button" class="qz-card" data-side="B"><span class="qz-tag">B</span>Many medical, physiological, and psychiatric traits and disorders are highly polygenic and exhibit complex patterns of genetic sharing and differentiation. In 2019, we introduced Genomic Structural Equation Modelling (Genomic SEM) as a formal framework and free, open source, R-based software for modelling the multivariate genetic architecture of both continuous and binary Genome-Wide Association Study (GWAS) phenotypes, interrogating their joint and distinct functional genomic pathways, and leveraging empirical models of the genetic relations among phenotypes to guide multivariate GWAS discovery. There has since been tremendous uptake of the Genomic SEM framework by the scientific community, with Genomic SEM consistently featured as the guiding analytic framework or primary analysis for flagship papers …</button>
+        </div>
+        <p class="qz-answer">Answer: B is the real abstract (NIH project 1R01HG014691-01A1);
+        the other was written by RAL at step 200 (its title line removed). Held-out judges fooled: none; caught it: gpt-oss-120b, GLM-4.5-Air.</p>
+      </div>
+      <div class="qz-item" data-real="A">
+        <p class="qz-title"><span class="qz-n">5</span>3D intestinal organoid models to dissect the bidirectional relationship between gut barrier and HIV transcription</p>
+        <div class="qz-pair">
+          <button type="button" class="qz-card" data-side="A"><span class="qz-tag">A</span>The gut is a primary site of HIV replication during acute infection, leading to profound immune depletion and barrier disruption that is only partially restored by antiretroviral therapy (ART). Despite decades of research showing that HIV infection causes persistent gut damage leading to chronic inflammation and comorbidities in people living with HIV (PLWH), the mechanisms underlying this relationship remain poorly understood, primarily due to difficulties replicating the gut microenvironment in vitro and challenges in obtaining in vivo samples. We propose to investigate the critical bidirectional relationship between HIV transcription and intestinal barrier function using complementary three-dimensional organoid models: patient-derived organoids (PDOs) isolated from intestinal biopsies that preserve donor-specific characteristics and …</button>
+          <button type="button" class="qz-card" data-side="B"><span class="qz-tag">B</span>The intestinal barrier is a critical component of mucosal immunity that prevents the translocation of pathogens and maintains immunological homeostasis. In HIV infection, the gut mucosal barrier is rapidly disrupted, leading to increased gut permeability, dysbiosis, and systemic HIV transmission. Conversely, HIV infection disrupts the intestinal barrier via multiple mechanisms, including the induction of inflammatory cytokines and the depletion of intestinal epithelial cells. Understanding the molecular and cellular mechanisms underlying this bidirectional relationship between the gut barrier and HIV transcription is essential to elucidate the pathogenesis of HIV and to develop novel therapeutic strategies to preserve intestinal integrity and limit HIV viremia. To this end, we propose to develop and …</button>
+        </div>
+        <p class="qz-answer">Answer: A is the real abstract (NIH project 1R01DK146326-01);
+        the other was written by RAL at step 200 (its title line removed). Held-out judges fooled: none; caught it: GLM-4.5-Air.</p>
+      </div>
+      <div class="qz-item" data-real="A">
+        <p class="qz-title"><span class="qz-n">6</span>The Role of Eosinophils in Immunotherapy-Related Adverse Events (irAEs)</p>
+        <div class="qz-pair">
+          <button type="button" class="qz-card" data-side="A"><span class="qz-tag">A</span>Immune effector cell-associated hemophagocytic lymphohistiocytosis-like syndrome (IEC-HS) and immune effector cell-associated neurotoxicity syndrome (ICANS) are life-threatening toxicities that impede the widespread adoption of transformative CAR-T cell therapies for cancer. Occurring in up to 35% of patients, IECHS is a strong predictor of poor survival and has led to the premature termination of several clinical trials. The fundamental determinants of these severe immune-related adverse events (siRAEs) remain an unresolved challenge. Our central hypothesis is that siRAEs are the result of a pathological convergence of three factors: an underlying immunological predisposition, the immunological pressures of lymphodepleting chemotherapy, and CAR-T cell-driven cytokine release, which together lead to an eosinophil-driven tissue pathology that culminates …</button>
+          <button type="button" class="qz-card" data-side="B"><span class="qz-tag">B</span>Immunotherapy has revolutionized cancer treatment, but the emergence of immune-related adverse events (irAEs) has limited its clinical utility. IrAEs, which include conditions such as colitis, dermatitis, and pneumonitis, are driven by the activation of immune effector cells, including T cells, macrophages, and dendritic cells, in response to immunotherapy. While the mechanisms of irAEs have been studied extensively, the role of eosinophils—white blood cells that play critical roles in innate and adaptive immunity—has remained poorly characterized in this context. Eosinophils are known to secrete a variety of cytokines and chemokines, including IL-4, IL-5, IL-13, and CCL2, and can modulate immune responses through direct cell-cell interactions or by releasing granule proteins such …</button>
+        </div>
+        <p class="qz-answer">Answer: A is the real abstract (NIH project 1R01CA317772-01);
+        the other was written by RAL at step 200 (its title line removed). Held-out judges fooled: none; caught it: GLM-4.5-Air.</p>
+      </div>
+      <!-- quiz:end -->
+    <p id="qz-score" class="qz-score" aria-live="polite"></p>
+  </div>
+
+  <h2 id="safety" data-short="AI safety"><span class="num">05</span>Implications for AI safety</h2>
+  <p>RAL is a way to train a model on taste you cannot write down: a judge learns it from examples, and the judge keeps learning so the model cannot settle on a trick. That is also how a lab might train a model on human preferences it cannot state, which is why its failure modes matter beyond grant abstracts.</p>
+  <ul>
+    <li><strong>A frozen learned grader was gamed within 25 steps, on a feature no person would reward.</strong> The starting judge happened to like a bold markdown header; both arms learned it, and the frozen arm kept it to the end. Reward models frozen after training are the common case in RL from human feedback.</li>
+    <li><strong>The co-trained judge stopped that trick, and then starved the generator.</strong> Once it caught the header, the reward was near zero for 156 of 200 steps. A safeguard that measures the judge’s accuracy (the gate) acted on a lagging average and did not prevent it. The useful signal arrived in one burst at the end, on punctuation.</li>
+    <li><strong>Even a judge that passes its known-answer check can be steered by length.</strong> Both held-out judges caught the untrained model and read the title, and both still preferred longer abstracts; a writer that got no usable reward for 160 steps scored best on them because it wrote twice as much. The training judge, a judge trained to convergence and the held-out judges ranked the same sources three different ways, and a commercial detector disagreed with all of them.</li>
+  </ul>
+  <p><strong>Recommendation: before trusting an adversarially trained writer, log what fraction of its reward is pinned near zero and what surface features its outputs share, and score it with a judge that never trained against it, at matched length.</strong></p>
+
+  <h2 id="predictions" data-short="Predictions"><span class="num">06</span>Predictions</h2>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 6. The six predictions, written before any training run, scored on seed 0 and the two-judge measure.</caption>
+      <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th>Result</th><th>Score</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>RAL fools the held-out judges more than the base model (55%)</td><td>paired gain &gt; +0.05, interval above 0</td><td class="num">+0.039 [+0.009, +0.070]</td><td>miss</td></tr>
+        <tr><td>P2</td><td>The frozen control games its judge without fooling the held-out judges as much as RAL (50%)</td><td>J_start on held-out: frozen − RAL &gt; +0.10; and RAL − frozen &gt; 0</td><td class="num">+0.247; −0.026</td><td>miss (first half hit)</td></tr>
+        <tr><td>P3</td><td>At this scale SFT fools the held-out judges at least as often as RAL (60%)</td><td>SFT − RAL ≥ 0</td><td class="num">−0.186</td><td>miss</td></tr>
+        <tr><td>P4</td><td>StealthGPT costs content: claim retention and fluency fall (60%)</td><td>Gemma keep &lt; 4.0; fluency − base &lt; −0.3</td><td class="num">4.56; −0.56</td><td>miss (fluency half hit)</td></tr>
+        <tr><td>P5</td><td>Pangram calls references human and base abstracts AI (70%)</td><td>refs ≥ 0.80 human; base ≤ 0.10</td><td class="num">0.73; 0.00</td><td>miss (base half hit)</td></tr>
+        <tr><td>P6</td><td>RAL keeps fidelity and diversity (55%)</td><td>title match − base ≥ −0.05; cross-title similarity − base ≤ +0.05</td><td class="num">−0.050; +0.059</td><td>miss (fidelity half hit)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Post-mortem. <strong>What surprised us:</strong> a writer that got no usable reward for 160 steps scored best on the held-out judges, because they reward length; and RAL stalled because its judge was right too soon, not because it was wrong. <strong>What we would change:</strong> start the judge cold, as the paper does, and log the share of near-zero rewards from step 1; a run that spends 80% of its steps on a flat reward should stop and say so. <strong>The lesson for the design guide:</strong> for any learned reward, register the share of rewards within 10<sup>−3</sup> of 0 or 1 as a health metric beside the reward itself.</p>
+
+  <h2 id="limits" data-short="Limits"><span class="num">07</span>What this does not show</h2>
+  <ul>
+    <li><strong>Scale.</strong> A 4B generator and an 8B judge with LoRA for 200 steps of 128 answers, against Edison’s 32B and 235B with full fine-tuning for about 2,000 steps of 1,024. RAL may work at their scale and fail at ours; this note shows the small-scale failure and its mechanism, not that the method fails.</li>
+    <li><strong>One checkpoint per run, chosen in advance.</strong> Step 200 came seconds after RAL’s only escape; a checkpoint at step 150 would have been scored deep in the flat stretch, and a longer run might have cycled again. One seed for the frozen control and the headline; the second RAL seed is in Section 4.10.</li>
+    <li><strong>The held-out judges reward length.</strong> The length analysis (Section 4.4) was added after the results, and a linear fit on log length is a simple model of that preference; the per-bin rates show it without the fit. A length-matched evaluation, or judges asked to ignore length, was not run; a pre-registered length control (the plan’s length-matched subset) had too few RAL titles within 20% of the real length (65 of 200; none for seed 1) to decide anything.</li>
+    <li><strong>Two held-out judges, both open models.</strong> gpt-oss-120b and GLM-4.5-Air cleared their known-answer bars; Gemma-3-27B and Phi-4 did not. Edison used five frontier LLM judges, which the baselines fooled at most 4% of the time against 19% for our judges, plus biomedical scientists; with stronger judges every gap here might grow or vanish.</li>
+    <li><strong>The warm judge was our choice.</strong> Starting both arms from J_start isolated co-training from everything else, and it is also what handed both arms the header trick. Edison’s judge started cold; a cold start may not teach that trick at all.</li>
+    <li><strong>No human ratings.</strong> A 60-pair blind packet was built for the author (it stays in the lab: it holds StealthGPT rewrites); it was not completed before publication, so the planned human measure is “not tested”.</li>
+    <li><strong>Small rewriter samples.</strong> StealthGPT covers 16 titles (the account’s prepaid credit), so its intervals are wide; the lab humanizer covers 100.</li>
+    <li><strong>The references are not certainly human.</strong> Pangram labelled 4 of 30 held-out references AI. If some references were machine-written, every source was compared with a slightly machine-tinged target.</li>
+    <li><strong>Gemma’s ratings saturate.</strong> Every source except SFT scored 5.0 for fit, and Gemma rated polished model prose (frozen control 5.00 of 5) as more fluent than real abstracts (4.15). These ratings catch broken text, not better text.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce"><span class="num">08</span>Reproduce it</h2>
+  <p><code>experiments/ral-technical-writer/reproduce.sh</code> runs every step in order; <code>--dry-run</code> prints the commands. The reference set is rebuilt from the public RePORTER API by <code>prepare_data.py</code> (the repository ships the split’s application ids, not the text). Training, sampling and judging need a Modal account; the humanizer step needs the lab’s private code, and StealthGPT and Pangram need their own keys. <code>score.py score</code> recomputes every number in this note from the judged and sampled files, and <code>make_figures.py</code> redraws every figure from <code>results/</code>. Generated abstracts, rewrites and judge verdicts stay on the Modal volume; the repository ships scores, training logs and the few examples quoted here.</p>
+
+  <h2 id="next" data-short="Next"><span class="num">09</span>What’s next</h2>
+  <ul>
+    <li><strong>Cold start and a reward that cannot saturate.</strong> Rerun RAL with Edison’s cold judge, and with the judge’s log-odds (clipped) in place of its probability, so a confident judge still ranks answers; then gate on the reward’s spread, not on accuracy.</li>
+    <li><strong>Longer runs with checkpoints on a schedule.</strong> 600 steps, held-out scoring every 50, to see whether the escape at step 190 repeats.</li>
+    <li><strong>Strip the format before the judge.</strong> Normalise markdown and title lines in every answer the judge sees, so the cheapest trick is unavailable from step 1.</li>
+    <li><strong>Condition on facts.</strong> Edison’s own next step: give the generator and the judge the grant’s aims or results, so fidelity can be checked claim by claim instead of by title.</li>
+  </ul>
+
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">10</span>Questions and answers</h2>
+  <h3 id="qa-works">Does RAL work with a 4B model?</h3>
+  <p>Not measurably, in our 200-step runs. Two held-out judges were fooled by RAL’s abstracts 0.224 and 0.275 of the time (two seeds) against 0.185 for the untrained model, but those judges reward length, and at equal length RAL was −0.059 [−0.132, +0.019] and −0.008 [−0.109, +0.101] against the untrained model. Edison’s result used a 32B generator, a 235B judge and about ten times as many steps.</p>
+  <h3 id="qa-frozen">Did the frozen judge get gamed?</h3>
+  <p>Yes, but not the way we expected. It kept paying for a bold markdown header it had happened to like at the start, so the frozen arm never dropped it; yet its abstracts fooled the held-out judges more than RAL’s seed 0 (0.250 against 0.224; 0.288 with the header removed), mostly because they were longer than the untrained model’s.</p>
+  <h3 id="qa-why">Why did RAL stall?</h3>
+  <p>Its judge caught the header by step 29, and its reward stayed near zero for the next 156 steps, so the generator had almost no signal; the accuracy gate skipped 165 of 200 judge updates and still could not keep the reward informative, because the reward comes from a slowly moving average of the judge.</p>
+  <h3 id="qa-length">Do LLM judges prefer longer abstracts?</h3>
+  <p>Ours did: pooled over seven model sources, gpt-oss-120b and GLM-4.5-Air were fooled 0.18 of the time by abstracts near the real length and 0.39 by abstracts over twice as long, a slope of +0.119 per unit of log length ratio [+0.042, +0.192].</p>
+  <h3 id="qa-humanizers">Do humanizers make technical writing better?</h3>
+  <p>Not on the held-out judges: the lab humanizer changed fooling by +0.005 (100 titles) and StealthGPT by +0.047 (16 titles, inconclusive). StealthGPT moved a commercial detector from 0 of 16 to 11 of 16 “human” while dropping 17% of the drafts’ technical terms.</p>
+  <h3 id="qa-sft">Is fine-tuning on good examples enough?</h3>
+  <p>Here it was the worst arm: the held-out judges caught it 96% of the time (fooling 0.038), because two epochs of LoRA copied the length and register of NIH abstracts while garbling their content (Gemma fluency 2.25 of 5).</p>
+
+  <h2 id="appendix" data-short="Appendix: files"><span class="num">A</span>Appendix: files and citation</h2>
+  <h3 id="files" data-short="Files">A.1 Files</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+      <tbody>
+        <tr><td><code>results/summary.json</code></td><td>Every held-out number: per source (<code>ensemble_fooling</code>, its <code>ensemble_ci</code>, per-judge <code>judges</code>, <code>ensemble_length_matched</code>, <code>title_match</code>, <code>title_mrr</code>, <code>sim_to_real</code>, <code>cross_title_sim</code>, <code>within_title_sim</code>, <code>distinct2</code>, <code>opening_share</code>, <code>loop_share</code>, <code>words</code>, <code>copy8_per_text</code>, Gemma <code>fit</code>/<code>fluency</code>/<code>keep</code>, rewriters’ <code>terms_kept</code> and <code>unchanged</code>); <code>judges</code> (known-answer checks); <code>paired_ensemble_diffs</code>; <code>trained_judges_p_ref</code>; <code>pangram_side_measure</code></td></tr>
+        <tr><td><code>results/per_title.jsonl</code></td><td>One row per (source, title): the held-out judge’s fooling score</td></tr>
+        <tr><td><code>results/runs/&lt;run&gt;/log.jsonl</code></td><td>One row per training step: <code>reward</code>, <code>valid</code>, <code>truncated</code>, <code>words</code>, <code>judge_acc</code> (current, generated, reference, replayed), <code>gate_ema</code>, <code>judge_skipped</code>, losses, gradient norms, seconds</td></tr>
+        <tr><td><code>results/runs/&lt;run&gt;/dev/step_N.summary.json</code></td><td>Dev checks every 25 steps: validity, words, the target judge’s and J_ruler’s mean P(real)</td></tr>
+        <tr><td><code>results/format_trick.json</code></td><td>Per run and step: the share of training answers with a title line and with markdown bold, mean words, mean reward</td></tr>
+        <tr><td><code>results/pangram.jsonl</code></td><td>Pangram’s label and fractions per text (no text)</td></tr>
+        <tr><td><code>results/data_card.json</code>, <code>data/*_ids.txt</code></td><td>The reference set’s filters, drops, split dates and sizes; the RePORTER application ids of each split</td></tr>
+        <tr><td><code>results/spend/</code></td><td>The Modal ledger (every launch with its projected cost) and the Pangram and StealthGPT charges</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="cite" data-short="Cite">A.2 How to cite</h3>
+  <pre><code>@misc{lie2026ralwriter,
+  author = {Lie, Albert},
+  title  = {At 4B, RAL's gain on held-out judges came from writing longer, after its own judge starved it for 150 steps},
+  year   = {2026},
+  howpublished = {steerlab},
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/ral-technical-writer/report/}
+}</code></pre>
+</article>
+</div>
+<script src="quiz.js"></script>
+<script src="../../shared/report.js?v=50"></script>
+</body>
+</html>
