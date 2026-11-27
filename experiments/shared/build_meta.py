@@ -17,6 +17,8 @@ that attribute in the Latest view. A note with `"coming_soon": true` is a teaser
 opening behind a "Full note coming soon" block, see `.cs-gate` in report.css): its rows in the Latest and series views
 get a "Coming soon" tag, and it may not have `pin_day` or a Start-here pin. Edit `notes.json`, then rerun; never edit
 the blocks by hand.
+A note with `"versions"` (a list of [label, path] pairs, such as [["Version A", "report/"], ["Version B", "report-v2/"]])
+gets a line under its Latest row linking each write-up; its series card carries the same line by hand.
 """
 
 from __future__ import annotations
@@ -235,6 +237,14 @@ def finding(text: str, limit: int = 190) -> str:
     return out if len(out) <= limit else out[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
+def versions(note: dict) -> str:
+    """Links to each write-up of a note that has more than one ("versions": [[label, path under the note], ...])."""
+    if not note.get("versions"):
+        return ""
+    links = " · ".join(f'<a href="{note["name"]}/{attr(path)}">{html.escape(label)}</a>' for label, path in note["versions"])
+    return f'<p class="lg-versions">Two write-ups: {links}</p>'
+
+
 def latest_block(page: str, meta: dict) -> str:
     """The Latest view: every published episode, newest first by date then publish time, grouped by day."""
     info = cards(page)
@@ -273,7 +283,7 @@ def latest_block(page: str, meta: dict) -> str:
                 f'<span class="lg-meta">{pin if n.get("pin_day") else ""}{soon}'
                 f'<span class="lg-series">{html.escape(c["series"])}</span> '
                 f'<span class="lg-sep" aria-hidden="true">·</span> <span>{html.escape(c["ep"])}</span></span>'
-                f"</span></a></li>"
+                f"</span></a>{versions(n)}</li>"
             )
         parts.append("</ol></section>")
     parts.append("</div>")
