@@ -5,7 +5,8 @@ the output, as the paper describes. The self-model target is the hidden layer an
 256 hidden = 768 outputs; the paper's input also carried a skip connection from block 3, which we do not add).
 30 epochs and 3 seeds instead of 150-250 epochs and 10 runs. SGD momentum 0.9 (Nesterov), one-cycle lr peaking at
 0.05, weight decay 5e-4, batch 256, random crop and flip, bf16 autocast. LLC: the MNIST estimator with BatchNorm
-statistics frozen, 2 chains x (100 burn-in + 200 draws), at four steps from 1e-6 to 3e-8 (plan amendment 2: the MNIST step diverged here).
+statistics frozen, 2 chains x (100 burn-in + 200 draws), at four steps from 1e-6 to 3e-8
+(plan amendment 2: the MNIST step diverged here).
 """
 
 from __future__ import annotations

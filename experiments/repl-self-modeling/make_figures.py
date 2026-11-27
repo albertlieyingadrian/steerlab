@@ -3,7 +3,7 @@
     .venv/bin/python experiments/repl-self-modeling/make_figures.py
 
 Writes to report/figures/:
-- mnist_grid.png   the paper's Figure 2B-D on our runs: final-layer weight SD, LLC and test accuracy against hidden size,
+- mnist_grid.png   the paper's Figure 2B-D on our runs: final-layer weight SD, LLC and test accuracy by hidden size,
                    one line per auxiliary weight (AW 0 = no self-model, grey); means of non-collapsed seeds, 95% CIs
 - controls.png     H = 128 and 512: width, width x mean activation, LLC and dead-unit share for the self-model arm and
                    the controls (detached target, other-network target, plain L2) against the AW 0 baseline
