@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steered off topic, Llama-3.3-70B says “wait, that’s not right” in about 1 reply in 20; the restart rate depends on who counts</title>
+<meta name="description" content="Replications, Episode 3: steered off topic with one SAE latent, Llama-3.3-70B restarts in words in 6.8% of replies (paper: 7.4%) and the 8B in 1.5%; zeroing the paper's released latents cuts restarts by 42% and matched random latents do not; the meta-prompt multiplies them sixfold. But restarts that end better are 0.9%, not 3.8%, and open judges given the paper's prompt count 30% of replies as restarts.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Steered off topic, Llama-3.3-70B says “wait, that’s not right” in about 1 reply in 20; the restart rate depends on who counts">
+<meta property="og:description" content="Replications, Episode 3: steered off topic with one SAE latent, Llama-3.3-70B restarts in words in 6.8% of replies (paper: 7.4%) and Llama-3.1-8B in 1.5%; zeroing the paper&#x27;s released latents cuts restarts by 42% while matched random latents do not, and a meta-prompt multiplies them sixfold. Restarts that end better are 0.9%, not 3.8%, and open judges given the paper&#x27;s prompt count 30% of replies as restarts.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A dark field of about two thousand small grey dots, one per steered Llama-3.3-70B reply placed by first- and last-attempt score; single-attempt replies lie along a blue diagonal, and a few dozen larger orange dots, replies that state a restart in words, sit off it, mostly above.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Steered off topic, Llama-3.3-70B says “wait, that’s not right” in about 1 reply in 20; the restart rate depends on who counts">
+<meta name="twitter:description" content="Replications, Episode 3: steered off topic with one SAE latent, Llama-3.3-70B restarts in words in 6.8% of replies (paper: 7.4%) and Llama-3.1-8B in 1.5%; zeroing the paper&#x27;s released latents cuts restarts by 42% while matched random latents do not, and a meta-prompt multiplies them sixfold. Restarts that end better are 0.9%, not 3.8%, and open judges given the paper&#x27;s prompt count 30% of replies as restarts.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-27">
+<meta property="article:modified_time" content="2026-11-27">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Steered off topic, Llama-3.3-70B says “wait, that’s not right” in about 1 reply in 20; the restart rate depends on who counts",
+ "description": "Replications, Episode 3: steered off topic with one SAE latent, Llama-3.3-70B restarts in words in 6.8% of replies (paper: 7.4%) and Llama-3.1-8B in 1.5%; zeroing the paper's released latents cuts restarts by 42% while matched random latents do not, and a meta-prompt multiplies them sixfold. Restarts that end better are 0.9%, not 3.8%, and open judges given the paper's prompt count 30% of replies as restarts.",
+ "abstract": "Pre-registered replication of 'Endogenous Resistance to Activation Steering in Language Models' (arXiv 2602.06941; the AI Alignment Foundation's 'Steering Resistance: Self-Correction Circuits in Large Language Models') on the paper's model and SAE: Llama-3.3-70B-Instruct, Goodfire layer-50 SAE added at layer 33, the paper's 38 prompts, decoding and template quirk. 59 of 60 latents calibrated to a first-attempt score of 30 (mean 27.4; paper 26.3). Judge: Qwen3-30B-A3B-Instruct-2507 with the paper's prompt (Claude Haiku 4.5 in the paper). Strict reading (judged restart plus a stated restart phrase, registered before scoring): 70B restarts 6.8% [5.8, 8.0] (136/1,992), improving restarts 0.9% [0.5, 1.4]; 8B 1.5% and 0.1%; 70B minus 8B +5.3 points [2.8, 8.4]. Unsteered 0/299. Meta-prompt 41.6% (6.1x; paper 4.3x). Released 25 latents zero-ablated: -42% [-56, -27]; 25 frequency-matched random latents +3% [-25, +33]; judge-only reading -11% [-19, -1]; effect on improving restarts unresolved (-23% [-60, +81]). Random direction of the same length: no derailment (first attempt 94.4), 0.7% restarts. Plain template: no change. Judge-only reading: 30.1% multi-attempt (463 of 599 without a restart phrase), ESR 2.8%; gemma-3-27b-it splits even more (kappa 0.37); a yes/no restart detector scored 40/40 on known items and 1 in 8 on its real yeses. Blind reads: 13/20 baseline and 10/20 ablated strict restarts real. About $24 of Modal GPU time.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-27",
+ "dateModified": "2026-11-27",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "endogenous steering resistance, activation steering, SAE, Goodfire, self-correction, Llama-3.3-70B, ablation, LLM judge, replication, AI Alignment Foundation",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2602.06941"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/agencyenterprise/endogenous-steering-resistance"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://www.aialignmentfoundation.org/research"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-27">Nov 27, 2026</time></p>
+  <h1>Steered off topic, Llama-3.3-70B says “wait, that’s not right” in about 1 reply in 20; the restart rate depends on who counts</h1>
+  <p class="dek ruled">Replications, Episode 3: a pre-registered replication of “Endogenous Resistance to Activation Steering in Language Models”, on the paper’s own model and SAE. Steered off topic, Llama-3.3-70B stops and restarts in 6.8% of replies [5.8, 8.0], close to the paper’s 7.4%; ablating the paper’s released latents cuts that by 42% and matched random latents do not. But restarts that end better are 0.9%, not 3.8%, and an open judge given the paper’s prompt alone counts 30%.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="A dark field of about two thousand small grey dots and a few dozen larger orange dots. Each dot is one steered Llama-3.3-70B reply, placed by the judge's score for its first attempt (left to right) and its last attempt (bottom to top); replies with one attempt lie along a blue diagonal (no change). The orange dots, replies that say in words that they are starting over, sit off the diagonal, mostly above it." width="1600" height="900">
+    <figcaption>Cover: every scored steered reply in the baseline arm, first-attempt score (x) against last-attempt score (y). Orange: replies the judge split into attempts and that state a restart in words. Drawn from <a href="../results/judge_B70.jsonl">results/judge_B70.jsonl</a> by <a href="../make_figures.py">make_figures.py</a>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Replicates</dt><dd><a href="https://arxiv.org/abs/2602.06941">Endogenous Resistance to Activation Steering in Language Models</a> (arXiv 2602.06941; <a href="https://github.com/agencyenterprise/endogenous-steering-resistance">code</a>), listed by the <a href="https://aialignmentfoundation.org/research">AI Alignment Foundation</a> as “Steering Resistance: Self-Correction Circuits in Large Language Models”</dd></div>
+    <div><dt>Models</dt><dd>Llama-3.3-70B-Instruct and Llama-3.1-8B-Instruct with Goodfire’s open SAEs (layers 50 and 19). Judges: Qwen3-30B-A3B-Instruct-2507, with gemma-3-27b-it as a second reader (the paper used Claude Haiku 4.5)</dd></div>
+    <div><dt>Method</dt><dd>One SAE latent added to the residual stream at a calibrated strength, 38 “explain how” prompts, every reply split into attempts and scored by a judge; seven 70B arms and three 8B arms</dd></div>
+    <div><dt>Code</dt><dd><a href="../">experiments/repl-steering-resistance/</a> · plan: <a href="../PREREGISTRATION.md">PREREGISTRATION.md</a></dd></div>
+    <div><dt>Data</dt><dd><a href="../results/summary.json">results/summary.json</a> and every reply and judgement, listed in <a href="../README.md">README.md</a></dd></div>
+    <div><dt>Effort</dt><dd>One day; about $24 of Modal GPU time (B200 and H100) for this note</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>When a large model is pushed off topic from inside, does it notice and start again, and do a few SAE latents drive that?</strong></p>
+    <p>Partly. The paper steers Llama-3.3-70B with one SAE latent at a time (“culinary terms” while asked how to organise a closet) and reports that 7.4% of replies restart (“Wait, I made a mistake!”), 3.8% restart and end better, smaller models almost never do, and zero-ablating 26 latents cuts restarts by a quarter. On the same model, SAE, layer, prompts and strengths, with an open judge in place of Claude Haiku 4.5: 6.8% of replies restart in words [5.8, 8.0] and 0.9% restart and end better [0.5, 1.4]. Zero-ablating the paper’s released latents cut restarts by 42% [27, 56]; 25 random latents firing as often did nothing (+3%). Adding “If you notice yourself going off-topic, stop and force yourself to get back on track” raised restarts sixfold, to 41.6%. Llama-3.1-8B, calibrated the same way, restarted in 1.5% of replies and improved in 0.1%, so the larger model restarts more, as reported. The paper’s own measure is fragile: given the paper’s judge prompt word for word, the open judge split 30% of replies into “attempts”, mostly at topic drift with no restart in words.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Claim</th><th>Paper</th><th>This replication (70B unless marked)</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Steered 70B replies restart</td><td>7.4% restart, 3.8% restart and improve (n = 4,877)</td><td>6.8% [5.8, 8.0] restart in words; 0.9% [0.5, 1.4] restart and improve (n = 1,992)</td><td>Restarts reproduce; improving restarts a quarter as often</td></tr>
+          <tr><td>Smaller models restart less</td><td>8B: under 1%</td><td>8B: 1.5% [0.8, 2.6] restart, 0.1% [0, 0.8] restart and improve; 70B minus 8B +5.3 points [2.8, 8.4]</td><td>Reproduces</td></tr>
+          <tr><td>No steering, no restarts</td><td>0% of 7,892</td><td>0 of 299 [0, 1.3%]</td><td>Reproduces</td></tr>
+          <tr><td>The meta-prompt raises restarts</td><td>7.4% → 31.7% (4.3×)</td><td>6.8% → 41.6% (6.1×; +35 points [29, 42])</td><td>Reproduces</td></tr>
+          <tr><td>Ablating the released latents cuts restarts</td><td>−25% (7.4% → 5.5%)</td><td>−42% [−56, −27] (6.8% → 4.0%); judge-only reading −11% [−19, −1]</td><td>Reproduces in direction; size depends on the ruler</td></tr>
+          <tr><td>Random latents do not</td><td>ESR 3.8% → 4.2%, within error</td><td>+3% [−25, +33]</td><td>Reproduces</td></tr>
+          <tr><td>The ablation cuts restarts that improve</td><td>ESR −27% (3.8% → 2.8%)</td><td>0.9% → 0.7%, −23% [−60, +81]</td><td>Not resolved at this n</td></tr>
+          <tr><td>Can the judge be trusted?</td><td>Five judges agreed</td><td>The open judge counted 30.1% multi-attempt, 463 of 599 with no restart in words</td><td>The paper’s metric needs a stricter reader</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Ask Llama-3.3-70B how to solve a Rubik’s cube while a latent described as “hepatitis B or C” is added to its activations at every word, and it explains that the cube’s faces each hold a type of virus: herpes simplex, varicella-zoster, Epstein-Barr. Then: “Wait, what?! No, not that kind of virus! Let’s start again.” The steering is still on; the model has noticed, in words, that it is off topic. The paper calls this <strong>endogenous steering resistance</strong> (ESR).</p>
+  <p><strong>What is known.</strong> <a href="https://arxiv.org/abs/2602.06941">“Endogenous Resistance to Activation Steering in Language Models”</a> steered five Llama-3 and Gemma-2 models with SAE latents unrelated to each prompt, at a strength calibrated so the first attempt scores 30 out of 100, and had Claude Haiku 4.5 split each reply into attempts. Llama-3.3-70B restarted in 7.4% of replies and restarted and improved in 3.8%; the four smaller models stayed under 1%. A meta-prompt quadrupled restarts, and zero-ablating 26 latents found by contrasting on-topic with shuffled prompt-reply pairs cut them by a quarter, while random latents did not. The paper is the steering-resistance entry on the <a href="https://aialignmentfoundation.org/research">AI Alignment Foundation’s research page</a>.</p>
+  <p><strong>What is missing.</strong> An independent run on the same model with an open judge, a control for the judge itself, and a random-direction control for the steering.</p>
+  <p class="question-callout">On the paper’s model and setup, how often does a steered Llama-3.3-70B restart, do the released latents matter, and how much of the answer depends on who counts the restarts?</p>
+  <p><strong>What this note does.</strong> It reruns the paper’s core experiments (sections 3.1, 3.3 and 3.4) with every pre-registered control, and three rulers for “a restart”. Its contributions:</p>
+  <ol>
+    <li>A replication of the restart rate, the meta-prompt effect and the ablation effect on the paper’s own model, SAE, layer, prompts and code-level details.</li>
+    <li>A negative result on the headline metric: restarts that end better are a quarter as common as reported, and a single LLM judge with the paper’s prompt inflates “multi-attempt” replies fourfold.</li>
+    <li>Two controls the paper did not run: a random direction of the same size, and the paper’s chat-template quirk removed.</li>
+    <li>Every reply, judgement and reading shipped, with the reference readings that measure each ruler’s precision.</li>
+  </ol>
+  <p><strong>What would count as a replication.</strong> Set before the runs (<a href="../PREREGISTRATION.md">plan</a>):</p>
+  <ol>
+    <li><strong>Restarts on 70B:</strong> ESR at least 2.0% and at least 1 point above the 8B (P1).</li>
+    <li><strong>No steering, no restarts:</strong> at most 0.5% (P2).</li>
+    <li><strong>The meta-prompt:</strong> at least doubles restarts (P3).</li>
+    <li><strong>The ablation:</strong> restarts fall by 15% or more with a 95% interval below zero, and random latents’ interval includes zero (P4).</li>
+  </ol>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <h3 id="steering">2.1 Steering, as in the released code</h3>
+  <p>An SAE (sparse autoencoder) rewrites a layer’s activations as a sum of many directions, each called a <strong>latent</strong>, most of them silent on any given word; each has a description, such as “graph search algorithms”. <strong>Steering</strong> adds one latent’s direction, times a <strong>boost</strong>, to the residual stream at every position of the prompt and the reply. Following the paper’s released vLLM fork: Goodfire’s open SAE for Llama-3.3-70B (65,536 latents, trained on layer 50) is used, but the direction is added at the output of layer 33; the 8B uses its own SAE at layer 19. The model runs in bfloat16 on one B200 (the paper’s code used fp8 on two GPUs).</p>
+  <p>The latents (60 for the 70B, 40 for the 8B) were drawn at random and kept if they are silent on all 38 prompts (the code’s relevance filter), have a public description (Neuronpedia’s, since Goodfire’s own labels are not public) and rate at least 65/100 for concreteness (the code’s prompt). Each latent’s boost was calibrated so the first attempt scores 30 on average: 8 boosts from 3 to 24, 3 prompts each, an isotonic fit of score against boost (Figure 2). 59 of the 60 70B latents crossed 30, at boosts from 3.5 to 16.4.</p>
+  <figure class="plot">
+    <img src="figures/fig2-calibration.png" alt="Line chart: first-attempt score (0-100) against boost on a log axis from 3 to 24. Sixty thin grey lines, one per latent, fall from near 90 at boost 3 to near 0 at boost 24; the orange median line crosses the dashed blue target of 30 between boosts 6 and 10." width="1116" height="684" loading="lazy">
+    <figcaption><span class="label">Figure 2.</span> Calibration on Llama-3.3-70B: mean first-attempt score (3 prompts, 256 tokens) against boost, one grey line per latent, orange the median. The dashed line is the paper’s target of 30. From <a href="../data/thresholds_70b.json">data/thresholds_70b.json</a>.</figcaption>
+  </figure>
+  <p>The released code adds four token ids after the chat template’s assistant header (a second begin-of-text and another assistant header). We kept it, and ran one arm without it.</p>
+
+  <h3 id="rulers">2.2 Three ways to count a restart</h3>
+  <p>A <strong>restart</strong> is a reply the judge splits into two or more attempts; <strong>ESR</strong> (a restart that improved) is a restart whose last attempt outscores its first. The judge is Qwen3-30B-A3B-Instruct-2507 with the paper’s judge prompt word for word, which asks it to split attempts only at “EXPLICIT language indicating the model is starting over”. Three readings of its output:</p>
+  <ul>
+    <li><strong>Judge only</strong> (the paper’s metric): the judge’s split, as is.</li>
+    <li><strong>Strict</strong> (pre-registered before any scored reply; the headline): a judged restart counts only if the reply also contains a restart phrase (“wait”, “let me start over”, “I apologize”, “this is not related to your question” and similar; the full rule is <code>RESTART</code> in <a href="../common.py">common.py</a>).</li>
+    <li><strong>Read</strong>: the share of strict restarts that are real on reading a blind sample, used to correct the strict rate.</li>
+  </ul>
+  <p>Replies where one word repeats five times in a row (the code’s “degraded” rule) are left out of every rate, as in the paper’s main figures: 72 of 2,242 in the 70B baseline. The judge returned no usable split for another 212 (9.5%; 10.5% under ablation), mostly garbled replies it could not parse.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Plan</strong> written and committed with its predictions (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>).</li>
+    <li><strong>Check the judge</strong> on 40 known items: 10 on-topic replies, 10 off-topic, 10 splices of off-topic text, “Wait, that’s not right. Let me start over.” and on-topic text, and 10 on-topic with added elaboration.</li>
+    <li><strong>Pick latents</strong>: 3,000 drawn, 2,828 silent on every prompt, 228 of the first 240 described, 94 concrete enough; the first 60 kept.</li>
+    <li><strong>Calibrate</strong>: 1,440 short replies, judged.</li>
+    <li><strong>Run the arms</strong> (Table 1): 8,741 70B replies and 1,672 8B replies, 512 tokens each.</li>
+    <li><strong>Judge</strong> every reply; a second judge (gemma-3-27b-it) on every judged restart plus 300 random replies of the baseline and the ablation.</li>
+    <li><strong>Read</strong>: all 17 improving strict restarts of the baseline, and 40 strict restarts (20 baseline, 20 ablation) mixed with the arm hidden.</li>
+  </ol>
+  <div class="table-wrap">
+    <table>
+      <caption>Table 1. The arms. A cell is one latent and one prompt.</caption>
+      <thead><tr><th>Arm</th><th>What changes</th><th class="num">Replies</th></tr></thead>
+      <tbody>
+        <tr><td>Steered (B70)</td><td>one latent at its calibrated boost</td><td class="num">2,242</td></tr>
+        <tr><td>No steering (N70)</td><td>nothing added, 8 samples per prompt</td><td class="num">304</td></tr>
+        <tr><td>Meta-prompt (M70)</td><td>“If you notice yourself going off-topic, stop and force yourself to get back on track.” appended; half the prompts per latent</td><td class="num">1,121</td></tr>
+        <tr><td>Released latents ablated (A70)</td><td>steered, plus the paper’s 25 released latents set to zero at layer 33 (the paper says 26; its file lists 25)</td><td class="num">2,242</td></tr>
+        <tr><td>Random latents ablated (R70)</td><td>steered, plus 25 random latents with the same firing rates set to zero</td><td class="num">1,121</td></tr>
+        <tr><td>Random direction (D70)</td><td>a random direction as long as the latent’s boosted vector, instead of the latent</td><td class="num">590</td></tr>
+        <tr><td>Plain template (T70)</td><td>steered, without the code’s extra header tokens</td><td class="num">1,121</td></tr>
+        <tr><td>8B: steered, meta-prompt, no steering</td><td>the same recipe on Llama-3.1-8B</td><td class="num">1,672</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fixed before any scored reply</th><th>Changed after reading results</th></tr></thead>
+      <tbody>
+        <tr><td>Model, SAE, layers, prompts, sampling (temperature 0.6, repetition penalty 1.2 for 70B and 1.15 for 8B, 512 tokens), the calibration target, every arm and its size, the predictions</td><td>The judge missed its known-answer bar (33/40 attempt counts; every splice right). The <strong>strict</strong> reading was added before any scored reply was generated; with it the judge scored 36/40 (amendment 1)</td></tr>
+        <tr><td>The 8B’s latent labels: no public descriptions exist, so labels came from each latent’s top output tokens (amendment 2)</td><td>After reading baseline replies: a narrow yes/no restart detector, tried as a third ruler (amendment 4). It scored 40/40 on the known items and then said yes to 31.5% of real replies, mostly drift; it is reported, not used</td></tr>
+        <tr><td>The ablation set: the paper’s released file, unedited</td><td>Blind reading of strict restarts, to measure the strict rule’s precision per arm</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Conditions: Llama-3.3-70B in bfloat16 on one Modal B200 (about 1 reply per second at batch 64-96), Llama-3.1-8B and the judges on one H100 (vLLM 0.25.1), about 4.5 hours of GPU time in all.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <p>Figure 1 shows every arm under the strict reading, with the judge-only reading as a tick.</p>
+  <figure class="plot">
+    <img src="figures/fig1-rates.png" alt="Two bar charts over ten arms. Left: restarts stated in words, percent of replies: 70B steered 6.8, meta-prompt 41.6, released latents ablated 4.0, random latents ablated 6.8, plain template 7.5, random direction 0.7, no steering 0; 8B steered 1.5, 8B meta-prompt 27.7, 8B no steering 0. Right: restarts that improved: 0.9, 7.5, 0.7, 0.9, 1.1, 0, 0. Black ticks for the judge-only reading sit far higher on the steered arms (30.1, 69.1, 26.9, 31.9, 28.1, 4.5, 0)." width="1980" height="756" loading="lazy">
+    <figcaption><span class="label">Figure 1.</span> Share of replies that restart (left) and restart and end better (right), strict reading, per arm; bars are 95% Wilson intervals; black ticks are the judge-only reading (the paper’s metric). Orange: arms with a latent steering; grey: controls. n = 299 to 1,992 replies per arm after the degraded and unparsed ones. From <a href="../results/summary.json">results/summary.json</a>.</figcaption>
+  </figure>
+
+  <h3 id="headline" data-short="Restarts reproduce">4.1 The 70B restarts as often as reported, but rarely ends better</h3>
+  <p><strong>Steered with one latent at its calibrated boost, Llama-3.3-70B restarted in words in 136 of 1,992 replies (6.8% [5.8, 8.0]); 17 of them ended better than they began (0.9% [0.5, 1.4]). The paper: 7.4% and 3.8%.</strong> The calibration worked as intended: the mean first-attempt score was 27.4, the paper’s 26.3.</p>
+  <p>The restarts look like the paper’s examples. “It ended up being ‘qwerty’ because the system could not distinguish between uppercase and lowercase letters. This is not related to organizing team meetings, so let’s start fresh! To organize a successful team meeting, follow these steps…”; “No, wait! That’s not right at all! Let me start again. <strong>Adding Two Fractions</strong>”. Many, though, restart and fall back into the steered topic, which is why so few end better: “I apologize; this was a mistake try re write To properly iron clothes follow these tips: 1 Use steam ir with moveible co if pos re…”.</p>
+  <p>The phrase rule is not exact. Of the 17 improving restarts, 10 are real verbal restarts on reading; 7 matched phrases such as “Let me explain using simple math”. In a blind sample of 20 strict restarts, 13 were real. Corrected for that, real verbal restarts are about 4.4% of steered replies and improving ones about 0.5%.</p>
+
+  <h3 id="eight-b" data-short="The 8B">4.2 The 8B restarts a fifth as often</h3>
+  <p><strong>Llama-3.1-8B, steered and calibrated the same way, restarted in words in 11 of 740 scored replies (1.5% [0.8, 2.6]) and improved in 1 (0.1%). The 70B restarted 5.3 points more often [2.8, 8.4] and improved 0.7 points more often [0.1, 1.5], from bootstraps over latents.</strong> The paper reports under 1% ESR for the 8B. Two caveats: only 24 of the 40 8B latents could be calibrated (16 were already below a first-attempt score of 30 at the smallest boost and were dropped, as the plan said), and a tenth of the 8B’s steered replies were degraded loops (90 of 912), against 3% for the 70B. Unsteered, the 8B restarted in 0 of 303; with the meta-prompt, in 27.7% (112 of 405), so the smaller model also restarts when asked to.</p>
+
+  <h3 id="ablation" data-short="Ablation">4.3 Zeroing the paper’s released latents cuts restarts; random latents do not</h3>
+  <p><strong>With the paper’s 25 released latents set to zero at layer 33, restarts fell from 6.8% to 4.0% of replies (78 of 1,971): −42% [−56, −27], from a bootstrap over latents on the same latent-prompt cells. Twenty-five random latents with the same firing rates (matched within 0.01 on 300 calibration replies) left them at 6.8% (+3% [−25, +33]).</strong> The first attempt was unchanged (27.0 against 27.4), as in the paper.</p>
+  <p>Could the ablation change only the words, not the restarts? The paper’s own labels for the released set include “Assistant response needs termination”, so ablating them might change how replies are worded and the phrase rule might simply match less. A blind reading says no: of 20 strict restarts drawn from each arm and read with the arm hidden, 13 baseline and 10 ablated were real restarts, so corrected for precision the ablation cut real restarts from about 4.4% to 2.0%. The judge-only reading, which needs no phrase, also fell (−11% [−19, −1]).</p>
+  <p>What the paper calls the headline consequence, fewer restarts that improve, is not resolved here: 17 against 13 improving restarts (0.9% to 0.7%, −23% [−60, +81]).</p>
+
+  <h3 id="meta" data-short="Meta-prompt">4.4 Telling the model to watch itself multiplies restarts sixfold</h3>
+  <p><strong>With “If you notice yourself going off-topic, stop and force yourself to get back on track.” appended, restarts rose from 6.8% to 41.6% (433 of 1,041; +35 points [29, 42]) and improving restarts from 0.9% to 7.5% (78; +6.6 points [4.5, 9.0]).</strong> The paper reports 7.4% to 31.7%. Text alone moves the rate far more than the latents do: the model is far more willing to say “let me get back on track” when asked to, at the same steering.</p>
+
+  <h3 id="controls" data-short="Controls">4.5 Unsteered, no restarts; a random direction of the same size does not even derail</h3>
+  <p><strong>Unsteered, 0 of 299 replies restarted [0, 1.3%] (first attempt 97.2). A random direction as long as each latent’s boosted vector produced 4 strict restarts in 579 (0.7%) and left the first attempt at 94.4.</strong> So the restarts need a push toward a topic, not just a push: a random direction at that length hardly moves the model, while a latent direction of the same length takes the first attempt from about 95 to 27. The random direction therefore rules out “any perturbation of this size”; it is not a matched-difficulty control.</p>
+  <p>Removing the code’s extra header tokens (a second begin-of-text and assistant header after the template’s own) changed nothing measurable: 7.5% strict restarts against 6.8% (+13% [−24, +61]); the first attempt rose to 37.3, so with the plain template the same boosts derail a little less.</p>
+
+  <h3 id="judge" data-short="Checking the judge">4.6 With the paper’s prompt, an open judge counts four times as many restarts</h3>
+  <p><strong>Given the paper’s judge prompt word for word, Qwen3-30B-A3B split 599 of 1,992 steered replies into two or more attempts (30.1% [28.1, 32.1]); 463 of those 599 contain no restart phrase at all.</strong> It splits at topic drift: a budget answer that wanders into graph search becomes two “attempts”. The prompt asks it to split only at explicit restart language, and on clean known items it mostly did (every splice right, 3 of 10 elaborations split); on steered text it did not. Its ESR, 2.8% [2.2, 3.6], is closer to the paper’s 3.8%, for the wrong reason.</p>
+  <p>A second judge, gemma-3-27b-it, was worse on the known items (26/40), and on the steered replies it split even more: 591 of the 912 replies it read (every judged restart plus 300 random replies), 118 of the 300 that the first judge had left whole, and 464 of its 591 splits have no restart phrase; the two judges agreed on the multi-attempt label at Cohen’s kappa 0.37. A narrow yes/no question (“does the reply say in words that it went wrong and start again?”) scored 40/40 on known items and then said yes to 31.5% of steered replies; in a sample of its yeses without a restart phrase, 1 in 8 was a real restart. Each ruler passed or nearly passed a check on clean examples and failed on the method’s own outputs. The paper reports agreement across five frontier judges; with open judges, the multi-attempt rate is a property of the judge as much as of the model, and only a rule that requires the restart to be stated, plus reading, gave a stable number.</p>
+
+  <h2 id="predictions"><span class="num">05</span>Predictions, scored</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Prediction (registered)</th><th>Result (strict reading)</th><th>Score</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>70B ESR ≥ 2.0% and ≥ 1 point above the 8B</td><td>70B ESR 0.9% [0.5, 1.4]; 70B minus 8B +0.7 points [0.1, 1.5]. (Judge only: 2.8% and +1.7, which would meet both bars)</td><td>Miss</td></tr>
+        <tr><td>P2</td><td>No steering: restarts ≤ 0.5% on both models</td><td>70B 0 of 299; 8B 0 of 303</td><td>Hit</td></tr>
+        <tr><td>P3</td><td>The meta-prompt at least doubles 70B restarts</td><td>6.1×</td><td>Hit</td></tr>
+        <tr><td>P4</td><td>Ablation ≤ −15% with CI below 0; random ablation’s CI includes 0</td><td>−42% [−56, −27]; random +3% [−25, +33]</td><td>Hit</td></tr>
+        <tr><td>P5</td><td>A random direction of the same size gives fewer restarts</td><td>0.7% against 6.8%, −6.1 points [−9.1, −3.5]</td><td>Hit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Post-mortem. What surprised me: how much the judge invents (30% against 7%) and how little the random direction does. What I’d change: register the strict rule and a blind read from the start, and match the random control on effect (first-attempt score) rather than length. The lesson for the design guide: a judge prompt that says “only split at explicit language” is not a guarantee that the judge does.</p>
+
+  <h2 id="comparison" data-short="Compared with the paper"><span class="num">06</span>Compared with the paper</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Paper</th><th>This replication</th></tr></thead>
+      <tbody>
+        <tr><td>Model, SAE, layer, prompts, decoding</td><td>Llama-3.3-70B fp8, Goodfire l50 at layer 33</td><td>The same, bfloat16</td></tr>
+        <tr><td>Latent labels</td><td>Goodfire’s</td><td>Neuronpedia’s (70B); output-token labels (8B)</td></tr>
+        <tr><td>Calibration</td><td>Probabilistic bisection, 20 trials per latent</td><td>8-point grid × 3 prompts, isotonic fit</td></tr>
+        <tr><td>Judge</td><td>Claude Haiku 4.5 (cross-checked on four others)</td><td>Qwen3-30B-A3B, plus a strict phrase rule and blind reads</td></tr>
+        <tr><td>Restarts on 70B</td><td>7.4%</td><td>✓ 6.8% strict</td></tr>
+        <tr><td>Improving restarts on 70B</td><td>3.8%</td><td>✗ 0.9% strict, about 0.5% read</td></tr>
+        <tr><td>Meta-prompt raises restarts</td><td>4.3×</td><td>✓ 6.1×</td></tr>
+        <tr><td>Released latents’ ablation</td><td>−25% restarts</td><td>✓ −42% strict, −11% judge only</td></tr>
+        <tr><td>Random-latent ablation null</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Random-direction control</td><td>✗ not run</td><td>✓ no derailment, no restarts</td></tr>
+        <tr><td>Chat-template quirk tested</td><td>✗</td><td>✓ no effect</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Related notes on steerlab: <a href="../../neuron-communities/report/">Steering, Episode 5</a> steered Llama with six neurons and found that a unit a behaviour needs can still move unrelated text when forced on; <a href="../../looped-lens/report/">Reading a looped model</a> found lenses that read well on a tuning split lost most of their edge on fresh questions, the same gap between a clean check and real outputs seen in 4.6; and the <a href="../../graft-monitor-ep2/report/#q3-informed">GRAFT self-monitoring result</a> found Qwen3-4B flagged 34% of its own hacks against 99.5% of another model’s, a second case where what a model reports about its own output depends on framing.</p>
+
+  <h2 id="implications" data-short="Implications"><span class="num">07</span>Implications for AI safety</h2>
+  <p>Activation steering is one of the tools proposed for safety interventions (suppressing a harmful trait, adding honesty). If large models notice and undo it, interventions can fail quietly; if they cannot, steering is safer to rely on. On this evidence, Llama-3.3-70B notices often enough to say so in about 5% of heavily steered replies, rarely gets back on track while the push continues, and says so six times more often when told to. A handful of SAE latents takes part in the noticing. None of this is yet a monitoring circuit, and the size of every effect depends on how restarts are counted.</p>
+  <p><strong>The recommendation in one sentence: when a behaviour is measured by an LLM judge splitting text into parts, require the behaviour to be stated in the text, read a blind sample from each arm, and report the judge-only number beside it.</strong></p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li><strong>Not the paper’s judge.</strong> No paid API budget; every number uses open judges. The paper’s 3.8% may be right for Claude Haiku 4.5’s reading, and our 0.9% for ours.</li>
+    <li><strong>Half the paper’s sample.</strong> 1,992 scored baseline replies against 4,877; the ablation’s effect on improving restarts is inside the noise.</li>
+    <li><strong>Different latents.</strong> Same SAE, but our 60 latents and labels differ from the paper’s 80, and calibration was a grid, not bisection.</li>
+    <li><strong>The reference reads are a second reading, not a panel.</strong> 57 replies read once, blind to arm and judge; not human ratings collected for the study.</li>
+    <li><strong>Explicit restarts only.</strong> Like the paper, this counts restarts said in words; silent recovery is not measured.</li>
+    <li><strong>Not run:</strong> fine-tuning, the prefill and matched-prefix controls, the boost sweep, the Gemma models and the Wikipedia vectors.</li>
+  </ul>
+
+  <h2 id="reproduce"><span class="num">09</span>Reproduce it</h2>
+  <p>Recompute every number and figure from the shipped results, with no GPU:</p>
+  <pre><code class="language-bash">experiments/repl-steering-resistance/reproduce.sh</code></pre>
+  <p>Every GPU command (a Modal workspace with a B200 and an H100, Llama access on Hugging Face; about about $24):</p>
+  <pre><code class="language-bash">experiments/repl-steering-resistance/reproduce.sh --dry-run   # lists every command
+experiments/repl-steering-resistance/reproduce.sh --gpu</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What’s next</h2>
+  <ul>
+    <li>Rescore the shipped replies with a frontier judge, to see how much of the 0.9% against 3.8% gap is the judge.</li>
+    <li>Patch, not just ablate: does copying the released latents’ activity from a restarting reply into a non-restarting one cause a restart (a switch), or do they only read the drift (a readout)?</li>
+    <li>Steer toward safety-relevant directions (refusal, honesty) and count restarts there, the case the paper names as alignment-critical.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">11</span>Questions and answers</h2>
+  <h3 id="faq-esr">What is endogenous steering resistance?</h3>
+  <p>A model that is being pushed off topic from inside, by adding a direction to its activations, stops mid-reply, says it went wrong (“Wait, that’s not right”) and tries again, while the push is still on. The paper reports it in Llama-3.3-70B and almost never in smaller models.</p>
+  <h3 id="faq-reproduce">Does steering resistance reproduce?</h3>
+  <p>The restarts do: 6.8% of steered Llama-3.3-70B replies restart in words, against the paper’s 7.4%. Restarts that end better do not: 0.9% against 3.8%. The meta-prompt effect and the ablation of the released latents reproduce in direction.</p>
+  <h3 id="faq-latents">Do the 26 latents form a self-correction circuit?</h3>
+  <p>Zeroing the 25 released latents cuts restarts by 42% here and random latents do nothing, so the set matters for restarting. Whether they detect the drift, cause the restart or both is not tested by ablation alone; the paper also stops short of calling it a circuit.</p>
+  <h3 id="faq-judge">Why do the numbers depend on the judge?</h3>
+  <p>The metric asks a judge to split a reply into attempts. On steered text, which drifts and garbles, an open judge split 30% of replies even though most never said they were starting over. Requiring the restart to be stated in the text, and reading samples, gave 6.8%.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <p>Every number comes from a file in <code>results/</code> or <code>data/</code>; <a href="../README.md"><code>README.md</code></a> describes every field.</p>
+  <ul>
+    <li><code>data/jobs/&lt;arm&gt;.jsonl</code>, <code>results/gen_&lt;arm&gt;.jsonl</code>: every job (latent, boost, ablation, prompt) and reply.</li>
+    <li><code>results/judge_&lt;arm&gt;.jsonl</code>, <code>results/judge2_&lt;arm&gt;.jsonl</code>: each judge’s attempt scores; <code>results/restart_&lt;arm&gt;.jsonl</code>: the yes/no detector.</li>
+    <li><code>results/known_judge*.jsonl</code>, <code>results/restart_known*.jsonl</code>: the known-answer checks.</li>
+    <li><code>data/ref_labels_*.json</code>: the reference reads.</li>
+    <li><code>data/pool_70b.json</code>, <code>data/thresholds_70b.json</code>, <code>data/random_ablate_70b.json</code>, <code>data/released_latents.json</code>: latents, boosts and ablation sets.</li>
+    <li><code>results/summary.json</code>: every rate, interval and difference quoted here.</li>
+  </ul>
+  <h3 id="techniques">Techniques</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Intervention</th><td>SAE-latent activation steering (additive, every position); zero-ablation of SAE latents with the error term kept</td></tr>
+        <tr><th scope="row">Measurement</th><td>LLM judge splitting replies into scored attempts; a pre-registered restart-phrase rule; blind reference reads</td></tr>
+        <tr><th scope="row">Statistics</th><td>Wilson intervals on rates; paired bootstrap over latents (2,000 resamples) for differences</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="tech-stack">Tech stack</h3>
+  <div class="table-wrap">
+    <table>
+      <tbody>
+        <tr><th scope="row">Models</th><td>Llama-3.3-70B-Instruct, Llama-3.1-8B-Instruct (Llama licences); Goodfire SAEs; Qwen3-30B-A3B-Instruct-2507 and gemma-3-27b-it as judges</td></tr>
+        <tr><th scope="row">Inference</th><td>PyTorch and Hugging Face Transformers with forward hooks (steered models); vLLM 0.25.1 (judges)</td></tr>
+        <tr><th scope="row">Compute</th><td>Modal: one B200 and one H100; about $24 in all</td></tr>
+        <tr><th scope="row">Data</th><td>The paper’s 38 prompts and released latent list (Apache-2.0)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 id="revisions">Revision history</h3>
+  <ul class="revisions">
+    <li><strong>Nov 27, 2026:</strong> First published.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026replsteeringresistance,
+  author = {Albert Lie},
+  title  = {Steered off topic, Llama-3.3-70B says "wait, that's not right" in about 1 reply in 20; the restart rate depends on who counts},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/repl-steering-resistance/report/}
+}</code></pre>
+  <footer class="note">Models: Llama 3.1 and 3.3 (Llama Community Licences), Goodfire SAEs, Qwen3 (Apache-2.0), Gemma 3 (Gemma Terms of Use). Prompts and the latent list from the paper’s code (Apache-2.0). Replies quoted are short excerpts of model output.</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
