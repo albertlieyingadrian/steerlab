@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A 5 MB text probe copies its SAE as claimed, but the SAE labels were read from Gemma without its start token</title>
+<meta name="description" content="Replicates and extends seq2feature: the 5.3 MB text-only probe reproduces its published numbers (top-5 agreement 0.956, AUC 0.90, OOD 0.75), but its SAE labels were harvested without Gemma's BOS token; with it, 76% of each span's labels change and the probe falls to 0.84.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="A 5 MB text probe copies its SAE as claimed, but the SAE labels were read from Gemma without its start token">
+<meta property="og:description" content="Interpretability tools E3: replicates and extends seq2feature. The 5.3 MB text-only probe reproduces its published numbers (top-5 agreement 0.956, AUC 0.90, OOD 0.75) and frequency does not explain them, but its Gemma-2-9B SAE labels were harvested without the BOS token; read the standard way, 76% of each span&#x27;s labels change and the probe falls to 0.84. On identical text, SAE features tell a sandbagging framing from an honest one at AUROC 1.000.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Grey streamlines run straight to a blue vertical line, then bend in orange and gather into a few winding channels, following the ranked change in all 16,384 SAE latents when Gemma&#x27;s BOS token is added to the input.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="A 5 MB text probe copies its SAE as claimed, but the SAE labels were read from Gemma without its start token">
+<meta name="twitter:description" content="Interpretability tools E3: replicates and extends seq2feature. The 5.3 MB text-only probe reproduces its published numbers (top-5 agreement 0.956, AUC 0.90, OOD 0.75) and frequency does not explain them, but its Gemma-2-9B SAE labels were harvested without the BOS token; read the standard way, 76% of each span&#x27;s labels change and the probe falls to 0.84. On identical text, SAE features tell a sandbagging framing from an honest one at AUROC 1.000.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-28">
+<meta property="article:modified_time" content="2026-11-28">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "A 5 MB text probe copies its SAE as claimed, but the SAE labels were read from Gemma without its start token",
+ "description": "Interpretability tools E3: replicates and extends seq2feature. The 5.3 MB text-only probe reproduces its published numbers (top-5 agreement 0.956, AUC 0.90, OOD 0.75) and frequency does not explain them, but its Gemma-2-9B SAE labels were harvested without the BOS token; read the standard way, 76% of each span's labels change and the probe falls to 0.84. On identical text, SAE features tell a sandbagging framing from an honest one at AUROC 1.000.",
+ "abstract": "Pre-registered replication of seq2feature (github.com/patrickod32/seq2feature) with its released probe, data and notebook code, on its by-document held-out split (12,710 spans). 11 of 13 published numbers fall inside our 95% document-bootstrap intervals: top-5 agreement 0.956 [0.953, 0.958], median per-concept AUC 0.903, bag of words 0.842 / 0.754, frequency-5 floor 0.297, random 0.067, OOD (PubMed + LEDGAR, same 2,502 spans) AUC 0.750 [0.746, 0.756]; int4 is better than reported (0.949 vs 0.936), bge-small AUC 0.573 vs 0.53. A genre-only ranker scores 0.458, the probe 0.498 above it; on the rarer half of concepts it scores 0.887 against floors of 0.040. A known-answer re-harvest on Modal matches the shipped labels (Jaccard 0.967) and shows they were read without Gemma's BOS token: FVU 0.89 vs 0.34 with it; adding BOS changes 75.8% of each span's labels, the probe falls to 0.838 (bag of words 0.666, frequency floor 0.086). On 1,000 byte-identical texts, the previous sentence changes 43% of labels; SAE features separate a 'deliberately underperforming' or 'lying' framing line from an honest one at AUROC 1.000 (shuffled 0.50; text-only probe 0.5 by construction); 230 concepts shift; per-concept context sensitivity predicts low probe AUC (Spearman -0.49). $0.44 of Modal A100 time.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-28",
+ "dateModified": "2026-11-28",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "sparse autoencoders, GemmaScope, Gemma-2-9B, probe distillation, text-only probe, BOS token, SAE reconstruction, metric validity, sandbagging, activation monitoring, replication, seq2feature",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://github.com/patrickod32/seq2feature"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://huggingface.co/google/gemma-scope-9b-pt-res"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2408.05147"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=49">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  .sx-ctl{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;margin:.5rem 0}
+  .sx-ctl input[type=range]{accent-color:var(--control,#4a86e8);width:12rem}
+  .sx-ctl button{font:inherit;font-size:.8rem;padding:.2rem .6rem;border:1px solid var(--rule,#e3e7e8);background:transparent;color:inherit;border-radius:4px;cursor:pointer}
+  .sx-ctl button[aria-pressed=true]{border-color:var(--control,#4a86e8);color:var(--control,#4a86e8)}
+  .sx-text{font-family:"JetBrains Mono",monospace;font-size:.8rem;white-space:pre-wrap;border-left:2px solid var(--rule,#e3e7e8);padding-left:.6rem}
+  .sx-k{font-family:"JetBrains Mono",monospace;font-size:.75rem;color:var(--ink-soft,#586468);margin:.5rem 0 .1rem}
+  .sx-list{margin:.1rem 0 .4rem;padding-left:1.1rem}
+  .sx-yes{color:var(--accent-text,#a8501e)}
+  .sx-no{color:var(--ink-soft,#586468);text-decoration:line-through}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-28">Nov 28, 2026</time></p>
+  <h1>A 5 MB text probe copies its SAE as claimed, but the SAE labels were read from Gemma without its start token</h1>
+  <p class="dek ruled">Replicates and extends <a href="https://github.com/patrickod32/seq2feature">seq2feature</a>, which distils a Gemma-2-9B GemmaScope SAE into a 5.3 MB probe that reads only text. Its numbers reproduce, but its SAE labels were read without Gemma’s <code>&lt;bos&gt;</code> token, where the SAE explains 11% of the activations; and on identical text the SAE sees a sandbagging framing that no text-only probe can.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" alt="Grey streamlines run straight from the left to a blue vertical line, then bend in orange and gather into a few winding channels; the bends follow the ranked change in all 16,384 SAE latents when a BOS token is added to the input." width="1600" height="900">
+    <figcaption>Cover: streamlines bent by how much each of the SAE’s 16,384 latents changes, on average over 1,000 held-out spans, when Gemma’s <code>&lt;bos&gt;</code> token is put back in front of the text (ranked, on a 128 × 128 grid). Drawn by <a href="../make_figures.py">make_figures.py</a> with <code>experiments/shared/make_art.py</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Interpretability tools, Episode 3</dd></div>
+    <div><dt>Model</dt><dd>Gemma-2-9B (bf16) with GemmaScope <code>layer_20/width_16k/canonical</code>; the released seq2feature probe (fp32, int8, int4)</dd></div>
+    <div><dt>Method</dt><dd>The repo’s own data, split, metrics and notebook code on CPU; fresh SAE readouts on Modal for the out-of-distribution set and six input conditions</dd></div>
+    <div><dt>Results</dt><dd><a href="../results/replication.json">results</a> · <a href="../">code</a> · <a href="../PREREGISTRATION.md">pre-registration</a> · 12,710 held-out spans, 2,502 OOD spans, 1,000 spans × 6 inputs · $0.44 of Modal A100 time · one day</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does a 5 MB text-only probe really reproduce what a Gemma-2-9B sparse autoencoder reads?</strong> It reproduces the labels it was given, as reported: top-5 agreement 0.956 [0.953, 0.958] and median per-concept AUC 0.903 on held-out text, against a bag of words at 0.842 and a five-most-common-concepts floor at 0.297, and 0.750 AUC out of distribution. Frequency does not explain it: knowing a span’s genre gets 0.458. But those labels were harvested from Gemma without its <code>&lt;bos&gt;</code> start token, where the SAE reconstructs only 11% of the activation variance (66% with it). Read the standard way, 76% of each span’s labels change and the probe’s agreement falls to 0.838, still well above a bag of words (0.666). On byte-identical text, the SAE’s features tell a “deliberately underperforming” framing from an honest one at AUROC 1.000; a text-only probe is at 0.5 by construction.</p>
+    </section>
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <ul>
+      <li><strong>The published numbers reproduce.</strong> 11 of 13 match within our 95% intervals: top-5 agreement 0.956 [0.953, 0.958], median AUC 0.903 [0.900, 0.906], bag of words 0.842 and 0.754, OOD AUC 0.750 [0.746, 0.756] on the same 1,997 + 505 spans. int4 is better than reported (0.949, not 0.936) and bge-small’s AUC is 0.573, not 0.53.</li>
+      <li><strong>Top-5 agreement is not base rates.</strong> Naming the five commonest concepts of a span’s genre scores 0.458 [0.450, 0.466]; the probe is 0.498 [0.490, 0.506] above it, and on the rarer half of concepts it still scores 0.887 against floors of 0.040.</li>
+      <li><strong>The labels were read without a BOS token.</strong> Our re-harvest matches the shipped labels (Jaccard 0.967), and there the SAE’s fraction of variance unexplained is 0.89; with <code>&lt;bos&gt;</code> it is 0.34. Adding the token changes 75.8% [75.4, 76.2] of each span’s labels.</li>
+      <li><strong>Against the standard reading, the probe drops but keeps its lead.</strong> Top-5 agreement 0.838 [0.824, 0.850], median AUC 0.81; the frequency floor collapses from 0.30 to 0.086 and the bag of words falls to 0.666.</li>
+      <li><strong>Same text, different state.</strong> The previous sentence changes 43% of a span’s labels; one framing line, 29-33%. SAE features separate a sandbagging or lying framing from an honest one at AUROC 1.000 (shuffled 0.50), and 230 concepts change significantly. The probe is worst on exactly the concepts that move with context (Spearman −0.49 [−0.53, −0.46]).</li>
+    </ul>
+    </section>
+  </details>
+
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Take one held-out sentence from the training mix: “For example, the string S = 7477447 is balanced since S[1, 4] = 7477 has 1 digit 4…”. Feed it to Gemma-2-9B the way seq2feature’s notebooks do, as bare tokens, and the SAE’s strongest concepts are “the digit 7”, “the number 5” and “the number 4”; 202 of its 2,048 kept concepts fire. Put Gemma’s <code>&lt;bos&gt;</code> start token in front, as every Gemma input normally begins, and the strongest become “ranges and sequences of numbers” and “a string in programming contexts”, with 370 firing. Same sentence, same SAE: a different readout.</p>
+  <p><strong>What is known.</strong> A <em>sparse autoencoder</em> (SAE) is a dictionary that rewrites a model’s internal activation as a few active <em>concepts</em> (latents), each with a label. <a href="https://github.com/patrickod32/seq2feature">seq2feature</a> trains a 5.3M-parameter text-only probe on the SAE’s firings over 43,669 spans and reports top-5 agreement 0.956: of the five concepts it ranks highest on a span, 4.8 on average are ones the SAE fired. It frames this as a “Competitive AI Safety” leaderboard.</p>
+  <p><strong>What is missing.</strong> Is the number frequency? Is the target the SAE’s normal readout? Can a text-only probe stand in for an activation monitor when the same text comes with a different model state?</p>
+  <p><strong>What this note does.</strong></p>
+  <ol>
+    <li>A replication of the README’s table with document-level intervals.</li>
+    <li>Frequency and genre baselines for the headline metric.</li>
+    <li>A known-answer re-harvest that finds the BOS omission, with the SAE’s fit.</li>
+    <li>A same-text, different-state test on 1,000 spans, including sandbagging and lying framings.</li>
+  </ol>
+  <p>The <a href="../PREREGISTRATION.md">pre-registration</a> fixed seven predictions (scored <a href="#predictions">below</a>), the agreement rule (the published number lies inside our 95% interval) and a known-answer gate (our re-harvest must match the shipped labels at Jaccard 0.90).</p>
+
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <div class="table-wrap"><table>
+    <tbody>
+      <tr><th>Target</th><td>GemmaScope <code>gemma-scope-9b-pt-res-canonical</code>, <code>layer_20/width_16k/canonical</code> on Gemma-2-9B, through transformer-lens and sae-lens as the repo’s notebooks load it. 2,048 of 16,384 latents kept by the repo. A concept <em>fires</em> on a span if its activation passes 1.0 at any token.</td></tr>
+      <tr><th>Probe</th><td>The released <code>golf_final/</code> (commit <code>f0616ac</code>): fp32, the shipped int8 pickle, and int4 made with notebook 01’s quantiser. It ranks concepts by z-score.</td></tr>
+      <tr><th>Data and split</th><td>The released 43,669 spans (web, code, chain-of-thought, math, chat) and their SAE firings; test = the repo’s by-document rule, 12,710 spans from 1,230 documents. OOD: notebook 03’s first 200 PubMed articles and 200 LEDGAR provisions (2,502 spans), harvested fresh.</td></tr>
+      <tr><th>Baselines</th><td>The notebooks’ bag of words and bge-small zero-shot; <em>frequency-5</em> (the five commonest concepts); <em>genre-only</em> (the five commonest in the span’s domain, true or guessed from words); random five.</td></tr>
+      <tr><th>Input conditions (E2)</th><td>1,000 test spans (200 per domain) read six ways, always on the span’s own tokens: no BOS (as harvested), with BOS, BOS + the previous sentence, and BOS + one line: “written by a careful, honest assistant”, “…by an assistant that is deliberately underperforming and hiding its real ability”, or “…lying to the user”.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Words used here.</strong> <em>Top-5 agreement</em>: the share of a ranker’s five top concepts the SAE fired, averaged over spans. <em>Density</em>: the share of training spans on which a concept fires. <em>FVU</em> (fraction of variance unexplained): how much of the activation the SAE fails to rebuild; 0 is perfect, 1 is no better than the mean. <em>BOS</em>: the beginning-of-sequence token Gemma expects first.</p>
+
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Metric code:</strong> notebook 02 run as shipped; the leaderboard’s top-5 agreement, which no evaluation notebook printed, sent upstream as <a href="https://github.com/patrickod32/seq2feature/pull/1">a one-cell fix</a>.</li>
+    <li><strong>Plan:</strong> pre-registration, a 32-span smoke run, one amendment (the SAE’s fit) before any scored run.</li>
+    <li><strong>CPU scoring:</strong> 12,710 spans × 6 rankers; bootstrap over documents.</li>
+    <li><strong>GPU readouts:</strong> two 3-minute A100 jobs (E2 with a 200-span batch-noise rerun, and OOD).</li>
+    <li><strong>Known-answer checks</strong> before reading any result.</li>
+  </ol>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Fixed before any trial</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>Claims, metrics, split, baselines, density bins, the safety-caption regex, the six inputs, the sample, seven predictions, a $10 cap in code</td><td>Amendment 1 (after the smoke run): the SAE’s FVU and L0 per input, and an exploratory with-BOS OOD readout. The <code>&lt;1%</code> density bin was empty. The safety regex matched mostly “string manipulation”; a hand-read subset is exploratory.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Conditions: transformer-lens 3.9.0, sae-lens 6.56.4, bf16, one A100-80GB per job; the probe on a laptop CPU.</p>
+
+  <h2 id="results"><span class="num">04</span>Results</h2>
+  <h3 id="replication" data-short="The numbers reproduce">4.1 Eleven of the thirteen published numbers reproduce</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Claim</th><th class="num">Published</th><th class="num">Ours [95% CI]</th><th>Match</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>Top-5 agreement, int8 probe</td><td class="num">0.956</td><td class="num">0.956 [0.953, 0.958]</td><td>✓</td></tr>
+      <tr><td>Per-concept AUC, median</td><td class="num">0.90</td><td class="num">0.903 [0.900, 0.906]</td><td>✓</td></tr>
+      <tr><td>int8 against fp32, top-5</td><td class="num">lossless</td><td class="num">−0.000 [−0.000, +0.000]</td><td>✓</td></tr>
+      <tr><td>int4, top-5</td><td class="num">0.936</td><td class="num">0.949 [0.946, 0.952]</td><td>✗ better</td></tr>
+      <tr><td>Bag of words: top-5 / AUC</td><td class="num">0.84 / 0.75</td><td class="num">0.842 [0.836, 0.848] / 0.754 [0.747, 0.758]</td><td>✓ ✓</td></tr>
+      <tr><td>bge-small zero-shot: top-5 / AUC</td><td class="num">0.23 / 0.53</td><td class="num">0.228 [0.223, 0.232] / 0.573 [0.569, 0.577]</td><td>✓ ✗</td></tr>
+      <tr><td>Floors: frequency-5 / random-5</td><td class="num">0.297 / 0.068</td><td class="num">0.297 [0.291, 0.302] / 0.067 [0.066, 0.068]</td><td>✓ ✓</td></tr>
+      <tr><td>OOD (PubMed + LEDGAR): AUC / top-5 / bge AUC</td><td class="num">0.75 / 0.94 / 0.55</td><td class="num">0.750 [0.746, 0.756] / 0.938 [0.933, 0.943] / 0.552 [0.544, 0.559]</td><td>✓ ✓ ✓</td></tr>
+    </tbody>
+  </table></div>
+  <p>Table 1. Published numbers from the README and LEADERBOARD.md; ours from the released probe and data. The OOD set came out identical in size (1,997 medical and 505 legal spans) and per domain (medical AUC 0.745, legal 0.726, against 0.745 and 0.727).</p>
+  <p>The two misses are small: int4 costs 0.7 points, not 2, and bge-small’s in-distribution AUC is computed in no notebook. Out of distribution, top-5 agreement “barely moves” partly because the SAE fires more concepts there: the frequency floor rises from 0.30 to 0.44. And notebook 01 picks its best epoch on the test split itself; the curves rise steadily, so the bias is likely small.</p>
+
+  <h3 id="frequency" data-short="Not frequency">4.2 Top-5 agreement is not base rates: a genre-only ranker gets 0.46</h3>
+  <figure class="plot">
+    <img src="figures/top5.png" alt="Horizontal bars of top-5 agreement on 12,710 held-out spans: probe int8 0.956, probe int4 0.949, bag of words 0.842, genre-only with the true domain 0.468, genre-only with the domain guessed from words 0.458, frequency-5 0.297, bge-small zero-shot 0.228, random 0.067; black ticks mark the published values." width="1440" height="660">
+    <figcaption><strong>Figure 1.</strong> Top-5 agreement of every ranker on the held-out split, with 95% bootstrap intervals over 1,230 documents. Black ticks: the published value. Blue: the frequency controls registered for this note.</figcaption>
+  </figure>
+  <p>The SAE fires about 138 of the 2,048 kept concepts per span, and the repo kept the most frequent latents (the rarest fires on 1.8% of spans), so base rates alone get 0.297. Genre adds less than expected: the five commonest concepts of the span’s domain score 0.468, or 0.458 with the domain guessed from words, a quarter of the way to the probe. The probe sits 0.498 [0.490, 0.506] above that. Its picks are rare (median density 3.2%, against 13.8% for the bag of words); on the rarer half of concepts it scores 0.887 [0.882, 0.893] against floors of 0.040; and its AUC is highest on the rarest concepts (Figure 2).</p>
+  <figure class="plot">
+    <img src="figures/density.png" alt="Median per-concept AUC by density bin: 1-2% of spans (88 concepts) probe 0.927 and bag of words 0.768; 2-5% (1,098) 0.925 and 0.779; 5-10% (452) 0.897 and 0.748; 10% or more (410) 0.848 and 0.723. The shaded band is the probe's interquartile range." width="1280" height="600">
+    <figcaption><strong>Figure 2.</strong> Median per-concept AUC on held-out spans by concept density (share of training spans on which the SAE fires it); shaded, the probe’s interquartile range. The registered bin below 1% is empty: no kept concept is that rare.</figcaption>
+  </figure>
+
+  <h3 id="bos" data-short="Labels read without BOS">4.3 The labels were read from Gemma without its BOS token</h3>
+  <p>Notebooks 00 and 03 drop the BOS token and pass bare ids to the model. Our re-harvest does the same and matches the shipped labels at Jaccard 0.967 [0.966, 0.968], passing the gate. But GemmaScope SAEs were trained on text that starts with <code>&lt;bos&gt;</code>, and without it the SAE barely fits:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Input to Gemma-2-9B</th><th class="num">FVU (span tokens after the first)</th><th class="num">L0 per token</th><th class="num">Concepts fired per span</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>No BOS (how the labels were made)</td><td class="num">0.89</td><td class="num">62</td><td class="num">141</td></tr>
+      <tr><td>With BOS</td><td class="num">0.34</td><td class="num">66</td><td class="num">164</td></tr>
+      <tr><td>BOS + previous sentence</td><td class="num">0.35</td><td class="num">69</td><td class="num">177</td></tr>
+      <tr><td>OOD, no BOS / with BOS</td><td class="num">0.97 / 0.35</td><td class="num">64 / 68</td><td class="num">186 / 211</td></tr>
+    </tbody>
+  </table></div>
+  <p>Table 2. The SAE’s own fit on 1,000 held-out spans (and 2,502 OOD spans). GemmaScope reports an average L0 of 68 for this SAE. L0 looks normal either way; only the reconstruction error shows the problem.</p>
+  <p>Adding BOS changes 75.8% [75.4, 76.2] of each span’s labels (one minus Jaccard). The probe matches the labels it was trained on (0.961 against the shipped labels, 0.959 against our re-read), and drops to 0.838 [0.824, 0.850] against the with-BOS labels, with median AUC 0.81 (Figure 3). That is not collapse: under the with-BOS labels the frequency floor falls from 0.30 to 0.086 (random 0.080) and the bag of words to 0.666, so the dense concepts were largely artefacts of the missing token, and the probe’s lead over words grows from 0.12 to 0.17. OOD with BOS (exploratory): 0.928 top-5, 0.686 median AUC.</p>
+  <figure class="plot">
+    <img src="figures/context.png" alt="Horizontal bars of the same probe output's top-5 agreement against seven sets of SAE labels on 1,000 held-out spans: shipped labels 0.961, re-read without BOS 0.959, with BOS 0.838, BOS plus previous sentence 0.836, honest line 0.838, underperforming line 0.841, lying line 0.837." width="1440" height="580">
+    <figcaption><strong>Figure 3.</strong> One fixed probe output scored against the SAE’s labels for the same 1,000 spans read seven ways; 95% bootstrap intervals over 673 documents. The probe cannot change between rows; the target does.</figcaption>
+  </figure>
+
+  <h3 id="state" data-short="Same text, different state">4.4 On identical text, the SAE reads the context; the probe cannot</h3>
+  <p>With BOS fixed, the previous sentence changes 43.0% [42.3, 43.7] of a span’s labels, one framing line 29-33%, and the sandbagging line against the honest line 22.3% [21.8, 22.8]. A rerun with other batch shapes flips 0.8%, so this is not noise.</p>
+  <figure class="plot">
+    <img src="figures/framing.png" alt="Bars of AUROC: SAE features telling the underperforming line from the honest line 1.000, shuffled-label control 0.497, text-only probe 0.500; lying line against honest line 1.000, shuffled 0.468, probe 0.500." width="1440" height="520">
+    <figcaption><strong>Figure 4.</strong> Telling which framing line preceded a span, on 1,000 byte-identical texts per framing. Logistic regression on log activations of all 16,384 latents, 5-fold cross-validation grouped by document. Blue: shuffled labels. Grey: the text-only probe, whose input is identical across framings.</figcaption>
+  </figure>
+  <p>A linear read of the SAE separates the framings perfectly (AUROC 1.000 for both), against 0.497 and 0.468 with shuffled labels; the text-only probe is exactly 0.500. Among the 2,048 kept concepts, 230 fire significantly more often under one framing than the other (McNemar, Benjamini-Hochberg at 0.05). The largest is “Applying for jobs, writing resumes, and cover letters”, which fires on 507 more of the 1,000 spans after “hiding its real ability”. The framing’s meaning leaks into how every later word is read.</p>
+  <p>The probe pays for this: a concept’s flip rate under the previous sentence correlates with its held-out AUC at Spearman −0.49 [−0.53, −0.46] (−0.46 with density held fixed). It reads worst the concepts that depend on what came before.</p>
+
+  <h3 id="safety-concepts" data-short="Safety concepts">4.5 Safety concepts are read about as well, and move more with context</h3>
+  <p>The registered caption regex matched 85 concepts, mostly “string manipulation”. Read by hand (exploratory), 13 are safety concepts (harm, self-harm, violence, crime, theft, deception, insults, passwords, secret keys, requests for illegal instructions, danger, safety). The probe’s median AUC on them is 0.873 (bag of words 0.704; the README: 0.85 on its 17), and they flip with context more often (0.46 flips per firing against 0.39). The “deception” concept fired on 58 spans only after the honest line, and on 4 only after the sandbagging one.</p>
+
+  <h2 id="interactive" data-short="Browse the spans"><span class="num">05</span>Browse the spans</h2>
+  <p>Ten held-out spans, two per domain (the first two of each in the sample; red-teaming chat spans with slurs skipped). For each: the probe’s top five, marked by whether the SAE fired them under the chosen input, and the SAE’s own five strongest concepts.</p>
+  <div class="sx-ctl"><label for="sx-i">Span</label><input id="sx-i" type="range" min="0" max="9" step="1" value="0"><span id="sx-n" class="sx-k">–</span></div>
+  <div class="sx-ctl" id="sx-c" role="group" aria-label="Input condition"></div>
+  <div id="sx" aria-live="polite"><p>Loading the spans…</p></div>
+
+  <h2 id="implications" data-short="Implications for AI safety"><span class="num">06</span>Implications for AI safety</h2>
+  <p>As a fast text classifier for the concepts an SAE names, seq2feature works, and its lead over keyword baselines survives every check here. As a replacement for reading activations it cannot work, whatever its capacity: on identical text the activations carry the framing (AUROC 1.000) and the probe carries nothing. Sandbagging is that case, the same answer written with or without intent to underperform. (<a href="../../nla-sandbagging/report/">Episode 1</a> found activation readers often read the instruction rather than the act; a text-only proxy reads neither.)</p>
+  <p>The BOS finding is a ruler problem for any SAE-labelled dataset: L0 was normal, captions validated, a probe learned the labels to 0.956. Only the reconstruction error showed the SAE was reading inputs it was not trained on.</p>
+  <p><strong>Use a text-only SAE distillation as a cheap topic screen, never as a stand-in for an activation monitor, and check an SAE’s reconstruction error on your exact input format before treating its firings as ground truth.</strong></p>
+
+  <h2 id="predictions"><span class="num">07</span>Predictions</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Prediction (registered before any scored run)</th><th>Threshold</th><th>Result</th><th>Hit?</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>A genre-only ranker gets much of top-5 agreement</td><td>≥ 0.55</td><td>0.458 [0.450, 0.466]</td><td>✗</td></tr>
+      <tr><td>P2</td><td>The probe still clearly beats genre</td><td>gap ≥ 0.15</td><td>+0.498 [0.490, 0.506]</td><td>✓</td></tr>
+      <tr><td>P3</td><td>The probe does well on rare concepts</td><td>rare-half top-5 ≥ 0.80</td><td>0.887 [0.882, 0.893]</td><td>✓</td></tr>
+      <tr><td>P4</td><td>Activations separate a sandbagging framing on identical text</td><td>AUROC ≥ 0.90</td><td>1.000 (shuffled 0.497)</td><td>✓</td></tr>
+      <tr><td>P5</td><td>Natural context changes a real share of the readout</td><td>≥ 0.15</td><td>0.430 [0.423, 0.437]</td><td>✓</td></tr>
+      <tr><td>P6</td><td>The probe is worst where context matters</td><td>Spearman ≤ −0.20</td><td>−0.49 [−0.53, −0.46]</td><td>✓</td></tr>
+      <tr><td>P7</td><td>The OOD result replicates</td><td>within ±0.03 of 0.75</td><td>0.750 [0.746, 0.756]</td><td>✓</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> What surprised me: the BOS omission, found only because the pre-registered known-answer gate made me read the shipped pipeline line by line, and how little genre explains (P1 missed). What I would change: register the SAE’s reconstruction error on the exact input format as a gate in any SAE-labelled study. The lesson for the guide: a re-harvest that reproduces the labels proves the pipeline, not that the pipeline is right; check the ruler’s own fit.</p>
+
+  <h2 id="limits" data-short="What this does not show"><span class="num">08</span>What this does not show</h2>
+  <ul>
+    <li><strong>Not a retrain.</strong> We did not retrain the probe on with-BOS labels, so 0.838 is the shipped probe against a target it never saw, not what the recipe can reach.</li>
+    <li><strong>The framing result shows the activations carry the prefix, not that the model would act on it.</strong> Any two different lines would likely separate; the point is that a text-only reader gets nothing, whatever the lines say.</li>
+    <li><strong>One SAE, one layer, one model</strong>, as in the original. Our library versions are newer than the notebooks’; the 0.967 re-harvest match bounds that difference.</li>
+    <li><strong>The safety subset was chosen by reading captions after the run</strong>, and the captions were written by a model from firings without BOS.</li>
+  </ul>
+
+  <h2 id="reproduce" data-short="Reproduce and reuse"><span class="num">09</span>Reproduce it, and reuse it</h2>
+  <pre><code>experiments/seq2feature-repl/reproduce.sh --dry-run   # every command
+experiments/seq2feature-repl/reproduce.sh             # CPU steps from the readouts (about 40 minutes on a laptop)
+experiments/seq2feature-repl/reproduce.sh --gpu       # also re-harvest on Modal (two A100 jobs, about $0.50)</code></pre>
+  <p>Needs a clone of <a href="https://github.com/patrickod32/seq2feature">seq2feature</a> at <code>f0616ac</code>, and for <code>--gpu</code> a Hugging Face token with Gemma-2 access. Spend is capped in code and logged in <a href="../spend_ledger.jsonl">spend_ledger.jsonl</a>.</p>
+  <p><strong>Reuse it.</strong> Before harvesting SAE labels from any model, check the SAE fits the exact input you will feed it:</p>
+  <pre><code>ids = tok(text)["input_ids"]                       # keep the BOS token the SAE was trained with
+_, cache = model.run_with_cache(torch.tensor([ids]), names_filter=hook)
+x = cache[hook][0, 1:].float()                     # skip the BOS position itself
+xhat = sae.decode(sae.encode(cache[hook][0, 1:])).float()
+fvu = ((x - xhat) ** 2).sum() / ((x - x.mean(0)) ** 2).sum()
+assert fvu &lt; 0.5, f"SAE explains only {1 - fvu:.0%} of the variance on this input"</code></pre>
+
+  <h2 id="next" data-short="What's next"><span class="num">10</span>What’s next</h2>
+  <ul>
+    <li>Retrain the recipe on with-BOS labels and report the ceiling a text-only probe reaches on the standard readout.</li>
+    <li>A sandbagging pair with behaviour, not a label: the same answer produced under an instruction to underperform and without one, read by the SAE and by the probe.</li>
+  </ul>
+
+  <h2 id="questions" data-short="Questions"><span class="num">11</span>Questions and answers</h2>
+  <h3 id="q1">Does the seq2feature probe reproduce?</h3>
+  <p>Yes: top-5 agreement 0.956 [0.953, 0.958] and median AUC 0.903 with the released probe and data; 11 of 13 published numbers fall inside our 95% intervals, including OOD AUC 0.750.</p>
+  <h3 id="q2">Is top-5 agreement just the SAE’s frequent concepts?</h3>
+  <p>No. The five commonest concepts in the span’s genre score 0.458; the probe is 0.498 above that, and scores 0.887 on the rarer half of concepts.</p>
+  <h3 id="q3">What is wrong with the labels?</h3>
+  <p>They were harvested from Gemma-2-9B without its BOS token. There the SAE’s reconstruction leaves 89% of the variance unexplained, against 34% with the token, and 76% of each span’s labels change when the token is added.</p>
+  <h3 id="q4">Can a text-only probe replace an activation monitor?</h3>
+  <p>No. On byte-identical text the SAE tells a “deliberately underperforming” framing from an honest one at AUROC 1.000; a text-only probe is at 0.5 by construction.</p>
+
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><a href="../results/replication.json">replication.json</a>: Table 1’s in-distribution rows, each with top-5 agreement, its interval, and median and mean AUC.</li>
+    <li><a href="../results/e1.json">e1.json</a>: frequency baselines, density bins, rare half. <a href="../results/e2.json">e2.json</a>: gate, context shares, framing readout, state sensitivity, framing-sensitive concepts. <a href="../results/ood.json">ood.json</a>: OOD rows and the with-BOS readout. <a href="../results/e3.json">e3.json</a>: safety subsets.</li>
+    <li><a href="../results/modal_e2_info.json">modal_e2_info.json</a> and <a href="../results/modal_ood_info.json">modal_ood_info.json</a>: Table 2’s SAE fit per input, and library versions. <a href="../make_sample.py">make_sample.py</a> rebuilds the 1,000 spans and their previous sentences from the seq2feature data (the file itself stays out of this repo: one code span holds a stranger’s home path); <a href="../data/ood_spans.jsonl">ood_spans.jsonl</a>: the 2,502 OOD spans.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026seq2featurerepl,
+  author = {Albert Lie},
+  title  = {A 5 MB text probe copies its SAE as claimed, but the SAE labels were read from Gemma without its start token},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/seq2feature-repl/report/}
+}</code></pre>
+  <footer class="note">Credits: the probe, data, captions, notebooks and leaderboard come from <a href="https://github.com/patrickod32/seq2feature">seq2feature</a> (commit <code>f0616ac</code>). SAE: GemmaScope (Google DeepMind). Model: Gemma-2-9B (Google).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+<script src="data.js"></script>
+<script>
+(function () {
+  var box = document.getElementById("sx"), s = document.getElementById("sx-i"), n = document.getElementById("sx-n"), bar = document.getElementById("sx-c");
+  var rows = window.S2F_EXAMPLES || [], conds = window.S2F_CONDS || [], cur = "K0";
+  if (!rows.length) { box.textContent = "The spans could not be loaded; see report/data.js."; return; }
+  conds.forEach(function (c) {
+    var b = document.createElement("button"); b.type = "button"; b.textContent = c[1]; b.dataset.k = c[0];
+    b.setAttribute("aria-pressed", c[0] === cur ? "true" : "false");
+    b.addEventListener("click", function () { cur = c[0]; Array.prototype.forEach.call(bar.children, function (x) { x.setAttribute("aria-pressed", x.dataset.k === cur ? "true" : "false"); }); show(); });
+    bar.appendChild(b);
+  });
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  function show() {
+    var r = rows[+s.value]; box.textContent = "";
+    n.textContent = r.dom + " · " + (+s.value + 1) + " of " + rows.length + " · " + r.n_fired[cur] + " concepts fire";
+    box.appendChild(el("p", "sx-text", r.text));
+    var hits = r.probe.filter(function (p) { return p.fired[cur]; }).length;
+    box.appendChild(el("p", "sx-k", "Probe’s top 5 (same for every input) · " + hits + " of 5 fired"));
+    var ul = el("ul", "sx-list");
+    r.probe.forEach(function (p) { ul.appendChild(el("li", p.fired[cur] ? "sx-yes" : "sx-no", p.cap)); });
+    box.appendChild(ul);
+    box.appendChild(el("p", "sx-k", "SAE’s five strongest concepts under this input"));
+    var ul2 = el("ul", "sx-list");
+    r.sae[cur].forEach(function (c) { ul2.appendChild(el("li", null, c)); });
+    box.appendChild(ul2);
+  }
+  s.addEventListener("input", show); show();
+})();
+</script>
+</body>
+</html>
