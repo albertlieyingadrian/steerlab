@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switch off a pretrained module and a topic goes, about as far as if the model never saw it</title>
+<meta name="description" content="A toy-scale replication of 'Modular Pretraining Enables Access Control' (GRAM): at 26M parameters on Simple Stories, switching off a topic's module raised its loss as much as filtering it out of pretraining (compute ratio 0.73 against 0.75; the paper: 0.77 and 0.78), kept the rest within 0.01 nats, and a short relearning attack got back no more from GRAM than from filtering. Post-hoc unlearning looked 20 times stronger until two attack steps took 1.3 nats of it back. With 8 times the attack data, every method relearned the topic.">
+<!-- meta:start -->
+<link rel="canonical" href="https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/">
+<meta property="og:site_name" content="steerlab">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Switch off a pretrained module and a topic goes, about as far as if the model never saw it">
+<meta property="og:description" content="A replication of &#x27;Modular Pretraining Enables Access Control&#x27; (GRAM) at 26M parameters: a switched-off module left its topic at compute ratio 0.73, level with data filtering (0.75), the rest intact, and no easier to relearn. Unlearning looked 20x stronger until two attack steps took 1.3 nats of it back.">
+<meta property="og:url" content="https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/">
+<meta property="og:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/figures/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A grid of twenty squares on a dark ground, five rows by four columns; most glow orange, and in each lower row one square is dark, stepping one column right per row.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Switch off a pretrained module and a topic goes, about as far as if the model never saw it">
+<meta name="twitter:description" content="A replication of &#x27;Modular Pretraining Enables Access Control&#x27; (GRAM) at 26M parameters: a switched-off module left its topic at compute ratio 0.73, level with data filtering (0.75), the rest intact, and no easier to relearn. Unlearning looked 20x stronger until two attack steps took 1.3 nats of it back.">
+<meta name="twitter:image" content="https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/figures/og.jpg">
+<meta property="article:published_time" content="2026-11-27">
+<meta property="article:modified_time" content="2026-11-27">
+<meta property="article:author" content="Albert Lie">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "ScholarlyArticle",
+ "headline": "Switch off a pretrained module and a topic goes, about as far as if the model never saw it",
+ "description": "A replication of 'Modular Pretraining Enables Access Control' (GRAM) at 26M parameters: a switched-off module left its topic at compute ratio 0.73, level with data filtering (0.75), the rest intact, and no easier to relearn. Unlearning looked 20x stronger until two attack steps took 1.3 nats of it back.",
+ "abstract": "Replications, Episode 1. The 26M-parameter Simple Stories experiment of 'Modular Pretraining Enables Access Control' (GRAM, arXiv 2607.08077), rebuilt from its released code on 5 seeds: one model with four gradient-routed modules against five data-filtered models and MaxEnt unlearning, with the paper's 512-sequence relearning attack and an 8x one. Compute ratio, ours (paper): GRAM forget 0.73 (0.77), core 0.94 (0.94), retain 0.95 (0.95), after the attack 0.83 (0.86); filtering forget 0.75, after the attack 0.86. MaxEnt reached forget 0.23 (1.309 nats above the baseline) but two attack steps took back 1.257 nats (GRAM 0.023) and it ended level with filtering (0.86; the paper: 0.98). With 4,096 attack sequences every method, filtering included, relearned the topic (GRAM 0.96, filtering 0.99). Predictions 4/5 hit. About $30 of Modal H100 time.",
+ "url": "https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/",
+ "mainEntityOfPage": "https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/",
+ "image": "https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/figures/og.jpg",
+ "author": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "publisher": {
+  "@type": "Person",
+  "name": "Albert Lie",
+  "url": "https://github.com/albertlieyingadrian",
+  "sameAs": [
+   "https://github.com/albertlieyingadrian",
+   "https://www.linkedin.com/in/leeyingde/",
+   "https://x.com/adrianlieal",
+   "https://albertleeadrian.super.site/"
+  ]
+ },
+ "datePublished": "2026-11-27",
+ "dateModified": "2026-11-27",
+ "inLanguage": "en",
+ "isAccessibleForFree": true,
+ "keywords": "GRAM, gradient routing, modular pretraining, access control, data filtering, unlearning, MaxEnt, relearning attack, capability removal, Simple Stories, replication",
+ "isPartOf": {
+  "@type": "CollectionPage",
+  "name": "steerlab research",
+  "url": "https://albertlieyingadrian.github.io/steerlab/experiments/"
+ },
+ "citation": [
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2607.08077"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2410.04332"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2512.05648"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2610.17062"
+  },
+  {
+   "@type": "CreativeWork",
+   "url": "https://arxiv.org/abs/2410.08827"
+  }
+ ],
+ "isBasedOn": {
+  "@type": "SoftwareSourceCode",
+  "name": "steerlab",
+  "codeRepository": "https://github.com/albertlieyingadrian/steerlab"
+ }
+}
+</script>
+<!-- meta:end -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,650;12..96,700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../shared/report.css?v=60">
+<script>try{if(localStorage.getItem("steerlab-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
+<style>
+  dl.meta dd { overflow-wrap: anywhere; min-width: 0; }
+  pre.snip { font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="toc" aria-label="Contents">
+  <p class="label">Contents</p>
+  <ol></ol>
+</nav>
+
+<article>
+  <p class="eyebrow"><a href="../../">← Research</a><span class="sep">·</span>Replications · Episode 1<span class="sep">·</span>Experiments<span class="sep">·</span><time datetime="2026-11-27">Nov 27, 2026</time></p>
+  <h1>Switch off a pretrained module and a topic goes, about as far as if the model never saw it</h1>
+  <p class="dek ruled">For people weighing access control as a safety tool: can one pretrained model hold a restricted capability in a part you can unplug at deployment? We rebuilt the 26M-parameter experiment of "Modular Pretraining Enables Access Control" (GRAM) from its released code, on 5 seeds, with data filtering, post-hoc unlearning and a relearning attack beside it.</p>
+
+  <figure class="hero whole">
+    <img src="figures/hero.jpg" width="1600" height="900" alt="A grid of twenty squares on a dark ground, five rows by four columns. Most squares glow orange; in each of the lower four rows one square is dark, stepping one column to the right per row, and the third column is dim throughout.">
+    <figcaption>Cover: GRAM's loss table. Rows are the five deployed profiles (no module on, then each restricted topic's module on); columns are the four restricted topics; brightness is how far that topic's test loss sits above the full-data baseline (mean of 5 seeds). A topic goes dark only when its own module is on. The dim third column is "bygone eras", the topic the modules barely separate (section 4.2). Drawn by <code>make_cover.py</code> from <code>results/</code>.</figcaption>
+  </figure>
+
+  <dl class="meta">
+    <div><dt>Author</dt><dd>Albert Lie · <a href="https://github.com/albertlieyingadrian" rel="author">GitHub</a> · <a href="https://www.linkedin.com/in/leeyingde/" rel="author me">LinkedIn</a></dd></div>
+    <div><dt>Series</dt><dd>Replications, Episode 1 (the research list of the <a href="https://aialignmentfoundation.org/research">AI Alignment Foundation</a>)</dd></div>
+    <div><dt>Replicates</dt><dd>"Modular Pretraining Enables Access Control", <a href="https://arxiv.org/abs/2607.08077">arXiv 2607.08077</a> (ICML 2026), AE Studio with collaborators at Anthropic; code <a href="https://github.com/agencyenterprise/modular-pretraining">agencyenterprise/modular-pretraining</a></dd></div>
+    <div><dt>Models</dt><dd>26,257,920-parameter Transformers trained from scratch (8 layers, width 512), as in the paper's Simple Stories experiment; GRAM adds four modules of 1,578,496 parameters each</dd></div>
+    <div><dt>Data</dt><dd><a href="https://huggingface.co/datasets/SimpleStories/SimpleStories">Simple Stories</a>: 2.2M synthetic children's stories in 48 topics, 548M training tokens</dd></div>
+    <div><dt>Code and data</dt><dd><a href="../gram.py">gram.py</a> · <a href="../modal_app.py">modal_app.py</a> · <a href="../results/summary.json">results/</a> · <a href="../PREREGISTRATION.md">pre-registration</a> · <a href="../reproduce.sh">reproduce.sh</a></dd></div>
+    <div><dt>Effort</dt><dd>One day; about $30 of Modal H100 time (7.4 GPU-hours for 5 seeds, a smoke test and one crashed-and-resumed job); no API models</dd></div>
+  </dl>
+
+  <details class="key fold" open>
+    <summary>Summary: the short answer and the key results</summary>
+    <section class="key answer" aria-labelledby="in-short">
+    <p class="summary-label" id="in-short">In short</p>
+    <p><strong>Does switching off a GRAM module remove what it learned, as well as never training on the data?</strong></p>
+    <p>At 26M parameters, yes, about as well as the paper reports. With a restricted topic's module switched off, the model scored a compute ratio of 0.73 ± 0.01 on that topic (the paper: 0.77), level with models that never saw it (0.75 ± 0.01; the paper: 0.78), while the 44 open topics stayed within 0.012 nats of the full-data model. A 512-sequence relearning attack got back no more from GRAM than from filtering (0.83 against 0.86). Post-hoc unlearning (MaxEnt) looked far stronger before the attack, 1.309 nats of "forgetting" against GRAM's 0.063, but two attack steps took 1.257 nats of it back, where GRAM and filtering moved 0.023: the unlearning was mostly a surface layer. After the full attack all three sat in the same place, so the paper's finding that unlearning ends up easier to relearn than filtering did not replicate. And with 4,096 attack sequences every method, the filtered model included, relearned the topic to the full-data level: at 26M parameters nothing resists a determined fine-tune, so the attack can rank methods but cannot show robustness.</p>
+    </section>
+
+    <section aria-labelledby="key-results">
+    <p class="summary-label" id="key-results">Key results</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Key results table"><table>
+      <thead><tr><th>What we tested</th><th>GRAM (ours)</th><th>Compared with</th></tr></thead>
+      <tbody>
+      <tr class="hl"><td>Module off: is the topic gone? (compute ratio on the forgotten topics, lower = more removed)</td><td><strong>As gone as filtering.</strong> 0.73 ± 0.01</td><td>Filtering 0.75 ± 0.01; the paper: GRAM 0.77, filtering 0.78</td></tr>
+      <tr><td>Does everything else survive? (core and retained topic, higher = better)</td><td><strong>Yes.</strong> Core 0.94 ± 0.01, retained topic 0.95 ± 0.01</td><td>The paper: 0.94 and 0.95; filtering 0.98 and 0.98</td></tr>
+      <tr><td>Short relearning attack (512 sequences): forgotten topic after the attack</td><td><strong>No easier to relearn than filtering.</strong> 0.83 ± 0.01</td><td>Filtering 0.86 ± 0.01; MaxEnt unlearning 0.86 ± 0.01, the same place (the paper: MaxEnt 0.98, worse than both)</td></tr>
+      <tr><td>Named side-finding: how much of the "forgetting" do two attack steps undo?</td><td><strong>Almost none of GRAM's.</strong> 0.023 ± 0.001 nats of 0.062</td><td>Filtering 0.024 of 0.054; MaxEnt 1.257 ± 0.077 of 1.314</td></tr>
+      <tr><td>Long relearning attack (4,096 sequences, 8x)</td><td><strong>Relearned, like filtering.</strong> 0.96 ± 0.01</td><td>Filtering 0.99 ± 0.01; MaxEnt 1.08 ± 0.02</td></tr>
+      <tr><td>Is each topic in its own module? (loss, module off minus on)</td><td><strong>For three of four topics.</strong> Deadline 0.105 ± 0.006, aliens 0.086 ± 0.003, traditions 0.021 ± 0.002, bygone eras 0.006 ± 0.000 nats</td><td>Filtering's gap on the same topics: 0.096, 0.079, 0.025, 0.010</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Compute ratio (CR): the share of the full-data baseline's training needed to reach a model's loss on a topic, read off the baseline's own loss curve (section 2); 1 = as good as the baseline. Means over 5 seeds ± 90% t-intervals, the paper's convention (95% intervals in the tables below). Each method's number is averaged over its five capability profiles. Losses in nats per token on held-out stories.</p>
+    </section>
+  </details>
+
+  <aside class="bg-note" aria-label="Background">
+    <p class="label">101: gradient routing and GRAM</p>
+    <p>Training a language model is mostly one move repeated: show it a batch of text, measure how wrong its next-word guesses were, and nudge every weight to be less wrong. <em>Gradient routing</em> changes who gets nudged. Picture an office where everyone shares the main filing cabinet, but papers about project X may only be filed in one locked drawer. <a href="https://arxiv.org/abs/2607.08077">GRAM</a> adds a small extra feed-forward block, a <em>module</em>, beside the main one in every layer, one module per restricted topic. When a batch is about a restricted topic, the module for that topic always learns from it, and the shared weights learn from it only 30% of the time. At deployment you pull the drawer out: run the model without that module, and what was filed there is gone, without training a second model.</p>
+  </aside>
+
+  <section aria-labelledby="introduction">
+  <h2 id="introduction"><span class="num">01</span>Introduction</h2>
+  <p>Train one small model on 2.2 million children's stories, four of whose 48 topics (stories about deadlines, alien encounters, bygone eras and cultural traditions) are marked restricted. Serve it with the "alien encounters" module switched off and its loss on alien stories rises by 0.086 nats per token; switch the module back on and it falls to within a hundredth of a model trained on everything. Train a separate model that never sees an alien story, and it is worse on them than its twin that did by 0.079. The module held about what a separate filtered training run would have cost to leave out.</p>
+  <p><strong>What is known.</strong> The gold standard for removing a dangerous capability is to never train on it: data filtering resists relearning, unlike post-hoc unlearning, which a short fine-tune often undoes (<a href="https://arxiv.org/abs/2410.08827">Do Unlearning Methods Remove Information from Language Model Weights?</a>). But filtering needs one training run per capability profile. "<a href="https://arxiv.org/abs/2607.08077">Modular Pretraining Enables Access Control</a>" proposes GRAM to get many profiles from one run and reports, from 50M to 5B parameters, that it tracks filtering on what is removed, what is kept, and what a fine-tune can bring back.</p>
+  <p><strong>What is missing.</strong> An independent rerun. The paper's smallest experiment (26M parameters, Simple Stories) is cheap enough to rebuild in a day, its code and per-run numbers are public, and it tests the whole claim: removal, retention, and the relearning attack against both filtering and unlearning.</p>
+  <p><strong>What this note does.</strong> It reimplements that experiment from the released code, pre-registers five predictions from the paper's own numbers, and runs it on 5 seeds. Contributions:</p>
+  <ol>
+    <li>A replication, theirs against ours, of every headline number of the paper's Simple Stories experiment (GRAM, data filtering, MaxEnt unlearning, the relearning attack).</li>
+    <li>A stronger attack than the paper's (8 times the data), which shows where toy-scale relearning tests stop being informative: even the filtered model relearns.</li>
+    <li>A measurement of what the first two attack steps take back, which separates a capability that was hidden (unlearning: 1.257 nats back) from one that was never stored (GRAM and filtering: 0.023), where the paper's end-of-attack score cannot.</li>
+    <li>Per-topic gaps and raw losses beside the paper's compute-ratio yardstick, which turns out to miss the baseline's own curve by up to 0.035 nats.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="setup">
+  <h2 id="setup"><span class="num">02</span>Setup</h2>
+  <p><strong>Data.</strong> Simple Stories, split as in the paper's code (10% test, seed 42). The four topics first in alphabetical order are restricted, as in the paper: "a deadline or time limit", "alien encounters", "bygone eras" and "cultural traditions" (11M training tokens each). The other 44 topics (503M tokens) are the <em>core</em>. Every test half below is a fixed 50% of each topic's held-out stories; the other half (<em>val</em>) was used only to stop the relearning attack and pick MaxEnt's settings.</p>
+  <p><strong>The model</strong> is the paper's: 8 layers, width 512, 8 attention heads sharing 2 key-value heads, rotary positions, a 2,048-wide feed-forward block, a 4,096-token vocabulary, context 256, and attention that stops at story boundaries; 26,257,920 parameters. Training: one pass over the data, batch 128 x 256 tokens, AdamW at 5e-3 with 10% warm-up and 10% decay, gradient clipping at 1.</p>
+  <pre class="snip"><code>GRAM layer:   y = core_mlp(h) + Σ_{i on} module_i(h)          # module_i: 512 -> 192 -> 512
+restricted batch of topic i:  module i on; update module i, and the shared weights with p = 0.3
+core batch:   with p = 0.5 one random module on (both updated); otherwise core only
+deploy:       core + the modules of the topics this user may access</code></pre>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Methods"><table>
+    <thead><tr><th>Method</th><th>What it trains</th><th class="num">Training runs for 5 profiles</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>Baseline</td><td>one dense model on everything</td><td class="num">1</td><td>The yardstick (CR = 1)</td></tr>
+      <tr class="hl"><td>GRAM</td><td>one model with four modules, gradient-routed; compute matched to the baseline by trimming batches (16,187 against 16,715 steps)</td><td class="num">1</td><td>The method</td></tr>
+      <tr><td>Data filtering</td><td>five dense models: core only, and core plus one restricted topic each</td><td class="num">5</td><td>Gold standard</td></tr>
+      <tr><td>MaxEnt unlearning</td><td>the baseline, then 2,000 steps pushing restricted topics toward uniform guesses while keeping the rest (lr 0.0003, weight 30)</td><td class="num">1 + 5 short</td><td>Post-hoc unlearning</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Terms.</strong> A <em>profile</em> is what one deployment serves: the core alone, or the core plus one restricted topic. For each profile, the core is scored as <em>core</em>, the served restricted topic as <em>retain</em>, and the other restricted topics as <em>forget</em>. The <em>relearning attack</em> (the paper's "elicitation") fine-tunes the deployed model on 512 training sequences of one forgotten topic (one full-batch AdamW step per round, lr 1.25e-3, up to 200 rounds, stopped when the val loss has not improved for 10 rounds) and reports the best round; with GRAM the topic's module stays off.</p>
+  <p><strong>Compute ratio.</strong> Loss differences of a few hundredths of a nat are hard to read, so the paper converts each loss into training compute. The baseline's test loss on each topic was recorded 100 times during training and fitted with a power law L(s) = A·s<sup>−α</sup>; a model's loss is mapped to the step at which the baseline would reach it, and divided by the step the baseline's own final loss maps to. A forget CR of 0.75 means the model knows the topic as well as the baseline did after three quarters of its training. Here 0.04 nats above the baseline's final loss is about CR 0.8. We report raw losses beside every ratio (section 4.5 says why).</p>
+  <p><strong>What counts as success</strong> (pre-registered, <a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>), each from the paper's own numbers:</p>
+  <ol>
+    <li><strong>P1</strong>: GRAM's forget CR is at most filtering's + 0.05.</li>
+    <li><strong>P2</strong>: GRAM's core and retain CR are both at least 0.90.</li>
+    <li><strong>P3</strong>: for every restricted topic, switching its module off raises its loss, with the 95% interval above zero.</li>
+    <li><strong>P4</strong>: after the attack, GRAM is at most filtering + 0.05, and MaxEnt is at least GRAM + 0.05.</li>
+    <li><strong>P5</strong> (secondary): with 4,096 attack sequences, GRAM is at most filtering + 0.05.</li>
+  </ol>
+  </section>
+
+  <section aria-labelledby="process">
+  <h2 id="process" data-short="How the study was run"><span class="num">03</span>How the study was run</h2>
+  <ol>
+    <li><strong>Read the paper and its code</strong>: the model, the GRAM batch schedule (<code>do_routed_unordered</code>), filtering, MaxEnt, the relearning attack and the compute-ratio fit, and the released Simple Stories results, which give the "paper" column.</li>
+    <li><strong>Pre-register</strong> the setup, five predictions and the known differences, and commit them before any run.</li>
+    <li><strong>Prepare the data</strong> (one CPU job): token counts match the paper's metadata exactly (for example 11,336,257 training tokens of alien stories).</li>
+    <li><strong>Smoke-test</strong> every stage for 30 steps on one GPU: 26,257,920 parameters, as in the paper.</li>
+    <li><strong>Run each seed as one job</strong> on one H100: the baseline with its loss curve; the MaxEnt grid (seed 1 only: 9 settings on the val half, the strongest whose core loss rose at most 0.03 nats); GRAM with its five profiles and 16 attacks plus 4 long ones; five filtered models with their attacks; MaxEnt on five profiles with their attacks. Seeds 1 and 2 ran in parallel, then 3 and 4, then 5.</li>
+    <li><strong>Analyse</strong> with <code>analyze.py</code> (compute ratios, seed means and intervals, the five tests), draw figures with <code>make_figures.py</code>, and fill every number in this page from <code>results/summary.json</code> with <code>fill_note.py</code>.</li>
+  </ol>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Fixed and changed"><table>
+    <thead><tr><th>Fixed before any run</th><th>Changed after reading results</th></tr></thead>
+    <tbody>
+      <tr><td>The paper's model, data split, restricted topics, GRAM settings (p_as 0.3, p_cr 0.5), learning rate and schedule; the attack (512 sequences, lr 1.25e-3, patience 10) and the 8x attack; the MaxEnt grid and its selection rule; the five predictions; the seed rule (3, extended to 5 if spend after 3 seeds stayed under $25)</td><td>Nothing in the runs. Added after the results: raw-loss columns and the curve-fit check (section 4.5), and the per-topic filtering gap as a reference for P3</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Known differences from the paper</strong>, fixed in advance: our weights are float32 with bfloat16 arithmetic (the paper's code stores them in bfloat16); a core batch mixes topics; the attack picks its round on the val half and reports the test half (the paper uses one split for both); MaxEnt uses one grid-chosen setting for every profile and seed (the paper tuned each by Bayesian optimisation); the baseline curve has 100 points (the paper: 200).</p>
+  <p>Conditions: PyTorch 2.5.1, one H100 per seed, compiled model, bfloat16 autocast. One pretraining run took about 10 minutes (the baseline 627 s); a whole seed about 90 minutes.</p>
+  </section>
+
+  <section aria-labelledby="results">
+  <h2 id="results"><span class="num">04</span>Results</h2>
+
+  <h3 id="theirs-vs-ours" data-short="Theirs vs ours">4.1 GRAM's numbers replicate: the topic goes as far as with filtering, the rest stays</h3>
+  <p>Table 1 and Figure 1 put our numbers beside the paper's. With modules switched off, GRAM's forget CR was 0.73 ± 0.01, data filtering's 0.75 ± 0.01: P1 hit. Everything else stayed: core 0.94 ± 0.01 and retained topic 0.95 ± 0.01, both above the 0.90 bar (P2 hit). In raw loss, GRAM's core was 0.012 nats above the full-data model and its forgotten topics 0.063 above it, against 0.055 for the filtered models. Every GRAM and filtering compute ratio is within 0.05 of the paper's; our forget ratios run 0.03 to 0.04 lower than theirs, for both methods alike, so the gap between the two methods replicates even where the levels shift slightly.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Theirs vs ours"><table>
+    <thead><tr><th>Method</th><th>Metric</th><th class="num">Ours, CR ± 95%</th><th class="num">Paper, CR</th><th class="num">Ours, nats above baseline</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>GRAM</td><td>forget</td><td class="num">0.73 ± 0.01</td><td class="num">0.77</td><td class="num">0.063 ± 0.005</td></tr>
+      <tr><td>GRAM</td><td>core</td><td class="num">0.94 ± 0.01</td><td class="num">0.94</td><td class="num">0.012 ± 0.003</td></tr>
+      <tr><td>GRAM</td><td>retain</td><td class="num">0.95 ± 0.01</td><td class="num">0.95</td><td class="num">0.009 ± 0.005</td></tr>
+      <tr><td>GRAM</td><td>forget after attack</td><td class="num">0.83 ± 0.01</td><td class="num">0.86</td><td class="num">0.035 ± 0.005</td></tr>
+      <tr><td>Filtering</td><td>forget</td><td class="num">0.75 ± 0.01</td><td class="num">0.78</td><td class="num">0.055 ± 0.001</td></tr>
+      <tr><td>Filtering</td><td>core</td><td class="num">0.98 ± 0.02</td><td class="num">0.96</td><td class="num">0.004 ± 0.002</td></tr>
+      <tr><td>Filtering</td><td>retain</td><td class="num">0.98 ± 0.01</td><td class="num">0.96</td><td class="num">0.004 ± 0.002</td></tr>
+      <tr><td>Filtering</td><td>forget after attack</td><td class="num">0.86 ± 0.02</td><td class="num">0.87</td><td class="num">0.027 ± 0.001</td></tr>
+      <tr><td>MaxEnt</td><td>forget</td><td class="num">0.23 ± 0.01</td><td class="num">0.84</td><td class="num">1.309 ± 0.079</td></tr>
+      <tr><td>MaxEnt</td><td>core</td><td class="num">0.90 ± 0.03</td><td class="num">0.96</td><td class="num">0.019 ± 0.004</td></tr>
+      <tr><td>MaxEnt</td><td>forget after attack</td><td class="num">0.86 ± 0.01</td><td class="num">0.98</td><td class="num">0.028 ± 0.001</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Table 1. Means over 5 seeds; ± is the 95% t-interval over seeds. Each value averages the five capability profiles (forget: the topics a profile does not serve; retain: the one it serves). Paper: its released <code>stories_agg_summary.csv</code> (3 seeds). Nats: test loss minus the same seed's baseline.</p>
+  <figure class="plot">
+    <img src="figures/fig1_theirs_vs_ours.png" alt="Grouped bars of compute ratio for GRAM (orange), filtering (grey) and MaxEnt (blue) on four metrics, with white diamonds for the paper's values. Core and retain bars sit near 0.95 for GRAM and filtering; their forget bars sit near 0.75 and the MaxEnt forget bar near 0.2; after relearning all three sit near 0.85, where the paper's MaxEnt diamond sits near 1.">
+    <figcaption><span class="label">Figure 1.</span>Compute ratio by metric and method, ours (bars, mean of 5 seeds, 90% t-intervals) against the paper (white diamonds, 3 seeds). GRAM (orange) sits on filtering (grey) and on the paper's diamonds throughout. Our MaxEnt (blue) unlearned far harder than the paper's (forget 0.2 against 0.84) and gained on the retained topic from its extra training (above 1), yet after relearning it ended level with the other two. Higher is better for core and retain, lower for forget.</figcaption>
+  </figure>
+
+  <h3 id="where-it-lives" data-short="Where each topic lives">4.2 Each topic lives in its own module, except one that barely differs from the core</h3>
+  <p>The average hides the topics. Figure 2 shows each restricted topic's loss with its module off minus on, and beside it what filtering costs on the same topic (core-only model minus the model that also saw the topic). For deadlines, aliens and traditions the module's gap matches or exceeds filtering's: 0.105 ± 0.006, 0.086 ± 0.003 and 0.021 ± 0.002 nats against 0.096, 0.079 and 0.025. For bygone eras both are small: 0.006 ± 0.000 for GRAM, 0.010 for filtering. Stories about the past share most of their language with the 44 open topics, so there is little topic-specific knowledge to file in a module or to lose by filtering. P3 (every topic's interval above zero): hit.</p>
+  <p><strong>A boring explanation, checked.</strong> Is "module off" simply a weaker model? No: with every module off, the core was only 0.012 nats behind the baseline, about a fifth of the forget gap, and switching on another topic's module (a "wrong module") left each forgotten topic where it was (cover, off-diagonal squares).</p>
+  <figure class="plot">
+    <img src="figures/fig2_module_gap.png" alt="Dot plot with four topics on the vertical axis and loss gap in nats on the horizontal. Orange GRAM dots and grey filtering dots sit near 0.1 for deadline and aliens, near 0.02 to 0.03 for traditions, and near 0.01 for bygone eras.">
+    <figcaption><span class="label">Figure 2.</span>Per restricted topic, test loss without the topic minus with it, in nats per token: GRAM (orange) is module off minus module on in one model; filtering (grey) is the core-only model minus the model that also trained on the topic. Mean of 5 seeds, 95% t-intervals. Where filtering finds topic-specific knowledge, GRAM's module holds it.</figcaption>
+  </figure>
+
+  <h3 id="short-attack" data-short="Short relearning attack">4.3 A short relearning attack leaves GRAM, filtering and unlearning in the same place</h3>
+  <p>The attack fine-tunes each deployed model on 512 stories of a forgotten topic and keeps its best round. GRAM ended at 0.83 ± 0.01, filtering at 0.86 ± 0.01: GRAM was no easier to relearn than a model that never saw the topic. Post-hoc unlearning ended at 0.86 ± 0.01, level with both. The paper's MaxEnt ended at 0.98, clearly worse than its filtering (0.87); ours did not, so the second half of P4 fails and P4 is a miss. The best round came early (most within 1 to 4 attack steps, picked on the val half); after that, 512 stories overfit and the loss rose again (Figure 3, left).</p>
+  <p>Why did unlearning not stand out? Our MaxEnt setting, picked by the pre-registered grid, unlearned much harder than the paper's: before the attack its forgotten topics sat 1.309 nats above the baseline (CR 0.23; the paper's MaxEnt: 0.84), twenty times GRAM's 0.063. After the attack it nonetheless landed where filtering lands, which suggests the harsh setting also damaged the topic knowledge underneath (we did not test this directly). The pre-attack score said MaxEnt was by far the best remover; the attack said it was no better than filtering.</p>
+  <p><strong>Named side-finding: two steps undo the surface.</strong> The end-of-attack score cannot tell knowledge that was hidden from knowledge that was relearned, because every method ends near the same floor. The first two attack steps can (exploratory, added after the results). Two full-batch steps took 1.257 ± 0.077 nats off MaxEnt's forgotten-topic loss, leaving it 0.057 above the baseline, about where GRAM and filtering start. The same two steps took 0.023 ± 0.001 off GRAM and 0.024 ± 0.000 off filtering. No model relearns 1.3 nats of a topic from two gradient steps on 512 stories; what came back was a layer of suppression that MaxEnt had laid over the outputs. GRAM's and filtering's losses moved by the same small amount, the amount genuine learning buys in two steps.</p>
+
+  <h3 id="long-attack" data-short="Long attack: all relearn">4.4 Named side-finding, the toy ceiling: with 8 times the attack data, even the filtered model relearns</h3>
+  <p>The paper's attack is 512 sequences at every scale. We added one with 4,096 (about a tenth of a topic's training data) on the core-only profile. Everything came back: GRAM 0.96 ± 0.01, filtering 0.99 ± 0.01, MaxEnt 1.08 ± 0.02; in raw loss, GRAM ended 0.007 nats above the full-data model and filtering 0.003 (Figure 3, right). P5: hit. A model that never saw an alien story learned them to the full-data level from 4,096 examples, because at this scale a "capability" is mostly the general language of children's stories plus a little topic vocabulary. The relearning test here can tell a method that hides a capability (MaxEnt) from one that never stored it, but it cannot show that anything resists a determined fine-tune. The paper makes this point for filtering at scale ("partial recovery should be expected even from data-filtered models"); at 26M parameters, recovery is full.</p>
+  <figure class="plot">
+    <img src="figures/fig3_relearning.png" alt="Two panels of loss above the baseline against attack step, on an axis that is linear near zero and logarithmic above 0.05. Left, 512 sequences: the blue MaxEnt line starts above 1 and falls to about 0.06 within two steps; the orange GRAM and grey filtering lines start near 0.06, dip to about 0.03 and rise again. Right, 4,096 sequences: all three lines fall to about zero, MaxEnt slightly below.">
+    <figcaption><span class="label">Figure 3.</span>The relearning attack on the core-only profile: val loss on the attacked topic minus the baseline's, per attack step (one full pass over the attack sequences), mean over 4 topics and 5 seeds; runs that stopped early hold their last value. The y-axis is linear below 0.05 nats and logarithmic above. Left: the paper's 512 sequences; MaxEnt's suppression comes off in two steps. Right: 4,096 sequences; every method reaches the full-data model (dotted line).</figcaption>
+  </figure>
+
+  <h3 id="yardstick" data-short="The yardstick">4.5 The compute-ratio yardstick is coarse at this scale</h3>
+  <p>The compute ratio reads a loss off a power law fitted to the baseline's loss curve. With the paper's learning-rate schedule, the loss drops sharply in the last 10% of training, as the learning rate decays, and a power law cannot follow that drop: the fit misses the baseline's own curve by up to 0.035 nats (root mean square), about half the forget gap it is used to measure (Figure 4). The ranking of methods does not depend on it (the nats columns in Table 1 give the same order), but a CR of 0.75 versus 0.78 is inside the yardstick's own error. Read the CRs as a ranking and the nats as the size.</p>
+  <figure class="plot">
+    <img src="figures/fig4_yardstick.png" alt="Loss against training step for the baseline on the core and on alien stories, as dots, with fitted power-law curves. The dots drop below the curves in the last tenth of training.">
+    <figcaption><span class="label">Figure 4.</span>The baseline's test loss during training (dots, 5 seeds, 100 evaluations each) and the power law fitted to it (line), for the core and for alien stories. The final drop comes from the learning-rate decay; the fit cannot follow it, so the final losses sit below the curve.</figcaption>
+  </figure>
+  </section>
+
+  <section aria-labelledby="compare">
+  <h2 id="compare" data-short="Compared with the paper"><span class="num">05</span>Compared with the paper</h2>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Claims"><table>
+    <thead><tr><th>The paper's claim</th><th>Where it shows it</th><th>At 26M, this replication</th></tr></thead>
+    <tbody>
+      <tr><td>Ablating a module removes its capability, approximating data filtering</td><td>Simple Stories (26M), dual-use data (800M), scaling to 5B</td><td>✓ forget CR 0.73 against 0.75</td></tr>
+      <tr><td>It preserves the rest</td><td>Same</td><td>✓ core 0.94, retain 0.95</td></tr>
+      <tr><td>It resists recovery under fine-tuning like filtering</td><td>800M, Simple Stories</td><td>✓ at 512 sequences (0.83 against 0.86); ✗ for every method at 4,096</td></tr>
+      <tr><td>… and better than post-hoc unlearning</td><td>800M (MaxEnt), Simple Stories</td><td>✗ by the paper's end-of-attack score (all level); ✓ by what two attack steps undo (1.257 against 0.023 nats)</td></tr>
+      <tr><td>The filtering gap widens with scale</td><td>50M to 5B</td><td>Not tested (one size)</td></tr>
+      <tr><td>Modules compose; better than LoRA branches under partial labels</td><td>800M, 400M</td><td>Not tested</td></tr>
+    </tbody>
+  </table></div>
+  </section>
+
+  <section aria-labelledby="graft">
+  <h2 id="graft" data-short="GRAM and GRAFT"><span class="num">06</span>How this connects to gradient routing in RL (GRAFT)</h2>
+  <p>GRAM is one use of an idea this lab has tested before. <a href="https://arxiv.org/abs/2410.04332">Gradient Routing</a> introduced the move: decide, per example, which parameters may learn from it. <a href="https://arxiv.org/abs/2512.05648">Beyond data filtering: knowledge localization for capability removal in LLMs</a> applied it to dangerous knowledge with separate optimisers per parameter set, which GRAM adopts. <a href="https://arxiv.org/abs/2610.17062">Gradient Routing Localizes and Removes Unintended Behaviors in RL</a> (GRAFT) applies it during RL: rollouts a monitor flags as reward hacks update a FORGET adapter, which is deleted before deployment. Our <a href="../../graft-monitor/report/">Gradient routing with an LLM monitor</a> series replicated GRAFT with an LLM monitor, and found routing removed the hack only when the monitor caught nearly all of it.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="GRAM and GRAFT"><table>
+    <thead><tr><th></th><th>GRAM (this note)</th><th>GRAFT (our Episodes 1-2)</th></tr></thead>
+    <tbody>
+      <tr><td>When</td><td>Pretraining</td><td>RL fine-tuning</td></tr>
+      <tr><td>Who decides where a gradient goes</td><td>A label on the data</td><td>A monitor's flag on each rollout</td></tr>
+      <tr><td>Where it goes</td><td>One small module per capability</td><td>One forget adapter</td></tr>
+      <tr><td>At deployment</td><td>Modules switched on per user</td><td>The adapter deleted for everyone</td></tr>
+      <tr><td>What breaks it</td><td>Capabilities that overlap with the core (here: bygone eras)</td><td>A monitor that misses hacks (half recall: no effect)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Both depend on the label. GRAM's labels here were perfect; the paper reports that with half of them missing GRAM still removes more than filtering, because once a module specialises it absorbs similar unlabelled data. That "absorption" is the same property GRAFT needs from an imperfect monitor, and the next test to run in both.</p>
+  </section>
+
+  <section aria-labelledby="implications">
+  <h2 id="implications" data-short="Implications"><span class="num">07</span>Implications for AI safety</h2>
+  <p>At the scale we could test, GRAM does what the paper says: one training run, five capability profiles, each as good as a separately filtered model at removing a topic and keeping the rest, and no easier to relearn from. That makes access control by module a cheaper stand-in for filtering, not a stronger one: whatever a filtered model gives up to a fine-tune, a GRAM model with the module off gives up too. Three cautions carry over to real dual-use data. A capability that shares most of its knowledge with permitted ones (our "bygone eras") cannot be filed away by either method. A pre-attack forgetting score can overstate removal many times over: MaxEnt's was twenty times GRAM's and almost all of it came off in two steps. And a relearning test only means something when it is scored against a filtered model and run large enough to relearn that model; at 4,096 sequences every method here, filtering included, gave the topic back. <strong>Score removal by what a short attack leaves, next to a data-filtered model, and report what the first steps of the attack undo, so suppression is not mistaken for removal.</strong></p>
+  </section>
+
+  <section aria-labelledby="predictions">
+  <h2 id="predictions"><span class="num">08</span>Predictions</h2>
+  <p>Written before any run (<a href="../PREREGISTRATION.md">PREREGISTRATION.md</a>), from the paper's numbers.</p>
+  <div class="table-wrap" tabindex="0" role="region" aria-label="Predictions"><table>
+    <thead><tr><th>#</th><th>Prediction</th><th>Threshold</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>Module off removes the topic like filtering</td><td>GRAM forget ≤ filtering + 0.05</td><td>hit: 0.73 against 0.75</td></tr>
+      <tr><td>P2</td><td>The rest survives</td><td>GRAM core and retain ≥ 0.90</td><td>hit: 0.94 and 0.95</td></tr>
+      <tr><td>P3</td><td>Each topic lives in its module</td><td>off − on &gt; 0, 95% interval above zero, all 4 topics</td><td>hit: bygone eras 0.006 ± 0.000</td></tr>
+      <tr><td>P4</td><td>GRAM resists like filtering; unlearning does not</td><td>GRAM ≤ filtering + 0.05; MaxEnt ≥ GRAM + 0.05</td><td>miss: 0.83, 0.86, 0.86</td></tr>
+      <tr><td>P5</td><td>The same under an 8x attack</td><td>GRAM ≤ filtering + 0.05</td><td>hit: 0.96 against 0.99</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Post-mortem.</strong> Four of five hit, and the GRAM numbers landed within a few hundredths of the paper's. The miss is informative: P4 assumed unlearning would be easier to relearn than filtering, as in the paper, and by the paper's end-of-attack score it was not; our pre-registered grid chose a much harsher unlearning setting than the paper's tuning did. What surprised us: how much of that harsher unlearning was surface (two steps took back 1.257 of 1.314 nats), and that the filtered model itself relearned fully at 4,096 sequences. What we would change: register a measure of how fast the first attack steps recover the loss, not only where the attack ends, and register an attack size large enough to relearn the filtered model as the ceiling.</p>
+  </section>
+
+  <section aria-labelledby="limits">
+  <h2 id="limits" data-short="What this does not show"><span class="num">09</span>What this does not show</h2>
+  <ul>
+    <li><strong>Anything about scale.</strong> One size, 26M parameters. The paper's strongest claim, that the gap between filtered and full-data models widens with scale and GRAM tracks it to 5B, is not tested here, and the toy ceiling of section 4.4 may well not hold at scale: larger models learn more topic-specific knowledge that a filtered model cannot rebuild from 4,096 examples.</li>
+    <li><strong>Dual-use capabilities.</strong> Our restricted "capabilities" are story topics, as in the paper's own small experiment, chosen so that nothing hazardous is involved. Virology or exploit writing overlap with permitted knowledge in ways story topics may not.</li>
+    <li><strong>Downstream behaviour.</strong> Every number is a next-token loss on held-out stories, the paper's measure too. We did not test whether a model with a module off can still write an alien story when asked.</li>
+    <li><strong>Imperfect labels, composition, other baselines.</strong> All data were labelled; profiles served at most one module; the paper's LoRA-branch and DEMix baselines were not run.</li>
+    <li><strong>That unlearning is as good as filtering.</strong> MaxEnt used one setting from a 9-point grid on one seed (lr 0.0003, weight 30; core loss +0.013 on the val half), not the paper's per-profile Bayesian optimisation, and it unlearned much harder than the paper's (forget CR 0.23 against 0.84). Its tie with filtering after the attack is for this setting only; a gentler one, like the paper's, may leave more to relearn. Its retained topic also improved past the baseline (CR 1.16) because MaxEnt kept training on it, which flatters its retain score. The two-step measure was added after the results.</li>
+    <li><strong>Seeds.</strong> 5 seeds; per-topic gaps under about 0.01 nats are near the seed spread.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="reproduce">
+  <h2 id="reproduce"><span class="num">10</span>Reproduce it</h2>
+  <pre><code>export MODAL_PROFILE=&lt;your profile&gt;
+modal run modal_app.py::prep                         # tokenise Simple Stories (CPU, ~5 min)
+modal run --detach modal_app.py::launch --seeds 1,2  # one H100 per seed, ~90 min each
+modal run modal_app.py::pull                         # result JSON into results/runs/
+python analyze.py && python make_figures.py && python make_cover.py && python fill_note.py</code></pre>
+  <p>Every number on this page is filled from <a href="../results/summary.json">results/summary.json</a> by <a href="../fill_note.py">fill_note.py</a>; <a href="../make_figures.py">make_figures.py</a> prints what it plots, and <code>experiments/repl-gram-modular-pretraining/reproduce.sh --dry-run</code> lists every command. The model and training loop are in <a href="../gram.py">gram.py</a>, about 400 lines.</p>
+  </section>
+
+  <section aria-labelledby="next">
+  <h2 id="next" data-short="What's next"><span class="num">11</span>What’s next</h2>
+  <ul>
+    <li><strong>Find the size where filtering starts to resist.</strong> Repeat the 4,096-sequence attack at 100M and 400M parameters: a relearning test means something only above that size.</li>
+    <li><strong>Absorption with missing labels.</strong> Label half the restricted stories and check whether the unlabelled half still lands in the module, the property GRAFT also needs from an imperfect monitor.</li>
+    <li><strong>Behaviour, not loss.</strong> Prompt each profile to write a story on each topic and score the stories with a classifier.</li>
+  </ul>
+  </section>
+
+  <section aria-labelledby="qa">
+  <h2 id="qa" data-short="Q&amp;A"><span class="num">12</span>Questions and answers</h2>
+  <h3 id="qa-what">What is GRAM?</h3>
+  <p>Gradient-routed auxiliary modules: a pretraining method that adds a small feed-forward module per restricted capability beside each layer's main feed-forward block, and lets labelled data of that capability update mostly its module. Switching the module off at deployment removes the capability; one training run serves many capability profiles.</p>
+  <h3 id="qa-replicate">Does GRAM replicate?</h3>
+  <p>At the paper's smallest scale, yes. On Simple Stories at 26M parameters over 5 seeds, a module switched off left its topic at compute ratio 0.73 (the paper: 0.77), level with data filtering (0.75), with core and retained topics at 0.94 and 0.95.</p>
+  <h3 id="qa-relearn">Can a fine-tune bring a removed capability back?</h3>
+  <p>With 512 sequences, partly, and no more from GRAM than from a model that never saw the data. Post-hoc unlearning (MaxEnt) lost 1.257 nats of its forgetting in the first two steps and ended level with filtering. With 4,096 sequences, fully, for GRAM, filtering and unlearning alike: at 26M parameters, a story topic is easy to learn from scratch.</p>
+  <h3 id="qa-graft">How is GRAM related to GRAFT?</h3>
+  <p>Both are gradient routing: each training example updates only the parameters it is routed to, and those parameters are removed or switched off later. GRAM routes by data label during pretraining, into one module per capability; GRAFT routes by a monitor's flag during RL, into one adapter that is deleted.</p>
+  </section>
+
+  <section aria-labelledby="appendix">
+  <h2 id="appendix" data-short="Appendix: data"><span class="num">A</span>Appendix: data</h2>
+  <ul>
+    <li><code>results/runs/seed_N/baseline.json</code>: <code>steps</code>, <code>seconds</code>, <code>params</code>, <code>curve</code> (100 rows: <code>step</code> and the test loss of <code>core</code> and each restricted topic, 16 batches each), <code>test</code> and <code>val</code> (final losses, 40 and 16 batches of 128 x 256 tokens).</li>
+    <li><code>gram_eval.json</code>: <code>info</code> (the batch schedule's counts), <code>P_core</code>, <code>P_aux</code>, <code>profiles</code> (per profile, <code>test</code> and <code>val</code> loss per topic), <code>all_on</code> (every module on). <code>gram_elicit.json</code>: one row per attack: <code>profile</code>, <code>label</code> (the attacked topic), <code>num_seq</code> (512 or 4,096), <code>best_round</code>, <code>val_curve</code>, <code>test_loss</code>.</li>
+    <li><code>filter_&lt;profile&gt;.json</code> and <code>filter_&lt;profile&gt;_elicit.json</code>: the same for each filtered model. <code>maxent_&lt;profile&gt;.json</code>: <code>chosen</code> (lr, alpha), <code>steps</code> run, <code>final_kl</code>, <code>test</code>, <code>val</code>, <code>elicit</code>.</li>
+    <li><code>results/runs/maxent_choice.json</code>: the 9-point grid on seed 1 (core loss rise and forget loss on the val half) and the chosen setting.</li>
+    <li><code>results/summary.json</code>: every number on this page; <code>results/table.tsv</code>: one row per seed, method, profile, topic and class (retain, forget, elicited_forget, elicited_forget_8x), with test loss, compute ratio and the attack's best round.</li>
+    <li><code>results/spend_ledger.jsonl</code>: every Modal launch with its estimate.</li>
+  </ul>
+  <h3 id="refs">References and code</h3>
+  <ul>
+    <li>Modular Pretraining Enables Access Control, <a href="https://arxiv.org/abs/2607.08077">arXiv 2607.08077</a>; code and released results: <a href="https://github.com/agencyenterprise/modular-pretraining">agencyenterprise/modular-pretraining</a>; project page <a href="https://modularpretraining.com">modularpretraining.com</a>.</li>
+    <li>Gradient Routing: Masking Gradients to Localize Computation in Neural Networks, <a href="https://arxiv.org/abs/2410.04332">arXiv 2410.04332</a>. Beyond data filtering: knowledge localization for capability removal in LLMs, <a href="https://arxiv.org/abs/2512.05648">arXiv 2512.05648</a>. Gradient Routing Localizes and Removes Unintended Behaviors in RL, <a href="https://arxiv.org/abs/2610.17062">arXiv 2610.17062</a>.</li>
+    <li>Do Unlearning Methods Remove Information from Language Model Weights?, <a href="https://arxiv.org/abs/2410.08827">arXiv 2410.08827</a>. Simple Stories, <a href="https://huggingface.co/datasets/SimpleStories/SimpleStories">SimpleStories/SimpleStories</a>.</li>
+    <li>This lab: <a href="../../graft-monitor/report/">GRAFT with an LLM monitor (Episode 1)</a>, <a href="../../graft-monitor-ep2/report/">Episode 2</a>.</li>
+  </ul>
+  <h3 id="cite">How to cite</h3>
+  <pre><code>@misc{lie2026gramrepl,
+  author = {Albert Lie},
+  title  = {Switch off a pretrained module and a topic goes, about as far as if the model never saw it},
+  year   = {2026},
+  month  = nov,
+  url    = {https://albertlieyingadrian.github.io/steerlab/experiments/repl-gram-modular-pretraining/report/}
+}</code></pre>
+  </section>
+  <footer class="note">Trained from scratch on Modal H100s; no API models were used. Paper replicated: "Modular Pretraining Enables Access Control" (AE Studio), arXiv 2607.08077. Data: Simple Stories (SimpleStories on Hugging Face).</footer>
+</article>
+</div>
+<script src="../../shared/report.js?v=15"></script>
+</body>
+</html>
